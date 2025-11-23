@@ -1,0 +1,128 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Progress Report Detail - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>Progress Report - {{ report.student.full_name }}</h1>
+
+<div class="card">
+    <h2>Student Information</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <div>
+            <strong>Student ID:</strong> {{ report.student.student_id }}
+        </div>
+        <div>
+            <strong>Name:</strong> {{ report.student.full_name }}
+        </div>
+        <div>
+            <strong>Grade:</strong> {{ report.student.grade }}
+        </div>
+        <div>
+            <strong>Division:</strong> {{ report.student.division|default:"-" }}
+        </div>
+        <div>
+            <strong>Exam Type:</strong> {{ report.exam_type.name }}
+        </div>
+        <div>
+            <strong>Academic Year:</strong> {{ report.academic_year|default:"-" }}
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Overall Performance</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;">
+        <div style="text-align: center; padding: 1rem; background: #f0f0f0; border-radius: 8px;">
+            <div style="font-size: 2rem; font-weight: bold; color: #3498db;">{{ report.total_marks_obtained }}/{{ report.total_max_marks }}</div>
+            <div>Total Marks</div>
+        </div>
+        <div style="text-align: center; padding: 1rem; background: #f0f0f0; border-radius: 8px;">
+            <div style="font-size: 2rem; font-weight: bold; color: #27ae60;">{{ report.overall_percentage|floatformat:2 }}%</div>
+            <div>Percentage</div>
+        </div>
+        <div style="text-align: center; padding: 1rem; background: #f0f0f0; border-radius: 8px;">
+            <div style="font-size: 2rem; font-weight: bold; color: #9b59b6;">{{ report.overall_grade }}</div>
+            <div>Grade</div>
+        </div>
+        {% if report.rank %}
+        <div style="text-align: center; padding: 1rem; background: #f0f0f0; border-radius: 8px;">
+            <div style="font-size: 2rem; font-weight: bold; color: #e74c3c;">{{ report.rank }}</div>
+            <div>Rank</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if hadiya_subjects %}
+<div class="card">
+    <h2>Hadiya (Islamic) Subjects</h2>
+    <div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Subject</th>
+                <th>Marks Obtained</th>
+                <th>Max Marks</th>
+                <th>Percentage</th>
+                <th>Grade</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in hadiya_subjects %}
+            <tr>
+                <td>{{ entry.subject.name }}</td>
+                <td>{{ entry.marks_obtained }}</td>
+                <td>{{ entry.max_marks }}</td>
+                <td>{{ entry.percentage|floatformat:2 }}%</td>
+                <td><strong>{{ entry.grade_letter }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% endif %}
+
+{% if division_subjects %}
+<div class="card">
+    <h2>Division Specific Subjects</h2>
+    <div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Subject</th>
+                <th>Marks Obtained</th>
+                <th>Max Marks</th>
+                <th>Percentage</th>
+                <th>Grade</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in division_subjects %}
+            <tr>
+                <td>{{ entry.subject.name }}</td>
+                <td>{{ entry.marks_obtained }}</td>
+                <td>{{ entry.max_marks }}</td>
+                <td>{{ entry.percentage|floatformat:2 }}%</td>
+                <td><strong>{{ entry.grade_letter }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% endif %}
+
+{% if report.remarks %}
+<div class="card">
+    <h2>Remarks</h2>
+    <p>{{ report.remarks }}</p>
+</div>
+{% endif %}
+
+<div style="margin-top: 1rem;">
+    <a href="{% url 'students:progress_report' %}" class="btn">Back to Reports</a>
+    <button onclick="window.print()" class="btn btn-success">Print Report</button>
+</div>
+{% endblock %}
+

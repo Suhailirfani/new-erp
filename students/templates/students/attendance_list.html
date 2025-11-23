@@ -1,0 +1,96 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Attendance Records - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>Attendance Records</h1>
+
+<div class="filter-form">
+    <form method="get">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Date From</label>
+                <input type="date" name="date_from" value="{{ current_filters.date_from }}">
+            </div>
+            <div class="form-group">
+                <label>Date To</label>
+                <input type="date" name="date_to" value="{{ current_filters.date_to }}">
+            </div>
+            <div class="form-group">
+                <label>Attendance Type</label>
+                <select name="attendance_type">
+                    <option value="">All Types</option>
+                    <option value="daily" {% if current_filters.attendance_type == 'daily' %}selected{% endif %}>Daily</option>
+                    <option value="period" {% if current_filters.attendance_type == 'period' %}selected{% endif %}>Period</option>
+                    <option value="activity" {% if current_filters.attendance_type == 'activity' %}selected{% endif %}>Activity</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status">
+                    <option value="">All Status</option>
+                    <option value="present" {% if current_filters.status == 'present' %}selected{% endif %}>Present</option>
+                    <option value="absent" {% if current_filters.status == 'absent' %}selected{% endif %}>Absent</option>
+                    <option value="late" {% if current_filters.status == 'late' %}selected{% endif %}>Late</option>
+                    <option value="excused" {% if current_filters.status == 'excused' %}selected{% endif %}>Excused</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Grade/Year</label>
+                <input type="text" name="grade" value="{{ current_filters.grade }}" placeholder="e.g., 11, 12, 1st Year">
+            </div>
+            <div class="form-group">
+                <label>Student ID</label>
+                <input type="text" name="student_id" value="{{ current_filters.student_id }}" placeholder="Student ID">
+            </div>
+        </div>
+        <button type="submit" class="btn">Filter</button>
+        <a href="{% url 'students:attendance_list' %}" class="btn btn-danger">Clear</a>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Attendance Records ({{ attendances.count }})</h2>
+    <div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Student</th>
+                <th>Type</th>
+                <th>Period/Activity</th>
+                <th>Status</th>
+                <th>Marked By</th>
+                <th>Remarks</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for attendance in attendances %}
+            <tr>
+                <td>{{ attendance.date }}</td>
+                <td>{{ attendance.student.full_name }} ({{ attendance.student.student_id }})</td>
+                <td>{{ attendance.get_attendance_type_display }}</td>
+                <td>
+                    {% if attendance.period %}
+                        {{ attendance.period.name }}
+                    {% elif attendance.activity %}
+                        {{ attendance.activity.name }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{{ attendance.get_status_display }}</td>
+                <td>{{ attendance.marked_by|default:"-" }}</td>
+                <td>{{ attendance.remarks|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" style="text-align: center;">No attendance records found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% endblock %}
+

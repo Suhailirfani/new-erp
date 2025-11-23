@@ -1,0 +1,42 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Delete Exam Type - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>Delete Exam Type</h1>
+
+<div class="card" style="background-color: #f8d7da; border-left: 4px solid #dc3545;">
+    <h2 style="margin-top: 0; color: #721c24;">⚠️ Warning</h2>
+    <p style="font-size: 1.1rem; font-weight: bold;">
+        Are you sure you want to delete the exam type "<strong>{{ exam_type.name }}</strong>"?
+    </p>
+    <p style="margin-top: 1rem;">
+        This action cannot be undone. All mark entries and progress reports associated with this exam type will remain, but you won't be able to create new ones.
+    </p>
+</div>
+
+<div class="card">
+    <h2>Exam Type Details</h2>
+    <div style="margin-top: 1rem;">
+        <p><strong>Name:</strong> {{ exam_type.name }}</p>
+        <p><strong>Description:</strong> {{ exam_type.description|default:"-" }}</p>
+        <p><strong>Display Order:</strong> {{ exam_type.order }}</p>
+    </div>
+</div>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        <div style="margin-bottom: 1rem;">
+            <label style="display: flex; align-items: center; font-weight: bold;">
+                <input type="checkbox" required style="margin-right: 0.5rem; width: auto;">
+                I confirm that I want to delete this exam type
+            </label>
+        </div>
+        
+        <button type="submit" class="btn btn-danger">Delete Exam Type</button>
+        <a href="{% url 'students:exam_type_list' %}" class="btn">Cancel</a>
+    </form>
+</div>
+{% endblock %}
+

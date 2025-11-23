@@ -1,0 +1,71 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Confirm Upgrade - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>Confirm Student Upgrade</h1>
+
+<div class="card" style="background-color: #f8d7da; border-left: 4px solid #dc3545;">
+    <h2 style="margin-top: 0; color: #721c24;">⚠️ Please Review Before Confirming</h2>
+    <p style="font-size: 1.1rem; font-weight: bold;">
+        You are about to upgrade <strong>{{ student_count }}</strong> student(s) from <strong>Grade {{ from_grade }}</strong> to <strong>Grade {{ to_grade }}</strong>.
+    </p>
+    <p style="margin-top: 1rem;">
+        This action cannot be easily undone. Please review the list below and confirm if this is correct.
+    </p>
+</div>
+
+<div class="card">
+    <h2>Students to be Upgraded ({{ student_count }} total)</h2>
+    {% if show_all %}
+    <p style="color: #666; margin-bottom: 1rem;">Showing first 50 students. All {{ student_count }} students will be upgraded.</p>
+    {% endif %}
+    
+    <div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Student ID</th>
+                <th>Name</th>
+                <th>Current Grade</th>
+                <th>Division</th>
+                <th>Room</th>
+                <th>Type</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ student.student_id }}</td>
+                <td>{{ student.full_name }}</td>
+                <td>{{ student.grade }}</td>
+                <td>{{ student.division|default:"-" }}</td>
+                <td>{{ student.room.room_number|default:"-" }}</td>
+                <td>{{ student.get_student_type_display }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="from_grade" value="{{ from_grade }}">
+        <input type="hidden" name="to_grade" value="{{ to_grade }}">
+        <input type="hidden" name="confirm" value="yes">
+        
+        <div style="margin-bottom: 1rem;">
+            <label style="display: flex; align-items: center; font-weight: bold;">
+                <input type="checkbox" required style="margin-right: 0.5rem; width: auto;">
+                I confirm that I want to upgrade {{ student_count }} student(s) from Grade {{ from_grade }} to Grade {{ to_grade }}
+            </label>
+        </div>
+        
+        <button type="submit" class="btn btn-success">Confirm and Upgrade</button>
+        <a href="{% url 'students:student_upgrade' %}" class="btn btn-danger">Cancel</a>
+    </form>
+</div>
+{% endblock %}
+

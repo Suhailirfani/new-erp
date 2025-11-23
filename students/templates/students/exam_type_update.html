@@ -1,0 +1,32 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Update Exam Type - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>Update Exam Type</h1>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label>Exam Type Name *</label>
+            <input type="text" name="name" value="{{ exam_type.name }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Description</label>
+            <textarea name="description" rows="3">{{ exam_type.description }}</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>Display Order</label>
+            <input type="number" name="order" value="{{ exam_type.order }}" min="0">
+        </div>
+        
+        <button type="submit" class="btn btn-success">Update Exam Type</button>
+        <a href="{% url 'students:exam_type_list' %}" class="btn btn-danger">Cancel</a>
+    </form>
+</div>
+{% endblock %}
+

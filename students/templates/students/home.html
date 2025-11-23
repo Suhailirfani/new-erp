@@ -1,0 +1,53 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Dashboard - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="stats">
+    <div class="stat-card">
+        <h3>{{ total_students }}</h3>
+        <p>Total Students</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ hostel_students }}</h3>
+        <p>Hostel Students</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ day_scholar_students }}</h3>
+        <p>Day Scholars</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ today_present }}</h3>
+        <p>Present Today</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ today_absent }}</h3>
+        <p>Absent Today</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ pending_movements }}</h3>
+        <p>Pending Movements</p>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Quick Actions</h2>
+    <div class="button-group">
+        <a href="{% url 'students:mark_attendance' %}" class="btn">Mark Daily Attendance</a>
+        <a href="{% url 'students:mark_attendance' %}?type=period" class="btn">Mark Period Attendance</a>
+        <a href="{% url 'students:mark_attendance' %}?type=activity" class="btn">Mark Activity Attendance</a>
+        <a href="{% url 'students:hostel_movement_create' %}" class="btn btn-success">Record Hostel Movement</a>
+        <a href="{% url 'students:student_list' %}" class="btn">View All Students</a>
+        <a href="{% url 'students:student_create' %}" class="btn btn-success">Add Single Student</a>
+        <a href="{% url 'students:student_bulk_import' %}" class="btn" style="background-color: #27ae60;">Bulk Import Students</a>
+        <a href="{% url 'students:student_upgrade' %}" class="btn" style="background-color: #9b59b6;">Upgrade Students</a>
+        <a href="{% url 'students:attendance_list' %}" class="btn">View Attendance Records</a>
+        <a href="{% url 'students:exam_type_list' %}" class="btn" style="background-color: #8e44ad;">Manage Exam Types</a>
+        <a href="{% url 'students:mark_entry' %}" class="btn" style="background-color: #e67e22;">Mark Entry</a>
+        <a href="{% url 'students:progress_report' %}" class="btn" style="background-color: #16a085;">Progress Reports</a>
+    </div>
+</div>
+{% endblock %}
+

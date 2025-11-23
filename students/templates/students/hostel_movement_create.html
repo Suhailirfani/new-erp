@@ -1,0 +1,50 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Record Hostel Movement - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>Record Hostel Movement</h1>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>Student *</label>
+            <select name="student" required>
+                <option value="">Select Student</option>
+                {% for student in students %}
+                <option value="{{ student.id }}">{{ student.full_name }} ({{ student.student_id }}) - Grade {{ student.grade }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <h2>Departure Information</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Departure Date *</label>
+                <input type="date" name="departure_date" value="{% now 'Y-m-d' %}" required>
+            </div>
+            <div class="form-group">
+                <label>Departure Time *</label>
+                <input type="time" name="departure_time" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Escorting Person *</label>
+            <input type="text" name="escorting_person" required placeholder="Name of escorting person">
+        </div>
+        <div class="form-group">
+            <label>Reason *</label>
+            <textarea name="reason" rows="3" required placeholder="Reason for departure"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Expected Return Date</label>
+            <input type="date" name="expected_return_date">
+        </div>
+        
+        <button type="submit" class="btn btn-success">Record Movement</button>
+        <a href="{% url 'students:hostel_movement_list' %}" class="btn btn-danger">Cancel</a>
+    </form>
+</div>
+{% endblock %}
+

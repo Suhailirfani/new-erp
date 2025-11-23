@@ -1,0 +1,53 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Download Sample Excel - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>Sample Excel Template</h1>
+<div class="card">
+    <p>To download a sample Excel template, create an Excel file with the following structure:</p>
+    <table style="margin-top: 1rem;">
+        <thead>
+            <tr>
+                <th>student_id</th>
+                <th>first_name</th>
+                <th>last_name</th>
+                <th>grade</th>
+                <th>division</th>
+                <th>room</th>
+                <th>student_type</th>
+                <th>email</th>
+                <th>phone</th>
+                <th>address</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>STU001</td>
+                <td>John</td>
+                <td>Doe</td>
+                <td>11</td>
+                <td>Science</td>
+                <td>101</td>
+                <td>hostel</td>
+                <td>john@example.com</td>
+                <td>1234567890</td>
+                <td>123 Main St</td>
+            </tr>
+            <tr>
+                <td>STU002</td>
+                <td>Jane</td>
+                <td>Smith</td>
+                <td>12</td>
+                <td>Commerce</td>
+                <td>102</td>
+                <td>day_scholar</td>
+                <td>jane@example.com</td>
+                <td>0987654321</td>
+                <td>456 Oak Ave</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+

@@ -1,0 +1,97 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Mark Entries - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>Mark Entries</h1>
+
+<div class="filter-form">
+    <form method="get">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Exam Type</label>
+                <select name="exam_type">
+                    <option value="">All Exam Types</option>
+                    {% for exam_type in exam_types %}
+                    <option value="{{ exam_type.id }}" {% if current_filters.exam_type == exam_type.id|stringformat:"s" %}selected{% endif %}>{{ exam_type.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Grade/Year</label>
+                <input type="text" name="grade" list="grades-list" value="{{ current_filters.grade }}" placeholder="e.g., 11, 12">
+                <datalist id="grades-list">
+                    {% for g in grades %}
+                    <option value="{{ g }}">
+                    {% endfor %}
+                </datalist>
+            </div>
+            <div class="form-group">
+                <label>Division</label>
+                <select name="division">
+                    <option value="">All Divisions</option>
+                    {% for div in divisions %}
+                    <option value="{{ div.id }}" {% if current_filters.division == div.id|stringformat:"s" %}selected{% endif %}>{{ div.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Subject</label>
+                <select name="subject">
+                    <option value="">All Subjects</option>
+                    {% for subject in subjects %}
+                    <option value="{{ subject.id }}" {% if current_filters.subject == subject.id|stringformat:"s" %}selected{% endif %}>{{ subject.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Student ID</label>
+                <input type="text" name="student_id" value="{{ current_filters.student_id }}" placeholder="Student ID">
+            </div>
+        </div>
+        <button type="submit" class="btn">Filter</button>
+        <a href="{% url 'students:mark_entry_list' %}" class="btn btn-danger">Clear</a>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Mark Entries ({{ mark_entries.count }})</h2>
+    <div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Student</th>
+                <th>Exam Type</th>
+                <th>Subject</th>
+                <th>Subject Type</th>
+                <th>Marks</th>
+                <th>Percentage</th>
+                <th>Grade</th>
+                <th>Exam Date</th>
+                <th>Entered By</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in mark_entries %}
+            <tr>
+                <td>{{ entry.student.full_name }} ({{ entry.student.student_id }})</td>
+                <td>{{ entry.exam_type.name }}</td>
+                <td>{{ entry.subject.name }}</td>
+                <td>{{ entry.subject.get_subject_type_display }}</td>
+                <td>{{ entry.marks_obtained }}/{{ entry.max_marks }}</td>
+                <td>{{ entry.percentage|floatformat:2 }}%</td>
+                <td><strong>{{ entry.grade_letter }}</strong></td>
+                <td>{{ entry.exam_date|default:"-" }}</td>
+                <td>{{ entry.entered_by|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" style="text-align: center;">No mark entries found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% endblock %}
+

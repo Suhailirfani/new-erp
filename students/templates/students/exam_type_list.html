@@ -1,0 +1,58 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Exam Types - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>Exam Types</h1>
+
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'students:exam_type_create' %}" class="btn btn-success">Add New Exam Type</a>
+</div>
+
+<div class="card">
+    <h2>Exam Types ({{ exam_types.count }})</h2>
+    <div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Order</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for exam_type in exam_types %}
+            <tr>
+                <td>{{ exam_type.order }}</td>
+                <td><strong>{{ exam_type.name }}</strong></td>
+                <td>{{ exam_type.description|default:"-" }}</td>
+                <td>
+                    <a href="{% url 'students:exam_type_update' exam_type.pk %}" class="btn">Edit</a>
+                    <a href="{% url 'students:exam_type_delete' exam_type.pk %}" class="btn btn-danger">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align: center;">No exam types found. <a href="{% url 'students:exam_type_create' %}">Create one</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<div class="card" style="background-color: #e7f3ff; border-left: 4px solid #2196F3;">
+    <h3 style="margin-top: 0;">💡 Common Exam Types</h3>
+    <p>Examples of exam types you might want to create:</p>
+    <ul style="margin-left: 2rem;">
+        <li><strong>Quarterly Exam</strong> - First term examination</li>
+        <li><strong>Half Yearly Exam</strong> - Mid-year examination</li>
+        <li><strong>Annual Exam</strong> - Year-end examination</li>
+        <li><strong>Unit Test</strong> - Periodic unit tests</li>
+        <li><strong>Pre-Board</strong> - Pre-board examination</li>
+        <li><strong>Mock Test</strong> - Practice examination</li>
+    </ul>
+</div>
+{% endblock %}
+

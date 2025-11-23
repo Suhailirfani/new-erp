@@ -1,0 +1,89 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Hostel Movements - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>Hostel Movement Records</h1>
+
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'students:hostel_movement_create' %}" class="btn btn-success">Record New Movement</a>
+</div>
+
+<div class="filter-form">
+    <form method="get">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Student ID</label>
+                <input type="text" name="student_id" value="{{ current_filters.student_id }}" placeholder="Student ID">
+            </div>
+            <div class="form-group">
+                <label>Return Status</label>
+                <select name="is_returned">
+                    <option value="">All</option>
+                    <option value="1" {% if current_filters.is_returned == '1' %}selected{% endif %}>Returned</option>
+                    <option value="0" {% if current_filters.is_returned == '0' %}selected{% endif %}>Not Returned</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Date From</label>
+                <input type="date" name="date_from" value="{{ current_filters.date_from }}">
+            </div>
+            <div class="form-group">
+                <label>Date To</label>
+                <input type="date" name="date_to" value="{{ current_filters.date_to }}">
+            </div>
+        </div>
+        <button type="submit" class="btn">Filter</button>
+        <a href="{% url 'students:hostel_movement_list' %}" class="btn btn-danger">Clear</a>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Movement Records ({{ movements.count }})</h2>
+    <div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Student</th>
+                <th>Departure Date</th>
+                <th>Departure Time</th>
+                <th>Escorting Person</th>
+                <th>Reason</th>
+                <th>Expected Return</th>
+                <th>Arrival Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for movement in movements %}
+            <tr>
+                <td>{{ movement.student.full_name }} ({{ movement.student.student_id }})</td>
+                <td>{{ movement.departure_date }}</td>
+                <td>{{ movement.departure_time }}</td>
+                <td>{{ movement.escorting_person }}</td>
+                <td>{{ movement.reason|truncatewords:10 }}</td>
+                <td>{{ movement.expected_return_date|default:"-" }}</td>
+                <td>{{ movement.arrival_date|default:"-" }}</td>
+                <td>
+                    {% if movement.is_returned %}
+                        <span style="color: green; font-weight: bold;">Returned</span>
+                    {% else %}
+                        <span style="color: orange; font-weight: bold;">Not Returned</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'students:hostel_movement_update' movement.pk %}" class="btn">Update</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" style="text-align: center;">No movement records found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% endblock %}
+

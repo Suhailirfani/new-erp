@@ -1,0 +1,71 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Update Hostel Movement - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>Update Hostel Movement</h1>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>Student</label>
+            <input type="text" value="{{ movement.student.full_name }} ({{ movement.student.student_id }})" disabled>
+        </div>
+        
+        <h2>Departure Information</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Departure Date</label>
+                <input type="text" value="{{ movement.departure_date }}" disabled>
+            </div>
+            <div class="form-group">
+                <label>Departure Time</label>
+                <input type="text" value="{{ movement.departure_time }}" disabled>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Escorting Person</label>
+            <input type="text" value="{{ movement.escorting_person }}" disabled>
+        </div>
+        <div class="form-group">
+            <label>Reason</label>
+            <textarea disabled>{{ movement.reason }}</textarea>
+        </div>
+        <div class="form-group">
+            <label>Expected Return Date</label>
+            <input type="text" value="{{ movement.expected_return_date|default:'-' }}" disabled>
+        </div>
+        
+        <h2>Arrival Information</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Arrival Date</label>
+                <input type="date" name="arrival_date" value="{{ movement.arrival_date|date:'Y-m-d'|default:'' }}">
+            </div>
+            <div class="form-group">
+                <label>Arrival Time</label>
+                <input type="time" name="arrival_time" value="{{ movement.arrival_time|time:'H:i'|default:'' }}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Student Signature/Name</label>
+            <input type="text" name="sign" value="{{ movement.sign }}" placeholder="Student signature or name">
+        </div>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="is_returned" {% if movement.is_returned %}checked{% endif %}>
+                Mark as Returned
+            </label>
+        </div>
+        <div class="form-group">
+            <label>Remarks</label>
+            <textarea name="remarks" rows="3">{{ movement.remarks }}</textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-success">Update Movement</button>
+        <a href="{% url 'students:hostel_movement_list' %}" class="btn btn-danger">Cancel</a>
+    </form>
+</div>
+{% endblock %}
+

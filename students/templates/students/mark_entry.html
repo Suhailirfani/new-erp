@@ -1,0 +1,247 @@
+{% extends 'students/base.html' %}
+{% load students_extras %}
+
+{% block title %}Mark Entry - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>Mark Entry</h1>
+
+<div class="card" style="background-color: #e7f3ff; border-left: 4px solid #2196F3; margin-bottom: 1.5rem;">
+    <h3 style="margin-top: 0;">📝 Step-by-Step Instructions</h3>
+    <ol style="margin-left: 2rem; margin-top: 0.5rem;">
+        <li><strong>Select Exam Type</strong> - Choose the exam (e.g., Quarterly, Half Yearly)</li>
+        <li><strong>Select Grade/Year</strong> - Enter or select the grade (e.g., 11, 12, 1st Year)</li>
+        <li><strong>Select Division</strong> - Choose division if needed (optional, but recommended for division-specific subjects)</li>
+        <li><strong>Select Subject</strong> - Choose the subject to enter marks for</li>
+        <li><strong>Click "Load Students"</strong> - This will show all students matching your filters</li>
+        <li><strong>Enter Marks</strong> - Fill in marks for each student and click "Save Marks"</li>
+    </ol>
+</div>
+
+<div class="filter-form">
+    <form method="get" id="filterForm">
+        <h2 style="margin-top: 0;">Step 1: Select Filters</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Exam Type * <span style="color: red;">Required</span></label>
+                <select name="exam_type" id="examType" required>
+                    <option value="">-- Select Exam Type --</option>
+                    {% for exam_type in exam_types %}
+                    <option value="{{ exam_type.id }}" {% if selected_exam_type == exam_type.id|stringformat:"s" %}selected{% endif %}>{{ exam_type.name }}</option>
+                    {% endfor %}
+                </select>
+                {% if not exam_types %}
+                <small style="color: #e74c3c; display: block; margin-top: 0.5rem;">
+                    ⚠️ No exam types found. <a href="{% url 'students:exam_type_create' %}">Create one first</a>
+                </small>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label>Grade/Year * <span style="color: red;">Required</span></label>
+                {% if grades %}
+                <select name="grade" id="gradeSelect" required onchange="this.form.submit()">
+                    <option value="">-- Select Grade/Year --</option>
+                    {% for g in grades %}
+                    <option value="{{ g }}" {% if selected_grade == g %}selected{% endif %}>{{ g }}</option>
+                    {% endfor %}
+                </select>
+                {% else %}
+                <input type="text" name="grade" value="{{ selected_grade }}" placeholder="e.g., 11, 12, 1st Year" required>
+                {% endif %}
+                <small style="display: block; margin-top: 0.5rem; color: #666;">
+                    {% if grades %}
+                        Select from existing grades or enter a new one
+                    {% else %}
+                        Enter the grade/year (e.g., 11, 12, 1st Year, 2nd Year)
+                    {% endif %}
+                </small>
+            </div>
+            <div class="form-group">
+                <label>Division</label>
+                <select name="division" id="divisionSelect">
+                    <option value="">-- All Divisions --</option>
+                    {% for div in divisions %}
+                    <option value="{{ div.id }}" {% if selected_division == div.id|stringformat:"s" %}selected{% endif %}>{{ div.name }}</option>
+                    {% endfor %}
+                </select>
+                <small style="display: block; margin-top: 0.5rem; color: #666;">
+                    Select division to see division-specific subjects, or leave blank for Hadiya subjects
+                </small>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label>Subject * <span style="color: red;">Required</span></label>
+                <select name="subject" id="subjectSelect" required>
+                    <option value="">-- Select Subject (Select Grade first) --</option>
+                    {% for subject in subjects %}
+                    <option value="{{ subject.id }}" {% if selected_subject == subject.id|stringformat:"s" %}selected{% endif %}>
+                        {{ subject.name }} 
+                        {% if subject.subject_type == 'hadiya' %}(Hadiya - Common){% else %}({{ subject.division.name }}){% endif %} 
+                        - Max: {{ subject.max_marks }} marks
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if selected_grade and not subjects %}
+                <small style="color: #e74c3c; display: block; margin-top: 0.5rem;">
+                    ⚠️ No subjects found for this grade. <a href="{% url 'admin:students_subject_add' %}">Create subjects in Admin Panel</a>
+                </small>
+                {% elif not selected_grade %}
+                <small style="color: #666; display: block; margin-top: 0.5rem;">
+                    💡 Select Grade first to see available subjects
+                </small>
+                {% else %}
+                <small style="color: #27ae60; display: block; margin-top: 0.5rem;">
+                    ✓ {{ subjects.count }} subject(s) available for this grade
+                </small>
+                {% endif %}
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-success" style="margin-top: 1rem;" id="loadBtn">Load Students</button>
+        <a href="{% url 'students:mark_entry' %}" class="btn btn-danger">Clear Filters</a>
+        
+        <script>
+        // Auto-submit when grade is selected (if using dropdown)
+        document.addEventListener('DOMContentLoaded', function() {
+            const gradeSelect = document.getElementById('gradeSelect');
+            if (gradeSelect) {
+                gradeSelect.addEventListener('change', function() {
+                    // Only auto-submit if exam type is also selected
+                    const examType = document.getElementById('examType');
+                    if (examType && examType.value) {
+                        // Small delay to allow user to see the change
+                        setTimeout(function() {
+                            document.getElementById('filterForm').submit();
+                        }, 300);
+                    }
+                });
+            }
+        });
+        </script>
+    </form>
+</div>
+
+{% if students and selected_exam_type and selected_subject %}
+<div class="card">
+    <h2>Step 2: Enter Marks</h2>
+    <div style="background-color: #d4edda; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+        <strong>Selected:</strong> 
+        {% for exam_type in exam_types %}
+            {% if exam_type.id|stringformat:"s" == selected_exam_type %}
+                <strong>{{ exam_type.name }}</strong> |
+            {% endif %}
+        {% endfor %}
+        {% for subject in subjects %}
+            {% if subject.id|stringformat:"s" == selected_subject %}
+                <strong>{{ subject.name }}</strong> |
+            {% endif %}
+        {% endfor %}
+        <strong>{{ students.count }} student(s)</strong>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="exam_type" value="{{ selected_exam_type }}">
+        <input type="hidden" name="subject" value="{{ selected_subject }}">
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label>Exam Date</label>
+                <input type="date" name="exam_date" value="{% now 'Y-m-d' %}">
+            </div>
+            <div class="form-group">
+                <label>Entered By</label>
+                <input type="text" name="entered_by" placeholder="Your name">
+            </div>
+        </div>
+        
+        <h3 style="margin-top: 1.5rem;">Enter Marks for Students ({{ students.count }})</h3>
+        <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Grade</th>
+                    <th>Division</th>
+                    <th>Marks Obtained</th>
+                    <th>Max Marks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                {% with existing=existing_marks|get_item:student.id %}
+                <tr>
+                    <td>{{ student.student_id }}</td>
+                    <td>{{ student.full_name }}</td>
+                    <td>{{ student.grade }}</td>
+                    <td>{{ student.division|default:"-" }}</td>
+                    <td>
+                        <input type="hidden" name="student_ids" value="{{ student.id }}">
+                        <input type="number" name="marks" step="0.01" min="0" 
+                               value="{% if existing %}{{ existing.marks }}{% endif %}" 
+                               placeholder="0.00" style="width: 100px;">
+                    </td>
+                    <td>
+                        <input type="number" name="max_marks" step="0.01" min="0" 
+                               value="{% if existing %}{{ existing.max_marks }}{% else %}{{ selected_subject_obj.max_marks|default:100 }}{% endif %}" 
+                               placeholder="100" style="width: 100px;">
+                    </td>
+                </tr>
+                {% endwith %}
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        <div style="margin-top: 1.5rem; padding: 1rem; background-color: #fff3cd; border-radius: 4px;">
+            <strong>💡 Tips:</strong>
+            <ul style="margin-left: 2rem; margin-top: 0.5rem;">
+                <li>Leave marks blank for students who didn't take the exam</li>
+                <li>Max marks are pre-filled from subject settings, but you can change them if needed</li>
+                <li>Existing marks will be shown if already entered</li>
+            </ul>
+        </div>
+        
+        <button type="submit" class="btn btn-success" style="margin-top: 1rem; font-size: 1.1rem; padding: 1rem 2rem;">
+            💾 Save Marks
+        </button>
+    </form>
+</div>
+{% elif selected_exam_type or selected_subject or selected_grade %}
+<div class="card" style="background-color: #fff3cd; border-left: 4px solid #ffc107;">
+    <h3 style="margin-top: 0;">⚠️ Missing Information</h3>
+    <ul style="margin-left: 2rem;">
+        {% if not selected_exam_type %}
+        <li>Please select an <strong>Exam Type</strong></li>
+        {% endif %}
+        {% if not selected_grade %}
+        <li>Please enter a <strong>Grade/Year</strong></li>
+        {% endif %}
+        {% if not selected_subject %}
+        <li>Please select a <strong>Subject</strong></li>
+        {% endif %}
+        {% if selected_exam_type and selected_grade and selected_subject and not students %}
+        <li>No students found matching your filters. Try adjusting Grade or Division.</li>
+        {% endif %}
+    </ul>
+    <p style="margin-top: 1rem;">
+        Once all required fields are selected, click <strong>"Load Students"</strong> to proceed.
+    </p>
+</div>
+{% else %}
+<div class="card" style="background-color: #e7f3ff; border-left: 4px solid #2196F3;">
+    <h3 style="margin-top: 0;">👋 Getting Started</h3>
+    <p>To enter marks, please:</p>
+    <ol style="margin-left: 2rem;">
+        <li>Select an <strong>Exam Type</strong> (create one if needed from <a href="{% url 'students:exam_type_list' %}">Exam Types</a>)</li>
+        <li>Enter the <strong>Grade/Year</strong></li>
+        <li>Optionally select a <strong>Division</strong> (for division-specific subjects)</li>
+        <li>Select a <strong>Subject</strong> (subjects will appear based on grade and division)</li>
+        <li>Click <strong>"Load Students"</strong> to see the list of students</li>
+    </ol>
+</div>
+{% endif %}
+{% endblock %}
+

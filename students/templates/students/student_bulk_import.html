@@ -1,0 +1,91 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Bulk Import Students - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>Bulk Import Students from Excel</h1>
+
+<div class="card">
+    <h2>Instructions</h2>
+    <ol style="margin-left: 2rem; margin-top: 1rem;">
+        <li>Prepare an Excel file (.xlsx or .xls) with the following columns:</li>
+        <ul style="margin-left: 2rem; margin-top: 0.5rem;">
+            <li><strong>Required columns:</strong> student_id, first_name, last_name, grade</li>
+            <li><strong>Optional columns:</strong> division, room, student_type, email, phone, address</li>
+        </ul>
+        <li>Column names are case-insensitive (e.g., "Student_ID" or "student_id" both work)</li>
+        <li>For <strong>student_type</strong>: use "hostel" or "day_scholar" (default: day_scholar)</li>
+        <li>For <strong>division</strong> and <strong>room</strong>: use exact names that exist in the system</li>
+        <li>Grade must be between 1 and 12</li>
+        <li>Duplicate student IDs will be skipped</li>
+    </ol>
+</div>
+
+<div class="card">
+    <h2>Sample Excel Format</h2>
+    <div class="table-wrapper">
+    <table style="margin-top: 1rem;">
+        <thead>
+            <tr>
+                {% for col in sample_columns %}
+                <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>STU001</td>
+                <td>John</td>
+                <td>Doe</td>
+                <td>11</td>
+                <td>Science</td>
+                <td>101</td>
+                <td>hostel</td>
+                <td>john@example.com</td>
+                <td>1234567890</td>
+                <td>123 Main St</td>
+            </tr>
+            <tr>
+                <td>STU002</td>
+                <td>Jane</td>
+                <td>Smith</td>
+                <td>12</td>
+                <td>Commerce</td>
+                <td>102</td>
+                <td>day_scholar</td>
+                <td>jane@example.com</td>
+                <td>0987654321</td>
+                <td>456 Oak Ave</td>
+            </tr>
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<div class="card">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>Select Excel File (.xlsx or .xls) *</label>
+            <input type="file" name="excel_file" accept=".xlsx,.xls" required>
+            <small style="display: block; margin-top: 0.5rem; color: #666;">
+                Supported formats: .xlsx, .xls
+            </small>
+        </div>
+        
+        <button type="submit" class="btn btn-success">Import Students</button>
+        <a href="{% url 'students:student_list' %}" class="btn btn-danger">Cancel</a>
+    </form>
+</div>
+
+<div class="card" style="background-color: #fff3cd; border-left: 4px solid #ffc107;">
+    <h3 style="margin-top: 0;">⚠️ Important Notes</h3>
+    <ul style="margin-left: 2rem;">
+        <li>Make sure Divisions and Rooms are created in the system before importing (if you're using them)</li>
+        <li>Student IDs must be unique - duplicates will be skipped</li>
+        <li>The import process will show you how many students were successfully imported and any errors</li>
+        <li>Large files may take a few moments to process</li>
+    </ul>
+</div>
+{% endblock %}
+

@@ -1,0 +1,47 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Create Exam Type - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>Create Exam Type</h1>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label>Exam Type Name *</label>
+            <input type="text" name="name" required placeholder="e.g., Quarterly Exam, Half Yearly Exam">
+            <small style="display: block; margin-top: 0.5rem; color: #666;">
+                Enter a descriptive name for the exam type
+            </small>
+        </div>
+        
+        <div class="form-group">
+            <label>Description</label>
+            <textarea name="description" rows="3" placeholder="Optional description of this exam type"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>Display Order</label>
+            <input type="number" name="order" value="0" min="0" placeholder="0">
+            <small style="display: block; margin-top: 0.5rem; color: #666;">
+                Lower numbers appear first in lists (e.g., 1, 2, 3...)
+            </small>
+        </div>
+        
+        <button type="submit" class="btn btn-success">Create Exam Type</button>
+        <a href="{% url 'students:exam_type_list' %}" class="btn btn-danger">Cancel</a>
+    </form>
+</div>
+
+<div class="card" style="background-color: #fff3cd; border-left: 4px solid #ffc107;">
+    <h3 style="margin-top: 0;">⚠️ Important</h3>
+    <ul style="margin-left: 2rem;">
+        <li>Exam type names must be unique</li>
+        <li>Once created, exam types can be used for mark entry and progress reports</li>
+        <li>You can edit or delete exam types later if needed</li>
+    </ul>
+</div>
+{% endblock %}
+
