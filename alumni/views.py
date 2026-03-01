@@ -15,9 +15,11 @@ def registration_view(request):
     return render(request, 'alumni/registration.html', {'form': form})
 
 from django.db.models import Count
-from django.template.loader import get_template
 from django.http import HttpResponse
-from xhtml2pdf import pisa
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
 from .models import AlumniRegistration
 
 def alumni_list_view(request):
@@ -33,19 +35,40 @@ def render_pdf_view(request):
         .order_by('batch', 'course__name')
     )
 
-    template_path = 'alumni/alumni_report_pdf.html'
-    context = {'stats': stats}
-
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="alumni_report.pdf"'
 
-    template = get_template(template_path)
-    html = template.render(context)
+    doc = SimpleDocTemplate(response, pagesize=letter)
+    elements = []
+    styles = getSampleStyleSheet()
 
-    pisa_status = pisa.CreatePDF(html, dest=response)
+    # Title
+    elements.append(Paragraph("Alumni Registration Report", styles['Title']))
+    elements.append(Spacer(1, 12))
 
-    if pisa_status.err:
-        return HttpResponse('PDF generation failed')
+    # Table Data
+    data = [['Batch (Year)', 'Course', 'Number of Registrations']]
+    for stat in stats:
+        data.append([
+            str(stat['batch']), 
+            str(stat['course__name']), 
+            str(stat['count'])
+        ])
+
+    # Table styling
+    t = Table(data, colWidths=[100, 200, 150])
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ]))
+    
+    elements.append(t)
+    doc.build(elements)
 
     return response
 
