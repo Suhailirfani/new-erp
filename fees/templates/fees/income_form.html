@@ -1,0 +1,262 @@
+{% extends 'students/base.html' %}
+{% load static %}
+
+{% block title %}Record Income{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-0 glass-card">
+            <div class="card-header bg-success text-white py-3">
+                <h4 class="mb-0"><i class="fas fa-hand-holding-usd me-2"></i>Record New Income</h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" id="incomeForm">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    {{ form.is_fee_collection }}
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Category *</label>
+                            
+                            <!-- Toggle switch -->
+                            <div class="form-check form-switch float-end mb-1">
+                                <input class="form-check-input" type="checkbox" id="toggleNewCategory">
+                                <label class="form-check-label small" for="toggleNewCategory">Add New</label>
+                            </div>
+                            
+                            <div id="existingCategoryDiv">
+                                {{ form.category }}
+                                <div class="text-danger small">{{ form.category.errors }}</div>
+                            </div>
+                            
+                            <div id="newCategoryDiv" style="display: none;">
+                                {{ form.new_category_name }}
+                                <div class="text-danger small">{{ form.new_category_name.errors }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Amount (₹) *</label>
+                            {{ form.amount }}
+                            <div class="text-danger small">{{ form.amount.errors }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Fee Collection Section -->
+                    <div id="feeCollectionSection" class="p-3 bg-light border rounded mb-3" style="display: none;">
+                        <h6 class="text-primary mb-3"><i class="fas fa-user-graduate me-2"></i>Select Student for Fee Allocation</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Select Class (Optional)</label>
+                                <select id="classFilter" class="form-select mb-3">
+                                    <option value="">All Classes & Divisions</option>
+                                    {% for class_div in class_divisions %}
+                                    <option value="{{ class_div }}">{{ class_div }}</option>
+                                    {% endfor %}
+                                </select>
+
+                                <label class="form-label fw-bold">Student Name <span class="text-muted">(Will be set as "Received From")</span> *</label>
+                                {{ form.student }}
+                                <div class="text-danger small">{{ form.student.errors }}</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Pending Dues Overview</label>
+                                <div id="pendingFeesOverview" class="p-2 border rounded bg-white" style="min-height: 38px;">
+                                    <span class="text-muted small">Select Student First</span>
+                                </div>
+                                <div class="text-danger small mt-1" id="feeErrorMsg"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3" id="receivedFromContainer">
+                        <label class="form-label fw-bold">Received From *</label>
+                        {{ form.received_from }}
+                        <div class="text-danger small">{{ form.received_from.errors }}</div>
+                        <small class="text-muted" id="receivedFromHelp">Name of the person paying.</small>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Payment Method *</label>
+                            {{ form.payment_method }}
+                            <div class="text-danger small">{{ form.payment_method.errors }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Reference Number</label>
+                            {{ form.reference_number }}
+                            <div class="text-danger small">{{ form.reference_number.errors }}</div>
+                            <small class="text-muted">For Cheque/UPI/Bank transfers.</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Remarks</label>
+                        {{ form.remarks }}
+                        <div class="text-danger small">{{ form.remarks.errors }}</div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'fees:dashboard' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                        <button type="submit" class="btn btn-success px-5"><i class="fas fa-save me-2"></i>Save Record</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const categorySelect = document.getElementById('id_category');
+        const feeSection = document.getElementById('feeCollectionSection');
+        const studentSelect = document.getElementById('id_student');
+        const feeSelect = document.getElementById('id_student_fee');
+        const amountInput = document.getElementById('id_amount');
+        const receivedFromInput = document.getElementById('id_received_from');
+        const receivedFromContainer = document.getElementById('receivedFromContainer');
+        const isFeeInput = document.getElementById('id_is_fee_collection');
+
+        function checkCategory() {
+            // Get selected option text
+            if(categorySelect.selectedIndex === -1) return;
+            const selectedText = categorySelect.options[categorySelect.selectedIndex].text.toLowerCase();
+            
+            if (selectedText.includes('fee')) {
+                feeSection.style.display = 'block';
+                isFeeInput.value = 'true';
+                receivedFromContainer.style.display = 'none'; // Hide normal received_from input
+                receivedFromInput.removeAttribute('required'); // Remove required to allow submit
+            } else {
+                feeSection.style.display = 'none';
+                isFeeInput.value = 'false';
+                receivedFromContainer.style.display = 'block'; // Show normal received_from input
+                receivedFromInput.setAttribute('required', 'required'); // Add back required
+            }
+        }
+
+        categorySelect.addEventListener('change', checkCategory);
+        // Run on load in case of form errors re-rendering
+        checkCategory();
+
+        const pendingFeesOverview = document.getElementById('pendingFeesOverview');
+        const classFilter = document.getElementById('classFilter');
+
+        if (classFilter) {
+            classFilter.addEventListener('change', function() {
+                const grade = this.value;
+                studentSelect.innerHTML = '<option value="">Loading students...</option>';
+                studentSelect.disabled = true;
+                pendingFeesOverview.innerHTML = '<span class="text-muted small">Select Student First</span>';
+                
+                fetch(`/fees/api/students-by-grade/?grade=${encodeURIComponent(grade)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        studentSelect.innerHTML = '<option value="">Select Student</option>';
+                        data.students.forEach(student => {
+                            const option = document.createElement('option');
+                            option.value = student.id;
+                            option.textContent = student.name;
+                            studentSelect.appendChild(option);
+                        });
+                        studentSelect.disabled = false;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching students:', error);
+                        studentSelect.innerHTML = '<option value="">Error loading students</option>';
+                        studentSelect.disabled = false;
+                    });
+            });
+        }
+
+        studentSelect.addEventListener('change', function() {
+            const studentId = this.value;
+            pendingFeesOverview.innerHTML = '<span class="text-muted small"><i class="fas fa-spinner fa-spin"></i> Loading fees...</span>';
+
+            if (studentId) {
+                // Auto-fill received from hidden input just in case, though backend handles it now
+                const studentName = this.options[this.selectedIndex].text.split(' - ')[1] || this.options[this.selectedIndex].text;
+                receivedFromInput.value = studentName;
+
+                fetch(`/fees/api/student-fees/${studentId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.fees.length > 0) {
+                            let totalDue = 0;
+                            let htmlList = '<ul class="list-unstyled small mb-0">';
+                            data.fees.forEach(fee => {
+                                totalDue += parseFloat(fee.balance);
+                                htmlList += `
+                                    <li class="mb-1">
+                                        <div class="form-check">
+                                            <input class="form-check-input fee-checkbox" type="checkbox" name="selected_fees" value="${fee.id}" id="fee_${fee.id}" data-balance="${fee.balance}">
+                                            <label class="form-check-label w-100 d-flex justify-content-between cursor-pointer" for="fee_${fee.id}">
+                                                <span>${fee.name}</span>
+                                                <span class="text-danger">₹${fee.balance}</span>
+                                            </label>
+                                        </div>
+                                    </li>`;
+                            });
+                            htmlList += `</ul><hr class="my-1"><div class="fw-bold text-danger d-flex justify-content-between"><span>Total Pending:</span> <span>₹${totalDue.toFixed(2)}</span></div>`;
+                            htmlList += `<div class="text-muted small mt-1"><i class="fas fa-info-circle"></i> Check items to pay them first. Unchecked items are paid chronologically. Overpayment goes to Advance.</div>`;
+                            pendingFeesOverview.innerHTML = htmlList;
+                            
+                            // Optional script hook for calculating selected totals
+                            const checkboxes = pendingFeesOverview.querySelectorAll('.fee-checkbox');
+                            checkboxes.forEach(cb => {
+                                cb.addEventListener('change', function() {
+                                    let selectedTotal = 0;
+                                    checkboxes.forEach(box => {
+                                        if(box.checked) selectedTotal += parseFloat(box.dataset.balance);
+                                    });
+                                    if(selectedTotal > 0) {
+                                         // If we want to suggest an amount, we could autofill amountInput, but the user requested a lumped sum.
+                                         // Just logging/displaying for now or doing nothing is okay.
+                                    }
+                                });
+                            });
+                        } else {
+                            pendingFeesOverview.innerHTML = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> No pending fees found. Any payment will be saved as Advance.</span>`;
+                        }
+                    });
+            } else {
+                pendingFeesOverview.innerHTML = '<span class="text-muted small">Select Student First</span>';
+            }
+        });
+
+        // Toggle New Category Logic
+        const toggleNewCategory = document.getElementById('toggleNewCategory');
+        const existingCategoryDiv = document.getElementById('existingCategoryDiv');
+        const newCategoryDiv = document.getElementById('newCategoryDiv');
+        const newCategoryInput = document.getElementById('id_new_category_name');
+
+        toggleNewCategory.addEventListener('change', function() {
+            if (this.checked) {
+                existingCategoryDiv.style.display = 'none';
+                newCategoryDiv.style.display = 'block';
+                categorySelect.selectedIndex = 0; // Reset existing
+                checkCategory(); // Hide fee section
+            } else {
+                existingCategoryDiv.style.display = 'block';
+                newCategoryDiv.style.display = 'none';
+                newCategoryInput.value = ''; // Reset new input
+            }
+        });
+        
+        // Check initial state if there are form errors for the new field
+        if (newCategoryInput.value.trim() !== '') {
+            toggleNewCategory.checked = true;
+            toggleNewCategory.dispatchEvent(new Event('change'));
+        }
+    });
+</script>
+{% endblock %}

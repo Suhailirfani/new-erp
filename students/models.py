@@ -2,6 +2,24 @@ from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
+class AcademicYear(models.Model):
+    """Academic session year, e.g., '2024-2025'"""
+    name = models.CharField(max_length=50, unique=True, help_text="e.g., '2024-2025'")
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=False, help_text="Only one academic year should be active at a time.")
+
+    class Meta:
+        ordering = ['-name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if self.is_active:
+            # ensure no other academic year is active
+            AcademicYear.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
+        super().save(*args, **kwargs)
 
 class Division(models.Model):
     """Division like Commerce, Science, Arts, etc."""
@@ -38,9 +56,6 @@ class Student(models.Model):
     student_id = models.CharField(max_length=50, unique=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    grade = models.CharField(max_length=50, help_text="Grade/Year (e.g., 11, 12, 1st Year, 2nd Year, Final Year, B.Sc, etc.)")
-    division = models.ForeignKey(Division, on_delete=models.SET_NULL, null=True, blank=True)
-    room = models.ForeignKey(Room, on_delete=models.SET_NULL, null=True, blank=True)
     student_type = models.CharField(max_length=20, choices=STUDENT_TYPE_CHOICES, default='day_scholar')
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=20, blank=True)
@@ -50,14 +65,49 @@ class Student(models.Model):
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        ordering = ['grade', 'division', 'last_name', 'first_name']
+        ordering = ['last_name', 'first_name']
 
     def __str__(self):
-        return f"{self.student_id} - {self.first_name} {self.last_name} (Grade {self.grade})"
+        return f"{self.student_id} - {self.first_name} {self.last_name}"
 
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+
+    @property
+    def current_enrollment(self):
+        """Returns the enrollment for the currently active academic year."""
+        return self.enrollments.filter(academic_year__is_active=True).first()
+
+    @property
+    def grade(self):
+        """Returns the grade from the current active enrollment."""
+        enrollment = self.current_enrollment
+        return enrollment.grade if enrollment else ""
+
+    @property
+    def division(self):
+        """Returns the division from the current active enrollment."""
+        enrollment = self.current_enrollment
+        return enrollment.division if enrollment else None
+
+
+class Enrollment(models.Model):
+    """Enrollment mapping a student to an AcademicYear, grade, division, and room"""
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='enrollments')
+    academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, related_name='enrollments')
+    grade = models.CharField(max_length=50, help_text="Grade/Year for this session (e.g., 11, 12, 1st Year)")
+    division = models.ForeignKey(Division, on_delete=models.SET_NULL, null=True, blank=True)
+    room = models.ForeignKey(Room, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-academic_year__name', 'grade', 'division', 'student__last_name']
+        unique_together = [['student', 'academic_year']]
+        
+    def __str__(self):
+        return f"{self.student.full_name} - {self.academic_year.name} ({self.grade})"
 
 
 class Period(models.Model):
@@ -106,6 +156,7 @@ class Attendance(models.Model):
     ]
 
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='attendances')
+    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, related_name='attendances')
     date = models.DateField(default=timezone.now)
     attendance_type = models.CharField(max_length=20, choices=ATTENDANCE_TYPE_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='present')
@@ -123,13 +174,15 @@ class Attendance(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['-date', 'student']
+        ordering = ['-date', 'enrollment', 'student']
         # Note: Unique constraints are handled in the view logic
         # Multiple attendance types can exist for same student on same day
         indexes = [
             models.Index(fields=['student', 'date']),
+            models.Index(fields=['enrollment', 'date']),
             models.Index(fields=['date', 'attendance_type']),
             models.Index(fields=['student', 'date', 'attendance_type']),
+            models.Index(fields=['enrollment', 'date', 'attendance_type']),
         ]
 
     def __str__(self):
@@ -245,6 +298,7 @@ class Subject(models.Model):
 class MarkEntry(models.Model):
     """Mark entry for students in exams"""
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='mark_entries')
+    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, related_name='mark_entries')
     exam_type = models.ForeignKey(ExamType, on_delete=models.CASCADE)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     marks_obtained = models.DecimalField(max_digits=5, decimal_places=2)
@@ -256,10 +310,11 @@ class MarkEntry(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['-exam_date', 'student', 'subject']
-        unique_together = [['student', 'exam_type', 'subject']]
+        ordering = ['-exam_date', 'enrollment', 'student', 'subject']
+        unique_together = [['student', 'exam_type', 'subject']]  # Will be updated to enrollment later
         indexes = [
             models.Index(fields=['student', 'exam_type']),
+            models.Index(fields=['enrollment', 'exam_type']),
             models.Index(fields=['exam_type', 'subject']),
         ]
 
@@ -296,8 +351,9 @@ class MarkEntry(models.Model):
 class ProgressReport(models.Model):
     """Progress report for a student in a specific exam"""
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='progress_reports')
+    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, related_name='progress_reports')
     exam_type = models.ForeignKey(ExamType, on_delete=models.CASCADE)
-    academic_year = models.CharField(max_length=20, blank=True)
+    academic_year = models.CharField(max_length=20, blank=True)  # Legacy string
     total_marks_obtained = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     total_max_marks = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     overall_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
@@ -353,3 +409,32 @@ class Holiday(models.Model):
 
     def __str__(self):
         return f"{self.date} - {self.title}"
+
+
+class Enquiry(models.Model):
+    """Model to store prospective student enquiries and interview tokens"""
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Token Generated', 'Token Generated'),
+        ('Enrolled', 'Enrolled'),
+        ('Rejected', 'Rejected'),
+    ]
+
+    name = models.CharField(max_length=100)
+    phone = models.CharField(max_length=15)
+    course = models.ForeignKey('Division', on_delete=models.SET_NULL, null=True, blank=True)
+    district = models.CharField(max_length=100)
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    token_number = models.IntegerField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name_plural = 'Enquiries'
+
+    def __str__(self):
+        return f"{self.name} - {self.phone} ({self.status})"
+

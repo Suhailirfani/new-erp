@@ -12,8 +12,8 @@
             <label>Student *</label>
             <select name="student" required>
                 <option value="">Select Student</option>
-                {% for student in students %}
-                <option value="{{ student.id }}">{{ student.full_name }} ({{ student.student_id }}) - Grade {{ student.grade }}</option>
+                {% for enrollment in enrollments %}
+                <option value="{{ enrollment.student.id }}">{{ enrollment.student.full_name }} ({{ enrollment.student.student_id }}) - Grade {{ enrollment.grade }}</option>
                 {% endfor %}
             </select>
         </div>

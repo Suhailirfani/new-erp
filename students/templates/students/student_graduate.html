@@ -1,0 +1,64 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Graduate Students - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>Graduate Students to Alumni</h1>
+
+<div class="card">
+    <h2>Graduate Students</h2>
+    <p style="margin-bottom: 1.5rem; color: #666;">
+        This feature allows you to graduate students and move them to the Alumni database. 
+        For example, graduate all grade 12 students at the end of the academic year.
+    </p>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-row">
+            <div class="form-group">
+                <label>Grade/Year to Graduate *</label>
+                <input type="text" name="from_grade" list="grades-list" required placeholder="e.g., 12, Final Year">
+                <datalist id="grades-list">
+                    {% for grade in existing_grades %}
+                    <option value="{{ grade }}">
+                    {% endfor %}
+                </datalist>
+                <small style="display: block; margin-top: 0.5rem; color: #666;">
+                    Select the grade of students who are graduating
+                </small>
+            </div>
+        </div>
+        
+        <div class="card" style="background-color: #fff3cd; border-left: 4px solid #ffc107; margin-top: 1rem;">
+            <h3 style="margin-top: 0;">⚠️ Important</h3>
+            <ul style="margin-left: 2rem;">
+                <li>This action will graduate <strong>all active students</strong> in the selected grade.</li>
+                <li>They will be added to the Alumni Registration database.</li>
+                <li>They will be marked as <strong>inactive</strong> in the main Student list.</li>
+                <li>You will be asked to confirm before the graduation is performed.</li>
+            </ul>
+        </div>
+        
+        <button type="submit" class="btn btn-success" style="margin-top: 1rem;">Continue to Confirmation</button>
+        <a href="{% url 'students:student_list' %}" class="btn btn-danger">Cancel</a>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Quick Graduate Examples</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="from_grade" value="12">
+            <p style="margin-bottom: 0.5rem;">Graduate Grade 12</p>
+            <button type="submit" class="btn" style="background-color: #27ae60; width: 100%;">Graduate</button>
+        </form>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="from_grade" value="Final Year">
+            <p style="margin-bottom: 0.5rem;">Graduate Final Year</p>
+            <button type="submit" class="btn" style="background-color: #27ae60; width: 100%;">Graduate</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

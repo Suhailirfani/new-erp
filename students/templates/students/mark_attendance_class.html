@@ -15,7 +15,7 @@
     </p>
 </div>
 
-{% if students %}
+{% if enrollments %}
 <div class="card" style="background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.5rem;">
     <form method="post">
         {% csrf_token %}
@@ -24,7 +24,7 @@
             <input type="text" name="marked_by" required placeholder="Enter your name" style="width: 100%; max-width: 400px; padding: 0.6rem; border: 1px solid #ddd; border-radius: 6px;">
         </div>
 
-        <h2 style="margin: 0 0 1rem 0; color: #2c3e50; font-size: 1.25rem;">Students ({{ students.count }})</h2>
+        <h2 style="margin: 0 0 1rem 0; color: #2c3e50; font-size: 1.25rem;">Students ({{ enrollments.count }})</h2>
         <div class="table-wrapper" style="overflow-x: auto;">
             <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
                 <thead>
@@ -35,28 +35,28 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for student in students %}
+                    {% for enrollment in enrollments %}
                     <tr style="border-bottom: 1px solid #e9ecef;">
-                        <td style="padding: 1rem; color: #495057;">{{ student.student_id }}</td>
-                        <td style="padding: 1rem; font-weight: 500; color: #2c3e50;">{{ student.full_name }}</td>
+                        <td style="padding: 1rem; color: #495057;">{{ enrollment.student.student_id }}</td>
+                        <td style="padding: 1rem; font-weight: 500; color: #2c3e50;">{{ enrollment.student.full_name }}</td>
                         <td style="padding: 1rem; text-align: center;">
-                            {% with status=existing_attendance|get_item:student.id %}
+                            {% with status=existing_attendance|get_item:enrollment.id %}
                             <div class="status-radio-group" style="display: inline-flex; gap: 1rem; background: #f8f9fa; padding: 0.5rem 1rem; border-radius: 50px; border: 1px solid #e9ecef;">
                                 <label style="display: flex; align-items: center; gap: 0.25rem; cursor: pointer; color: #2ecc71; font-weight: 500;">
-                                    <input type="radio" name="attendance_{{ student.id }}" value="{{ student.id }}|present" {% if status == 'present' or not status %}checked{% endif %} style="accent-color: #2ecc71;"> P
+                                    <input type="radio" name="attendance_{{ enrollment.id }}" value="{{ enrollment.id }}|present" {% if status == 'present' or not status %}checked{% endif %} style="accent-color: #2ecc71;"> P
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 0.25rem; cursor: pointer; color: #e74c3c; font-weight: 500;">
-                                    <input type="radio" name="attendance_{{ student.id }}" value="{{ student.id }}|absent" {% if status == 'absent' %}checked{% endif %} style="accent-color: #e74c3c;"> A
+                                    <input type="radio" name="attendance_{{ enrollment.id }}" value="{{ enrollment.id }}|absent" {% if status == 'absent' %}checked{% endif %} style="accent-color: #e74c3c;"> A
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 0.25rem; cursor: pointer; color: #f1c40f; font-weight: 500;">
-                                    <input type="radio" name="attendance_{{ student.id }}" value="{{ student.id }}|late" {% if status == 'late' %}checked{% endif %} style="accent-color: #f1c40f;"> L
+                                    <input type="radio" name="attendance_{{ enrollment.id }}" value="{{ enrollment.id }}|late" {% if status == 'late' %}checked{% endif %} style="accent-color: #f1c40f;"> L
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 0.25rem; cursor: pointer; color: #3498db; font-weight: 500;">
-                                    <input type="radio" name="attendance_{{ student.id }}" value="{{ student.id }}|excused" {% if status == 'excused' %}checked{% endif %} style="accent-color: #3498db;"> E
+                                    <input type="radio" name="attendance_{{ enrollment.id }}" value="{{ enrollment.id }}|excused" {% if status == 'excused' %}checked{% endif %} style="accent-color: #3498db;"> E
                                 </label>
                                 
                                 <!-- Hidden input that actually gets submitted. Updated by JS. -->
-                                <input type="hidden" name="attendance" id="hidden_attendance_{{ student.id }}" value="{{ student.id }}|{% if status %}{{ status }}{% else %}present{% endif %}">
+                                <input type="hidden" name="attendance" id="hidden_attendance_{{ enrollment.id }}" value="{{ enrollment.id }}|{% if status %}{{ status }}{% else %}present{% endif %}">
                             </div>
                             {% endwith %}
                         </td>

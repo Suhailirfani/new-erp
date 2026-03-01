@@ -1,0 +1,58 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Confirm Graduation - Student Attendance System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Confirm Student Graduation to Alumni</h2>
+    
+    <div style="background-color: #e8f4fd; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0;">
+        <h3 style="margin-top: 0; color: #2c3e50;">Graduation Summary</h3>
+        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">
+            You are about to graduate <strong>{{ student_count }}</strong> student(s) from grade <strong>"{{ from_grade }}"</strong>.
+        </p>
+        <p style="color: #666;">
+            These students will be moved to the Alumni database and marked as inactive in the active student list.
+        </p>
+    </div>
+
+    <h3>Students to be Graduated {% if show_all %}(Showing first 50){% endif %}</h3>
+    <div class="table-wrapper" style="margin-bottom: 2rem;">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Current Grade</th>
+                    <th>Division</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for enrollment in enrollments %}
+                <tr>
+                    <td>{{ enrollment.student.student_id }}</td>
+                    <td>{{ enrollment.student.full_name }}</td>
+                    <td>{{ enrollment.grade }}</td>
+                    <td>{{ enrollment.division.name|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="from_grade" value="{{ from_grade }}">
+        <input type="hidden" name="confirm" value="yes">
+        
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="submit" class="btn btn-success" style="padding: 1rem 2rem; font-size: 1.1rem;">
+                ✅ Yes, Graduate These Students
+            </button>
+            <a href="{% url 'students:student_graduate' %}" class="btn btn-danger" style="padding: 1rem 2rem; font-size: 1.1rem;">
+                ❌ Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Token - {{ enquiry.name }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f6fa;
+        }
+        .token-card {
+            background: white;
+            padding: 3rem 4rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            border-top: 8px solid #3498db;
+        }
+        .institution-name {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 2rem;
+        }
+        .token-label {
+            color: #2c3e50;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .token-number {
+            font-size: 6rem;
+            font-weight: bold;
+            color: #3498db;
+            margin: 0;
+            line-height: 1;
+        }
+        .candidate-name {
+            font-size: 1.8rem;
+            color: #2c3e50;
+            margin-top: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .candidate-course {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+        }
+        .date {
+            margin-top: 3rem;
+            color: #95a5a6;
+            font-size: 0.9rem;
+        }
+        
+        @media print {
+            body { background: white; }
+            .token-card { box-shadow: none; border: 2px solid #eee; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="token-card">
+        <div class="institution-name">Student Attendance System</div>
+        
+        <div class="token-label">Interview Token</div>
+        <h1 class="token-number">{{ enquiry.token_number }}</h1>
+        
+        <div class="candidate-name">{{ enquiry.name }}</div>
+        <div class="candidate-course">{{ enquiry.course.name }}</div>
+        
+        <div class="date">{{ enquiry.updated_at|date:"l, F j, Y" }}</div>
+        
+        <div class="no-print" style="margin-top: 2rem;">
+            <button onclick="window.print()" style="background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1rem; margin-right: 10px;">🖨️ Print Token</button>
+            <a href="{% url 'students:enquiry_list' %}" style="color: #7f8c8d; text-decoration: none;">Back to Dashboard</a>
+        </div>
+    </div>
+
+</body>
+</html>

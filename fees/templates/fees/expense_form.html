@@ -1,0 +1,125 @@
+{% extends 'students/base.html' %}
+{% load static %}
+
+{% block title %}Record Expense{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-0 glass-card">
+            <div class="card-header bg-danger text-white py-3">
+                <h4 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Record New Expense</h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Category *</label>
+                            
+                            <!-- Toggle switch -->
+                            <div class="form-check form-switch float-end mb-1">
+                                <input class="form-check-input" type="checkbox" id="toggleNewCategory">
+                                <label class="form-check-label small" for="toggleNewCategory">Add New</label>
+                            </div>
+                            
+                            <div id="existingCategoryDiv">
+                                {{ form.category }}
+                                <div class="text-danger small">{{ form.category.errors }}</div>
+                            </div>
+                            
+                            <div id="newCategoryDiv" style="display: none;">
+                                {{ form.new_category_name }}
+                                <div class="text-danger small">{{ form.new_category_name.errors }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Amount (₹) *</label>
+                            {{ form.amount }}
+                            <div class="text-danger small">{{ form.amount.errors }}</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Paid To *</label>
+                        {{ form.paid_to }}
+                        <div class="text-danger small">{{ form.paid_to.errors }}</div>
+                        <small class="text-muted">Name of the person or organization receiving payment.</small>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Payment Method *</label>
+                            {{ form.payment_method }}
+                            <div class="text-danger small">{{ form.payment_method.errors }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Reference Number</label>
+                            {{ form.reference_number }}
+                            <div class="text-danger small">{{ form.reference_number.errors }}</div>
+                            <small class="text-muted">For Cheque/UPI/Bank transfers.</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Remarks</label>
+                        {{ form.remarks }}
+                        <div class="text-danger small">{{ form.remarks.errors }}</div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'fees:dashboard' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                        <button type="submit" class="btn btn-danger px-5"><i class="fas fa-save me-2"></i>Save Record</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle New Category Logic
+        const toggleNewCategory = document.getElementById('toggleNewCategory');
+        const existingCategoryDiv = document.getElementById('existingCategoryDiv');
+        const newCategoryDiv = document.getElementById('newCategoryDiv');
+        const newCategoryInput = document.getElementById('id_new_category_name');
+        const categorySelect = document.getElementById('id_category');
+
+        toggleNewCategory.addEventListener('change', function() {
+            if (this.checked) {
+                existingCategoryDiv.style.display = 'none';
+                newCategoryDiv.style.display = 'block';
+                categorySelect.selectedIndex = 0; // Reset existing
+                categorySelect.removeAttribute('required');
+                newCategoryInput.setAttribute('required', 'required');
+            } else {
+                existingCategoryDiv.style.display = 'block';
+                newCategoryDiv.style.display = 'none';
+                newCategoryInput.value = ''; // Reset new input
+                newCategoryInput.removeAttribute('required');
+                categorySelect.setAttribute('required', 'required');
+            }
+        });
+        
+        // Initial setup for required attributes
+        categorySelect.removeAttribute('required'); // Backend handles it since we have custom clean
+        newCategoryInput.removeAttribute('required'); 
+        
+        // Check initial state if there are form errors for the new field
+        if (newCategoryInput.value.trim() !== '') {
+            toggleNewCategory.checked = true;
+            toggleNewCategory.dispatchEvent(new Event('change'));
+        }
+    });
+</script>
+{% endblock %}

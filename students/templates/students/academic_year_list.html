@@ -1,0 +1,51 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Academic Years - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>Academic Years</h1>
+
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'students:academic_year_create' %}" class="btn btn-success">Add Academic Year</a>
+</div>
+
+<div class="card">
+    <h2>Academic Years ({{ academic_years.count }})</h2>
+    <div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Is Active</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for year in academic_years %}
+            <tr>
+                <td>{{ year.name }}</td>
+                <td>{{ year.start_date|date:"Y-m-d" }}</td>
+                <td>{{ year.end_date|date:"Y-m-d" }}</td>
+                <td>
+                    {% if year.is_active %}
+                        <span style="color: green; font-weight: bold;">✔ Active</span>
+                    {% else %}
+                        <span style="color: gray;">Inactive</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'students:academic_year_update' year.pk %}" class="btn">Update</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align: center;">No academic years found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% endblock %}

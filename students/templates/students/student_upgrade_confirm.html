@@ -34,14 +34,14 @@
             </tr>
         </thead>
         <tbody>
-            {% for student in students %}
+            {% for enrollment in enrollments %}
             <tr>
-                <td>{{ student.student_id }}</td>
-                <td>{{ student.full_name }}</td>
-                <td>{{ student.grade }}</td>
-                <td>{{ student.division|default:"-" }}</td>
-                <td>{{ student.room.room_number|default:"-" }}</td>
-                <td>{{ student.get_student_type_display }}</td>
+                <td>{{ enrollment.student.student_id }}</td>
+                <td>{{ enrollment.student.full_name }}</td>
+                <td>{{ enrollment.grade }}</td>
+                <td>{{ enrollment.division|default:"-" }}</td>
+                <td>{{ enrollment.room.room_number|default:"-" }}</td>
+                <td>{{ enrollment.student.get_student_type_display }}</td>
             </tr>
             {% endfor %}
         </tbody>

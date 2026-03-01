@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt #{{ payments.first.receipt_number|truncatechars:10 }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .receipt-container { background-color: #fff; max-width: 800px; margin: 40px auto; padding: 40px; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        .receipt-header { border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; }
+        .logo { font-size: 24px; font-weight: bold; color: #0d6efd; }
+        .receipt-title { font-size: 28px; font-weight: 300; letter-spacing: 2px; text-transform: uppercase; color: #495057; }
+        .detail-row { margin-bottom: 10px; }
+        .detail-label { font-weight: bold; width: 150px; display: inline-block; color: #6c757d; }
+        .amount-highlight { font-size: 24px; font-weight: bold; color: #198754; background-color: #e8f5e9; padding: 10px 20px; border-radius: 5px; display: inline-block; }
+        @media print {
+            @page {
+                size: A5;
+                margin: 5mm;
+            }
+            body { 
+                background-color: #fff; 
+                font-size: 11px;
+            }
+            .receipt-container { 
+                box-shadow: none; 
+                margin: 0; 
+                padding: 10px; 
+                border: none !important;
+            }
+            .no-print { display: none; }
+            .receipt-header { 
+                padding-bottom: 5px; 
+                margin-bottom: 5px; 
+            }
+            .receipt-title { font-size: 16px; margin-top: 0; letter-spacing: 1px; }
+            .logo { font-size: 16px; }
+            h5 { font-size: 12px; margin-bottom: 5px !important; padding-bottom: 2px !important; border-bottom-width: 1px !important; }
+            .row.mb-4 { margin-bottom: 10px !important; }
+            .row.mt-5 { margin-top: 15px !important; padding-top: 10px !important; }
+            .detail-row { margin-bottom: 2px; }
+            .detail-label { width: 90px; }
+            .amount-highlight { font-size: 16px; padding: 4px 10px; }
+            table td, table th { padding: 4px 8px !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="row mb-4 mt-3 no-print">
+        <div class="col text-end">
+            <button onclick="window.print()" class="btn btn-primary"><i class="bi bi-printer"></i> Print / Save as PDF</button>
+            <a href="javascript:history.back()" class="btn btn-secondary">Go Back</a>
+        </div>
+    </div>
+
+    <div class="receipt-container border rounded">
+        <div class="receipt-header row align-items-center">
+            <div class="col-sm-6">
+                <!-- Replace with Institution Name / Logo -->
+                <div class="logo">INSTITUTION ERP</div>
+                <div class="text-muted small mt-1">123 Education Lane, City, Country</div>
+            </div>
+            <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
+                <div class="receipt-title">FEE RECEIPT</div>
+                <div class="text-muted">Date: {{ income.date|date:"F d, Y" }}</div>
+                <div class="text-muted">Receipt No: {{ payments.first.receipt_number|truncatechars:12 }}</div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-sm-6">
+                <h5 class="mb-3 text-primary border-bottom pb-2">Student Details</h5>
+                <div class="detail-row"><span class="detail-label">Name:</span> {{ student.full_name }}</div>
+                <div class="detail-row"><span class="detail-label">Student ID:</span> {{ student.student_id }}</div>
+                <div class="detail-row"><span class="detail-label">Grade/Course:</span> {{ student.grade }}</div>
+            </div>
+            <div class="col-sm-6 mt-4 mt-sm-0">
+                <h5 class="mb-3 text-primary border-bottom pb-2">Transaction Details</h5>
+                <div class="detail-row"><span class="detail-label">Method:</span> {{ income.get_payment_method_display }}</div>
+                {% if income.reference_number %}
+                <div class="detail-row"><span class="detail-label">Reference No:</span> {{ income.reference_number }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <h5 class="mb-3 text-primary border-bottom pb-2">Payment Breakdown</h5>
+                <table class="table table-sm table-bordered">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Fee Description</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td>
+                                {% if payment.student_fee.fee_item %}{{ payment.student_fee.fee_item.name }}{% elif payment.student_fee.installment %}{{ payment.student_fee.installment.name }}{% else %}General Fee{% endif %}
+                            </td>
+                            <td class="text-end">₹ {{ payment.amount }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% if advance_amount > 0 %}
+                        <tr>
+                            <td class="text-info font-weight-bold">Advance Payment</td>
+                            <td class="text-end text-success">₹ {{ advance_amount }}</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="row mb-4 mt-4">
+            <div class="col-12 text-end">
+                <div class="text-muted mb-2">Total Amount Received</div>
+                <div class="amount-highlight">₹ {{ income.amount }}</div>
+            </div>
+        </div>
+        
+        <div class="row mt-5 pt-4 border-top">
+            <div class="col-sm-6">
+                <p class="text-muted small">This is a computer-generated receipt and signature is not required.</p>
+            </div>
+            <div class="col-sm-6 text-sm-end">
+                <div class="mb-1">Collected By</div>
+                <strong>{{ income.collected_by|default:"Administrator" }}</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

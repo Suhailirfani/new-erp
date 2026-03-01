@@ -1,0 +1,51 @@
+{% extends 'students/base.html' %}
+
+{% block title %}New Enquiry - Student Attendance System{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <h2 style="margin-bottom: 0.5rem;">New Student Enquiry</h2>
+    <p style="color: #666; margin-bottom: 2rem;">Register a new prospective student enquiry and their desired course.</p>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Full Name *</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+            <div style="color: #e74c3c; font-size: 0.9rem; margin-top: 0.3rem;">{{ form.name.errors }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Phone Number *</label>
+            {{ form.phone }}
+            {% if form.phone.errors %}
+            <div style="color: #e74c3c; font-size: 0.9rem; margin-top: 0.3rem;">{{ form.phone.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Desired Course *</label>
+            {{ form.course }}
+            {% if form.course.errors %}
+            <div style="color: #e74c3c; font-size: 0.9rem; margin-top: 0.3rem;">{{ form.course.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group" style="margin-bottom: 2rem;">
+            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">District *</label>
+            {{ form.district }}
+            {% if form.district.errors %}
+            <div style="color: #e74c3c; font-size: 0.9rem; margin-top: 0.3rem;">{{ form.district.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">Submit Enquiry</button>
+            <a href="{% url 'students:enquiry_list' %}" class="btn" style="background-color: #f8f9fa; color: #333; border: 1px solid #ddd; flex: 1; text-align: center;">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -3,8 +3,15 @@ from django.utils.html import format_html
 from .models import (
     Student, Division, Room, Period, Activity,
     Attendance, HostelMovement, ExamType, Subject,
-    MarkEntry, ProgressReport
+    MarkEntry, ProgressReport, AcademicYear, Enrollment
 )
+
+
+@admin.register(AcademicYear)
+class AcademicYearAdmin(admin.ModelAdmin):
+    list_display = ['name', 'start_date', 'end_date', 'is_active']
+    search_fields = ['name']
+    list_filter = ['is_active']
 
 
 @admin.register(Division)
@@ -38,16 +45,13 @@ class ActivityAdmin(admin.ModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ['student_id', 'full_name', 'grade', 'division', 'room', 'student_type', 'is_active']
-    list_filter = ['grade', 'division', 'student_type', 'room', 'is_active']
+    list_display = ['student_id', 'full_name', 'student_type', 'is_active']
+    list_filter = ['student_type', 'is_active']
     search_fields = ['student_id', 'first_name', 'last_name', 'email']
     readonly_fields = ['created_at', 'updated_at']
     fieldsets = (
         ('Basic Information', {
             'fields': ('student_id', 'first_name', 'last_name', 'email', 'phone', 'address')
-        }),
-        ('Academic Information', {
-            'fields': ('grade', 'division', 'room')
         }),
         ('Student Type', {
             'fields': ('student_type',)
@@ -66,9 +70,21 @@ class StudentAdmin(admin.ModelAdmin):
     full_name.short_description = 'Full Name'
 
 
+@admin.register(Enrollment)
+class EnrollmentAdmin(admin.ModelAdmin):
+    list_display = ['student', 'academic_year', 'grade', 'division', 'room']
+    list_filter = ['academic_year', 'grade', 'division']
+    search_fields = ['student__student_id', 'student__first_name', 'student__last_name']
+    readonly_fields = ['created_at', 'updated_at']
+
+    def full_name(self, obj):
+        return obj.full_name
+    full_name.short_description = 'Full Name'
+
+
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
-    list_display = ['student', 'date', 'attendance_type', 'status', 'period', 'activity', 'marked_by']
+    list_display = ['student', 'enrollment', 'date', 'attendance_type', 'status', 'period', 'activity', 'marked_by']
     list_filter = ['attendance_type', 'status', 'date', 'period', 'activity']
     search_fields = ['student__student_id', 'student__first_name', 'student__last_name', 'marked_by']
     date_hierarchy = 'date'
@@ -76,7 +92,7 @@ class AttendanceAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Student Information', {
-            'fields': ('student', 'date')
+            'fields': ('student', 'enrollment', 'date')
         }),
         ('Attendance Details', {
             'fields': ('attendance_type', 'status', 'period', 'activity')
@@ -179,7 +195,7 @@ class SubjectAdmin(admin.ModelAdmin):
 
 @admin.register(MarkEntry)
 class MarkEntryAdmin(admin.ModelAdmin):
-    list_display = ['student', 'exam_type', 'subject', 'marks_obtained', 'max_marks', 'percentage', 'grade_letter', 'exam_date']
+    list_display = ['student', 'enrollment', 'exam_type', 'subject', 'marks_obtained', 'max_marks', 'percentage', 'grade_letter', 'exam_date']
     list_filter = ['exam_type', 'subject', 'exam_date']
     search_fields = ['student__student_id', 'student__first_name', 'student__last_name', 'subject__name']
     date_hierarchy = 'exam_date'
@@ -187,7 +203,7 @@ class MarkEntryAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Student & Exam Information', {
-            'fields': ('student', 'exam_type', 'subject', 'exam_date')
+            'fields': ('student', 'enrollment', 'exam_type', 'subject', 'exam_date')
         }),
         ('Marks', {
             'fields': ('marks_obtained', 'max_marks', 'percentage', 'grade_letter')
@@ -204,7 +220,7 @@ class MarkEntryAdmin(admin.ModelAdmin):
 
 @admin.register(ProgressReport)
 class ProgressReportAdmin(admin.ModelAdmin):
-    list_display = ['student', 'exam_type', 'academic_year', 'overall_percentage', 'overall_grade', 'rank', 'generated_at']
+    list_display = ['student', 'enrollment', 'exam_type', 'academic_year', 'overall_percentage', 'overall_grade', 'rank', 'generated_at']
     list_filter = ['exam_type', 'academic_year', 'overall_grade']
     search_fields = ['student__student_id', 'student__first_name', 'student__last_name']
     readonly_fields = ['generated_at', 'overall_percentage', 'overall_grade']

@@ -1,0 +1,107 @@
+{% extends 'students/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-5">
+        <h2>{{ page_title }}</h2>
+        <p class="text-muted">Manage all fee categories and their specific fee items.</p>
+    </div>
+    <div class="col-md-7 text-end">
+        <a href="{% url 'fees:dashboard' %}" class="btn btn-secondary me-2"><i class="fas fa-arrow-left me-1"></i> Back to Accounts</a>
+        <a href="{% url 'fees:fee_category_create' %}" class="btn btn-primary"><i class="fas fa-folder-plus me-1"></i> New Category</a>
+    </div>
+</div>
+
+{% if messages %}
+<div class="messages">
+    {% for message in messages %}
+    <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-12">
+        {% for category in categories %}
+        <div class="card mb-4 shadow-sm border-0">
+            <div class="card-header bg-gradient text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);">
+                <h5 class="mb-0">
+                    <i class="fas fa-folder-open me-2"></i> {{ category.name }}
+                </h5>
+                <div>
+                    <a href="{% url 'fees:fee_item_create' %}?category={{ category.id }}" class="btn btn-sm btn-light text-primary me-2"><i class="fas fa-plus me-1"></i> Add Item</a>
+                    <div class="dropdown d-inline">
+                        <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="dropdownMenuButton{{ category.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ category.id }}">
+                            <li><a class="dropdown-item" href="{% url 'fees:fee_category_update' category.id %}"><i class="fas fa-edit text-warning me-2"></i> Edit Category</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="{% url 'fees:fee_category_delete' category.id %}"><i class="fas fa-trash-alt me-2"></i> Delete</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% if category.description %}
+                <div class="p-3 bg-light border-bottom text-muted small">
+                    {{ category.description }}
+                </div>
+                {% endif %}
+                
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fee Item Name</th>
+                                <th>Default Amount (₹)</th>
+                                <th>Refundable</th>
+                                <th>Description</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in category.fee_items.all %}
+                            <tr>
+                                <td class="fw-bold">{{ item.name }}</td>
+                                <td>₹{{ item.default_amount }}</td>
+                                <td>
+                                    {% if item.is_refundable %}
+                                        <span class="badge bg-success">Yes</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">No</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted small">{{ item.description|truncatechars:50 }}</td>
+                                <td class="text-end">
+                                    <a href="{% url 'fees:fee_item_update' item.id %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+                                    <a href="{% url 'fees:fee_item_delete' item.id %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    No fee items configured for this category yet.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-5">
+            <div class="display-1 text-muted opacity-25 mb-3"><i class="fas fa-folder-open"></i></div>
+            <h3 class="text-muted">No Fee Categories Found</h3>
+            <p class="text-muted mb-4">Start by creating your first fee category (e.g., Admission, Tuition).</p>
+            <a href="{% url 'fees:fee_category_create' %}" class="btn btn-primary btn-lg"><i class="fas fa-plus me-2"></i> Create Category</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

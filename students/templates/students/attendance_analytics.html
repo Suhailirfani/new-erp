@@ -393,8 +393,8 @@
                 <tr>
                     <td>{{ stat.student.student_id }}</td>
                     <td>{{ stat.student.full_name }}</td>
-                    <td>{{ stat.student.grade }}</td>
-                    <td>{{ stat.student.division|default:"-" }}</td>
+                    <td>{{ stat.enrollment.grade }}</td>
+                    <td>{{ stat.enrollment.division.name|default:"-" }}</td>
                     <td>{{ stat.total }}</td>
                     <td style="color: #27ae60;">{{ stat.present }}</td>
                     <td style="color: #e74c3c;">{{ stat.absent }}</td>

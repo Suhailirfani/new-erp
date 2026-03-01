@@ -1,0 +1,86 @@
+{% extends 'students/base.html' %}
+
+{% block title %}{{ title }} - Student Attendance System{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+                <label for="{{ form.name.id_for_label }}">Subject Name *</label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                <div class="error" style="color: red; font-size: 0.8rem;">{{ form.name.errors }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label for="{{ form.code.id_for_label }}">Subject Code *</label>
+                {{ form.code }}
+                {% if form.code.errors %}
+                <div class="error" style="color: red; font-size: 0.8rem;">{{ form.code.errors }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="{{ form.subject_type.id_for_label }}">Subject Type *</label>
+                {{ form.subject_type }}
+                {% if form.subject_type.errors %}
+                <div class="error" style="color: red; font-size: 0.8rem;">{{ form.subject_type.errors }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.max_marks.id_for_label }}">Maximum Marks *</label>
+                {{ form.max_marks }}
+                {% if form.max_marks.errors %}
+                <div class="error" style="color: red; font-size: 0.8rem;">{{ form.max_marks.errors }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="{{ form.grade.id_for_label }}">Grade</label>
+                {{ form.grade }}
+                <small>Leave blank if applicable to all grades</small>
+                {% if form.grade.errors %}
+                <div class="error" style="color: red; font-size: 0.8rem;">{{ form.grade.errors }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.division.id_for_label }}">Division</label>
+                {{ form.division }}
+                <small>Required only for "Division Specific" types</small>
+                {% if form.division.errors %}
+                <div class="error" style="color: red; font-size: 0.8rem;">{{ form.division.errors }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.description.id_for_label }}">Description</label>
+            {{ form.description }}
+            {% if form.description.errors %}
+            <div class="error" style="color: red; font-size: 0.8rem;">{{ form.description.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                {{ form.is_active }}
+                <strong>Subject is Active</strong>
+            </label>
+        </div>
+
+        <div style="margin-top: 2rem;">
+            <button type="submit" class="btn btn-success">Save Subject</button>
+            <a href="{% url 'students:subject_list' %}" class="btn btn-danger">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

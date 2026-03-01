@@ -15,16 +15,15 @@
             <strong>Name:</strong> {{ report.student.full_name }}
         </div>
         <div>
-            <strong>Grade:</strong> {{ report.student.grade }}
+            <strong>Grade:</strong> {{ report.enrollment.grade|default:"-" }}
         </div>
         <div>
-            <strong>Division:</strong> {{ report.student.division|default:"-" }}
+            <strong>Division:</strong> {{ report.enrollment.division.name|default:"-" }}
         </div>
         <div>
             <strong>Exam Type:</strong> {{ report.exam_type.name }}
         </div>
-        <div>
-            <strong>Academic Year:</strong> {{ report.academic_year|default:"-" }}
+            <strong>Academic Year:</strong> {% if report.enrollment %}{{ report.enrollment.academic_year.name }}{% else %}{{ report.academic_year|default:"-" }}{% endif %}
         </div>
     </div>
 </div>

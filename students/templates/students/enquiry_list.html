@@ -1,0 +1,87 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Enquiries Dashboard - Student Attendance System{% endblock %}
+
+{% block content %}
+<div class="flex-between align-center" style="margin-bottom: 2rem;">
+    <div>
+        <h1 style="margin: 0;">Enquiries Dashboard</h1>
+        <p style="color: #666; margin-top: 0.5rem;">Manage prospective student enquiries and interview tokens.</p>
+    </div>
+    <a href="{% url 'students:enquiry_create' %}" class="btn btn-primary">+ New Enquiry</a>
+</div>
+
+<div class="card">
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Candidate Details</th>
+                    <th>Course</th>
+                    <th>District</th>
+                    <th>Status</th>
+                    <th>Interview Token</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for enquiry in enquiries %}
+                <tr>
+                    <td style="white-space: nowrap;">{{ enquiry.created_at|date:"M d, Y" }}</td>
+                    <td>
+                        <strong>{{ enquiry.name }}</strong><br>
+                        <span style="color: #666; font-size: 0.9em;">📞 {{ enquiry.phone }}</span>
+                    </td>
+                    <td>{{ enquiry.course.name|default:"-" }}</td>
+                    <td>{{ enquiry.district }}</td>
+                    <td>
+                        {% if enquiry.status == 'Pending' %}
+                            <span class="status-badge status-warning">Pending</span>
+                        {% elif enquiry.status == 'Token Generated' %}
+                            <span class="status-badge" style="background-color: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85em;">Interview Ready</span>
+                        {% elif enquiry.status == 'Enrolled' %}
+                            <span class="status-badge status-success">Enrolled</span>
+                        {% else %}
+                            <span class="status-badge status-danger">{{ enquiry.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if enquiry.token_number %}
+                            <strong style="font-size: 1.2em; color: #2c3e50;">#{{ enquiry.token_number }}</strong>
+                        {% else %}
+                            <span style="color: #ccc;">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem;">
+                            {% if enquiry.status == 'Pending' %}
+                                <form action="{% url 'students:enquiry_generate_token' enquiry.pk %}" method="post" style="margin:0;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn" style="background-color: #3498db; padding: 0.4rem 0.8rem; font-size: 0.9em;" title="Candidate Arrived - Generate Token">🎫 Generate Token</button>
+                                </form>
+                            {% elif enquiry.status == 'Token Generated' %}
+                                <form action="{% url 'students:enquiry_enroll' enquiry.pk %}" method="post" style="margin:0;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success" style="padding: 0.4rem 0.8rem; font-size: 0.9em;" title="Interview Passed - Enroll Student" onclick="return confirm('Are you sure you want to enroll {{ enquiry.name }}? This will create an active Student profile.');">✅ Enroll</button>
+                                </form>
+                                <a href="{% url 'students:enquiry_token_print' enquiry.pk %}" class="btn" style="background-color: #95a5a6; padding: 0.4rem 0.8rem; font-size: 0.9em;" target="_blank">🖨️ Print Token</a>
+                            {% elif enquiry.status == 'Enrolled' %}
+                                <span style="color: #27ae60; font-weight: bold;">✔ Application Complete</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 3rem; color: #666;">
+                        No enquiries found in the system.<br>
+                        <a href="{% url 'students:enquiry_create' %}" style="display: inline-block; margin-top: 1rem; color: var(--primary-color);">Register your first enquiry</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
