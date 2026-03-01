@@ -1,0 +1,192 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Student Attendance - {{ student.full_name }}{% endblock %}
+
+{% block content %}
+<style>
+.attendance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 1rem;
+    padding: 1rem 0;
+}
+.attendance-day-box {
+    position: relative;
+    padding: 1rem 0.5rem;
+    border-radius: 8px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.attendance-day-box:hover {
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-3px);
+}
+.attendance-day-box .date-label {
+    font-size: 0.75rem;
+    color: #7f8c8d;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+}
+.attendance-day-box .icon-mark {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+.hover-tooltip {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2c3e50;
+    color: #fff;
+    padding: 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    text-align: left;
+    white-space: nowrap;
+    z-index: 100;
+    transition: opacity 0.2s, visibility 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.attendance-day-box:hover .hover-tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+.hover-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: #2c3e50 transparent transparent transparent;
+}
+.hover-tooltip p {
+    margin: 0 0 0.3rem 0;
+}
+.hover-tooltip p:last-child {
+    margin: 0;
+}
+</style>
+
+<div class="page-header" style="margin-bottom: 2rem; background: #fff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+    <a href="{% url 'students:attendance_class_detail' student.grade|urlencode student.division.id %}" class="btn btn-secondary" style="margin-bottom: 1rem; padding: 0.5rem 1rem; border-radius: 6px; background: #6c757d; color: white; text-decoration: none; display: inline-block;">← Back to Class List</a>
+    <h1 style="color: #1a202c; font-size: 2rem; margin-bottom: 0.5rem; font-weight: 700;">👤 {{ student.full_name }}</h1>
+    <p class="text-muted" style="color: #4a5568;">Attendance history for ID: {{ student.student_id }} | {{ student.grade }} - {{ student.division.name }}</p>
+</div>
+
+<div class="stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <div class="stat-card" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); padding: 1.5rem; border-radius: 12px; color: white; text-align: center;">
+        <h3 style="font-size: 2rem; margin: 0;">{{ percentage }}%</h3>
+        <p style="margin: 0; opacity: 0.9;">Overall Attendance</p>
+    </div>
+    <div class="stat-card" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); padding: 1.5rem; border-radius: 12px; color: white; text-align: center;">
+        <h3 style="font-size: 2rem; margin: 0;">{{ present_count }}</h3>
+        <p style="margin: 0; opacity: 0.9;">Days Present</p>
+    </div>
+    <div class="stat-card" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); padding: 1.5rem; border-radius: 12px; color: white; text-align: center;">
+        <h3 style="font-size: 2rem; margin: 0;">{{ absent_count }}</h3>
+        <p style="margin: 0; opacity: 0.9;">Days Absent</p>
+    </div>
+    <div class="stat-card" style="background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%); padding: 1.5rem; border-radius: 12px; color: white; text-align: center;">
+        <h3 style="font-size: 2rem; margin: 0;">{{ total_days }}</h3>
+        <p style="margin: 0; opacity: 0.9;">Total Days Recorded</p>
+    </div>
+</div>
+
+<div class="filter-form" style="background: #fff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 2rem; display: flex; flex-wrap: wrap; gap: 2rem;">
+    <div style="flex: 1; min-width: 300px;">
+        <h3 style="color: #2c3e50; margin-top: 0; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem;">🔎 Check Specific Date</h3>
+        <form method="get" style="display: flex; gap: 1rem; align-items: flex-end;">
+            <input type="hidden" name="date_from" value="{{ current_filters.date_from|default:'' }}">
+            <input type="hidden" name="date_to" value="{{ current_filters.date_to|default:'' }}">
+            
+            <div class="form-group" style="margin-bottom: 0; flex-grow: 1;">
+                <input type="date" name="check_date" value="{{ current_filters.check_date|default:'' }}" required style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 6px;">
+            </div>
+            <button type="submit" class="btn btn-primary" style="background: #3498db; color: white;">Check</button>
+        </form>
+        
+        {% if check_result %}
+        <div style="margin-top: 1rem; padding: 1rem; border-radius: 8px; background: #f8f9fa; border-left: 4px solid {% if check_result.status_class == 'present' %}#2ecc71{% elif check_result.status_class == 'absent' %}#e74c3c{% elif check_result.status_class == 'late' %}#f1c40f{% elif check_result.status_class == 'excused' %}#3498db{% else %}#95a5a6{% endif %};">
+            <h4 style="margin: 0 0 0.5rem 0; color: #34495e;">Result for {{ check_result.date }}</h4>
+            <p style="margin: 0 0 0.5rem 0;">Status: <strong>{{ check_result.status }}</strong></p>
+            {% if check_result.status_class != 'unknown' %}
+            <p style="margin: 0 0 0.5rem 0; font-size: 0.85rem; color: #7f8c8d;">Marked By: {{ check_result.marked_by|default:"-" }}</p>
+            <p style="margin: 0; font-size: 0.85rem; color: #7f8c8d;">Remarks: {{ check_result.remarks|default:"-" }}</p>
+            {% endif %}
+            <a href="{% url 'students:attendance_student_detail' student.id %}?date_from={{ current_filters.date_from|default:'' }}&date_to={{ current_filters.date_to|default:'' }}" style="font-size: 0.85rem; color: #3498db; text-decoration: none; display: inline-block; margin-top: 0.5rem;">Clear result</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div style="flex: 1; min-width: 300px;">
+        <h3 style="color: #2c3e50; margin-top: 0; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem;">📅 Filter Range</h3>
+        <form method="get" style="display: flex; gap: 1rem; align-items: flex-end;">
+            <input type="hidden" name="check_date" value="{{ current_filters.check_date|default:'' }}">
+            
+            <div class="form-group" style="margin-bottom: 0; flex: 1;">
+                <label style="display: block; font-size: 0.8rem; font-weight: bold; margin-bottom: 0.2rem; color: #7f8c8d;">From</label>
+                <input type="date" name="date_from" value="{{ current_filters.date_from|default:'' }}" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 6px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 0; flex: 1;">
+                <label style="display: block; font-size: 0.8rem; font-weight: bold; margin-bottom: 0.2rem; color: #7f8c8d;">To</label>
+                <input type="date" name="date_to" value="{{ current_filters.date_to|default:'' }}" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 6px;">
+            </div>
+            <button type="submit" class="btn btn-primary" style="background: #3498db; color: white;">Apply</button>
+            <a href="{% url 'students:attendance_student_detail' student.id %}?check_date={{ current_filters.check_date|default:'' }}" class="btn btn-secondary" style="background: #95a5a6; color: white; padding: 0.6rem 1rem;">Clear</a>
+        </form>
+    </div>
+</div>
+
+<div class="card" style="background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.5rem;">
+    <h2 style="margin: 0 0 1.5rem 0; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 0.5rem;">📋 Detailed Attendance History</h2>
+    
+    <div class="attendance-grid">
+        {% for attendance in attendances %}
+        <div class="attendance-day-box">
+            <div class="date-label">{{ attendance.date|date:"M d" }}</div>
+            <div class="icon-mark">
+                {% if attendance.status == 'present' %}
+                    <span style="color: #27ae60;">✔</span>
+                {% elif attendance.status == 'absent' %}
+                    <span style="color: #c0392b;">❌</span>
+                {% elif attendance.status == 'late' %}
+                    <span style="color: #f39c12;">⏰</span>
+                {% elif attendance.status == 'excused' %}
+                    <span style="color: #2980b9;">✔</span>
+                {% else %}
+                    <span style="color: #7f8c8d;">?</span>
+                {% endif %}
+            </div>
+
+            <div class="hover-tooltip">
+                <p><strong>Date:</strong> {{ attendance.date|date:"M d, Y" }}</p>
+                <p><strong>Type:</strong> {{ attendance.get_attendance_type_display }}</p>
+                {% if attendance.period %}
+                    <p><strong>Period:</strong> {{ attendance.period.name }}</p>
+                {% elif attendance.activity %}
+                    <p><strong>Activity:</strong> {{ attendance.activity.name }}</p>
+                {% endif %}
+                <p><strong>Status:</strong> {{ attendance.get_status_display }}</p>
+                <p><strong>By:</strong> {{ attendance.marked_by|default:"-" }}</p>
+                <p><strong>Remarks:</strong> {{ attendance.remarks|default:"-" }}</p>
+            </div>
+        </div>
+        {% empty %}
+        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: #7f8c8d; border: 1px dashed #ddd; border-radius: 8px;">
+            <p style="font-size: 1.5rem; margin-bottom: 0.5rem;">📭</p>
+            <strong>No attendance records found.</strong><br>
+            <small>Try adjusting your date filters.</small>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

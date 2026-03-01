@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from .models import (
-    Student, Division, Room, Period, Activity, 
-    Attendance, HostelMovement, ExamType, Subject, 
+    Student, Division, Room, Period, Activity,
+    Attendance, HostelMovement, ExamType, Subject,
     MarkEntry, ProgressReport
 )
 
@@ -73,7 +73,7 @@ class AttendanceAdmin(admin.ModelAdmin):
     search_fields = ['student__student_id', 'student__first_name', 'student__last_name', 'marked_by']
     date_hierarchy = 'date'
     readonly_fields = ['created_at', 'updated_at']
-    
+
     fieldsets = (
         ('Student Information', {
             'fields': ('student', 'date')
@@ -102,14 +102,14 @@ class AttendanceAdmin(admin.ModelAdmin):
 
 @admin.register(HostelMovement)
 class HostelMovementAdmin(admin.ModelAdmin):
-    list_display = ['student', 'departure_date', 'departure_time', 'escorting_person', 
+    list_display = ['student', 'departure_date', 'departure_time', 'escorting_person',
                     'expected_return_date', 'arrival_date', 'is_returned', 'status_display']
     list_filter = ['is_returned', 'departure_date', 'arrival_date']
-    search_fields = ['student__student_id', 'student__first_name', 'student__last_name', 
+    search_fields = ['student__student_id', 'student__first_name', 'student__last_name',
                      'escorting_person', 'reason']
     date_hierarchy = 'departure_date'
     readonly_fields = ['created_at', 'updated_at']
-    
+
     fieldsets = (
         ('Student Information', {
             'fields': ('student',)
@@ -184,7 +184,7 @@ class MarkEntryAdmin(admin.ModelAdmin):
     search_fields = ['student__student_id', 'student__first_name', 'student__last_name', 'subject__name']
     date_hierarchy = 'exam_date'
     readonly_fields = ['created_at', 'updated_at', 'percentage', 'grade_letter']
-    
+
     fieldsets = (
         ('Student & Exam Information', {
             'fields': ('student', 'exam_type', 'subject', 'exam_date')
@@ -209,3 +209,11 @@ class ProgressReportAdmin(admin.ModelAdmin):
     search_fields = ['student__student_id', 'student__first_name', 'student__last_name']
     readonly_fields = ['generated_at', 'overall_percentage', 'overall_grade']
     date_hierarchy = 'generated_at'
+
+# admin.py
+from .models import Holiday
+
+@admin.register(Holiday)
+class HolidayAdmin(admin.ModelAdmin):
+    list_display = ('date', 'title')
+    ordering = ('date',)

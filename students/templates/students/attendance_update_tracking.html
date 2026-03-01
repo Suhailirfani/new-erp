@@ -1,0 +1,212 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Attendance Update Tracking{% endblock %}
+
+{% block content %}
+
+<style>
+    /* ===== SAME STYLE FROM ATTENDANCE PAGE ===== */
+    .filter-form {
+        background: #fff;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 1.5rem;
+    }
+
+    .card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .card h2 {
+        margin: 0 0 1.5rem 0;
+        color: #2c3e50;
+        font-size: 1.4rem;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 0.5rem;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+        margin: -0.5rem;
+        padding: 0.5rem;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+
+    thead th {
+        background: #34495e;
+        color: white;
+        padding: 0.9rem;
+        text-align: center;
+        font-weight: 600;
+        white-space: nowrap;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    tbody tr {
+        border-bottom: 1px solid #ecf0f1;
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    tbody td {
+        padding: 0.7rem;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .text-muted {
+        color: #95a5a6;
+        font-style: italic;
+    }
+
+    @media (max-width: 768px) {
+        table {
+            font-size: 0.85rem;
+        }
+    }
+    /* ===== COMPACT AUDIT TABLE ===== */
+
+    .audit-table {
+        table-layout: fixed;   /* KEY: forces equal-width columns */
+    }
+    
+    .audit-table th,
+    .audit-table td {
+        padding: 0.35rem 0.25rem;   /* REDUCED padding */
+        font-size: 0.75rem;         /* Smaller text */
+        text-align: center;
+        white-space: nowrap;
+    }
+    
+    /* First column (Class / Division) wider */
+    .audit-table th:first-child,
+    .audit-table td:first-child {
+        width: 120px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+    
+    /* Date columns very narrow */
+    .audit-table th:not(:first-child),
+    .audit-table td:not(:first-child) {
+        width: 28px;   /* 🔥 THIS is the main space saver */
+    }
+    
+    /* Reduce emoji size slightly */
+
+</style>
+
+<h1 style="color:#2c3e50; margin-bottom:1.5rem;">
+    🚨 Attendance Update Tracking
+</h1>
+
+<p class="text-muted" style="margin-bottom:1.5rem;">
+    Classroom-wise monthly audit to identify skipped attendance updates.
+</p>
+
+
+<div class="filter-form">
+    <form method="get" class="form-row">
+
+        <div class="form-group">
+            <label>📅 Month</label>
+            <select name="month">
+                {% for m, name in month_choices %}
+                    <option value="{{ m }}"
+                        {% if selected_month == m %}selected{% endif %}>
+                        {{ name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>📆 Year</label>
+            <select name="year">
+                {% for y in year_choices %}
+                    <option value="{{ y }}"
+                        {% if selected_year == y %}selected{% endif %}>
+                        {{ y }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group" style="align-self:end;">
+            <button type="submit" class="btn btn-primary">
+                🔄 Load
+            </button>
+        </div>
+
+    </form>
+</div>
+
+
+
+<div class="card">
+    <h2>📅 Monthly Attendance Audit ({{ selected_month }}/{{ selected_year }})</h2>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th style="text-align:left;">Class / Division</th>
+                    {% for d in month_days %}
+                        <th>{{ d }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in attendance_matrix %}
+                <tr>
+                    <td style="text-align:left;">
+                        <strong>{{ row.grade }} – {{ row.division }}</strong>
+                    </td>
+
+                    {% for d in row.days %}
+                        <td>
+                            {% if d.is_holiday %}
+                                <span title="{{ d.holiday_type }}">🟨</span>
+                            {% elif d.recorded %}
+                                ✅
+                            {% else %}
+                                ❌
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <p class="text-muted" style="margin-top:1rem;">
+        <strong>Legend:</strong>
+        ✅ Recorded &nbsp;|&nbsp;
+        ❌ Not recorded &nbsp;|&nbsp;
+        🟨 Holiday (Sunday / 2nd Saturday/ Manual)
+    </p>
+</div>
+
+<a href="{% url 'students:attendance_list' %}" class="btn btn-secondary">
+    ← Back to Attendance Records
+</a>
+
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends 'students/base.html' %}
+{% load students_extras %}
+
+{% block title %}Mark Entry - Step 1 - Student Attendance System{% endblock %}
+
+{% block content %}
+<div class="header-container" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1>Mark Entry - Step 1: Select Exam Type</h1>
+    <a href="{% url 'students:mark_entry_list' %}" class="btn">View Existing Marks</a>
+</div>
+
+<div class="card" style="background-color: #e7f3ff; border-left: 4px solid #2196F3; margin-bottom: 2rem;">
+    <h3 style="margin-top: 0;">📝 Welcome to Mark Entry</h3>
+    <p>Follow these 3 easy steps to enter marks for an entire class:</p>
+    <ol style="margin-left: 2rem; margin-top: 0.5rem; margin-bottom: 0;">
+        <li><strong>Select Exam Type</strong> - Choose the exam below</li>
+        <li><strong>Select Class</strong> - Choose the Grade and Division combination</li>
+        <li><strong>Enter Marks</strong> - Fill in the matrix and save</li>
+    </ol>
+</div>
+
+<div class="row" style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 1rem;">
+    {% if exam_types %}
+        {% for exam_type in exam_types %}
+        <div class="card" style="flex: 1 1 300px; padding: 1.5rem; text-align: center; border-top: 4px solid #3498db; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;" 
+             onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.1)'"
+             onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 5px rgba(0,0,0,0.05)'"
+             onclick="window.location.href='{% url 'students:mark_entry_step2' exam_type.id %}'">
+            <h2 style="margin-top: 0; color: #2c3e50;">{{ exam_type.name }}</h2>
+            {% if exam_type.description %}
+            <p style="color: #7f8c8d; margin-bottom: 1.5rem;">{{ exam_type.description }}</p>
+            {% else %}
+            <p style="color: #7f8c8d; margin-bottom: 1.5rem;">Click to proceed with this exam type</p>
+            {% endif %}
+            <span class="btn btn-primary" style="display: inline-block;">Select &rarr;</span>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="card" style="width: 100%; text-align: center; padding: 3rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+            <h2>No Exam Types Found</h2>
+            <p>You must create at least one Exam Type first.</p>
+            <a href="{% url 'students:exam_type_create' %}" class="btn btn-success" style="margin-top: 1rem;">Create Exam Type +</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

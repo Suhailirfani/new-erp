@@ -3,94 +3,329 @@
 {% block title %}Attendance Records - Student Attendance System{% endblock %}
 
 {% block content %}
-<h1>Attendance Records</h1>
+<style>
+    .filter-form {
+        background: #fff;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 1.5rem;
+    }
 
-<div class="filter-form">
-    <form method="get">
-        <div class="form-row">
-            <div class="form-group">
-                <label>Date From</label>
-                <input type="date" name="date_from" value="{{ current_filters.date_from }}">
-            </div>
-            <div class="form-group">
-                <label>Date To</label>
-                <input type="date" name="date_to" value="{{ current_filters.date_to }}">
-            </div>
-            <div class="form-group">
-                <label>Attendance Type</label>
-                <select name="attendance_type">
-                    <option value="">All Types</option>
-                    <option value="daily" {% if current_filters.attendance_type == 'daily' %}selected{% endif %}>Daily</option>
-                    <option value="period" {% if current_filters.attendance_type == 'period' %}selected{% endif %}>Period</option>
-                    <option value="activity" {% if current_filters.attendance_type == 'activity' %}selected{% endif %}>Activity</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Status</label>
-                <select name="status">
-                    <option value="">All Status</option>
-                    <option value="present" {% if current_filters.status == 'present' %}selected{% endif %}>Present</option>
-                    <option value="absent" {% if current_filters.status == 'absent' %}selected{% endif %}>Absent</option>
-                    <option value="late" {% if current_filters.status == 'late' %}selected{% endif %}>Late</option>
-                    <option value="excused" {% if current_filters.status == 'excused' %}selected{% endif %}>Excused</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Grade/Year</label>
-                <input type="text" name="grade" value="{{ current_filters.grade }}" placeholder="e.g., 11, 12, 1st Year">
-            </div>
-            <div class="form-group">
-                <label>Student ID</label>
-                <input type="text" name="student_id" value="{{ current_filters.student_id }}" placeholder="Student ID">
-            </div>
-        </div>
-        <button type="submit" class="btn">Filter</button>
-        <a href="{% url 'students:attendance_list' %}" class="btn btn-danger">Clear</a>
-    </form>
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+        color: #2c3e50;
+        font-size: 0.9rem;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 0.6rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        transition: border-color 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 0.7rem 1.5rem;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
+        font-size: 0.95rem;
+    }
+
+    .btn-primary {
+        background: #3498db;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #2980b9;
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: #95a5a6;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #7f8c8d;
+    }
+
+    .summary-badges {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+
+    .badge-container {
+        flex: 1;
+        min-width: 250px;
+        padding: 1rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .badge-container.updated {
+        background: linear-gradient(135deg, #e8f8f5 0%, #d5f4e6 100%);
+        border-left: 4px solid #27ae60;
+    }
+
+    .badge-container.not-updated {
+        background: linear-gradient(135deg, #fef5f1 0%, #fce4e4 100%);
+        border-left: 4px solid #e74c3c;
+    }
+
+    .badge-container strong {
+        display: block;
+        margin-bottom: 0.6rem;
+        font-size: 1rem;
+        color: #2c3e50;
+    }
+
+    .badge-list {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .badge-success {
+        background: #27ae60;
+        color: white;
+    }
+
+    .badge-danger {
+        background: #e74c3c;
+        color: white;
+    }
+
+    .card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .card h2 {
+        margin: 0 0 1.5rem 0;
+        color: #2c3e50;
+        font-size: 1.4rem;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 0.5rem;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+        margin: -0.5rem;
+        padding: 0.5rem;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+
+    thead th {
+        background: #34495e;
+        color: white;
+        padding: 0.9rem;
+        text-align: left;
+        font-weight: 600;
+        white-space: nowrap;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    tbody tr {
+        border-bottom: 1px solid #ecf0f1;
+        transition: background-color 0.2s;
+    }
+
+    tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    tbody td {
+        padding: 0.9rem;
+        vertical-align: middle;
+    }
+
+    .absent-toggle {
+        color: #3498db;
+        text-decoration: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .absent-toggle:hover {
+        color: #2980b9;
+        text-decoration: underline;
+    }
+
+    .absent-list {
+        margin-top: 0.5rem;
+        padding: 0.8rem;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border-left: 3px solid #e74c3c;
+    }
+
+    .absent-list ul {
+        margin: 0;
+        padding-left: 1.2rem;
+        list-style-type: disc;
+    }
+
+    .absent-list li {
+        padding: 0.3rem 0;
+        color: #34495e;
+    }
+
+    .text-muted {
+        color: #95a5a6;
+        font-style: italic;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 0.3rem 0.8rem;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .status-present { background: #d4edda; color: #155724; }
+    .status-absent { background: #f8d7da; color: #721c24; }
+    .status-late { background: #fff3cd; color: #856404; }
+    .status-excused { background: #d1ecf1; color: #0c5460; }
+
+    @media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .summary-badges {
+            flex-direction: column;
+        }
+
+        .badge-container {
+            min-width: 100%;
+        }
+
+        table {
+            font-size: 0.85rem;
+        }
+
+        thead th,
+        tbody td {
+            padding: 0.6rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .card {
+            padding: 1rem;
+        }
+
+        .filter-form {
+            padding: 1rem;
+        }
+
+        .btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+    }
+</style>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h1 style="color: #2c3e50; margin: 0;">📊 Attendance Records</h1>
+    <a href="{% url 'students:attendance_update_tracking' %}" class="btn btn-primary" style="background: #e67e22; border: none; box-shadow: 0 4px 6px -1px rgba(230, 126, 34, 0.3);">
+        <span style="margin-right: 0.5rem;">⏱️</span> Update Tracking
+    </a>
 </div>
 
 <div class="card">
-    <h2>Attendance Records ({{ attendances.count }})</h2>
-    <div class="table-wrapper">
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Student</th>
-                <th>Type</th>
-                <th>Period/Activity</th>
-                <th>Status</th>
-                <th>Marked By</th>
-                <th>Remarks</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for attendance in attendances %}
-            <tr>
-                <td>{{ attendance.date }}</td>
-                <td>{{ attendance.student.full_name }} ({{ attendance.student.student_id }})</td>
-                <td>{{ attendance.get_attendance_type_display }}</td>
-                <td>
-                    {% if attendance.period %}
-                        {{ attendance.period.name }}
-                    {% elif attendance.activity %}
-                        {{ attendance.activity.name }}
+    <h2>🏫 Select Class to View Records</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+        {% for div_name, data in division_summary.items %}
+        <a href="{% url 'students:attendance_class_detail' data.grade|urlencode data.division_id %}?date_from={{ current_filters.date_from|default_if_none:'' }}&date_to={{ current_filters.date_to|default_if_none:'' }}" style="text-decoration: none; color: inherit;">
+            <div style="background: var(--light); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 10px 15px -3px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                    <h3 style="margin: 0; color: var(--primary-dark); font-size: 1.5rem;">{{ div_name }}</h3>
+                </div>
+                
+                {% if data.today_stats %}
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                    <span class="status-badge" style="background: #e2e8f0; color: #475569;">Total: {{ data.today_stats.total }}</span>
+                    <span class="status-badge status-present">Present: {{ data.today_stats.present }}</span>
+                    <span class="status-badge status-absent">Absent: {{ data.today_stats.absent }}</span>
+                    <span class="status-badge status-late">Late: {{ data.today_stats.late }}</span>
+                    <span class="status-badge status-excused">Excused: {{ data.today_stats.excused }}</span>
+                </div>
+                {% else %}
+                <div style="margin-bottom: 1rem; padding: 0.8rem; background: #fff3cd; border-radius: 8px; color: #856404; font-size: 0.9rem; border: 1px solid #ffeeba;">
+                    <span style="margin-right: 0.5rem;">⚠️</span> Not updated today
+                </div>
+                {% endif %}
+                
+                <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--gray); font-size: 0.85rem;">
+                    {% if data.last_updated %}
+                        Last recorded: {{ data.last_updated|date:"M d, Y H:i" }}
                     {% else %}
-                        -
+                        Not recorded yet
                     {% endif %}
-                </td>
-                <td>{{ attendance.get_status_display }}</td>
-                <td>{{ attendance.marked_by|default:"-" }}</td>
-                <td>{{ attendance.remarks|default:"-" }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="7" style="text-align: center;">No attendance records found.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                </div>
+            </div>
+        </a>
+        {% empty %}
+        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; background: var(--light); border-radius: 12px; border: 1px dashed var(--border);">
+            <p style="color: var(--gray); margin-bottom: 1rem; font-size: 1.1rem;">No class attendance data found.</p>
+        </div>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}
-

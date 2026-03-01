@@ -109,13 +109,13 @@ class Attendance(models.Model):
     date = models.DateField(default=timezone.now)
     attendance_type = models.CharField(max_length=20, choices=ATTENDANCE_TYPE_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='present')
-    
+
     # For period attendance
     period = models.ForeignKey(Period, on_delete=models.SET_NULL, null=True, blank=True)
-    
+
     # For activity attendance
     activity = models.ForeignKey(Activity, on_delete=models.SET_NULL, null=True, blank=True)
-    
+
     # Additional fields
     remarks = models.TextField(blank=True)
     marked_by = models.CharField(max_length=100, blank=True)  # Name of person who marked attendance
@@ -152,24 +152,24 @@ class Attendance(models.Model):
 
 class HostelMovement(models.Model):
     """Hostel student movement record (departure and arrival)"""
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='hostel_movements', 
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='hostel_movements',
                                 limit_choices_to={'student_type': 'hostel'})
-    
+
     # Departure Part
     departure_date = models.DateField()
     departure_time = models.TimeField()
     escorting_person = models.CharField(max_length=200)
     reason = models.TextField()
-    
+
     # Arrival Part
     expected_return_date = models.DateField(null=True, blank=True)
     arrival_date = models.DateField(null=True, blank=True)
     arrival_time = models.TimeField(null=True, blank=True)
     sign = models.CharField(max_length=200, blank=True)  # Student signature or name
-    
+
     # Status
     is_returned = models.BooleanField(default=False)
-    
+
     # Additional fields
     remarks = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -197,13 +197,20 @@ class HostelMovement(models.Model):
 
 class ExamType(models.Model):
     """Exam types like Quarterly, Half Yearly, Annual, etc."""
+    SUBJECT_TYPE_CHOICES = [
+        ('all', 'All Subjects'),
+        ('hadiya', 'Hadiya (Islamic)'),
+        ('division', 'Division Specific'),
+    ]
+    
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
+    subject_type = models.CharField(max_length=20, choices=SUBJECT_TYPE_CHOICES, default='all', help_text="Filter subjects shown during mark entry for this exam")
     order = models.PositiveIntegerField(default=0, help_text="Order for display")
-    
+
     class Meta:
         ordering = ['order', 'name']
-    
+
     def __str__(self):
         return self.name
 
@@ -214,7 +221,7 @@ class Subject(models.Model):
         ('hadiya', 'Hadiya (Islamic)'),
         ('division', 'Division Specific'),
     ]
-    
+
     name = models.CharField(max_length=200)
     subject_type = models.CharField(max_length=20, choices=SUBJECT_TYPE_CHOICES)
     grade = models.CharField(max_length=50, help_text="Grade/Year this subject belongs to")
@@ -224,11 +231,11 @@ class Subject(models.Model):
     max_marks = models.PositiveIntegerField(default=100, help_text="Maximum marks for this subject")
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
-    
+
     class Meta:
         ordering = ['grade', 'subject_type', 'name']
         unique_together = [['name', 'grade', 'division', 'subject_type']]
-    
+
     def __str__(self):
         if self.division:
             return f"{self.name} - {self.grade} ({self.division.name})"
@@ -247,7 +254,7 @@ class MarkEntry(models.Model):
     entered_by = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         ordering = ['-exam_date', 'student', 'subject']
         unique_together = [['student', 'exam_type', 'subject']]
@@ -255,32 +262,32 @@ class MarkEntry(models.Model):
             models.Index(fields=['student', 'exam_type']),
             models.Index(fields=['exam_type', 'subject']),
         ]
-    
+
     def __str__(self):
         return f"{self.student} - {self.exam_type} - {self.subject} - {self.marks_obtained}/{self.max_marks}"
-    
+
     @property
     def percentage(self):
         """Calculate percentage"""
         if self.max_marks > 0:
             return (self.marks_obtained / self.max_marks) * 100
         return 0
-    
+
     @property
     def grade_letter(self):
         """Calculate grade letter"""
         percentage = self.percentage
-        if percentage >= 90:
+        if percentage >= 87.5:
             return 'A+'
-        elif percentage >= 80:
+        elif percentage >= 75:
             return 'A'
-        elif percentage >= 70:
+        elif percentage >= 62.5:
             return 'B+'
-        elif percentage >= 60:
-            return 'B'
         elif percentage >= 50:
+            return 'B'
+        elif percentage >= 37.5:
             return 'C+'
-        elif percentage >= 40:
+        elif percentage >= 30:
             return 'C'
         else:
             return 'F'
@@ -299,14 +306,14 @@ class ProgressReport(models.Model):
     remarks = models.TextField(blank=True)
     generated_at = models.DateTimeField(auto_now_add=True)
     generated_by = models.CharField(max_length=100, blank=True)
-    
+
     class Meta:
         ordering = ['-generated_at', 'student']
         unique_together = [['student', 'exam_type', 'academic_year']]
-    
+
     def __str__(self):
         return f"{self.student} - {self.exam_type} - {self.academic_year}"
-    
+
     def calculate_totals(self):
         """Calculate total marks and percentage from mark entries"""
         mark_entries = MarkEntry.objects.filter(
@@ -319,7 +326,7 @@ class ProgressReport(models.Model):
             self.overall_percentage = (self.total_marks_obtained / self.total_max_marks) * 100
         else:
             self.overall_percentage = 0
-        
+
         # Calculate overall grade
         percentage = float(self.overall_percentage)
         if percentage >= 90:
@@ -336,3 +343,13 @@ class ProgressReport(models.Model):
             self.overall_grade = 'C'
         else:
             self.overall_grade = 'F'
+
+# students/models.py  (or attendance app)
+
+class Holiday(models.Model):
+    date = models.DateField(unique=True)
+    title = models.CharField(max_length=100)
+    is_optional = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.date} - {self.title}"

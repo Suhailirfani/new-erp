@@ -1,121 +1,99 @@
 {% extends 'students/base.html' %}
-{% load students_extras %}
 
 {% block title %}Mark Attendance - Student Attendance System{% endblock %}
 
 {% block content %}
-<h1>Mark Attendance</h1>
+<div class="page-header" style="margin-bottom: 2rem;">
+    <h1 style="color: #2c3e50; font-size: 2rem; margin-bottom: 0.5rem; font-weight: 700;">📝 Mark Attendance</h1>
+    <p class="text-muted" style="color: #6c757d;">Step 1: Select the date and class to mark attendance for.</p>
+</div>
 
-<div class="filter-form">
+<div class="filter-form" style="background: #fff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 2rem;">
     <form method="get" id="filterForm">
-        <div class="form-row">
-            <div class="form-group">
-                <label>Attendance Type</label>
-                <select name="type" id="attendanceType" onchange="updateForm()">
+        <div class="form-row" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+            <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                <label style="font-weight: 600; color: #34495e; margin-bottom: 0.5rem; display: block;">Date</label>
+                <input type="date" name="date" value="{{ selected_date }}" required style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 6px;">
+            </div>
+            <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                <label style="font-weight: 600; color: #34495e; margin-bottom: 0.5rem; display: block;">Attendance Type</label>
+                <select name="type" id="attendanceType" onchange="updateForm()" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 6px;">
                     <option value="daily" {% if attendance_type == 'daily' %}selected{% endif %}>Daily</option>
                     <option value="period" {% if attendance_type == 'period' %}selected{% endif %}>Period</option>
                     <option value="activity" {% if attendance_type == 'activity' %}selected{% endif %}>Activity</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label>Date</label>
-                <input type="date" name="date" value="{{ selected_date }}" required>
-            </div>
-            <div class="form-group" id="periodGroup" style="display: {% if attendance_type == 'period' %}block{% else %}none{% endif %};">
-                <label>Period</label>
-                <select name="period" id="periodSelect">
+            <div class="form-group" id="periodGroup" style="flex: 1; min-width: 200px; margin-bottom: 0; display: {% if attendance_type == 'period' %}block{% else %}none{% endif %};">
+                <label style="font-weight: 600; color: #34495e; margin-bottom: 0.5rem; display: block;">Period</label>
+                <select name="period" id="periodSelect" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 6px;">
                     <option value="">Select Period</option>
                     {% for period in periods %}
                     <option value="{{ period.id }}" {% if selected_period == period.id|stringformat:"s" %}selected{% endif %}>{{ period.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="form-group" id="activityGroup" style="display: {% if attendance_type == 'activity' %}block{% else %}none{% endif %};">
-                <label>Activity</label>
-                <select name="activity" id="activitySelect">
+            <div class="form-group" id="activityGroup" style="flex: 1; min-width: 200px; margin-bottom: 0; display: {% if attendance_type == 'activity' %}block{% else %}none{% endif %};">
+                <label style="font-weight: 600; color: #34495e; margin-bottom: 0.5rem; display: block;">Activity</label>
+                <select name="activity" id="activitySelect" style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 6px;">
                     <option value="">Select Activity</option>
                     {% for activity in activities %}
                     <option value="{{ activity.id }}" {% if selected_activity == activity.id|stringformat:"s" %}selected{% endif %}>{{ activity.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="form-group">
-                <label>Grade/Year</label>
-                <input type="text" name="grade" list="grades-list" value="{{ selected_grade }}" placeholder="e.g., 11, 12, 1st Year">
-                <datalist id="grades-list">
-                    {% for g in grades %}
-                    <option value="{{ g }}">
-                    {% endfor %}
-                </datalist>
-            </div>
-            <div class="form-group">
-                <label>Division</label>
-                <select name="division">
-                    <option value="">All Divisions</option>
-                    {% for div in divisions %}
-                    <option value="{{ div.id }}" {% if selected_division == div.id|stringformat:"s" %}selected{% endif %}>{{ div.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Room</label>
-                <select name="room">
-                    <option value="">All Rooms</option>
-                    {% for room in rooms %}
-                    <option value="{{ room.id }}" {% if selected_room == room.id|stringformat:"s" %}selected{% endif %}>{{ room.room_number }}</option>
-                    {% endfor %}
-                </select>
+            <div style="margin-bottom: 0;">
+                <button type="submit" class="btn btn-primary" style="background: #3498db; color: white; padding: 0.6rem 1.5rem; border-radius: 6px; border: none; cursor: pointer;">Load Classes</button>
             </div>
         </div>
-        <button type="submit" class="btn">Load Students</button>
     </form>
 </div>
 
-{% if students %}
-<div class="card">
-    <form method="post">
-        {% csrf_token %}
-        <div class="form-group">
-            <label>Marked By</label>
-            <input type="text" name="marked_by" required placeholder="Enter your name">
+{% if classroom_summary %}
+<div class="card" style="background: transparent; box-shadow: none; padding: 0;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+        {% for div_name, data in division_summary.items %}
+        <a href="{% url 'students:mark_attendance_class' data.grade|urlencode data.division_id|default:0 %}?date={{ selected_date }}&type={{ attendance_type }}{% if selected_period %}&period={{ selected_period }}{% endif %}{% if selected_activity %}&activity={{ selected_activity }}{% endif %}" style="text-decoration: none; color: inherit; display: block;">
+            <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; height: 100%; display: flex; flex-direction: column;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 15px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.05)';">
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                    <h3 style="margin: 0; color: #2c3e50; font-size: 1.5rem;">{{ div_name }}</h3>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 1rem; flex-grow: 1;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.5rem; border-bottom: 1px solid #f1f5f9;">
+                        <span style="color: #64748b; font-size: 0.9rem;">Total Students</span>
+                        <span style="font-weight: 600; color: #334155;">{{ data.student_count }}</span>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.5rem; border-bottom: 1px solid #f1f5f9;">
+                        <span style="color: #64748b; font-size: 0.9rem;">Marked Attendance</span>
+                        <span style="font-weight: 600; color: #334155;">{{ data.recorded_count }}</span>
+                    </div>
+                </div>
+                
+                <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid #e2e8f0;">
+                    {% if data.status_class == 'success' %}
+                        <div style="display: flex; align-items: center; color: #059669; font-weight: 600; font-size: 0.9rem;">
+                            <span style="margin-right: 0.5rem;">✅</span> {{ data.status }}
+                        </div>
+                    {% elif data.status_class == 'warning' %}
+                        <div style="display: flex; align-items: center; color: #d97706; font-weight: 600; font-size: 0.9rem;">
+                            <span style="margin-right: 0.5rem;">⚠️</span> {{ data.status }}
+                        </div>
+                    {% else %}
+                        <div style="display: flex; align-items: center; color: #dc2626; font-weight: 600; font-size: 0.9rem;">
+                            <span style="margin-right: 0.5rem;">❌</span> {{ data.status }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+        {% empty %}
+        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; background: #f8f9fa; border-radius: 12px; border: 1px dashed #ced4da;">
+            <p style="color: #6c757d; margin-bottom: 1rem; font-size: 1.1rem;">No class data found.</p>
         </div>
-        
-        <h2>Students ({{ students.count }})</h2>
-        <div class="table-wrapper">
-        <table>
-            <thead>
-                <tr>
-                    <th>Student ID</th>
-                    <th>Name</th>
-                    <th>Grade</th>
-                    <th>Division</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for student in students %}
-                <tr>
-                    <td>{{ student.student_id }}</td>
-                    <td>{{ student.full_name }}</td>
-                    <td>{{ student.grade }}</td>
-                    <td>{{ student.division|default:"-" }}</td>
-                    <td>
-                        <select name="attendance" required>
-                            {% with status=existing_attendance|get_item:student.id %}
-                            <option value="{{ student.id }}|present" {% if status == 'present' %}selected{% endif %}>Present</option>
-                            <option value="{{ student.id }}|absent" {% if status == 'absent' %}selected{% endif %}>Absent</option>
-                            <option value="{{ student.id }}|late" {% if status == 'late' %}selected{% endif %}>Late</option>
-                            <option value="{{ student.id }}|excused" {% if status == 'excused' %}selected{% endif %}>Excused</option>
-                            {% endwith %}
-                        </select>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        </div>
-        <button type="submit" class="btn btn-success" style="margin-top: 1rem;">Save Attendance</button>
-    </form>
+        {% endfor %}
+    </div>
 </div>
 {% endif %}
 
@@ -124,7 +102,7 @@ function updateForm() {
     const type = document.getElementById('attendanceType').value;
     const periodGroup = document.getElementById('periodGroup');
     const activityGroup = document.getElementById('activityGroup');
-    
+
     if (type === 'period') {
         periodGroup.style.display = 'block';
         activityGroup.style.display = 'none';

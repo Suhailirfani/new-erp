@@ -1,0 +1,56 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Alumni Hub - Student Attendance System{% endblock %}
+
+{% block content %}
+<div class="page-header" style="text-align: center;">
+    <h1>🎓 Alumni Hub</h1>
+    <p>Welcome to the Alumni Management System</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; max-width: 1000px; margin: 0 auto;">
+    <!-- Registration Card -->
+    <a href="{% url 'alumni_registration' %}" style="text-decoration: none; color: inherit;">
+        <div class="glass-card" style="padding: 3rem 2rem; text-align: center; height: 100%;">
+            <div style="font-size: 5rem; margin-bottom: 1.5rem;">📝</div>
+            <h3 style="font-size: 1.75rem; font-weight: 700; color: var(--dark); margin-bottom: 1rem;">
+                Registration
+            </h3>
+            <p style="color: var(--gray); font-size: 1rem; line-height: 1.6; margin-bottom: 2rem;">
+                New alumni? Register here to join the network and stay connected with your alma mater.
+            </p>
+            <span class="btn btn-gradient" style="display: inline-block; width: auto;">
+                Register Now
+            </span>
+        </div>
+    </a>
+
+    <!-- Alumni List Card -->
+    <a href="{% url 'alumni_list' %}" style="text-decoration: none; color: inherit;">
+        <div class="glass-card" style="padding: 3rem 2rem; text-align: center; height: 100%;">
+            <div style="font-size: 5rem; margin-bottom: 1.5rem;">📊</div>
+            <h3 style="font-size: 1.75rem; font-weight: 700; color: var(--dark); margin-bottom: 1rem;">
+                Alumni Directory
+            </h3>
+            <p style="color: var(--gray); font-size: 1rem; line-height: 1.6; margin-bottom: 2rem;">
+                View registered alumni statistics, detailed lists, and download comprehensive reports.
+            </p>
+            <span class="btn btn-gradient" style="display: inline-block; width: auto;">
+                View Directory
+            </span>
+        </div>
+    </a>
+</div>
+
+<!-- Additional Info Section -->
+<div class="card" style="max-width: 1000px; margin: 3rem auto 0; text-align: center;">
+    <h3 style="font-size: 1.5rem; font-weight: 700; color: var(--dark); margin-bottom: 1rem;">
+        Stay Connected
+    </h3>
+    <p style="color: var(--gray); font-size: 1rem; line-height: 1.6;">
+        The Alumni Hub helps you maintain connections with fellow graduates, participate in reunion events,
+        and stay updated with institutional developments.
+    </p>
+</div>
+
+{% endblock %}

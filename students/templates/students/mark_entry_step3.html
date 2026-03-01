@@ -1,0 +1,188 @@
+{% extends 'students/base.html' %}
+{% load students_extras %}
+
+{% block title %}Mark Entry - Step 3 - Student Attendance System{% endblock %}
+
+{% block content %}
+<div class="header-container" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1>Mark Entry - Step 3: Enter Marks</h1>
+    <div>
+        <a href="{% url 'students:mark_entry_step2' exam_type.id %}" class="btn" style="background-color: #6c757d;">&larr; Back to Classes</a>
+        <a href="{% url 'students:mark_entry_list' %}" class="btn">View Existing Marks</a>
+    </div>
+</div>
+
+<div class="card" style="background-color: #e7f3ff; border-left: 4px solid #2196F3; margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+            <h3 style="margin-top: 0; margin-bottom: 0.5rem;">📝 Exam: {{ exam_type.name }}</h3>
+            <h4 style="margin-top: 0; color: #555;">
+                Class: Grade {{ grade }} 
+                {% if division_name %} - {{ division_name }}{% endif %}
+            </h4>
+        </div>
+        <div style="text-align: right;">
+            <span style="background-color: #d4edda; padding: 0.5rem 1rem; border-radius: 4px; font-weight: bold; color: #155724;">
+                {{ students|length }} Student(s) | {{ subjects|length }} Subject(s)
+            </span>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-row" style="margin-bottom: 1.5rem; background-color: #f8f9fa; padding: 1rem; border-radius: 4px; border: 1px solid #dee2e6;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-weight: bold; margin-bottom: 0.5rem; display: block;">Exam Date</label>
+                <input type="date" name="exam_date" value="{% now 'Y-m-d' %}" style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-weight: bold; margin-bottom: 0.5rem; display: block;">Entered By</label>
+                <input type="text" name="entered_by" placeholder="Your name" style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
+            </div>
+            <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-end;">
+                 <button type="submit" class="btn btn-success" style="padding: 0.6rem 1.5rem; font-size: 1.1rem; width: 100%;">
+                    💾 Save All Marks
+                </button>
+            </div>
+        </div>
+        
+        {% if subjects and students %}
+        <div class="table-wrapper" style="overflow-x: auto;">
+            <table style="min-width: 100%; border-collapse: collapse; white-space: nowrap;">
+                <thead style="position: sticky; top: 0; z-index: 10;">
+                    <tr style="background-color: #2c3e50; color: white;">
+                        <th style="padding: 1rem; text-align: left; border: 1px solid #34495e; position: sticky; left: 0; background-color: #2c3e50; z-index: 11;">Sl No</th>
+                        <th style="padding: 1rem; text-align: left; border: 1px solid #34495e; position: sticky; left: 60px; background-color: #2c3e50; z-index: 11; min-width: 200px;">Student Name</th>
+                        
+                        {% for subject in subjects %}
+                        <th style="padding: 1rem; text-align: center; border: 1px solid #34495e;">
+                            <div style="font-weight: bold; margin-bottom: 0.5rem; white-space: normal; min-width: 120px;">
+                                {{ subject.name }}
+                                {% if subject.subject_type == 'hadiya' %}<br><small style="color: #bdc3c7;">(Hadiya)</small>{% endif %}
+                            </div>
+                            <div style="font-weight: normal; font-size: 0.9em; color: #bdc3c7;">
+                                Max: 
+                                <input type="number" name="max_marks_{{ subject.id }}" value="{{ subject.max_marks }}" 
+                                       step="0.01" min="1" style="width: 60px; padding: 0.2rem; text-align: center; border: 1px solid #7f8c8d; background-color: #34495e; color: white; border-radius: 3px;">
+                            </div>
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                    <tr style="background-color: {% cycle '#ffffff' '#f9f9f9' %}; border-bottom: 1px solid #eee;">
+                        <td style="padding: 0.75rem; text-align: left; border: 1px solid #eee; position: sticky; left: 0; background-color: inherit; z-index: 5;">
+                            {{ forloop.counter }}
+                        </td>
+                        <td style="padding: 0.75rem; border: 1px solid #eee; position: sticky; left: 60px; background-color: inherit; z-index: 5; font-weight: bold; color: #2c3e50;">
+                            {{ student.full_name }}
+                            <div style="font-size: 0.8em; color: #7f8c8d; font-weight: normal;">ID: {{ student.student_id }}</div>
+                        </td>
+                        
+                        {% for subject in subjects %}
+                        <td style="padding: 0.75rem; text-align: center; border: 1px solid #eee;">
+                            {% with student_marks=existing_marks|get_item:student.id %}
+                                {% with current_mark=student_marks|get_item:subject.id %}
+                                <input type="number" 
+                                       name="marks_{{ student.id }}_{{ subject.id }}" 
+                                       value="{% if current_mark is not None %}{{ current_mark }}{% endif %}" 
+                                       step="0.01" min="0" 
+                                       placeholder="-" 
+                                       style="width: 80px; padding: 0.5rem; text-align: center; border: 1px solid #ccc; border-radius: 4px; font-size: 1.1em;
+                                              {% if current_mark is not None %}background-color: #f0f9ff; border-color: #bce8f1;{% endif %}"
+                                       autocomplete="off"
+                                       tabindex="{{ forloop.parentloop.counter }}{{ forloop.counter|stringformat:"02d" }}">
+                                {% endwith %}
+                            {% endwith %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-success" style="padding: 1rem 3rem; font-size: 1.2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                💾 Save All Marks
+            </button>
+        </div>
+        
+        {% else %}
+        <div style="padding: 3rem; text-align: center; background-color: #f8f9fa; border-radius: 4px; border: 1px dashed #ccc;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+            <h3 style="margin-top: 0;">Missing Subjects or Students</h3>
+            <p>Ensure that this class has active students and subjects assigned to it.</p>
+            <div style="margin-top: 1.5rem;">
+                <a href="{% url 'admin:students_subject_changelist' %}" class="btn" style="background-color: #6c757d; margin-right: 0.5rem;">Manage Subjects</a>
+                <a href="{% url 'students:student_list' %}" class="btn" style="background-color: #6c757d;">Manage Students</a>
+            </div>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<style>
+    /* CSS to highlight the active cell's row and column for easier data entry */
+    tbody tr:hover {
+        background-color: #e8f4f8 !important;
+    }
+    
+    table input[type="number"]:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.25);
+        outline: none;
+        background-color: #fff;
+    }
+    
+    /* Ensure the sticky columns play nicely together */
+    tbody td:nth-child(1), thead th:nth-child(1) {
+        border-right: none;
+    }
+    tbody td:nth-child(2), thead th:nth-child(2) {
+        border-right: 2px solid #bdc3c7;
+    }
+</style>
+
+<script>
+    // Optional script to allow navigating the inputs with arrow keys like Excel
+    document.addEventListener('keydown', function(e) {
+        if (!e.target.matches('td input[type="number"]')) return;
+        
+        const inputs = Array.from(document.querySelectorAll('td input[type="number"]'));
+        const cols = document.querySelector('thead tr').children.length - 2; // Subtract SlNo and Name cols
+        const currentIdx = inputs.indexOf(e.target);
+        let nextIdx = -1;
+        
+        switch(e.key) {
+            case 'ArrowUp':
+                nextIdx = currentIdx - cols;
+                e.preventDefault();
+                break;
+            case 'ArrowDown':
+                nextIdx = currentIdx + cols;
+                e.preventDefault();
+                break;
+            case 'ArrowLeft':
+                nextIdx = currentIdx - 1;
+                break;
+            case 'ArrowRight':
+                nextIdx = currentIdx + 1;
+                break;
+            case 'Enter':
+                nextIdx = currentIdx + cols;
+                e.preventDefault();
+                break;
+        }
+        
+        if (nextIdx >= 0 && nextIdx < inputs.length) {
+            inputs[nextIdx].focus();
+            inputs[nextIdx].select();
+        }
+    });
+</script>
+{% endblock %}

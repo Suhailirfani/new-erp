@@ -1,0 +1,56 @@
+{% extends 'students/base.html' %}
+
+{% block content %}
+
+<h2>Class-wise Mark List</h2>
+<a href="{% url 'students:performance_analysis' %}">Performance </a>
+
+<div class="card p-3 mb-3">
+    <select id="exam_type">
+        <option value="">Exam Type</option>
+        {% for e in exam_types %}
+            <option value="{{ e.id }}">{{ e.name }}</option>
+        {% endfor %}
+    </select>
+
+    <input type="text" id="grade" placeholder="Class / Grade">
+
+    <select id="division">
+        <option value="">Division</option>
+        {% for d in divisions %}
+            <option value="{{ d.id }}">{{ d.name }}</option>
+        {% endfor %}
+    </select>
+
+    <button onclick="loadMarks()">Filter</button>
+</div>
+
+<div id="mark-results">
+    <p class="text-muted">Select filters to view results.</p>
+</div>
+
+<script>
+    const examEl = document.getElementById('exam_type');
+    const gradeEl = document.getElementById('grade');
+    const divisionEl = document.getElementById('division');
+
+    function loadMarks() {
+        const exam = examEl.value;
+        const grade = gradeEl.value;
+        const division = divisionEl.value;
+
+        fetch(`/marks/list/data/?exam_type=${exam}&grade=${grade}&division=${division}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('mark-results').innerHTML = data.html;
+            });
+    }
+
+    // auto load on change
+    examEl.addEventListener('change', loadMarks);
+    gradeEl.addEventListener('input', loadMarks);
+    divisionEl.addEventListener('change', loadMarks);
+    </script>
+
+
+{% endblock %}

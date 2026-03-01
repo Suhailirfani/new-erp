@@ -11,34 +11,29 @@
 
 <div class="card">
     <h2>Exam Types ({{ exam_types.count }})</h2>
-    <div class="table-wrapper">
-    <table>
-        <thead>
-            <tr>
-                <th>Order</th>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for exam_type in exam_types %}
-            <tr>
-                <td>{{ exam_type.order }}</td>
-                <td><strong>{{ exam_type.name }}</strong></td>
-                <td>{{ exam_type.description|default:"-" }}</td>
-                <td>
-                    <a href="{% url 'students:exam_type_update' exam_type.pk %}" class="btn">Edit</a>
-                    <a href="{% url 'students:exam_type_delete' exam_type.pk %}" class="btn btn-danger">Delete</a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="4" style="text-align: center;">No exam types found. <a href="{% url 'students:exam_type_create' %}">Create one</a></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="exam-types-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 1rem; margin-top: 1.5rem;">
+        {% for exam_type in exam_types %}
+        <div style="background: var(--light); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 10px 15px -3px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                <h3 style="margin: 0; color: var(--primary-dark); font-size: 1.25rem;">{{ exam_type.name }}</h3>
+                <span class="badge" style="font-size: 0.8rem; background: rgba(100, 116, 139, 0.1); color: var(--dark); border: 1px solid rgba(100, 116, 139, 0.2);">Order: {{ exam_type.order }}</span>
+            </div>
+            
+            <p style="color: var(--gray); font-size: 0.95rem; flex-grow: 1; margin-bottom: 1.5rem; line-height: 1.5;">
+                {{ exam_type.description|default:"No description provided." }}
+            </p>
+            
+            <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+                <a href="{% url 'students:exam_type_update' exam_type.pk %}" class="btn" style="padding: 0.5rem 1rem; font-size: 0.9rem; flex: 1; text-align: center; margin: 0;">Edit</a>
+                <a href="{% url 'students:exam_type_delete' exam_type.pk %}" class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.9rem; flex: 1; text-align: center; margin: 0;">Delete</a>
+            </div>
+        </div>
+        {% empty %}
+        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; background: var(--light); border-radius: 12px; border: 1px dashed var(--border);">
+            <p style="color: var(--gray); margin-bottom: 1rem; font-size: 1.1rem;">No exam types found.</p>
+            <a href="{% url 'students:exam_type_create' %}" class="btn btn-success">Create one</a>
+        </div>
+        {% endfor %}
     </div>
 </div>
 

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        .exam-selector {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .exam-selector label {
+            display: block;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        .exam-selector select {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            font-size: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23667eea' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 20px;
+            padding-right: 3rem;
+        }
+
+        .exam-selector select:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .exam-selector select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .print-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            margin-top: 1rem;
+        }
+
+        .print-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .print-button:active {
+            transform: translateY(0);
+        }
+
+        .print-button svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 2rem;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .class-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            animation: slideUp 0.6s ease-out backwards;
+        }
+
+        .class-card:nth-child(1) { animation-delay: 0.1s; }
+        .class-card:nth-child(2) { animation-delay: 0.2s; }
+        .class-card:nth-child(3) { animation-delay: 0.3s; }
+        .class-card:nth-child(4) { animation-delay: 0.4s; }
+        .class-card:nth-child(5) { animation-delay: 0.5s; }
+        .class-card:nth-child(6) { animation-delay: 0.6s; }
+
+        .class-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 1.5rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: shimmer 3s infinite;
+        }
+
+        .card-header h5 {
+            color: white;
+            font-size: 1.4rem;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-body {
+            padding: 2rem;
+        }
+
+        .topper-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .topper-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .topper-item:hover {
+            transform: translateX(5px);
+            background: linear-gradient(135deg, #e8ecff 0%, #dfe5ff 100%);
+        }
+
+        .topper-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .medal {
+            font-size: 2.5rem;
+            line-height: 1;
+            min-width: 50px;
+            text-align: center;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .topper-info {
+            flex: 1;
+        }
+
+        .topper-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+
+        .topper-details {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .total-score {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+        }
+
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .empty-state svg {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 1.5rem;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 1.2rem;
+            color: #666;
+        }
+        .subtitle {
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            opacity: 0.95;
+            margin-top: 0.3rem;
+        }
+
+        .exam-title {
+            margin-top: 1rem;
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 0.75rem 1.5rem;
+            border-radius: 30px;
+            display: inline-block;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+            50% { transform: translate(-30%, -30%) rotate(180deg); }
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 1rem;
+            }
+            .exam-selector, .print-button {
+                display: none;
+            }
+            .header {
+                color: #333;
+                margin-bottom: 2rem;
+            }
+            .header h1 {
+                color: #333;
+                text-shadow: none;
+            }
+            .class-card {
+                page-break-inside: avoid;
+                box-shadow: none;
+                border: 1px solid #ddd;
+                margin-bottom: 1rem;
+            }
+            .card-header {
+                background: #667eea !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .topper-item {
+                background: #f8f9ff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .total-score, .rank-badge {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .exam-title {
+                background: none !important;
+                color: #000;
+                font-size: 1.3rem;
+            }
+
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .topper-details {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>MARKAZ HADIYA WOMEN'S COLLEGE</h1>
+            <p class="subtitle">THAZHAPRA</p>
+
+            {% if selected_exam_obj %}
+                <div class="exam-title">
+                    {{ selected_exam_obj.name }}
+                </div>
+            {% else %}
+                <p class="subtitle">Performance Analysis</p>
+            {% endif %}
+        </div>
+
+
+        <form method="get" class="exam-selector">
+            <label>Select Exam</label>
+            <select name="exam_type" onchange="this.form.submit()">
+                <option value="">-- Choose an exam to view results --</option>
+                {% for exam in exam_types %}
+                    <option value="{{ exam.id }}" {% if exam.id|stringformat:"s" == selected_exam %}selected{% endif %}>
+                        {{ exam.name }}
+                    </option>
+                {% endfor %}
+            </select>
+            <button type="button" class="print-button" onclick="window.print()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                Print to PDF
+            </button>
+        </form>
+
+        <div class="grid">
+            {% for block in toppers_by_class %}
+            <div class="class-card">
+                <div class="card-header">
+                    <h5>Class {{ block.grade }} – {{ block.division }}</h5>
+                </div>
+                <div class="card-body">
+                    {% for st in block.toppers %}
+                    <div class="topper-item">
+                        <div class="medal">{% if st.rank == 1 %}🥇{% elif st.rank == 2 %}🥈{% else %}🥉{% endif %}</div>
+                        <div class="topper-info">
+                            <div class="topper-name">{{ st.name }}</div>
+                            <div class="topper-details">
+                                <span class="total-score">
+                                    <span>📈</span>
+                                    <span>{{ st.total }}</span>
+                                </span>
+                                <span class="rank-badge">
+                                    <span>🏆</span>
+                                    <span>Rank {{ st.rank }}</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 11l3 3L22 4"></path>
+                    <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+                </svg>
+                <p>No performance data available for this exam yet</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

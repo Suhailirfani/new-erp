@@ -1,0 +1,92 @@
+{% extends 'students/base.html' %}
+{% load students_extras %}
+
+{% block title %}Mark Attendance - {{ class_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header" style="margin-bottom: 2rem; background: #fff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+    <a href="{% url 'students:mark_attendance' %}?date={{ selected_date }}&type={{ attendance_type }}{% if selected_period %}&period={{ selected_period }}{% endif %}{% if selected_activity %}&activity={{ selected_activity }}{% endif %}" class="btn btn-secondary" style="margin-bottom: 1rem; padding: 0.5rem 1rem; border-radius: 6px; background: #6c757d; color: white; text-decoration: none; display: inline-block;">← Back to Classes</a>
+    <h1 style="color: #1a202c; font-size: 2rem; margin-bottom: 0.5rem; font-weight: 700;">📝 Mark Attendance: {{ class_name }}</h1>
+    <p class="text-muted" style="color: #4a5568;">
+        Date: <strong>{{ selected_date }}</strong> | 
+        Type: <strong>{{ attendance_type|title }}</strong>
+        {% if selected_period %} | Period: <strong>{{ selected_period }}</strong>{% endif %}
+        {% if selected_activity %} | Activity: <strong>{{ selected_activity }}</strong>{% endif %}
+    </p>
+</div>
+
+{% if students %}
+<div class="card" style="background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.5rem;">
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom: 2rem; background: #f8f9fa; padding: 1rem; border-radius: 8px; border: 1px solid #e9ecef;">
+            <label style="font-weight: 600; color: #34495e; display: block; margin-bottom: 0.5rem;">Marked By <span style="color: red;">*</span></label>
+            <input type="text" name="marked_by" required placeholder="Enter your name" style="width: 100%; max-width: 400px; padding: 0.6rem; border: 1px solid #ddd; border-radius: 6px;">
+        </div>
+
+        <h2 style="margin: 0 0 1rem 0; color: #2c3e50; font-size: 1.25rem;">Students ({{ students.count }})</h2>
+        <div class="table-wrapper" style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                        <th style="padding: 1rem; text-align: left; color: #495057; font-weight: 600;">Student ID</th>
+                        <th style="padding: 1rem; text-align: left; color: #495057; font-weight: 600;">Name</th>
+                        <th style="padding: 1rem; text-align: center; color: #495057; font-weight: 600;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                    <tr style="border-bottom: 1px solid #e9ecef;">
+                        <td style="padding: 1rem; color: #495057;">{{ student.student_id }}</td>
+                        <td style="padding: 1rem; font-weight: 500; color: #2c3e50;">{{ student.full_name }}</td>
+                        <td style="padding: 1rem; text-align: center;">
+                            {% with status=existing_attendance|get_item:student.id %}
+                            <div class="status-radio-group" style="display: inline-flex; gap: 1rem; background: #f8f9fa; padding: 0.5rem 1rem; border-radius: 50px; border: 1px solid #e9ecef;">
+                                <label style="display: flex; align-items: center; gap: 0.25rem; cursor: pointer; color: #2ecc71; font-weight: 500;">
+                                    <input type="radio" name="attendance_{{ student.id }}" value="{{ student.id }}|present" {% if status == 'present' or not status %}checked{% endif %} style="accent-color: #2ecc71;"> P
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.25rem; cursor: pointer; color: #e74c3c; font-weight: 500;">
+                                    <input type="radio" name="attendance_{{ student.id }}" value="{{ student.id }}|absent" {% if status == 'absent' %}checked{% endif %} style="accent-color: #e74c3c;"> A
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.25rem; cursor: pointer; color: #f1c40f; font-weight: 500;">
+                                    <input type="radio" name="attendance_{{ student.id }}" value="{{ student.id }}|late" {% if status == 'late' %}checked{% endif %} style="accent-color: #f1c40f;"> L
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.25rem; cursor: pointer; color: #3498db; font-weight: 500;">
+                                    <input type="radio" name="attendance_{{ student.id }}" value="{{ student.id }}|excused" {% if status == 'excused' %}checked{% endif %} style="accent-color: #3498db;"> E
+                                </label>
+                                
+                                <!-- Hidden input that actually gets submitted. Updated by JS. -->
+                                <input type="hidden" name="attendance" id="hidden_attendance_{{ student.id }}" value="{{ student.id }}|{% if status %}{{ status }}{% else %}present{% endif %}">
+                            </div>
+                            {% endwith %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div style="margin-top: 2rem; text-align: right;">
+            <button type="submit" class="btn btn-success" style="background: #2ecc71; color: white; padding: 0.8rem 2rem; border-radius: 6px; border: none; font-size: 1.1rem; font-weight: 600; cursor: pointer; box-shadow: 0 4px 6px rgba(46, 204, 113, 0.2);">
+                💾 Save Attendance for Class
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Update hidden inputs when radio buttons change
+document.querySelectorAll('input[type=radio]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const studentId = this.name.split('_')[1];
+        document.getElementById('hidden_attendance_' + studentId).value = this.value;
+    });
+});
+</script>
+{% else %}
+<div style="text-align: center; padding: 3rem; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+    <p style="color: #6c757d; font-size: 1.2rem; margin: 0;">No students found in this class.</p>
+</div>
+{% endif %}
+
+{% endblock %}

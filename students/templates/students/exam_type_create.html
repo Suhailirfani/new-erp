@@ -23,6 +23,18 @@
         </div>
         
         <div class="form-group">
+            <label>Allowed Subjects Filter</label>
+            <select name="subject_type" required style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;">
+                {% for choice_value, choice_label in subject_type_choices %}
+                <option value="{{ choice_value }}" {% if choice_value == 'all' %}selected{% endif %}>{{ choice_label }}</option>
+                {% endfor %}
+            </select>
+            <small style="display: block; margin-top: 0.5rem; color: #666;">
+                Select which types of subjects should be visible in the Mark Entry table for this exam.
+            </small>
+        </div>
+        
+        <div class="form-group">
             <label>Display Order</label>
             <input type="number" name="order" value="0" min="0" placeholder="0">
             <small style="display: block; margin-top: 0.5rem; color: #666;">

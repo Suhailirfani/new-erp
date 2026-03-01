@@ -1,0 +1,82 @@
+{% if class_tables %}
+
+{% for table in class_tables %}
+<button onclick="window.print()" style="float:right;">
+    Print / PDF
+</button>
+
+<div class="card mb-4">
+    <h4>
+        CLASS: {{ table.grade }} |
+        DIVISION: {{ table.division }} |
+        EXAM: {{ table.exam_type }}
+    </h4>
+
+    <table border="1" width="100%" cellpadding="6">
+        <thead>
+            <tr>
+                <th>Student</th>
+                {% for s in table.subjects %}
+                    <th>{{ s }}</th><th>Grade</th>
+                {% endfor %}
+                <th>Total</th>
+                <th>Rank</th>
+
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for st in table.students %}
+            <tr>
+                <td>{{ st.name }}</td>
+                {% for m in st.marks %}
+                    <td style="{% if m.is_fail %}color:red; font-weight:bold;{% endif %}">
+                        {{ m.marks }}
+                    </td>
+                    <td style="{% if m.is_fail %}color:red; font-weight:bold;{% endif %}">
+                        {{ m.grade }}
+                    </td>
+
+                {% endfor %}
+                <td><b>{{ st.total }}</b></td>
+                <td>{{ st.rank }}</td>
+            </tr>
+
+
+        {% endfor %}
+        <tr style="font-weight:bold; background:#f8f9fa">
+                <td>Average</td>
+
+                {% for avg in table.subject_averages %}
+                    <td>{{ avg }}</td>
+                    <td>-</td>
+                {% endfor %}
+
+                <td>-</td>
+                <td>-</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{% endfor %}
+
+{% else %}
+<p>No records found.</p>
+{% endif %}
+<style>
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        #mark-results, #mark-results * {
+            visibility: visible;
+        }
+        #mark-results {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+    }
+    </style>
