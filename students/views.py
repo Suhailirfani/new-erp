@@ -447,6 +447,48 @@ def student_list(request):
         
         students = enrollments 
 
+    if request.GET.get('export') == 'excel':
+        import openpyxl
+        from django.http import HttpResponse
+        
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="students_list.xlsx"'
+        
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Students List"
+        
+        columns = ['Student ID', 'First Name', 'Last Name', 'Grade', 'Division', 'Room', 'Student Type', 'Phone', 'Email', 'Address']
+        ws.append(columns)
+        
+        for item in students:
+            if hasattr(item, 'student'): # Enrollment
+                s = item.student
+                grade_val = item.grade
+                div_val = item.division.name if item.division else ''
+                room_val = item.room.room_number if item.room else ''
+            else: # Student fallback if no active year
+                s = item
+                grade_val = ''
+                div_val = ''
+                room_val = ''
+                
+            ws.append([
+                s.student_id,
+                s.first_name,
+                s.last_name,
+                grade_val,
+                div_val,
+                room_val,
+                s.get_student_type_display(),
+                s.phone,
+                s.email,
+                s.address
+            ])
+            
+        wb.save(response)
+        return response
+
     divisions = Division.objects.all()
     rooms = Room.objects.all()
     if active_year:
@@ -460,11 +502,11 @@ def student_list(request):
         'rooms': rooms,
         'grades': grades,
         'current_filters': {
-            'grade': grade,
-            'division': division,
-            'student_type': student_type,
-            'room': room,
-            'search': search,
+            'grade': grade if active_year else None,
+            'division': division if active_year else None,
+            'student_type': student_type if active_year else None,
+            'room': room if active_year else None,
+            'search': search if active_year else None,
         }
     }
     return render(request, 'students/student_list.html', context)
