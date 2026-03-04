@@ -26,7 +26,6 @@ wheels/
 # Django
 *.log
 local_settings.py
-db.sqlite3
 db.sqlite3-journal
 /media
 /staticfiles
@@ -42,5 +41,3 @@ db.sqlite3-journal
 # OS
 .DS_Store
 Thumbs.db
-
-db.sqlite3
