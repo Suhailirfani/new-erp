@@ -1710,12 +1710,25 @@ def progress_report_detail(request, pk):
 def student_edit(request, pk):
     """Edit an existing student"""
     student = get_object_or_404(Student, id=pk)
+    
+    # Get all academic years for the dropdown
+    academic_years = AcademicYear.objects.all().order_by('-start_date')
     active_year = AcademicYear.objects.filter(is_active=True).first()
     
-    # Get active enrollment if exists
+    # Get current enrollment (prefer the active year, or the most recent one if no active year)
+    # But wait, if they are editing a specific enrollment for a specific year, 
+    # we should ideally pass that year. For now, we look at active year or latest.
     enrollment = None
-    if active_year:
-        enrollment = Enrollment.objects.filter(student=student, academic_year=active_year).first()
+    selected_year = active_year
+    
+    if request.GET.get('year'):
+        selected_year = AcademicYear.objects.filter(id=request.GET.get('year')).first()
+        
+    if selected_year:
+        enrollment = Enrollment.objects.filter(student=student, academic_year=selected_year).first()
+    elif student.enrollments.exists():
+        enrollment = student.enrollments.first()
+        selected_year = enrollment.academic_year
 
     if request.method == 'POST':
         student_id = request.POST.get('student_id')
@@ -1728,6 +1741,14 @@ def student_edit(request, pk):
         email = request.POST.get('email', '')
         phone = request.POST.get('phone', '')
         address = request.POST.get('address', '')
+        
+        # Get the selected academic year from the form
+        form_year_id = request.POST.get('academic_year_id')
+        form_year = None
+        if form_year_id:
+            form_year = AcademicYear.objects.filter(id=form_year_id).first()
+        else:
+            form_year = active_year
 
         # Check duplicate student ID, but allow same ID for this student
         if Student.objects.exclude(id=student.id).filter(student_id=student_id).exists():
@@ -1742,22 +1763,24 @@ def student_edit(request, pk):
             student.address = address
             student.save()
             
-            if active_year:
-                if enrollment:
-                    enrollment.grade = grade
-                    enrollment.division_id = division_id
-                    enrollment.room_id = room_id
-                    enrollment.save()
+            if form_year:
+                # Find if an enrollment already exists for this specific student and year
+                year_enrollment = Enrollment.objects.filter(student=student, academic_year=form_year).first()
+                if year_enrollment:
+                    year_enrollment.grade = grade
+                    year_enrollment.division_id = division_id
+                    year_enrollment.room_id = room_id
+                    year_enrollment.save()
                 else:
                     Enrollment.objects.create(
                         student=student,
-                        academic_year=active_year,
+                        academic_year=form_year,
                         grade=grade,
                         division_id=division_id,
                         room_id=room_id
                     )
 
-            messages.success(request, f'Student {student.full_name} updated successfully!')
+            messages.success(request, f'Student {student.full_name} updated successfully for {form_year.name if form_year else "the selected year"}!')
             return redirect('students:student_list')
 
     divisions = Division.objects.all()
@@ -1766,6 +1789,8 @@ def student_edit(request, pk):
     context = {
         'student': student,
         'enrollment': enrollment,
+        'academic_years': academic_years,
+        'selected_year': selected_year,
         'divisions': divisions,
         'rooms': rooms,
     }

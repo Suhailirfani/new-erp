@@ -23,6 +23,18 @@
         </div>
 
         <div class="form-group">
+            <label>Academic Year</label>
+            <select name="academic_year_id" id="academicYearSelect" class="form-control" onchange="window.location.href='?year=' + this.value">
+                {% for year in academic_years %}
+                    <option value="{{ year.id }}" {% if selected_year and selected_year.id == year.id %}selected{% endif %}>
+                        {{ year.name }} {% if year.is_active %}(Active){% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+            <small style="color: #666; display: block; margin-top: 5px;">Change the year to view or edit the student's enrollment for that specific session.</small>
+        </div>
+
+        <div class="form-group">
             <label>Grade</label>
             <input type="text" name="grade" value="{{ enrollment.grade|default:'' }}" required>
         </div>
