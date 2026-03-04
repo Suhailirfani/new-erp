@@ -58,7 +58,7 @@ def generate_student_fees(sender, instance, created, **kwargs):
 
     # For both Created and Updated (e.g. bus stop assigned later)
     # 4. Generate Bus Fee if assigned
-    if instance.bus_stop:
+    if hasattr(instance, 'bus_stop') and instance.bus_stop:
         # Check if bus fee already assigned to avoid duplicates
         bus_fee_exists = StudentFee.objects.filter(
             student=instance, 
