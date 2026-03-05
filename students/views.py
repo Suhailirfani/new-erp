@@ -48,6 +48,9 @@ def home(request):
 
 def student_create(request):
     """Create a new student"""
+    academic_years = AcademicYear.objects.all().order_by('-start_date')
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    
     if request.method == 'POST':
         student_id = request.POST.get('student_id')
         first_name = request.POST.get('first_name')
@@ -59,6 +62,13 @@ def student_create(request):
         email = request.POST.get('email', '')
         phone = request.POST.get('phone', '')
         address = request.POST.get('address', '')
+        
+        form_year_id = request.POST.get('academic_year_id')
+        form_year = None
+        if form_year_id:
+            form_year = AcademicYear.objects.filter(id=form_year_id).first()
+        else:
+            form_year = active_year
 
         # Check if student_id already exists
         if Student.objects.filter(student_id=student_id).exists():
@@ -74,17 +84,16 @@ def student_create(request):
                 address=address,
             )
             
-            active_year = AcademicYear.objects.filter(is_active=True).first()
-            if active_year:
+            if form_year:
                 Enrollment.objects.create(
                     student=student,
-                    academic_year=active_year,
+                    academic_year=form_year,
                     grade=grade,
                     division_id=division_id if division_id else None,
                     room_id=room_id if room_id else None
                 )
             
-            messages.success(request, f'Student {student.full_name} created successfully!')
+            messages.success(request, f'Student {student.full_name} created successfully for {form_year.name if form_year else "the selected year"}!')
             return redirect('students:student_list')
 
     divisions = Division.objects.all()
@@ -92,6 +101,8 @@ def student_create(request):
     context = {
         'divisions': divisions,
         'rooms': rooms,
+        'academic_years': academic_years,
+        'active_year': active_year,
     }
     return render(request, 'students/student_create.html', context)
 

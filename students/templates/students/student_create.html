@@ -27,6 +27,19 @@
         
         <h2>Academic Information</h2>
         <div class="form-row">
+            <div class="form-group" style="width: 100%;">
+                <label>Academic Year</label>
+                <select name="academic_year_id" class="form-control">
+                    {% for year in academic_years %}
+                        <option value="{{ year.id }}" {% if active_year and active_year.id == year.id %}selected{% endif %}>
+                            {{ year.name }} {% if year.is_active %}(Active){% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+                <small style="color: #666; display: block; margin-top: 5px;">Select which academic year this student is being admitted to.</small>
+            </div>
+        </div>
+        <div class="form-row">
             <div class="form-group">
                 <label>Grade/Year *</label>
                 <input type="text" name="grade" required placeholder="e.g., 11, 12, 1st Year, 2nd Year, Final Year, B.Sc, B.A">
