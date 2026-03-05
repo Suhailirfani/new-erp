@@ -113,12 +113,26 @@ def student_bulk_import(request):
         messages.error(request, 'pandas library is required for bulk import. Please install it: pip install pandas openpyxl')
         return redirect('students:student_list')
 
+    academic_years = AcademicYear.objects.all().order_by('-start_date')
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+
     if request.method == 'POST':
         if 'excel_file' not in request.FILES:
             messages.error(request, 'Please select an Excel file.')
             return redirect('students:student_bulk_import')
 
         excel_file = request.FILES['excel_file']
+        
+        form_year_id = request.POST.get('academic_year_id')
+        form_year = None
+        if form_year_id:
+            form_year = AcademicYear.objects.filter(id=form_year_id).first()
+        else:
+            form_year = active_year
+            
+        if not form_year:
+            messages.error(request, 'No academic year selected or active.')
+            return redirect('students:student_bulk_import')
 
         try:
             # Read Excel file
@@ -160,7 +174,7 @@ def student_bulk_import(request):
                         continue
 
                     # Validate grade is not empty
-                    if not grade:
+                    if not grade or grade == 'nan':
                         errors.append(f"Row {index + 2}: Grade cannot be empty")
                         error_count += 1
                         continue
@@ -212,15 +226,13 @@ def student_bulk_import(request):
                         address=address,
                     )
                     
-                    active_year = AcademicYear.objects.filter(is_active=True).first()
-                    if active_year:
-                        Enrollment.objects.create(
-                            student=student,
-                            academic_year=active_year,
-                            grade=grade,
-                            division=division,
-                            room=room
-                        )
+                    Enrollment.objects.create(
+                        student=student,
+                        academic_year=form_year,
+                        grade=grade,
+                        division_id=division.id if division else None,
+                        room_id=room.id if room else None
+                    )
                     
                     success_count += 1
 
@@ -230,7 +242,7 @@ def student_bulk_import(request):
 
             # Show results
             if success_count > 0:
-                messages.success(request, f'Successfully imported {success_count} student(s).')
+                messages.success(request, f'Successfully imported {success_count} student(s) into {form_year.name}.')
             if error_count > 0:
                 error_msg = f'Failed to import {error_count} student(s).'
                 if errors:
@@ -247,13 +259,67 @@ def student_bulk_import(request):
 
     # GET request - show upload form
     context = {
+        'academic_years': academic_years,
+        'active_year': active_year,
         'sample_columns': [
-            'student_id', 'first_name', 'last_name', 'grade',
-            'division', 'room', 'student_type', 'email', 'phone', 'address'
+            'student_id (Required)',
+            'first_name (Required)',
+            'last_name (Required)',
+            'grade (Required)',
+            'division (Optional)',
+            'room (Optional)',
+            'student_type (Optional: day_scholar or hostel)',
+            'email (Optional)',
+            'phone (Optional)',
+            'address (Optional)'
         ]
     }
     return render(request, 'students/student_bulk_import.html', context)
 
+
+def student_bulk_import_template(request):
+    """Download an Excel template for bulk student import"""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Students Import Template"
+
+    columns = [
+        ("student_id", True, "STU001", 15),
+        ("first_name", True, "John", 20),
+        ("last_name", True, "Doe", 20),
+        ("grade", True, "10", 10),
+        ("division", False, "A", 15),
+        ("room", False, "101", 10),
+        ("student_type", False, "day_scholar", 15),
+        ("email", False, "john@example.com", 25),
+        ("phone", False, "1234567890", 15),
+        ("address", False, "123 Main St", 30),
+    ]
+
+    # Writing headers and initial data
+    for col_idx, (col_name, is_required, sample_val, width) in enumerate(columns, start=1):
+        cell = ws.cell(row=1, column=col_idx, value=col_name)
+        # Header Style
+        cell.font = Font(bold=True, color="FFFFFF")
+        fill_color = "007BFF" if is_required else "6C757D" # Blue for required, grey for optional
+        cell.fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type="solid")
+        
+        # Adjust width
+        ws.column_dimensions[get_column_letter(col_idx)].width = width
+        
+        # Add sample data
+        ws.cell(row=2, column=col_idx, value=sample_val)
+
+    # Prepare HttpResponse
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="student_import_template.xlsx"'
+    wb.save(response)
+    
+    return response
 
 def student_upgrade(request):
     """Upgrade students to next grade (e.g., grade 11 to 12, or 1st Year to 2nd Year)"""

@@ -66,6 +66,18 @@
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="form-group">
+            <label>Select Academic Year *</label>
+            <select name="academic_year_id" class="form-control" required>
+                {% for year in academic_years %}
+                    <option value="{{ year.id }}" {% if active_year and active_year.id == year.id %}selected{% endif %}>
+                        {{ year.name }} {% if year.is_active %}(Active){% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+            <small style="color: #666; display: block; margin-top: 5px;">All imported students will be enrolled in this academic year.</small>
+        </div>
+
+        <div class="form-group">
             <label>Select Excel File (.xlsx or .xls) *</label>
             <input type="file" name="excel_file" accept=".xlsx,.xls" required>
             <small style="display: block; margin-top: 0.5rem; color: #666;">
@@ -74,7 +86,8 @@
         </div>
         
         <button type="submit" class="btn btn-success">Import Students</button>
-        <a href="{% url 'students:student_list' %}" class="btn btn-danger">Cancel</a>
+        <a href="{% url 'students:student_bulk_import_template' %}" class="btn btn-primary" style="margin-left: 10px;">Download Template</a>
+        <a href="{% url 'students:student_list' %}" class="btn btn-danger" style="margin-left: 10px;">Cancel</a>
     </form>
 </div>
 

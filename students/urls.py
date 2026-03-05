@@ -8,6 +8,7 @@ urlpatterns = [
     path('students/', views.student_list, name='student_list'),
     path('students/create/', views.student_create, name='student_create'),
     path('students/bulk-import/', views.student_bulk_import, name='student_bulk_import'),
+    path('students/bulk-import/template/', views.student_bulk_import_template, name='student_bulk_import_template'),
     path('students/upgrade/', views.student_upgrade, name='student_upgrade'),
     path('students/graduate/', views.student_graduate, name='student_graduate'),
     path('attendance/mark/', views.mark_attendance, name='mark_attendance'),
