@@ -75,7 +75,11 @@
         <h1 class="token-number">{{ enquiry.token_number }}</h1>
         
         <div class="candidate-name">{{ enquiry.name }}</div>
-        <div class="candidate-course">{{ enquiry.course.name }}</div>
+        <div class="candidate-course">
+            <strong>Course:</strong> {{ enquiry.course.name }}<br>
+            <strong>Phone:</strong> {{ enquiry.phone }}<br>
+            <strong>District:</strong> {{ enquiry.district }}
+        </div>
         
         <div class="date">{{ enquiry.updated_at|date:"l, F j, Y" }}</div>
         
