@@ -1,0 +1,41 @@
+{% extends 'students/base.html' %}
+
+{% block title %}
+    {% if is_update %}Edit Grade{% else %}Add New Grade{% endif %} - Student Management System
+{% endblock %}
+
+{% block content %}
+<div class="header-actions" style="margin-bottom: 20px;">
+    <a href="{% url 'students:grade_list' %}" class="btn">← Back to Grades</a>
+</div>
+
+<div class="card">
+    <h2>{% if is_update %}Edit Grade{% else %}Add New Grade{% endif %}</h2>
+    
+    <form method="post" class="standard-form">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="{{ form.name.id_for_label }}">Name *</label>
+            {{ form.name }}
+            <small class="help-text">e.g., "11", "KG", "1st Year"</small>
+            {{ form.name.errors }}
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.section.id_for_label }}">Section</label>
+            {{ form.section }}
+            {{ form.section.errors }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.order.id_for_label }}">Sorting Order</label>
+            {{ form.order }}
+            <small class="help-text">Determines the display order (0 is first).</small>
+            {{ form.order.errors }}
+        </div>
+        
+        <button type="submit" class="btn btn-success">Save Grade</button>
+    </form>
+</div>
+{% endblock %}

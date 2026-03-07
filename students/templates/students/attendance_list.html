@@ -291,11 +291,14 @@
     <h2>🏫 Select Class to View Records</h2>
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
         {% for div_name, data in division_summary.items %}
-        <a href="{% url 'students:attendance_class_detail' data.grade data.division_id %}?date_from={{ current_filters.date_from|default_if_none:'' }}&date_to={{ current_filters.date_to|default_if_none:'' }}" style="text-decoration: none; color: inherit;">
+        <a href="{% url 'students:attendance_class_detail' data.grade data.division_id %}?section={{ data.section_id|default:'' }}&date_from={{ current_filters.date_from|default_if_none:'' }}&date_to={{ current_filters.date_to|default_if_none:'' }}" style="text-decoration: none; color: inherit;">
             <div style="background: var(--light); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 10px 15px -3px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
                 
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-                    <h3 style="margin: 0; color: var(--primary-dark); font-size: 1.5rem;">{{ div_name }}</h3>
+                    <div>
+                        <span style="color: #7f8c8d; font-size: 0.9rem; font-weight: bold; text-transform: uppercase;">{{ data.section }}</span>
+                        <h3 style="margin: 0; color: var(--primary-dark); font-size: 1.5rem;">{{ div_name }}</h3>
+                    </div>
                 </div>
                 
                 {% if data.today_stats %}

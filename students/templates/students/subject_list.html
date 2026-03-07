@@ -1,53 +1,23 @@
 {% extends 'students/base.html' %}
 
-{% block title %}Subjects - Student Attendance System{% endblock %}
+{% block title %}Manage Subjects - Student Management System{% endblock %}
 
 {% block content %}
-<h1>Subjects Management</h1>
-
-<div style="margin-bottom: 1rem;">
-    <a href="{% url 'students:subject_create' %}" class="btn btn-success">Add New Subject</a>
-</div>
-
-<div class="filter-form">
-    <form method="get">
-        <div class="form-row">
-            <div class="form-group">
-                <label>Grade</label>
-                <select name="grade">
-                    <option value="">All Grades</option>
-                    {% for grade in grades %}
-                    <option value="{{ grade }}" {% if current_filters.grade == grade %}selected{% endif %}>{{ grade }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Subject Type</label>
-                <select name="subject_type">
-                    <option value="">All Types</option>
-                    <option value="all" {% if current_filters.subject_type == 'all' %}selected{% endif %}>All (Common)</option>
-                    <option value="hadiya" {% if current_filters.subject_type == 'hadiya' %}selected{% endif %}>Hadiya (Islamic)</option>
-                    <option value="division" {% if current_filters.subject_type == 'division' %}selected{% endif %}>Division Specific</option>
-                </select>
-            </div>
-        </div>
-        <button type="submit" class="btn">Filter</button>
-        <a href="{% url 'students:subject_list' %}" class="btn btn-danger">Clear</a>
-    </form>
+<div class="header-actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h1>Manage Subjects</h1>
+    <a href="{% url 'students:subject_create' %}" class="btn btn-success">+ Add New Subject</a>
 </div>
 
 <div class="card">
-    <h2>Subjects ({{ subjects.count }})</h2>
-    <div class="table-wrapper">
     <table>
         <thead>
             <tr>
+                <th>Subject Name</th>
                 <th>Code</th>
-                <th>Name</th>
                 <th>Type</th>
                 <th>Grade</th>
                 <th>Division</th>
-                <th>Max Marks</th>
+                <th>Section</th>
                 <th>Status</th>
                 <th>Actions</th>
             </tr>
@@ -55,16 +25,12 @@
         <tbody>
             {% for subject in subjects %}
             <tr>
-                <td><strong>{{ subject.code }}</strong></td>
-                <td>{{ subject.name }}</td>
-                <td>
-                    {% if subject.subject_type == 'all' %}Common
-                    {% elif subject.subject_type == 'hadiya' %}<span style="color: #2e8b57; font-weight: bold;">Hadiya</span>
-                    {% else %}Division{% endif %}
-                </td>
+                <td><strong>{{ subject.name }}</strong></td>
+                <td>{{ subject.code|default:"-" }}</td>
+                <td>{{ subject.get_subject_type_display }}</td>
                 <td>{{ subject.grade|default:"-" }}</td>
-                <td>{{ subject.division.name|default:"-" }}</td>
-                <td>{{ subject.max_marks }}</td>
+                <td>{{ subject.division|default:"-" }}</td>
+                <td>{{ subject.section|default:"-" }}</td>
                 <td>
                     {% if subject.is_active %}
                         <span style="color: green;">Active</span>
@@ -73,16 +39,16 @@
                     {% endif %}
                 </td>
                 <td>
-                    <a href="{% url 'students:subject_update' subject.pk %}" class="btn">Update</a>
+                    <a href="{% url 'students:subject_update' subject.id %}" class="btn">Edit</a>
+                    <a href="{% url 'students:subject_delete' subject.id %}" class="btn btn-danger">Delete</a>
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="8" style="text-align: center;">No subjects found.</td>
+                <td colspan="8" style="text-align: center;">No subjects found. Create your first subject.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    </div>
 </div>
 {% endblock %}

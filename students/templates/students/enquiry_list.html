@@ -19,6 +19,7 @@
                     <th>Date</th>
                     <th>Candidate Details</th>
                     <th>Course</th>
+                    <th>Academic Year & Section</th>
                     <th>District</th>
                     <th>Status</th>
                     <th>Interview Token</th>
@@ -34,6 +35,10 @@
                         <span style="color: #666; font-size: 0.9em;">📞 {{ enquiry.phone }}</span>
                     </td>
                     <td>{{ enquiry.course.name|default:"-" }}</td>
+                    <td>
+                        {{ enquiry.academic_year.name|default:"-" }}<br>
+                        <span style="color: #666; font-size: 0.9em;">Sec: {{ enquiry.section.name|default:"-" }}</span>
+                    </td>
                     <td>{{ enquiry.district }}</td>
                     <td>
                         {% if enquiry.status == 'Pending' %}
@@ -74,7 +79,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 3rem; color: #666;">
+                    <td colspan="8" style="text-align: center; padding: 3rem; color: #666;">
                         No enquiries found in the system.<br>
                         <a href="{% url 'students:enquiry_create' %}" style="display: inline-block; margin-top: 1rem; color: var(--primary-color);">Register your first enquiry</a>
                     </td>

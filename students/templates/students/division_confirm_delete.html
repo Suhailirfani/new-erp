@@ -1,0 +1,20 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Delete Division - Student Management System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Confirm Deletion</h2>
+    <p>Are you sure you want to delete the division "<strong>{{ division.name }}</strong>"?</p>
+    
+    <p class="warning-text" style="color: red;">
+        Warning: This will also unassign any subjects or enrollments using this division.
+    </p>
+
+    <form method="post" style="margin-top: 20px;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Delete Division</button>
+        <a href="{% url 'students:division_list' %}" class="btn">Cancel</a>
+    </form>
+</div>
+{% endblock %}

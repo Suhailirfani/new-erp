@@ -1,0 +1,50 @@
+{% extends 'students/base.html' %}
+
+{% block title %}{{ title }} - Student Attendance System{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <h2>{{ title }}</h2>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger" style="color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; padding: 10px; margin-bottom: 15px; border-radius: 4px;">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label for="{{ form.name.id_for_label }}">Section Name *</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+                <div class="error-text" style="color: red; font-size: 0.9em;">{{ form.name.errors }}</div>
+            {% endif %}
+            <small style="color: #6c757d; display: block; margin-top: 4px;">e.g., KG, LP, UP, HS, HSS, Degree, Diploma</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.description.id_for_label }}">Description</label>
+            {{ form.description }}
+            {% if form.description.errors %}
+                <div class="error-text" style="color: red; font-size: 0.9em;">{{ form.description.errors }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.order.id_for_label }}">Display Order</label>
+            {{ form.order }}
+            {% if form.order.errors %}
+                <div class="error-text" style="color: red; font-size: 0.9em;">{{ form.order.errors }}</div>
+            {% endif %}
+            <small style="color: #6c757d; display: block; margin-top: 4px;">Lower numbers appear first in the list (e.g., KG=1, LP=2).</small>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <button type="submit" class="btn btn-primary">Save Section</button>
+            <a href="{% url 'students:section_list' %}" class="btn btn-secondary" style="margin-left: 10px;">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

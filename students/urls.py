@@ -39,6 +39,12 @@ urlpatterns = [
     path('progress-reports/bulk-pdf/', views.bulk_progress_report_pdf, name='bulk_progress_report_pdf'),
     path('attendance/update-tracking/', views.attendance_update_tracking, name='attendance_update_tracking'),
     
+    # Section Management
+    path('sections/', views.section_list, name='section_list'),
+    path('sections/create/', views.section_create, name='section_create'),
+    path('sections/<int:pk>/update/', views.section_update, name='section_update'),
+    path('sections/<int:pk>/delete/', views.section_delete, name='section_delete'),
+
     # Academic Year Management
     path('academic-years/', views.academic_year_list, name='academic_year_list'),
     path('academic-years/create/', views.academic_year_create, name='academic_year_create'),
@@ -48,6 +54,19 @@ urlpatterns = [
     path('subjects/', views.subject_list, name='subject_list'),
     path('subjects/create/', views.subject_create, name='subject_create'),
     path('subjects/<int:pk>/update/', views.subject_update, name='subject_update'),
+    path('subjects/<int:pk>/delete/', views.subject_delete, name='subject_delete'),
+    
+    # Grade Management
+    path('grades/', views.grade_list, name='grade_list'),
+    path('grades/create/', views.grade_create, name='grade_create'),
+    path('grades/<int:pk>/update/', views.grade_update, name='grade_update'),
+    path('grades/<int:pk>/delete/', views.grade_delete, name='grade_delete'),
+    
+    # Division Management
+    path('divisions/', views.division_list, name='division_list'),
+    path('divisions/create/', views.division_create, name='division_create'),
+    path('divisions/<int:pk>/update/', views.division_update, name='division_update'),
+    path('divisions/<int:pk>/delete/', views.division_delete, name='division_delete'),
     
     # Enquiry Management
     path('enquiries/', views.enquiry_list_view, name='enquiry_list'),

@@ -1,0 +1,40 @@
+{% extends 'students/base.html' %}
+
+{% block title %}
+    {% if is_update %}Edit Division{% else %}Add New Division{% endif %} - Student Management System
+{% endblock %}
+
+{% block content %}
+<div class="header-actions" style="margin-bottom: 20px;">
+    <a href="{% url 'students:division_list' %}" class="btn">← Back to Divisions</a>
+</div>
+
+<div class="card">
+    <h2>{% if is_update %}Edit Division{% else %}Add New Division{% endif %}</h2>
+    
+    <form method="post" class="standard-form">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="{{ form.name.id_for_label }}">Division Name *</label>
+            {{ form.name }}
+            <small class="help-text">e.g., "Commerce", "Science", "A"</small>
+            {{ form.name.errors }}
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.section.id_for_label }}">Section</label>
+            {{ form.section }}
+            {{ form.section.errors }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.description.id_for_label }}">Description</label>
+            {{ form.description }}
+            {{ form.description.errors }}
+        </div>
+        
+        <button type="submit" class="btn btn-success">Save Division</button>
+    </form>
+</div>
+{% endblock %}

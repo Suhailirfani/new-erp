@@ -9,7 +9,7 @@
     <form method="post">
         {% csrf_token %}
         
-        <div class="form-row">
+        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
             <div class="form-group">
                 <label for="{{ form.name.id_for_label }}">Academic Year Name *</label>
                 {{ form.name }}
@@ -17,6 +17,14 @@
                 <div class="error" style="color: red; font-size: 0.8rem;">{{ form.name.errors }}</div>
                 {% endif %}
                 <small>Format: YYYY-YYYY (e.g., 2024-2025)</small>
+            </div>
+            <div class="form-group">
+                <label for="{{ form.section.id_for_label }}">Section</label>
+                {{ form.section }}
+                {% if form.section.errors %}
+                <div class="error" style="color: red; font-size: 0.8rem;">{{ form.section.errors }}</div>
+                {% endif %}
+                <small>Optional. Assign this year to a specific section.</small>
             </div>
         </div>
 

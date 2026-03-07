@@ -1,86 +1,84 @@
 {% extends 'students/base.html' %}
 
-{% block title %}{{ title }} - Student Attendance System{% endblock %}
+{% block title %}
+    {% if is_update %}Edit Subject{% else %}Add New Subject{% endif %} - Student Management System
+{% endblock %}
 
 {% block content %}
-<h1>{{ title }}</h1>
+<div class="header-actions" style="margin-bottom: 20px;">
+    <a href="{% url 'students:subject_list' %}" class="btn">← Back to Subjects</a>
+</div>
 
 <div class="card">
-    <form method="post">
+    <h2>{% if is_update %}Edit Subject{% else %}Add New Subject{% endif %}</h2>
+    
+    <form method="post" class="standard-form">
         {% csrf_token %}
         
         <div class="form-row">
-            <div class="form-group" style="flex: 2;">
+            <div class="form-group">
                 <label for="{{ form.name.id_for_label }}">Subject Name *</label>
                 {{ form.name }}
-                {% if form.name.errors %}
-                <div class="error" style="color: red; font-size: 0.8rem;">{{ form.name.errors }}</div>
-                {% endif %}
+                {{ form.name.errors }}
             </div>
-            <div class="form-group" style="flex: 1;">
-                <label for="{{ form.code.id_for_label }}">Subject Code *</label>
+            
+            <div class="form-group">
+                <label for="{{ form.code.id_for_label }}">Subject Code</label>
                 {{ form.code }}
-                {% if form.code.errors %}
-                <div class="error" style="color: red; font-size: 0.8rem;">{{ form.code.errors }}</div>
-                {% endif %}
+                <small class="help-text">Optional short code e.g., "MATH101"</small>
+                {{ form.code.errors }}
             </div>
         </div>
-
+        
         <div class="form-row">
             <div class="form-group">
                 <label for="{{ form.subject_type.id_for_label }}">Subject Type *</label>
                 {{ form.subject_type }}
-                {% if form.subject_type.errors %}
-                <div class="error" style="color: red; font-size: 0.8rem;">{{ form.subject_type.errors }}</div>
-                {% endif %}
+                <small class="help-text">Hadiya or Division Specific</small>
+                {{ form.subject_type.errors }}
             </div>
+            
             <div class="form-group">
-                <label for="{{ form.max_marks.id_for_label }}">Maximum Marks *</label>
+                <label for="{{ form.max_marks.id_for_label }}">Max Marks</label>
                 {{ form.max_marks }}
-                {% if form.max_marks.errors %}
-                <div class="error" style="color: red; font-size: 0.8rem;">{{ form.max_marks.errors }}</div>
-                {% endif %}
+                {{ form.max_marks.errors }}
             </div>
         </div>
 
         <div class="form-row">
             <div class="form-group">
+                <label for="{{ form.section.id_for_label }}">Section</label>
+                {{ form.section }}
+                {{ form.section.errors }}
+            </div>
+            
+            <div class="form-group">
                 <label for="{{ form.grade.id_for_label }}">Grade</label>
                 {{ form.grade }}
-                <small>Leave blank if applicable to all grades</small>
-                {% if form.grade.errors %}
-                <div class="error" style="color: red; font-size: 0.8rem;">{{ form.grade.errors }}</div>
-                {% endif %}
+                {{ form.grade.errors }}
             </div>
+            
             <div class="form-group">
                 <label for="{{ form.division.id_for_label }}">Division</label>
                 {{ form.division }}
-                <small>Required only for "Division Specific" types</small>
-                {% if form.division.errors %}
-                <div class="error" style="color: red; font-size: 0.8rem;">{{ form.division.errors }}</div>
-                {% endif %}
+                <small class="help-text">Required if type is Division Specific</small>
+                {{ form.division.errors }}
             </div>
         </div>
 
         <div class="form-group">
             <label for="{{ form.description.id_for_label }}">Description</label>
             {{ form.description }}
-            {% if form.description.errors %}
-            <div class="error" style="color: red; font-size: 0.8rem;">{{ form.description.errors }}</div>
-            {% endif %}
+            {{ form.description.errors }}
         </div>
-
-        <div class="form-group" style="margin-top: 1rem;">
-            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                {{ form.is_active }}
-                <strong>Subject is Active</strong>
-            </label>
+        
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+            <label for="{{ form.is_active.id_for_label }}">Is Active?</label>
+            {{ form.is_active }}
+            {{ form.is_active.errors }}
         </div>
-
-        <div style="margin-top: 2rem;">
-            <button type="submit" class="btn btn-success">Save Subject</button>
-            <a href="{% url 'students:subject_list' %}" class="btn btn-danger">Cancel</a>
-        </div>
+        
+        <button type="submit" class="btn btn-success">Save Subject</button>
     </form>
 </div>
 {% endblock %}

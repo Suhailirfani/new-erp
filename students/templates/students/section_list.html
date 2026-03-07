@@ -1,0 +1,49 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Sections - Student Attendance System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Sections</h1>
+    <a href="{% url 'students:section_create' %}" class="btn btn-primary">
+        + Add New Section
+    </a>
+</div>
+
+<div class="card">
+    {% if sections %}
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Order</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for section in sections %}
+                <tr>
+                    <td>{{ section.order }}</td>
+                    <td><strong>{{ section.name }}</strong></td>
+                    <td>{{ section.description|truncatewords:10 }}</td>
+                    <td class="action-buttons">
+                        <a href="{% url 'students:section_update' section.pk %}" class="btn btn-sm btn-primary">Edit</a>
+                        <form method="post" action="{% url 'students:section_delete' section.pk %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this section?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-center" style="color: #6c757d; margin: 2rem 0;">
+        No sections found. Add a section (e.g., KG, LP, UP, HS) to get started!
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

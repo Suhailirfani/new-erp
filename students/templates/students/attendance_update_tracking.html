@@ -167,6 +167,7 @@
         <table>
             <thead>
                 <tr>
+                    <th style="text-align:left;">Section</th>
                     <th style="text-align:left;">Class / Division</th>
                     {% for d in month_days %}
                         <th>{{ d }}</th>
@@ -176,6 +177,9 @@
             <tbody>
                 {% for row in attendance_matrix %}
                 <tr>
+                    <td style="text-align:left;">
+                        <strong>{{ row.section|default:"-" }}</strong>
+                    </td>
                     <td style="text-align:left;">
                         <strong>{{ row.grade }} – {{ row.division }}</strong>
                     </td>

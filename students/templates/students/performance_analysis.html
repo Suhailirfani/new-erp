@@ -440,6 +440,7 @@
             {% for block in toppers_by_class %}
             <div class="class-card">
                 <div class="card-header">
+                    <div style="color: rgba(255,255,255,0.8); font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">{{ block.section|default:"No Section" }}</div>
                     <h5>Class {{ block.grade }} – {{ block.division }}</h5>
                 </div>
                 <div class="card-body">

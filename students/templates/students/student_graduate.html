@@ -20,7 +20,7 @@
                 <input type="text" name="from_grade" list="grades-list" required placeholder="e.g., 12, Final Year">
                 <datalist id="grades-list">
                     {% for grade in existing_grades %}
-                    <option value="{{ grade }}">
+                    <option value="{{ grade.name }}">
                     {% endfor %}
                 </datalist>
                 <small style="display: block; margin-top: 0.5rem; color: #666;">

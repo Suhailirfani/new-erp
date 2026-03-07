@@ -20,6 +20,19 @@
         </div>
         
         <div class="form-group">
+            <label>Section</label>
+            <select name="section" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;">
+                <option value="">-- All Sections / Unassigned --</option>
+                {% for section in sections %}
+                <option value="{{ section.id }}" {% if exam_type.section and section.id == exam_type.section.id %}selected{% endif %}>{{ section.name }}</option>
+                {% endfor %}
+            </select>
+            <small style="display: block; margin-top: 0.5rem; color: #666;">
+                Optional. Assign this exam type to a specific section.
+            </small>
+        </div>
+
+        <div class="form-group">
             <label>Allowed Subjects Filter</label>
             <select name="subject_type" required style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;">
                 {% for choice_value, choice_label in subject_type_choices %}

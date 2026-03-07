@@ -14,8 +14,10 @@ except ImportError:
     PANDAS_AVAILABLE = False
 from .models import (
     Student, Attendance, HostelMovement, Period, Activity, Division, Room,
-    ExamType, Subject, MarkEntry, ProgressReport, AcademicYear, Enrollment
+    ExamType, Subject, MarkEntry, ProgressReport, AcademicYear, Enrollment,
+    Grade, Section
 )
+from .forms import SectionForm, AcademicYearForm, EnquiryForm, GradeForm, DivisionForm, SubjectForm
 
 
 def home(request):
@@ -55,9 +57,10 @@ def student_create(request):
         student_id = request.POST.get('student_id')
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
-        grade = request.POST.get('grade')
+        grade_id = request.POST.get('grade')
         division_id = request.POST.get('division') or None
         room_id = request.POST.get('room') or None
+        section_id = request.POST.get('section') or None
         student_type = request.POST.get('student_type', 'day_scholar')
         email = request.POST.get('email', '')
         phone = request.POST.get('phone', '')
@@ -88,7 +91,8 @@ def student_create(request):
                 Enrollment.objects.create(
                     student=student,
                     academic_year=form_year,
-                    grade=grade,
+                    section_id=section_id if section_id else None,
+                    grade_id=grade_id,
                     division_id=division_id if division_id else None,
                     room_id=room_id if room_id else None
                 )
@@ -98,9 +102,13 @@ def student_create(request):
 
     divisions = Division.objects.all()
     rooms = Room.objects.all()
+    sections = Section.objects.all().order_by('order', 'name')
+    grades = Grade.objects.all().order_by('order', 'name')
     context = {
         'divisions': divisions,
         'rooms': rooms,
+        'sections': sections,
+        'grades': grades,
         'academic_years': academic_years,
         'active_year': active_year,
     }
@@ -140,7 +148,7 @@ def student_bulk_import(request):
 
             # Expected columns (case-insensitive matching)
             required_columns = ['student_id', 'first_name', 'last_name', 'grade']
-            optional_columns = ['division', 'room', 'student_type', 'email', 'phone', 'address']
+            optional_columns = ['division', 'room', 'student_type', 'email', 'phone', 'address', 'section']
 
             # Normalize column names (lowercase and strip spaces)
             df.columns = df.columns.str.lower().str.strip()
@@ -203,6 +211,15 @@ def student_bulk_import(request):
                                     room = r
                                     break
 
+                    # Get section
+                    section = None
+                    if 'section' in df.columns and pd.notna(row.get('section')):
+                        section_name = str(row['section']).strip().lower()
+                        for s in Section.objects.all():
+                            if s.name.lower() == section_name:
+                                section = s
+                                break
+
                     # Get student type
                     student_type = 'day_scholar'
                     if 'student_type' in df.columns and pd.notna(row.get('student_type')):
@@ -229,9 +246,10 @@ def student_bulk_import(request):
                     Enrollment.objects.create(
                         student=student,
                         academic_year=form_year,
-                        grade=grade,
-                        division_id=division.id if division else None,
-                        room_id=room.id if room else None
+                        grade=grade_obj, # Use Grade object
+                        section=section,
+                        division=division,
+                        room=room
                     )
                     
                     success_count += 1
@@ -268,6 +286,7 @@ def student_bulk_import(request):
             'grade (Required)',
             'division (Optional)',
             'room (Optional)',
+            'section (Optional)',
             'student_type (Optional: day_scholar or hostel)',
             'email (Optional)',
             'phone (Optional)',
@@ -294,6 +313,7 @@ def student_bulk_import_template(request):
         ("grade", True, "10", 10),
         ("division", False, "A", 15),
         ("room", False, "101", 10),
+        ("section", False, "HS", 10),
         ("student_type", False, "day_scholar", 15),
         ("email", False, "john@example.com", 25),
         ("phone", False, "1234567890", 15),
@@ -329,17 +349,21 @@ def student_upgrade(request):
         return redirect('students:home')
 
     if request.method == 'POST':
-        from_grade = request.POST.get('from_grade', '').strip()
-        to_grade = request.POST.get('to_grade', '').strip()
+        from_grade_name = request.POST.get('from_grade', '').strip()
+        to_grade_name = request.POST.get('to_grade', '').strip()
         confirm = request.POST.get('confirm')
 
-        if not from_grade or not to_grade:
+        if not from_grade_name or not to_grade_name:
             messages.error(request, 'Please enter both from and to grades.')
             return redirect('students:student_upgrade')
 
-        if from_grade == to_grade:
+        if from_grade_name == to_grade_name:
             messages.error(request, 'From grade and to grade cannot be the same.')
             return redirect('students:student_upgrade')
+
+        # Get Grade objects
+        from_grade_obj = get_object_or_404(Grade, name=from_grade_name)
+        to_grade_obj, _ = Grade.objects.get_or_create(name=to_grade_name)
 
         # Find latest enrollment for each active student
         enrollments_to_upgrade = []
@@ -350,23 +374,23 @@ def student_upgrade(request):
             enrollments = sorted(student.enrollments.all(), key=lambda x: x.academic_year.name, reverse=True)
             if enrollments:
                 latest = enrollments[0]
-                if latest.grade == from_grade:
+                if latest.grade == from_grade_obj: # Compare with Grade object
                     # Also check if they already have an enrollment in the active year that is NOT from_grade
                     active_yr_enrollment = next((e for e in enrollments if e.academic_year == active_year), None)
-                    if not active_yr_enrollment or active_yr_enrollment.grade == from_grade:
+                    if not active_yr_enrollment or active_yr_enrollment.grade == from_grade_obj: # Compare with Grade object
                         enrollments_to_upgrade.append(latest)
 
         count = len(enrollments_to_upgrade)
 
         if count == 0:
-            messages.warning(request, f'No active students found in grade "{from_grade}" to upgrade.')
+            messages.warning(request, f'No active students found in grade "{from_grade_name}" to upgrade.')
             return redirect('students:student_upgrade')
 
         if confirm != 'yes':
             # Show confirmation page
             context = {
-                'from_grade': from_grade,
-                'to_grade': to_grade,
+                'from_grade': from_grade_name,
+                'to_grade': to_grade_name,
                 'student_count': count,
                 'enrollments': enrollments_to_upgrade[:50],  # Show first 50 for preview
                 'show_all': count > 50,
@@ -379,7 +403,7 @@ def student_upgrade(request):
         for latest in enrollments_to_upgrade:
             # If the latest enrollment is ALREADY in the active year, we update it
             if latest.academic_year == active_year:
-                latest.grade = to_grade
+                latest.grade = to_grade_obj # Update with Grade object
                 latest.save()
                 updated_count += 1
             else:
@@ -387,18 +411,19 @@ def student_upgrade(request):
                 Enrollment.objects.create(
                     student=latest.student,
                     academic_year=active_year,
-                    grade=to_grade,
+                    grade=to_grade_obj, # Use Grade object
                     division=latest.division,
-                    room=latest.room
+                    room=latest.room,
+                    section=latest.section
                 )
                 created_count += 1
 
-        messages.success(request, f'Successfully upgraded {updated_count + created_count} student(s) from grade "{from_grade}" to grade "{to_grade}".')
+        messages.success(request, f'Successfully upgraded {updated_count + created_count} student(s) from grade "{from_grade_name}" to grade "{to_grade_name}".')
         return redirect('students:student_list')
 
     # GET request - show upgrade form
     # Get all existing grades from database
-    existing_grades = Enrollment.objects.values_list('grade', flat=True).distinct().order_by('grade')
+    existing_grades = Grade.objects.all().order_by('order', 'name') # Fetch Grade objects
     context = {
         'existing_grades': existing_grades,
     }
@@ -413,12 +438,14 @@ def student_graduate(request):
         return redirect('students:home')
 
     if request.method == 'POST':
-        from_grade = request.POST.get('from_grade', '').strip()
+        from_grade_name = request.POST.get('from_grade', '').strip()
         confirm = request.POST.get('confirm')
 
-        if not from_grade:
+        if not from_grade_name:
             messages.error(request, 'Please select a grade to graduate.')
             return redirect('students:student_graduate')
+
+        from_grade_obj = get_object_or_404(Grade, name=from_grade_name)
 
         # Find latest enrollment for each active student
         enrollments_to_graduate = []
@@ -429,7 +456,7 @@ def student_graduate(request):
             enrollments = sorted(student.enrollments.all(), key=lambda x: x.academic_year.name, reverse=True)
             if enrollments:
                 latest = enrollments[0]
-                if latest.grade == from_grade:
+                if latest.grade == from_grade_obj: # Compare with Grade object
                     # Only graduate if their latest enrollment is in the active year and matches from_grade
                     if latest.academic_year == active_year:
                         enrollments_to_graduate.append(latest)
@@ -437,13 +464,13 @@ def student_graduate(request):
         count = len(enrollments_to_graduate)
 
         if count == 0:
-            messages.warning(request, f'No active students found in grade "{from_grade}" for the current academic year to graduate.')
+            messages.warning(request, f'No active students found in grade "{from_grade_name}" for the current academic year to graduate.')
             return redirect('students:student_graduate')
 
         if confirm != 'yes':
             # Show confirmation page
             context = {
-                'from_grade': from_grade,
+                'from_grade': from_grade_name,
                 'student_count': count,
                 'enrollments': enrollments_to_graduate[:50],  # Show first 50 for preview
                 'show_all': count > 50,
@@ -471,11 +498,11 @@ def student_graduate(request):
             
             graduated_count += 1
 
-        messages.success(request, f'Successfully graduated {graduated_count} student(s) from grade "{from_grade}" to Alumni.')
+        messages.success(request, f'Successfully graduated {graduated_count} student(s) from grade "{from_grade_name}" to Alumni.')
         return redirect('students:student_list')
 
     # GET request - show graduate form
-    existing_grades = Enrollment.objects.values_list('grade', flat=True).distinct().order_by('grade')
+    existing_grades = Grade.objects.all().order_by('order', 'name') # Fetch Grade objects
     context = {
         'existing_grades': existing_grades,
     }
@@ -492,19 +519,22 @@ def student_list(request):
         students = Student.objects.filter(is_active=True)
     else:
         # We query Enrollments for the active year
-        enrollments = Enrollment.objects.filter(academic_year=active_year, student__is_active=True).select_related('student', 'division', 'room')
+        enrollments = Enrollment.objects.filter(academic_year=active_year, student__is_active=True).select_related('student', 'division', 'room', 'grade')
 
         # Filters
-        grade = request.GET.get('grade')
+        grade_id = request.GET.get('grade') # Get grade ID
         division = request.GET.get('division')
+        section = request.GET.get('section')
         student_type = request.GET.get('student_type')
         room = request.GET.get('room')
         search = request.GET.get('search')
 
-        if grade:
-            enrollments = enrollments.filter(grade=grade)
+        if grade_id:
+            enrollments = enrollments.filter(grade_id=grade_id) # Filter by grade ID
         if division:
             enrollments = enrollments.filter(division_id=division)
+        if section:
+            enrollments = enrollments.filter(section_id=section)
         if student_type:
             enrollments = enrollments.filter(student__student_type=student_type)
         if room:
@@ -541,7 +571,7 @@ def student_list(request):
         for item in students:
             if hasattr(item, 'student'): # Enrollment
                 s = item.student
-                grade_val = item.grade
+                grade_val = item.grade.name if item.grade else '' # Access grade name
                 div_val = item.division.name if item.division else ''
                 room_val = item.room.room_number if item.room else ''
             else: # Student fallback if no active year
@@ -568,19 +598,19 @@ def student_list(request):
 
     divisions = Division.objects.all()
     rooms = Room.objects.all()
-    if active_year:
-        grades = Enrollment.objects.filter(academic_year=active_year).values_list('grade', flat=True).distinct().order_by('grade')
-    else:
-        grades = []
+    sections = Section.objects.all().order_by('order', 'name')
+    grades = Grade.objects.all().order_by('order', 'name') # Fetch Grade objects
 
     context = {
         'students': students,
         'divisions': divisions,
         'rooms': rooms,
-        'grades': grades,
+        'sections': sections,
+        'grades': grades, # Pass Grade objects
         'current_filters': {
-            'grade': grade if active_year else None,
+            'grade': grade_id if active_year else None, # Use grade_id
             'division': division if active_year else None,
+            'section': section if active_year else None,
             'student_type': student_type if active_year else None,
             'room': room if active_year else None,
             'search': search if active_year else None,
@@ -607,22 +637,30 @@ def mark_attendance(request):
         return redirect('students:home')
     
     # Get all active classes
-    active_enrollments = Enrollment.objects.filter(academic_year=active_year, student__is_active=True).values('grade', 'division__id', 'division__name').distinct()
+    active_enrollments = Enrollment.objects.filter(academic_year=active_year, student__is_active=True).values('section__id', 'section__name', 'grade__id', 'grade__name', 'division__id', 'division__name').distinct()
     
     for cls in active_enrollments:
-        if not cls['grade']: # Skip students without a grade
+        if not cls['grade__id']: # Skip students without a grade
             continue
-        g = cls['grade']
+        g_id = cls['grade__id']
+        g_name = cls['grade__name']
         d_id = cls['division__id']
         d_name = cls['division__name'] or 'No Division'
-        cls_name = f"{g} – {d_name}"
+        s_id = cls['section__id']
+        s_name = cls['section__name'] or 'No Section'
+        cls_name = f"{s_name} - {g_name} - {d_name}"
         
         # Get count of students in this class
-        student_count = Enrollment.objects.filter(academic_year=active_year, student__is_active=True, grade=g)
+        student_count = Enrollment.objects.filter(academic_year=active_year, student__is_active=True, grade_id=g_id)
         if d_id:
             student_count = student_count.filter(division_id=d_id)
         else:
             student_count = student_count.filter(division__isnull=True)
+            
+        if s_id:
+            student_count = student_count.filter(section_id=s_id)
+        else:
+            student_count = student_count.filter(section__isnull=True)
             
         student_count = student_count.count()
         if student_count == 0:
@@ -632,13 +670,18 @@ def mark_attendance(request):
         recorded_query = Attendance.objects.filter(
             date=selected_date,
             attendance_type=attendance_type,
-            enrollment__grade=g,
+            enrollment__grade_id=g_id,
             enrollment__academic_year=active_year
         )
         if d_id:
             recorded_query = recorded_query.filter(enrollment__division_id=d_id)
         else:
             recorded_query = recorded_query.filter(enrollment__division__isnull=True)
+            
+        if s_id:
+            recorded_query = recorded_query.filter(enrollment__section_id=s_id)
+        else:
+            recorded_query = recorded_query.filter(enrollment__section__isnull=True)
             
         if attendance_type == 'period' and period_id:
             recorded_query = recorded_query.filter(period_id=period_id)
@@ -659,7 +702,10 @@ def mark_attendance(request):
             status_class = 'danger'
             
         classroom_summary[cls_name] = {
-            'grade': g,
+            'section_id': s_id,
+            'section': s_name,
+            'grade_id': g_id, # Pass grade ID
+            'grade_name': g_name, # Pass grade name
             'division_id': d_id,
             'division': d_name,
             'student_count': student_count,
@@ -686,12 +732,13 @@ def mark_attendance(request):
     }
     return render(request, 'students/mark_attendance.html', context)
 
-def mark_attendance_class(request, grade, division_id):
+def mark_attendance_class(request, grade_id, division_id): # Changed grade to grade_id
     """Mark attendance - Step 2: Enter attendance for specific class"""
     attendance_type = request.GET.get('type', 'daily')
     selected_date = request.GET.get('date', date.today().isoformat())
     period_id = request.GET.get('period')
     activity_id = request.GET.get('activity')
+    section_id = request.GET.get('section')
     
     # Handle division matching 'None' (from URL)
     actual_division_id = None if division_id == 0 else division_id
@@ -701,15 +748,24 @@ def mark_attendance_class(request, grade, division_id):
         messages.error(request, 'Please set an active academic year to mark attendance.')
         return redirect('students:home')
 
+    grade_obj = get_object_or_404(Grade, id=grade_id) # Get Grade object
+
     # Get enrollments based on class
-    enrollments = Enrollment.objects.filter(academic_year=active_year, student__is_active=True, grade=grade).select_related('student', 'division', 'room')
+    enrollments = Enrollment.objects.filter(academic_year=active_year, student__is_active=True, grade=grade_obj).select_related('student', 'division', 'room', 'section')
+    if section_id:
+        enrollments = enrollments.filter(section_id=section_id)
+        section_name = Section.objects.get(id=section_id).name
+    else:
+        enrollments = enrollments.filter(section__isnull=True)
+        section_name = "No Section"
+        
     if actual_division_id:
         enrollments = enrollments.filter(division_id=actual_division_id)
         division = get_object_or_404(Division, id=actual_division_id)
-        class_name = f"{grade} - {division.name}"
+        class_name = f"{section_name} - {grade_obj.name} - {division.name}" # Use grade_obj.name
     else:
         enrollments = enrollments.filter(division__isnull=True)
-        class_name = f"{grade} - No Division"
+        class_name = f"{section_name} - {grade_obj.name} - No Division" # Use grade_obj.name
 
     # Get existing attendance for the date
     existing_attendance = {}
@@ -784,20 +840,18 @@ def mark_attendance_class(request, grade, division_id):
             )
             success_count += 1
 
-        messages.success(request, f'Attendance marked successfully for {success_count} students on {selected_date}')
-        
-        # Build redirect URL to self
-        redirect_url = f"{reverse('students:mark_attendance_class', kwargs={'grade': grade, 'division_id': division_id})}"
-        params = [f"date={selected_date}", f"type={attendance_type}"]
+        params = [f"type={attendance_type}", f"date={selected_date}"]
         if period_id: params.append(f"period={period_id}")
         if activity_id: params.append(f"activity={activity_id}")
         
-        return redirect(f"{redirect_url}?{'&'.join(params)}")
+        return redirect(f"{reverse('students:mark_attendance')}?{'&'.join(params)}")
 
     context = {
         'class_name': class_name,
-        'grade': grade,
+        'grade_id': grade_id, # Pass grade ID
+        'grade_name': grade_obj.name, # Pass grade name
         'division_id': division_id,
+        'section_id': section_id,
         'enrollments': enrollments,
         'attendance_type': attendance_type,
         'selected_date': selected_date,
@@ -825,7 +879,7 @@ from django.shortcuts import render
 from django.db.models import Count, Q
 from django.utils.timezone import localtime
 
-from .models import Attendance
+from .models import Attendance, Grade
 from students.models import Student, Division
 
 
@@ -846,7 +900,8 @@ def attendance_list(request):
     date_to = request.GET.get('date_to')
     attendance_type = request.GET.get('attendance_type')
     status = request.GET.get('status')
-    grade = request.GET.get('grade')
+    section = request.GET.get('section')
+    grade_id = request.GET.get('grade') # Get grade ID
     division = request.GET.get('division')
     student_id = request.GET.get('student_id')
 
@@ -863,8 +918,8 @@ def attendance_list(request):
     attendances = (
         Attendance.objects
         .filter(enrollment__academic_year=active_year)
-        .select_related('student', 'enrollment', 'enrollment__division', 'period', 'activity')
-        .order_by('-date', 'enrollment__grade', 'student__last_name')
+        .select_related('student', 'enrollment', 'enrollment__division', 'enrollment__grade', 'period', 'activity')
+        .order_by('-date', 'enrollment__grade__order', 'enrollment__grade__name', 'student__last_name') # Order by grade object
     )
 
     # -------------------------------------------------
@@ -882,11 +937,14 @@ def attendance_list(request):
     if status:
         attendances = attendances.filter(status=status)
 
-    if grade:
-        attendances = attendances.filter(enrollment__grade=grade)
+    if grade_id:
+        attendances = attendances.filter(enrollment__grade_id=grade_id) # Filter by grade ID
 
     if division:
         attendances = attendances.filter(enrollment__division_id=division)
+        
+    if section:
+        attendances = attendances.filter(enrollment__section_id=section)
 
     if student_id:
         attendances = attendances.filter(
@@ -899,17 +957,23 @@ def attendance_list(request):
     classroom_summary = OrderedDict()
     
     # Pre-populate with all expected classes so they show even if no attendance
-    active_enrollments = Enrollment.objects.filter(academic_year=active_year, student__is_active=True).values('grade', 'division__id', 'division__name').distinct()
+    active_enrollments = Enrollment.objects.filter(academic_year=active_year, student__is_active=True).values('section__id', 'section__name', 'grade__id', 'grade__name', 'division__id', 'division__name').distinct()
     for student_cls in active_enrollments:
-        if not student_cls['grade']: # Skip students without a grade
+        if not student_cls['grade__id']: # Skip students without a grade
             continue
-        g = student_cls['grade']
+        g_id = student_cls['grade__id']
+        g_name = student_cls['grade__name']
         d_id = student_cls['division__id']
         d_name = student_cls['division__name'] or 'No Division'
-        cls_name = f"{g} – {d_name}"
+        s_id = student_cls['section__id']
+        s_name = student_cls['section__name'] or 'No Section'
+        cls_name = f"{s_name} - {g_name} - {d_name}"
         
         classroom_summary[cls_name] = {
-            'grade': g,
+            'section_id': s_id,
+            'section': s_name,
+            'grade_id': g_id,
+            'grade_name': g_name,
             'division_id': d_id,
             'division': d_name,
             'present': 0,
@@ -926,7 +990,10 @@ def attendance_list(request):
         classroom_stats = (
             attendances
             .values(
-                'enrollment__grade',
+                'enrollment__section__id',
+                'enrollment__section__name',
+                'enrollment__grade__id',
+                'enrollment__grade__name',
                 'enrollment__division__id',
                 'enrollment__division__name'
             )
@@ -937,20 +1004,23 @@ def attendance_list(request):
                 late=Count('id', filter=Q(status='late')),
                 excused=Count('id', filter=Q(status='excused')),
             )
-            .order_by('enrollment__grade', 'enrollment__division__name')
+            .order_by('enrollment__grade__order', 'enrollment__grade__name', 'enrollment__division__name')
         )
 
         for stat in classroom_stats:
-            grade_val = stat['enrollment__grade']
+            grade_id_val = stat['enrollment__grade__id']
+            grade_name_val = stat['enrollment__grade__name']
             div_id = stat['enrollment__division__id']
             div_name = stat['enrollment__division__name'] or 'No Division'
+            sec_id = stat['enrollment__section__id']
+            sec_name = stat['enrollment__section__name'] or 'No Section'
 
-            classroom_name = f"{grade_val} – {div_name}"
+            classroom_name = f"{sec_name} - {grade_name_val} - {div_name}"
 
             latest_entry = (
                 attendances
                 .filter(
-                    enrollment__grade=grade_val,
+                    enrollment__grade_id=grade_id_val,
                     enrollment__division_id=div_id
                 )
                 .order_by('-updated_at', '-created_at', '-id')
@@ -980,7 +1050,10 @@ def attendance_list(request):
                 })
             else:
                 classroom_summary[classroom_name] = {
-                    'grade': grade,
+                    'section_id': sec_id,
+                    'section': sec_name,
+                    'grade_id': grade_id_val,
+                    'grade_name': grade_name_val,
                     'division_id': div_id,
                     'division': div_name,
                     'present': stat['present'],
@@ -1001,13 +1074,14 @@ def attendance_list(request):
     not_updated_classrooms = []
     
     
-    today_attendances = Attendance.objects.filter(date=today, enrollment__academic_year=active_year).select_related('student', 'enrollment', 'enrollment__division')
+    today_attendances = Attendance.objects.filter(date=today, enrollment__academic_year=active_year).select_related('student', 'enrollment', 'enrollment__division', 'enrollment__grade')
     
     if today_attendances.exists():
         today_stats = (
             today_attendances
             .values(
-                'enrollment__grade',
+                'enrollment__section__name',
+                'enrollment__grade__name',
                 'enrollment__division__id',
                 'enrollment__division__name'
             )
@@ -1020,9 +1094,10 @@ def attendance_list(request):
             )
         )
         for stat in today_stats:
-            grade_val = stat['enrollment__grade']
+            grade_name_val = stat['enrollment__grade__name']
             div_name_val = stat['enrollment__division__name'] or 'No Division'
-            cls_name = f"{grade_val} – {div_name_val}"
+            sec_name_val = stat['enrollment__section__name'] or 'No Section'
+            cls_name = f"{sec_name_val} - {grade_name_val} - {div_name_val}"
             
             if cls_name in classroom_summary:
                 classroom_summary[cls_name]['today_stats'] = {
@@ -1055,8 +1130,9 @@ def attendance_list(request):
         'not_updated_classrooms': not_updated_classrooms,
 
         # For the drop-downs
-        'grades': Enrollment.objects.filter(academic_year=active_year).exclude(grade__isnull=True).exclude(grade__exact='').values_list('grade', flat=True).distinct().order_by('grade') if active_year else [],
+        'grades': Grade.objects.all().order_by('order', 'name'), # Fetch Grade objects
         'divisions': Division.objects.all(),
+        'sections': Section.objects.all().order_by('order', 'name'),
         
         # State
         'current_filters': {
@@ -1065,7 +1141,8 @@ def attendance_list(request):
             'attendance_type': attendance_type,
             'status': status,
             'student_id': student_id,
-            'grade': grade,
+            'section': section,
+            'grade': grade_id, # Use grade_id
             'division': division
         },
     }
@@ -1179,6 +1256,7 @@ def exam_type_create(request):
         name = request.POST.get('name', '').strip()
         description = request.POST.get('description', '').strip()
         subject_type = request.POST.get('subject_type', 'all')
+        section_id = request.POST.get('section')
         order = request.POST.get('order', 0)
 
         if not name:
@@ -1195,18 +1273,25 @@ def exam_type_create(request):
         except:
             order = 0
 
+        section = None
+        if section_id:
+            section = Section.objects.filter(id=section_id).first()
+
         exam_type = ExamType.objects.create(
             name=name,
             description=description,
             subject_type=subject_type,
+            section=section,
             order=order,
         )
         messages.success(request, f'Exam type "{exam_type.name}" created successfully!')
         return redirect('students:exam_type_list')
 
     # Pass the choices to the template
+    sections = Section.objects.all().order_by('order', 'name')
     context = {
-        'subject_type_choices': ExamType.SUBJECT_TYPE_CHOICES
+        'subject_type_choices': ExamType.SUBJECT_TYPE_CHOICES,
+        'sections': sections
     }
     return render(request, 'students/exam_type_create.html', context)
 
@@ -1219,6 +1304,7 @@ def exam_type_update(request, pk):
         name = request.POST.get('name', '').strip()
         description = request.POST.get('description', '').strip()
         subject_type = request.POST.get('subject_type', 'all')
+        section_id = request.POST.get('section')
         order = request.POST.get('order', 0)
 
         if not name:
@@ -1235,18 +1321,25 @@ def exam_type_update(request, pk):
         except:
             order = exam_type.order
 
+        section = None
+        if section_id:
+            section = Section.objects.filter(id=section_id).first()
+
         exam_type.name = name
         exam_type.description = description
         exam_type.subject_type = subject_type
+        exam_type.section = section
         exam_type.order = order
         exam_type.save()
 
         messages.success(request, f'Exam type "{exam_type.name}" updated successfully!')
         return redirect('students:exam_type_list')
 
+    sections = Section.objects.all().order_by('order', 'name')
     context = {
         'exam_type': exam_type,
-        'subject_type_choices': ExamType.SUBJECT_TYPE_CHOICES
+        'subject_type_choices': ExamType.SUBJECT_TYPE_CHOICES,
+        'sections': sections
     }
     return render(request, 'students/exam_type_update.html', context)
 
@@ -1278,21 +1371,28 @@ def mark_entry_step2(request, exam_type_id):
     
     # Get all active students to find unique Grade + Division combinations through Enrollment
     active_year = AcademicYear.objects.filter(is_active=True).first()
-    enrollments = Enrollment.objects.filter(academic_year=active_year, student__is_active=True).select_related('division')
+    enrollments_query = Enrollment.objects.filter(academic_year=active_year, student__is_active=True).select_related('division', 'grade')
+    if exam_type.section:
+        enrollments_query = enrollments_query.filter(section=exam_type.section)
+    enrollments = enrollments_query
     
     # Extract unique classes
     classes_dict = {}
     for enrollment in enrollments:
-        grade = enrollment.grade
+        grade_obj = enrollment.grade
         div_id = enrollment.division_id
         div_name = enrollment.division.name if enrollment.division else None
         
+        if not grade_obj:
+            continue
+        
         # Create a unique key for the combination
-        key = f"{grade}_{div_id or 'none'}"
+        key = f"{grade_obj.id}_{div_id or 'none'}"
         
         if key not in classes_dict:
             classes_dict[key] = {
-                'grade': grade,
+                'grade_id': grade_obj.id,
+                'grade_name': grade_obj.name,
                 'division_id': div_id,
                 'division_name': div_name,
                 'student_count': 0
@@ -1302,8 +1402,8 @@ def mark_entry_step2(request, exam_type_id):
         
     # Sort classes logically (numeric grades first, then by division)
     def class_sort_key(c):
-        grade = c['grade']
-        grade_val = (0, int(grade)) if grade.isdigit() else (1, grade.lower())
+        grade_name = c['grade_name']
+        grade_val = (0, int(grade_name)) if grade_name.isdigit() else (1, grade_name.lower())
         div_val = c['division_name'].lower() if c['division_name'] else ''
         return (grade_val, div_val)
         
@@ -1317,16 +1417,21 @@ def mark_entry_step2(request, exam_type_id):
 def mark_entry_step3(request, exam_type_id):
     """Step 3: Enter marks for all subjects for the selected class"""
     exam_type = get_object_or_404(ExamType, id=exam_type_id)
-    grade = request.GET.get('grade')
+    grade_id = request.GET.get('grade_id') # Get grade ID
     division_id = request.GET.get('division_id')
     
-    if not grade:
+    if not grade_id:
         messages.error(request, 'Grade is required.')
         return redirect('students:mark_entry_step2', exam_type_id=exam_type.id)
         
+    grade_obj = get_object_or_404(Grade, id=grade_id) # Get Grade object
+    
     # Get students for this class via Enrollment
     active_year = AcademicYear.objects.filter(is_active=True).first()
-    enrollments_query = Enrollment.objects.filter(academic_year=active_year, student__is_active=True, grade=grade).select_related('student')
+    enrollments_query = Enrollment.objects.filter(academic_year=active_year, student__is_active=True, grade=grade_obj).select_related('student')
+    if exam_type.section:
+        enrollments_query = enrollments_query.filter(section=exam_type.section)
+        
     if division_id and division_id != 'None':
         enrollments_query = enrollments_query.filter(division_id=division_id)
         division_name = Division.objects.get(id=division_id).name
@@ -1343,7 +1448,7 @@ def mark_entry_step3(request, exam_type_id):
         return redirect('students:mark_entry_step2', exam_type_id=exam_type.id)
         
     # Get subjects for this class
-    subjects_query = Subject.objects.filter(is_active=True, grade=grade)
+    subjects_query = Subject.objects.filter(is_active=True, grade=grade_obj) # Filter by Grade object
     
     # First, filter by the exam's subject_type preference
     if exam_type.subject_type != 'all':
@@ -1415,7 +1520,7 @@ def mark_entry_step3(request, exam_type_id):
                         
         messages.success(request, f'Successfully saved {success_count} mark entries.')
         # Redirect back to the same page to show updated data
-        redirect_url = f"{reverse('students:mark_entry_step3', args=[exam_type.id])}?grade={grade}"
+        redirect_url = f"{reverse('students:mark_entry_step3', args=[exam_type.id])}?grade_id={grade_id}" # Use grade_id
         if division_id:
             redirect_url += f"&division_id={division_id}"
         return redirect(redirect_url)
@@ -1437,7 +1542,8 @@ def mark_entry_step3(request, exam_type_id):
         
     context = {
         'exam_type': exam_type,
-        'grade': grade,
+        'grade_id': grade_id, # Pass grade ID
+        'grade_name': grade_obj.name, # Pass grade name
         'division_id': division_id,
         'division_name': division_name,
         'students': students,
@@ -1457,8 +1563,10 @@ from .models import ExamType, Division
 
 def mark_entry_list(request):
     context = {
-        'exam_types': ExamType.objects.all(),
+        'exam_types': ExamType.objects.select_related('section').all(),
+        'sections': Section.objects.all().order_by('order', 'name'),
         'divisions': Division.objects.all(),
+        'grades': Grade.objects.all().order_by('order', 'name'), # Pass Grade objects
     }
     return render(request, 'students/mark_entry_classwise.html', context)
 
@@ -1476,7 +1584,9 @@ def mark_entry_classwise_data(request):
     mark_entries = MarkEntry.objects.select_related(
         'student',
         'enrollment',
+        'enrollment__section',
         'enrollment__division',
+        'enrollment__grade', # Select grade
         'exam_type',
         'subject',
     )
@@ -1485,13 +1595,16 @@ def mark_entry_classwise_data(request):
     # Filters (no reload)
     # -------------------------
     exam_type = request.GET.get('exam_type')
-    grade = request.GET.get('grade')
+    section = request.GET.get('section')
+    grade_id = request.GET.get('grade') # Get grade ID
     division = request.GET.get('division')
 
     if exam_type:
         mark_entries = mark_entries.filter(exam_type_id=exam_type)
-    if grade:
-        mark_entries = mark_entries.filter(enrollment__grade=grade)
+    if section:
+        mark_entries = mark_entries.filter(enrollment__section_id=section)
+    if grade_id:
+        mark_entries = mark_entries.filter(enrollment__grade_id=grade_id) # Filter by grade ID
     if division:
         mark_entries = mark_entries.filter(enrollment__division_id=division)
 
@@ -1502,7 +1615,8 @@ def mark_entry_classwise_data(request):
 
     for entry in mark_entries:
         key = (
-            entry.enrollment.grade if entry.enrollment else '-',
+            entry.enrollment.section.name if entry.enrollment and entry.enrollment.section else "-",
+            entry.enrollment.grade.name if entry.enrollment and entry.enrollment.grade else '-', # Use grade name
             entry.enrollment.division.name if entry.enrollment and entry.enrollment.division else "-",
             entry.exam_type.name,
         )
@@ -1513,7 +1627,7 @@ def mark_entry_classwise_data(request):
     # -------------------------
     # Build tables
     # -------------------------
-    for (cls, div, exam), entries in grouped.items():
+    for (sec, cls, div, exam), entries in grouped.items():
 
         # Collect subjects (ordered, unique)
         subjects = []
@@ -1604,6 +1718,7 @@ def mark_entry_classwise_data(request):
         # Final table object
         # -------------------------
         class_tables.append({
+            'section': sec,
             'grade': cls,
             'division': div,
             'exam_type': exam,
@@ -1628,17 +1743,20 @@ def progress_report(request):
     """Generate and view progress reports"""
     student_id = request.GET.get('student_id')
     exam_type_id = request.GET.get('exam_type')
-    grade = request.GET.get('grade')
+    section_id = request.GET.get('section')
+    grade_id = request.GET.get('grade') # Get grade ID
     division_id = request.GET.get('division')
-    academic_year = request.GET.get('academic_year', '')
+    academic_year_name = request.GET.get('academic_year', '') # Changed to academic_year_name
 
     active_year = AcademicYear.objects.filter(is_active=True).first()
-    enrollments_query = Enrollment.objects.filter(student__is_active=True, academic_year=active_year).select_related('student', 'division', 'room')
+    enrollments_query = Enrollment.objects.filter(student__is_active=True, academic_year=active_year).select_related('student', 'division', 'room', 'grade')
 
     if student_id:
         enrollments_query = enrollments_query.filter(student__student_id__icontains=student_id)
-    if grade:
-        enrollments_query = enrollments_query.filter(grade=grade)
+    if section_id:
+        enrollments_query = enrollments_query.filter(section_id=section_id)
+    if grade_id:
+        enrollments_query = enrollments_query.filter(grade_id=grade_id) # Filter by grade ID
     if division_id:
         enrollments_query = enrollments_query.filter(division_id=division_id)
 
@@ -1647,7 +1765,7 @@ def progress_report(request):
     if request.method == 'POST':
         student_ids = request.POST.getlist('students')
         exam_type_id = request.POST.get('exam_type')
-        academic_year = request.POST.get('academic_year', '')
+        academic_year_name = request.POST.get('academic_year', '') # Changed to academic_year_name
         generated_by = request.POST.get('generated_by', '')
 
         if not student_ids or not exam_type_id:
@@ -1721,7 +1839,7 @@ def progress_report(request):
     reports = ProgressReport.objects.filter(
         generated_at__in=[r['latest_time'] for r in latest_reports]
     ).select_related(
-        'student', 'exam_type'
+        'student', 'exam_type', 'enrollment__grade' # Select grade
     )
 
 
@@ -1729,36 +1847,35 @@ def progress_report(request):
         reports = reports.filter(student__student_id__icontains=student_id)
     if exam_type_id:
         reports = reports.filter(exam_type_id=exam_type_id)
-    if grade:
-        reports = reports.filter(enrollment__grade=grade)
+    if grade_id:
+        reports = reports.filter(enrollment__grade_id=grade_id) # Filter by grade ID
     if division_id:
         reports = reports.filter(enrollment__division_id=division_id)
-    if academic_year:
-        reports = reports.filter(enrollment__academic_year__name=academic_year)
+    if academic_year_name:
+        reports = reports.filter(enrollment__academic_year__name=academic_year_name)
 
-    reports = reports.order_by('-generated_at', 'enrollment__grade', 'student__last_name')
+    reports = reports.order_by('-generated_at', 'enrollment__grade__order', 'enrollment__grade__name', 'student__last_name') # Order by grade object
 
     exam_types = ExamType.objects.all()
     divisions = Division.objects.all()
-    # Get all unique grades from enrollments and subjects, sorted properly
-    grades_list = list(Enrollment.objects.values_list('grade', flat=True).distinct().order_by('grade'))
-    subject_grades = list(Subject.objects.values_list('grade', flat=True).distinct().order_by('grade'))
-    all_grades = sorted(set(grades_list + subject_grades), key=lambda x: (
-        (0, int(x)) if x.isdigit() else (1, x.lower())
-    ))
+    sections = Section.objects.all().order_by('order', 'name')
+    # Get all unique grades from database
+    all_grades = Grade.objects.all().order_by('order', 'name')
 
     context = {
         'enrollments': enrollments,
         'reports': reports,
         'exam_types': exam_types,
         'divisions': divisions,
-        'grades': all_grades,
+        'grades': all_grades, # Pass Grade objects
+        'sections': sections,
         'current_filters': {
             'student_id': student_id,
             'exam_type': exam_type_id,
-            'grade': grade,
+            'section': section_id,
+            'grade': grade_id, # Use grade_id
             'division': division_id,
-            'academic_year': academic_year,
+            'academic_year': academic_year_name,
         }
     }
     return render(request, 'students/progress_report.html', context)
@@ -1811,9 +1928,10 @@ def student_edit(request, pk):
         student_id = request.POST.get('student_id')
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
-        grade = request.POST.get('grade')
+        grade_id = request.POST.get('grade')
         division_id = request.POST.get('division') or None
         room_id = request.POST.get('room') or None
+        section_id = request.POST.get('section') or None
         student_type = request.POST.get('student_type', 'day_scholar')
         email = request.POST.get('email', '')
         phone = request.POST.get('phone', '')
@@ -1844,7 +1962,8 @@ def student_edit(request, pk):
                 # Find if an enrollment already exists for this specific student and year
                 year_enrollment = Enrollment.objects.filter(student=student, academic_year=form_year).first()
                 if year_enrollment:
-                    year_enrollment.grade = grade
+                    year_enrollment.grade_id = grade_id
+                    year_enrollment.section_id = section_id
                     year_enrollment.division_id = division_id
                     year_enrollment.room_id = room_id
                     year_enrollment.save()
@@ -1852,7 +1971,8 @@ def student_edit(request, pk):
                     Enrollment.objects.create(
                         student=student,
                         academic_year=form_year,
-                        grade=grade,
+                        grade_id=grade_id,
+                        section_id=section_id,
                         division_id=division_id,
                         room_id=room_id
                     )
@@ -1862,6 +1982,8 @@ def student_edit(request, pk):
 
     divisions = Division.objects.all()
     rooms = Room.objects.all()
+    sections = Section.objects.all().order_by('order', 'name')
+    grades = Grade.objects.all().order_by('order', 'name')
 
     context = {
         'student': student,
@@ -1870,6 +1992,8 @@ def student_edit(request, pk):
         'selected_year': selected_year,
         'divisions': divisions,
         'rooms': rooms,
+        'sections': sections,
+        'grades': grades,
     }
     return render(request, 'students/student_edit.html', context)
 
@@ -1896,6 +2020,7 @@ def attendance_analytics(request):
     selected_date = request.GET.get('date', date.today().isoformat())
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
+    section_id = request.GET.get('section')
     grade = request.GET.get('grade')
     division_id = request.GET.get('division')
 
@@ -1939,6 +2064,8 @@ def attendance_analytics(request):
     ).select_related('student', 'enrollment', 'enrollment__division', 'enrollment__room')
 
     # Apply filters
+    if section_id:
+        attendances = attendances.filter(enrollment__section_id=section_id)
     if grade:
         attendances = attendances.filter(enrollment__grade=grade)
     if division_id:
@@ -1960,17 +2087,21 @@ def attendance_analytics(request):
     # Division-wise breakdown
     division_stats = {}
 
-    # Get distinct combinations of grade and division
+    # Get distinct combinations of section, grade and division
     grade_div_combinations = attendances.values_list(
-        'enrollment__grade',
+        'enrollment__section__id',
+        'enrollment__section__name',
+        'enrollment__grade__id',
+        'enrollment__grade__name',
         'enrollment__division__id',
         'enrollment__division__name'
     ).distinct()
 
-    for grade_val, div_id, div_name in grade_div_combinations:
+    for sec_id, sec_name, grade_id_val, grade_name_val, div_id, div_name in grade_div_combinations:
         # Filter attendances for this specific grade + division combination
         div_attendances = attendances.filter(
-            enrollment__grade=grade_val,
+            enrollment__section_id=sec_id,
+            enrollment__grade_id=grade_id_val,
             enrollment__division_id=div_id
         )
 
@@ -1982,12 +2113,15 @@ def attendance_analytics(request):
 
         div_percentage = round((div_present / div_total * 100), 2) if div_total > 0 else 0
 
-        # Create a unique key for grade + division
-        key = f"{grade_val or 'N/A'} - {div_name or 'No Division'}"
+        # Create a unique key for section + grade + division
+        sec_name_display = sec_name or 'No Section'
+        key = f"{sec_name_display} - {grade_name_val or 'N/A'} - {div_name or 'No Division'}"
 
         division_stats[key] = {
             'id': div_id,
-            'grade': grade_val,
+            'section': sec_name_display,
+            'grade_id': grade_id_val,
+            'grade': grade_name_val,
             'division': div_name,
             'total': div_total,
             'present': div_present,
@@ -1998,15 +2132,15 @@ def attendance_analytics(request):
             'status': 'good' if div_percentage >= 85 else 'warning' if div_percentage >= 75 else 'critical'
         }
 
-    # Sort division_stats by grade and division name
-    division_stats = dict(sorted(division_stats.items(), key=lambda x: (x[1]['grade'] or '', x[1]['division'] or '')))
+    # Sort division_stats by section, grade and division name
+    division_stats = dict(sorted(division_stats.items(), key=lambda x: (x[1]['section'] or '', x[1]['grade'] or '', x[1]['division'] or '')))
 
     # Student-wise statistics (for detailed reports)
     student_stats = []
     if report_type in ['monthly', 'quarterly', 'yearly', 'custom']:
-        enrollments = Enrollment.objects.filter(academic_year__is_active=True, student__is_active=True).select_related('student', 'division')
+        enrollments = Enrollment.objects.filter(academic_year__is_active=True, student__is_active=True).select_related('student', 'division', 'grade')
         if grade:
-            enrollments = enrollments.filter(grade=grade)
+            enrollments = enrollments.filter(grade_id=grade)
         if division_id:
             enrollments = enrollments.filter(division_id=division_id)
 
@@ -2039,8 +2173,10 @@ def attendance_analytics(request):
         for i in range(6, -1, -1):
             trend_date = current_date - timedelta(days=i)
             day_attendances = Attendance.objects.filter(date=trend_date, enrollment__academic_year__is_active=True)
+            if section_id:
+                day_attendances = day_attendances.filter(enrollment__section_id=section_id)
             if grade:
-                day_attendances = day_attendances.filter(enrollment__grade=grade)
+                day_attendances = day_attendances.filter(enrollment__grade_id=grade)
             if division_id:
                 day_attendances = day_attendances.filter(enrollment__division_id=division_id)
 
@@ -2055,7 +2191,7 @@ def attendance_analytics(request):
             })
 
     # Get available grades and divisions for filters
-    grades = Enrollment.objects.filter(academic_year__is_active=True).values_list('grade', flat=True).distinct().order_by('grade')
+    grades = Grade.objects.all().order_by('order', 'name')
     divisions = Division.objects.all()
 
     # Handle CSV export
@@ -2088,7 +2224,7 @@ def attendance_analytics(request):
         # Division-wise statistics
         if division_stats:
             writer.writerow(['Division-wise Statistics'])
-            writer.writerow(['Grade - Division', 'Total', 'Present', 'Absent', 'Late', 'Excused', 'Percentage', 'Status'])
+            writer.writerow(['Class Details', 'Total', 'Present', 'Absent', 'Late', 'Excused', 'Percentage', 'Status'])
             for key, stats in division_stats.items():
                 writer.writerow([
                     key,
@@ -2105,11 +2241,12 @@ def attendance_analytics(request):
         # Student-wise statistics
         if student_stats:
             writer.writerow(['Student-wise Statistics'])
-            writer.writerow(['Student ID', 'Name', 'Grade', 'Division', 'Total', 'Present', 'Absent', 'Late', 'Percentage', 'Status'])
+            writer.writerow(['Student ID', 'Name', 'Section', 'Grade', 'Division', 'Total', 'Present', 'Absent', 'Late', 'Percentage', 'Status'])
             for stat in student_stats:
                 writer.writerow([
                     stat['student'].student_id,
                     stat['student'].full_name,
+                    stat['enrollment'].section.name if stat['enrollment'].section else '-',
                     stat['enrollment'].grade,
                     stat['enrollment'].division.name if stat['enrollment'].division else '-',
                     stat['total'],
@@ -2125,16 +2262,14 @@ def attendance_analytics(request):
     context = {
         'report_type': report_type,
         'selected_date': selected_date,
-        'start_date': start_date,
-        'end_date': end_date,
         'date_from': date_from,
         'date_to': date_to,
         'selected_grade': grade,
         'selected_division': division_id,
+        'selected_section': section_id,
         'grades': grades,
         'divisions': divisions,
-
-        # Overall stats
+        'sections': Section.objects.all().order_by('order', 'name'),
         'total_records': total_records,
         'present_count': present_count,
         'absent_count': absent_count,
@@ -2145,11 +2280,11 @@ def attendance_analytics(request):
         'absent_percentage': absent_percentage,
         'late_percentage': late_percentage,
         'excused_percentage': excused_percentage,
-
-        # Detailed stats
         'division_stats': division_stats,
         'student_stats': student_stats,
         'daily_trend': daily_trend,
+        'start_date': start_date,
+        'end_date': end_date,
     }
 
     return render(request, 'students/attendance_analytics.html', context)
@@ -2182,6 +2317,7 @@ def performance_analysis(request):
         entries = MarkEntry.objects.select_related(
             'student',
             'enrollment',
+            'enrollment__section',
             'enrollment__division',
             'exam_type',
             'subject',
@@ -2189,15 +2325,16 @@ def performance_analysis(request):
 
         grouped = defaultdict(list)
 
-        # Group by class + division
+        # Group by section + class + division
         for e in entries:
             key = (
+                e.enrollment.section.name if e.enrollment and e.enrollment.section else "-",
                 e.enrollment.grade if e.enrollment else "-",
                 e.enrollment.division.name if e.enrollment and e.enrollment.division else "-"
             )
             grouped[key].append(e)
 
-        for (grade, division), marks in grouped.items():
+        for (section, grade, division), marks in grouped.items():
             students = {}
             subjects_per_student = defaultdict(set)
 
@@ -2257,6 +2394,7 @@ def performance_analysis(request):
                 st['rank'] = idx + 1
 
             toppers_by_class.append({
+                'section': section,
                 'grade': grade,
                 'division': division,
                 'toppers': ranked[:3]  # 🥇🥈🥉 ONLY PASSED
@@ -2340,7 +2478,7 @@ def bulk_progress_report_pdf(request):
         y -= 0.6 * cm
         c.drawString(2 * cm, y, f"Name       : {report.student.full_name}")
         y -= 0.6 * cm
-        c.drawString(2 * cm, y, f"Grade      : {report.enrollment.grade if report.enrollment else '-'}")
+        c.drawString(2 * cm, y, f"Grade      : {report.enrollment.grade.name if report.enrollment and report.enrollment.grade else '-'}")
         y -= 0.6 * cm
         c.drawString(2 * cm, y, f"Division   : {report.enrollment.division.name if report.enrollment and report.enrollment.division else '-'}")
         y -= 0.6 * cm
@@ -2477,16 +2615,17 @@ def attendance_update_tracking(request):
         .filter(academic_year=active_year)
         .exclude(grade__isnull=True)
         .exclude(grade__exact='')
-        .select_related('division')
-        .values('grade', 'division__id', 'division__name')
+        .select_related('division', 'section')
+        .values('section__id', 'section__name', 'grade', 'division__id', 'division__name')
         .distinct()
-        .order_by('grade', 'division__name')
+        .order_by('section__name', 'grade', 'division__name')
     )
 
     attendance_matrix = []
 
     for cd in class_divisions:
         row = {
+            'section': cd['section__name'],
             'grade': cd['grade'],
             'division': cd['division__name'],
             'days': []
@@ -2512,6 +2651,7 @@ def attendance_update_tracking(request):
             recorded = False
             if not is_holiday:
                 recorded = Attendance.objects.filter(
+                    enrollment__section_id=cd['section__id'],
                     enrollment__grade=cd['grade'],
                     enrollment__division_id=cd['division__id'],
                     enrollment__academic_year=active_year,
@@ -2563,13 +2703,28 @@ def attendance_class_detail(request, grade, division_id):
     along with their total attendance count and percentage.
     """
     try:
-        division = Division.objects.get(id=division_id)
+        if division_id == 0:
+            division = None
+        else:
+            division = Division.objects.get(id=division_id)
     except Division.DoesNotExist:
         messages.error(request, "Division not found.")
         return redirect('students:attendance_list')
 
     active_year = AcademicYear.objects.filter(is_active=True).first()
-    enrollments = Enrollment.objects.filter(grade=grade, division=division, academic_year=active_year, student__is_active=True).select_related('student').order_by('student__first_name', 'student__last_name')
+    section_id = request.GET.get('section')
+    
+    if division:
+        enrollments = Enrollment.objects.filter(grade=grade, division=division, academic_year=active_year, student__is_active=True).select_related('student', 'section').order_by('student__first_name', 'student__last_name')
+    else:
+        enrollments = Enrollment.objects.filter(grade=grade, division__isnull=True, academic_year=active_year, student__is_active=True).select_related('student', 'section').order_by('student__first_name', 'student__last_name')
+        
+    if section_id:
+        enrollments = enrollments.filter(section_id=section_id)
+        section = Section.objects.get(id=section_id)
+    else:
+        enrollments = enrollments.filter(section__isnull=True)
+        section = None
     
     # Calculate attendance stats for each student
     student_stats = []
@@ -2612,6 +2767,8 @@ def attendance_class_detail(request, grade, division_id):
     context = {
         'grade': grade,
         'division': division,
+        'section': section,
+        'section_id': section_id,
         'student_stats': student_stats,
         'current_filters': {
             'date_from': date_from,
@@ -2699,9 +2856,68 @@ def attendance_student_detail(request, student_id):
 
 
 # ==========================================
-# ACADEMIC YEAR MANAGEMENT
+# SECTION MANAGEMENT
 # ==========================================
 
+from .models import Section
+from .forms import SectionForm
+
+def section_list(request):
+    """List all sections"""
+    sections = Section.objects.all().order_by('order', 'name')
+    context = {'sections': sections}
+    return render(request, 'students/section_list.html', context)
+
+
+def section_create(request):
+    """Create a new section"""
+    if request.method == 'POST':
+        form = SectionForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Section created successfully.')
+            return redirect('students:section_list')
+    else:
+        form = SectionForm()
+    
+    context = {
+        'form': form,
+        'title': 'Create Section',
+        'is_update': False
+    }
+    return render(request, 'students/section_form.html', context)
+
+
+def section_update(request, pk):
+    """Update an existing section"""
+    section = get_object_or_404(Section, pk=pk)
+    if request.method == 'POST':
+        form = SectionForm(request.POST, instance=section)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Section updated successfully.')
+            return redirect('students:section_list')
+    else:
+        form = SectionForm(instance=section)
+    
+    context = {
+        'form': form,
+        'title': 'Update Section',
+        'is_update': True
+    }
+    return render(request, 'students/section_form.html', context)
+
+
+def section_delete(request, pk):
+    """Delete an existing section"""
+    section = get_object_or_404(Section, pk=pk)
+    section.delete()
+    messages.success(request, 'Section deleted successfully.')
+    return redirect('students:section_list')
+
+# ==========================================
+# ACADEMIC YEAR MANAGEMENT
+# ==========================================
 from .forms import AcademicYearForm, SubjectForm
 
 def academic_year_list(request):
@@ -2926,8 +3142,134 @@ def enquiry_enroll_view(request, pk):
         enquiry.status = 'Enrolled'
         enquiry.save()
         
+        # Check if academic year is available from enquiry, otherwise fallback
+        from .models import AcademicYear, Enrollment
+        year = enquiry.academic_year
+        if not year:
+            year = AcademicYear.objects.filter(is_active=True).first()
+
+        if year:
+            Enrollment.objects.create(
+                student=new_student,
+                academic_year=year,
+                section=enquiry.section,
+                division=enquiry.course,
+                grade='1st Year'  # Default grade, can be edited later
+            )
+
         messages.success(request, f'Enquiry {enquiry.name} enrolled successfully! Please assign their proper Student ID and Academic Enrollment below.')
         # Redirect to the student edit form to complete other fields
         return redirect('students:student_edit', pk=new_student.pk)
         
     return redirect('students:enquiry_list')
+
+# --- GRADE CRUD ---
+
+def grade_list(request):
+    grades = Grade.objects.all()
+    return render(request, 'students/grade_list.html', {'grades': grades})
+
+def grade_create(request):
+    if request.method == 'POST':
+        form = GradeForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Grade created successfully.')
+            return redirect('students:grade_list')
+    else:
+        form = GradeForm()
+    return render(request, 'students/grade_form.html', {'form': form})
+
+def grade_update(request, pk):
+    grade = get_object_or_404(Grade, pk=pk)
+    if request.method == 'POST':
+        form = GradeForm(request.POST, instance=grade)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Grade updated successfully.')
+            return redirect('students:grade_list')
+    else:
+        form = GradeForm(instance=grade)
+    return render(request, 'students/grade_form.html', {'form': form, 'is_update': True})
+
+def grade_delete(request, pk):
+    grade = get_object_or_404(Grade, pk=pk)
+    if request.method == 'POST':
+        grade.delete()
+        messages.success(request, 'Grade deleted successfully.')
+        return redirect('students:grade_list')
+    return render(request, 'students/grade_confirm_delete.html', {'grade': grade})
+
+# --- DIVISION CRUD ---
+
+def division_list(request):
+    divisions = Division.objects.all()
+    return render(request, 'students/division_list.html', {'divisions': divisions})
+
+def division_create(request):
+    if request.method == 'POST':
+        form = DivisionForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Division created successfully.')
+            return redirect('students:division_list')
+    else:
+        form = DivisionForm()
+    return render(request, 'students/division_form.html', {'form': form})
+
+def division_update(request, pk):
+    division = get_object_or_404(Division, pk=pk)
+    if request.method == 'POST':
+        form = DivisionForm(request.POST, instance=division)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Division updated successfully.')
+            return redirect('students:division_list')
+    else:
+        form = DivisionForm(instance=division)
+    return render(request, 'students/division_form.html', {'form': form, 'is_update': True})
+
+def division_delete(request, pk):
+    division = get_object_or_404(Division, pk=pk)
+    if request.method == 'POST':
+        division.delete()
+        messages.success(request, 'Division deleted successfully.')
+        return redirect('students:division_list')
+    return render(request, 'students/division_confirm_delete.html', {'division': division})
+
+# --- SUBJECT CRUD ---
+
+def subject_list(request):
+    subjects = Subject.objects.select_related('grade', 'division', 'section').all()
+    return render(request, 'students/subject_list.html', {'subjects': subjects})
+
+def subject_create(request):
+    if request.method == 'POST':
+        form = SubjectForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Subject created successfully.')
+            return redirect('students:subject_list')
+    else:
+        form = SubjectForm()
+    return render(request, 'students/subject_form.html', {'form': form})
+
+def subject_update(request, pk):
+    subject = get_object_or_404(Subject, pk=pk)
+    if request.method == 'POST':
+        form = SubjectForm(request.POST, instance=subject)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Subject updated successfully.')
+            return redirect('students:subject_list')
+    else:
+        form = SubjectForm(instance=subject)
+    return render(request, 'students/subject_form.html', {'form': form, 'is_update': True})
+
+def subject_delete(request, pk):
+    subject = get_object_or_404(Subject, pk=pk)
+    if request.method == 'POST':
+        subject.delete()
+        messages.success(request, 'Subject deleted successfully.')
+        return redirect('students:subject_list')
+    return render(request, 'students/subject_confirm_delete.html', {'subject': subject})

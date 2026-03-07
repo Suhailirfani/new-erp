@@ -40,7 +40,7 @@
             </div>
             <div class="form-group">
                 <label>Division</label>
-                <select name="division">
+                <select name="division" class="form-control">
                     <option value="">All Divisions</option>
                     {% for div in divisions %}
                     <option value="{{ div.id }}" {% if current_filters.division == div.id|stringformat:"s" %}selected{% endif %}>{{ div.name }}</option>
@@ -48,8 +48,17 @@
                 </select>
             </div>
             <div class="form-group">
+                <label>Section</label>
+                <select name="section" class="form-control">
+                    <option value="">All Sections</option>
+                    {% for section in sections %}
+                    <option value="{{ section.id }}" {% if current_filters.section == section.id|stringformat:"s" %}selected{% endif %}>{{ section.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
                 <label>Student Type</label>
-                <select name="student_type">
+                <select name="student_type" class="form-control">
                     <option value="">All Types</option>
                     <option value="hostel" {% if current_filters.student_type == 'hostel' %}selected{% endif %}>Hostel</option>
                     <option value="day_scholar" {% if current_filters.student_type == 'day_scholar' %}selected{% endif %}>Day Scholar</option>
@@ -57,7 +66,7 @@
             </div>
             <div class="form-group">
                 <label>Room</label>
-                <select name="room">
+                <select name="room" class="form-control">
                     <option value="">All Rooms</option>
                     {% for room in rooms %}
                     <option value="{{ room.id }}" {% if current_filters.room == room.id|stringformat:"s" %}selected{% endif %}>{{ room.room_number }}</option>
@@ -80,6 +89,7 @@
                 <th>Student ID</th>
                 <th>Name</th>
                 <th>Grade</th>
+                <th>Section</th>
                 <th>Division</th>
                 <th>Room</th>
                 <th>Type</th>
@@ -94,6 +104,7 @@
                 <td>{{ enrollment.student.student_id }}</td>
                 <td>{{ enrollment.student.full_name }}</td>
                 <td>{{ enrollment.grade }}</td>
+                <td>{{ enrollment.section|default:"-" }}</td>
                 <td>{{ enrollment.division|default:"-" }}</td>
                 <td>{{ enrollment.room.room_number|default:"-" }}</td>
                 <td>{{ enrollment.student.get_student_type_display }}</td>
@@ -116,7 +127,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="8" style="text-align: center;">No students found.</td>
+                <td colspan="9" style="text-align: center;">No students found.</td>
             </tr>
             {% endfor %}
         </tbody>

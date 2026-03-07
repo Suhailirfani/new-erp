@@ -1,0 +1,20 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Delete Subject - Student Management System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Confirm Deletion</h2>
+    <p>Are you sure you want to delete the subject "<strong>{{ subject.name }}</strong>"?</p>
+    
+    <p class="warning-text" style="color: red;">
+        Warning: This will also permanently delete any mark entries recorded for this subject!
+    </p>
+
+    <form method="post" style="margin-top: 20px;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Delete Subject</button>
+        <a href="{% url 'students:subject_list' %}" class="btn">Cancel</a>
+    </form>
+</div>
+{% endblock %}

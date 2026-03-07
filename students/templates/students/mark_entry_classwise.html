@@ -12,6 +12,12 @@
             <option value="{{ e.id }}">{{ e.name }}</option>
         {% endfor %}
     </select>
+    <select id="section">
+        <option value="">Section</option>
+        {% for s in sections %}
+            <option value="{{ s.id }}">{{ s.name }}</option>
+        {% endfor %}
+    </select>
 
     <input type="text" id="grade" placeholder="Class / Grade">
 
@@ -31,15 +37,17 @@
 
 <script>
     const examEl = document.getElementById('exam_type');
+    const sectionEl = document.getElementById('section');
     const gradeEl = document.getElementById('grade');
     const divisionEl = document.getElementById('division');
 
     function loadMarks() {
         const exam = examEl.value;
+        const section = sectionEl.value;
         const grade = gradeEl.value;
         const division = divisionEl.value;
 
-        fetch(`/marks/list/data/?exam_type=${exam}&grade=${grade}&division=${division}`)
+        fetch(`/marks/list/data/?exam_type=${exam}&section=${section}&grade=${grade}&division=${division}`)
             .then(res => res.json())
             .then(data => {
                 document.getElementById('mark-results').innerHTML = data.html;
@@ -48,6 +56,7 @@
 
     // auto load on change
     examEl.addEventListener('change', loadMarks);
+    sectionEl.addEventListener('change', loadMarks);
     gradeEl.addEventListener('input', loadMarks);
     divisionEl.addEventListener('change', loadMarks);
     </script>

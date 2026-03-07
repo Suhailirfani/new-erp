@@ -2,29 +2,60 @@ from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
-class AcademicYear(models.Model):
-    """Academic session year, e.g., '2024-2025'"""
-    name = models.CharField(max_length=50, unique=True, help_text="e.g., '2024-2025'")
-    start_date = models.DateField(null=True, blank=True)
-    end_date = models.DateField(null=True, blank=True)
-    is_active = models.BooleanField(default=False, help_text="Only one academic year should be active at a time.")
+class Section(models.Model):
+    """Section/Level of the institution, e.g., KG, LP, UP, HS, HSS, Degree, Diploma"""
+    name = models.CharField(max_length=50, unique=True)
+    description = models.TextField(blank=True)
+    order = models.PositiveIntegerField(default=0, help_text="Order for display sorting")
 
     class Meta:
-        ordering = ['-name']
+        ordering = ['order', 'name']
 
     def __str__(self):
         return self.name
 
+class Grade(models.Model):
+    """Grade/Class, e.g., 11, 12, 1st Year, KG"""
+    name = models.CharField(max_length=50, unique=True)
+    section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True, related_name='grades')
+    order = models.PositiveIntegerField(default=0, help_text="Order for display sorting")
+
+    class Meta:
+        ordering = ['order', 'name']
+
+    def __str__(self):
+        return self.name
+
+class AcademicYear(models.Model):
+    """Academic session year, e.g., '2024-2025'"""
+    name = models.CharField(max_length=50, help_text="e.g., '2024-2025'")
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True, related_name='academic_years')
+    is_active = models.BooleanField(default=False, help_text="Is this the active academic year for its section?")
+
+    class Meta:
+        ordering = ['-name']
+        unique_together = [['name', 'section']]
+
+    def __str__(self):
+        if self.section:
+            return f"{self.name} ({self.section.name})"
+        return self.name
+
     def save(self, *args, **kwargs):
         if self.is_active:
-            # ensure no other academic year is active
-            AcademicYear.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
+            # ensure no other academic year in the SAME section is active
+            # (If section is None, ensure no other section=None is active)
+            qs = AcademicYear.objects.filter(is_active=True, section=self.section).exclude(pk=self.pk)
+            qs.update(is_active=False)
         super().save(*args, **kwargs)
 
 class Division(models.Model):
     """Division like Commerce, Science, Arts, etc."""
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
+    section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True, related_name='divisions')
 
     class Meta:
         ordering = ['name']
@@ -96,7 +127,8 @@ class Enrollment(models.Model):
     """Enrollment mapping a student to an AcademicYear, grade, division, and room"""
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='enrollments')
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, related_name='enrollments')
-    grade = models.CharField(max_length=50, help_text="Grade/Year for this session (e.g., 11, 12, 1st Year)")
+    section = models.ForeignKey('Section', on_delete=models.SET_NULL, null=True, blank=True)
+    grade = models.ForeignKey(Grade, on_delete=models.SET_NULL, null=True, blank=True, related_name='enrollments')
     division = models.ForeignKey(Division, on_delete=models.SET_NULL, null=True, blank=True)
     room = models.ForeignKey(Room, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -259,6 +291,7 @@ class ExamType(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
     subject_type = models.CharField(max_length=20, choices=SUBJECT_TYPE_CHOICES, default='all', help_text="Filter subjects shown during mark entry for this exam")
+    section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True, related_name='exam_types')
     order = models.PositiveIntegerField(default=0, help_text="Order for display")
 
     class Meta:
@@ -277,9 +310,10 @@ class Subject(models.Model):
 
     name = models.CharField(max_length=200)
     subject_type = models.CharField(max_length=20, choices=SUBJECT_TYPE_CHOICES)
-    grade = models.CharField(max_length=50, help_text="Grade/Year this subject belongs to")
+    grade = models.ForeignKey(Grade, on_delete=models.CASCADE, related_name='subjects', null=True)
     division = models.ForeignKey(Division, on_delete=models.CASCADE, null=True, blank=True,
                                  help_text="Required for division-specific subjects, leave blank for Hadiya")
+    section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True, related_name='subjects')
     code = models.CharField(max_length=20, blank=True, help_text="Subject code")
     max_marks = models.PositiveIntegerField(default=100, help_text="Maximum marks for this subject")
     description = models.TextField(blank=True)
@@ -424,6 +458,8 @@ class Enquiry(models.Model):
     phone = models.CharField(max_length=15)
     course = models.ForeignKey('Division', on_delete=models.SET_NULL, null=True, blank=True)
     district = models.CharField(max_length=100)
+    academic_year = models.ForeignKey('AcademicYear', on_delete=models.SET_NULL, null=True, blank=True)
+    section = models.ForeignKey('Section', on_delete=models.SET_NULL, null=True, blank=True)
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
     token_number = models.IntegerField(null=True, blank=True)

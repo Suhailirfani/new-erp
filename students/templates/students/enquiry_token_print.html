@@ -77,6 +77,8 @@
         <div class="candidate-name">{{ enquiry.name }}</div>
         <div class="candidate-course">
             <strong>Course:</strong> {{ enquiry.course.name }}<br>
+            <strong>Section:</strong> {{ enquiry.section.name|default:"-" }}<br>
+            <strong>Academic Year:</strong> {{ enquiry.academic_year.name|default:"-" }}<br>
             <strong>Phone:</strong> {{ enquiry.phone }}<br>
             <strong>District:</strong> {{ enquiry.district }}
         </div>

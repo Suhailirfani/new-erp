@@ -9,16 +9,16 @@ from .models import (
 
 @admin.register(AcademicYear)
 class AcademicYearAdmin(admin.ModelAdmin):
-    list_display = ['name', 'start_date', 'end_date', 'is_active']
+    list_display = ['name', 'section', 'start_date', 'end_date', 'is_active']
     search_fields = ['name']
-    list_filter = ['is_active']
+    list_filter = ['section', 'is_active']
 
 
 @admin.register(Division)
 class DivisionAdmin(admin.ModelAdmin):
-    list_display = ['name', 'description']
+    list_display = ['name', 'section', 'description']
     search_fields = ['name']
-    list_filter = ['name']
+    list_filter = ['section', 'name']
 
 
 @admin.register(Room)
@@ -72,8 +72,8 @@ class StudentAdmin(admin.ModelAdmin):
 
 @admin.register(Enrollment)
 class EnrollmentAdmin(admin.ModelAdmin):
-    list_display = ['student', 'academic_year', 'grade', 'division', 'room']
-    list_filter = ['academic_year', 'grade', 'division']
+    list_display = ['student', 'academic_year', 'section', 'grade', 'division', 'room']
+    list_filter = ['academic_year', 'section', 'grade', 'division']
     search_fields = ['student__student_id', 'student__first_name', 'student__last_name']
     readonly_fields = ['created_at', 'updated_at']
 
@@ -170,19 +170,19 @@ class HostelMovementAdmin(admin.ModelAdmin):
 
 @admin.register(ExamType)
 class ExamTypeAdmin(admin.ModelAdmin):
-    list_display = ['name', 'order', 'description']
+    list_display = ['name', 'section', 'order', 'description']
     search_fields = ['name']
-    list_filter = ['order']
+    list_filter = ['section', 'order']
 
 
 @admin.register(Subject)
 class SubjectAdmin(admin.ModelAdmin):
-    list_display = ['name', 'subject_type', 'grade', 'division', 'max_marks', 'is_active']
-    list_filter = ['subject_type', 'grade', 'division', 'is_active']
+    list_display = ['name', 'section', 'subject_type', 'grade', 'division', 'max_marks', 'is_active']
+    list_filter = ['section', 'subject_type', 'grade', 'division', 'is_active']
     search_fields = ['name', 'code', 'grade']
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'code', 'subject_type', 'grade', 'division')
+            'fields': ('name', 'code', 'subject_type', 'section', 'grade', 'division')
         }),
         ('Marks', {
             'fields': ('max_marks',)

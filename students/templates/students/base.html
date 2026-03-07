@@ -1152,7 +1152,10 @@
         
         <button class="nav-accordion-btn">⚙️ Settings</button>
         <div class="nav-accordion-content">
+            <a href="{% url 'students:section_list' %}">Sections</a>
             <a href="{% url 'students:academic_year_list' %}">Academic Years</a>
+            <a href="{% url 'students:grade_list' %}">Grades</a>
+            <a href="{% url 'students:division_list' %}">Divisions</a>
             <a href="{% url 'admin:index' %}">Django Admin</a>
         </div>
     </div>
@@ -1224,7 +1227,10 @@
                 <div class="dropdown">
                     <button class="dropdown-btn">Settings <span>▾</span></button>
                     <div class="dropdown-content">
+                        <a href="{% url 'students:section_list' %}">Sections</a>
                         <a href="{% url 'students:academic_year_list' %}">Academic Years</a>
+                        <a href="{% url 'students:grade_list' %}">Grades</a>
+                        <a href="{% url 'students:division_list' %}">Divisions</a>
                         <a href="{% url 'admin:index' %}">Django Admin</a>
                     </div>
                 </div>
