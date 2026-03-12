@@ -1,0 +1,374 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MARKAZ HADIYA WOMEN'S COLLEGE | Welcome</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6a0606; /* Slightly Lighter Maroon */
+            --accent: #a00000; /* Vibrant Maroon */
+            --text-gold: #f1c40f;
+            --glass: rgba(106, 6, 6, 0.2);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --dark-bg: #2a0404; /* Reduced darkness background */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: white;
+            background: var(--dark-bg);
+            overflow-x: hidden;
+        }
+
+        /* Hero Section */
+        .hero {
+            position: relative;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 0 20px;
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
+                        url('{% static "images/college_hero_niqab_full.png" %}') center/cover no-repeat;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 20%, var(--dark-bg) 120%);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 1000px;
+            animation: fadeInScale 1.2s ease-out;
+        }
+
+        @keyframes fadeInScale {
+            0% { opacity: 0; transform: scale(0.9); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .college-name {
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            font-size: clamp(2.5rem, 8vw, 5.5rem);
+            margin-bottom: 20px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            text-shadow: 2px 2px 30px rgba(0,0,0,0.7);
+            line-height: 1.1;
+        }
+
+        .college-name span {
+            color: var(--text-gold);
+        }
+
+        .tagline {
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            font-weight: 300;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        /* News Ticker */
+        .ticker-wrap {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            overflow: hidden;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            z-index: 3;
+        }
+
+        .ticker {
+            display: inline-block;
+            white-space: nowrap;
+            padding-right: 100%;
+            animation: ticker 30s linear infinite;
+            font-size: 1.1rem;
+            color: var(--text-gold);
+            font-weight: 600;
+        }
+
+        .ticker span {
+            margin-right: 50px;
+        }
+
+        @keyframes ticker {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-100%, 0, 0); }
+        }
+
+        /* Buttons */
+        .cta-group {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 35px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size: 1.1rem;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #600000;
+            color: white;
+            box-shadow: 0 10px 20px rgba(74, 4, 4, 0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-5px);
+            background: #800000;
+        }
+
+        .btn-outline {
+            background: var(--glass);
+            color: white;
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .btn-outline:hover {
+            background: white;
+            color: var(--primary);
+        }
+
+        /* Info Sections */
+        .section {
+            padding: 100px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            margin-top: 50px;
+        }
+
+        .card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s;
+            text-align: center;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+        }
+
+        .card i {
+            font-size: 3rem;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* Animations on Scroll */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease-out;
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Form Controls */
+        input, select, textarea {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: white !important;
+            padding: 12px 20px !important;
+            border-radius: 12px !important;
+            font-family: inherit !important;
+            font-size: 1rem !important;
+            transition: all 0.3s !important;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border-color: var(--text-gold) !important;
+            outline: none !important;
+            box-shadow: 0 0 15px rgba(241, 196, 15, 0.2) !important;
+        }
+
+        select option {
+            background: #2a0404;
+            color: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .college-name { 
+                font-size: clamp(2rem, 10vw, 3rem); 
+                letter-spacing: 2px;
+            }
+            .tagline { font-size: 1.1rem; margin-bottom: 30px; }
+            .btn { width: 100%; padding: 12px 25px; font-size: 1rem; }
+            .section { padding: 60px 20px; }
+            .grid { gap: 20px; }
+            .card { padding: 30px 20px; }
+            h2 { font-size: 2.2rem; }
+            .cta-group { flex-direction: column; gap: 12px; padding: 0 10px; }
+        }
+
+        @media (max-width: 480px) {
+            .hero { padding: 0 15px; }
+            .college-name { font-size: 2rem; }
+            .ticker { font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+    {% if messages %}
+    <div style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px; animation: slideIn 0.5s ease-out;">
+        {% for message in messages %}
+        <div style="background: rgba(46, 204, 113, 0.9); color: white; padding: 15px 25px; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2);">
+            <i class="fas fa-check-circle"></i> {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    <script>
+        setTimeout(function() {
+            const msgs = document.querySelectorAll('[style*="slideIn"]');
+            msgs.forEach(m => {
+                m.style.opacity = '0';
+                m.style.transform = 'translateX(20px)';
+                m.style.transition = 'all 0.5s ease';
+                setTimeout(() => m.remove(), 500);
+            });
+        }, 5000);
+    </script>
+    <style>@keyframes slideIn { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }</style>
+    {% endif %}
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1 class="college-name">MARKAZ HADIYA <span>WOMEN'S COLLEGE</span></h1>
+            <p class="tagline">Empowering Minds, Preserving Values, Shaping Futures.</p>
+            <div class="cta-group">
+                {% if user.is_authenticated %}
+                <a href="{% url 'students:home' %}" class="btn btn-primary">Go to Dashboard <i class="fas fa-th-large"></i></a>
+                {% else %}
+                <a href="{% url 'login' %}" class="btn btn-primary">Login to ERP <i class="fas fa-university"></i></a>
+                {% endif %}
+                <a href="{% url 'awaze_register' %}" class="btn btn-outline">AWAZE G-CAMP <i class="fas fa-rocket"></i></a>
+                <a href="{% url 'candidate_register' %}" class="btn btn-outline">Award Ceremony <i class="fas fa-award"></i></a>
+                <a href="{% url 'students:enquiry_create' %}" class="btn btn-outline">Admission Enquiry <i class="fas fa-paper-plane"></i></a>
+            </div>
+        </div>
+
+        <div class="ticker-wrap">
+            <div class="ticker">
+                <span>🚀 Admissions Open for 2026-27 Academic Year!</span>
+                <span>🏆 Award Ceremony Registration is Live for Distinction Holders.</span>
+                <span>✨ Join AWAZE G-CAMP - Register Now to Secure Your Spot!</span>
+                <span>📅 Last Date for Excellence Award Registration: March 20, 2026.</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="section reveal">
+        <h2>Our Core Values</h2>
+        <div class="grid">
+            <div class="card">
+                <i class="fas fa-book-open"></i>
+                <h3>Excellence in Education</h3>
+                <p>Providing state-of-the-art academic training while fostering intellectual growth.</p>
+            </div>
+            <div class="card">
+                <i class="fas fa-heart"></i>
+                <h3>Spiritual Growth</h3>
+                <p>Nurturing strong moral characters and preserving traditional Islamic values.</p>
+            </div>
+            <div class="card">
+                <i class="fas fa-venus"></i>
+                <h3>Women Empowerment</h3>
+                <p>Equipping women with the skills and confidence to lead in society.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section reveal" style="background: rgba(255,255,255,0.05); border-radius: 30px; margin-bottom: 100px;">
+        <div style="display: flex; align-items: center; gap: 50px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 300px;">
+                <img src="{% static 'images/college_campus_thazhapra_1773342079964.png' %}" alt="College Campus" style="width: 100%; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+            </div>
+            <div style="flex: 1; min-width: 300px;">
+                <h2>Welcome to Thazhapra</h2>
+                <p style="font-size: 1.2rem; line-height: 1.8; opacity: 0.8;">
+                    Located in the serene landscapes of Thazhapra, Markaz Hadiya Women's College offers a perfect environment for learning and reflection. Our campus is designed to be a sanctuary of knowledge for the modern woman.
+                </p>
+                <br>
+                <a href="#contact" class="btn btn-outline">Explore Campus</a>
+            </div>
+        </div>
+    </section>
+
+    <footer style="padding: 50px 20px; text-align: center; border-top: 1px solid var(--glass-border); background: #070b14;">
+        <p>&copy; 2026 Markaz Hadiya Women's College, Thazhapra. All Rights Reserved.</p>
+        <div style="margin-top: 20px; font-size: 1.5rem; display: flex; justify-content: center; gap: 20px;">
+            <i class="fab fa-facebook"></i>
+            <i class="fab fa-instagram"></i>
+            <i class="fab fa-youtube"></i>
+        </div>
+    </footer>
+
+    <script>
+        // Scroll Animation
+        function reveal() {
+            var reveals = document.querySelectorAll(".reveal");
+            for (var i = 0; i < reveals.length; i++) {
+                var windowHeight = window.innerHeight;
+                var elementTop = reveals[i].getBoundingClientRect().top;
+                var elementVisible = 150;
+                if (elementTop < windowHeight - elementVisible) {
+                    reveals[i].classList.add("active");
+                }
+            }
+        }
+        window.addEventListener("scroll", reveal);
+        reveal(); // Initial check
+    </script>
+</body>
+</html>

@@ -22,6 +22,11 @@ from .models import (
 from .forms import SectionForm, AcademicYearForm, EnquiryForm, GradeForm, DivisionForm, SubjectForm
 
 
+def landing_page(request):
+    """Public landing page"""
+    return render(request, 'students/landing.html')
+
+
 def home(request):
     """Dashboard/Home page"""
     context = {}

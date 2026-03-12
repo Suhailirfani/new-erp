@@ -1,0 +1,83 @@
+{% extends 'students/base.html' %}
+
+{% block extra_css %}
+<style>
+    .college-name {
+        color: #ffffff !important;
+        font-weight: 800;
+        font-size: 2.8rem;
+        margin-bottom: 0.25rem;
+        background: none !important;
+        -webkit-text-fill-color: #ffffff !important;
+        text-align: center;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    .ceremony-title {
+        color: #fff59d !important;
+        font-weight: 700;
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        text-align: center;
+        -webkit-text-fill-color: #fff59d !important;
+    }
+    .ceremony-desc {
+        color: #000000 !important;
+        font-weight: 700;
+        font-size: 1.25rem;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    @media screen and (max-width: 768px) {
+        .college-name { font-size: 1.8rem; }
+        .ceremony-title { font-size: 1.3rem; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="college-name">MARKAZ HADIYA WOMEN'S COLLEGE</h1>
+    <h2 class="ceremony-title">AWAZE G-CAMP - REGISTERED CANDIDATES</h2>
+    <p class="ceremony-desc">List of candidates for AWAZE G-CAMP.</p>
+</div>
+
+<div class="card">
+    <div class="button-group" style="margin-bottom: 2rem;">
+        <a href="{% url 'awaze_register' %}" class="btn btn-gradient">Add New Candidate</a>
+        <a href="{% url 'awaze_print' %}" target="_blank" class="btn btn-outline-glass">Print Ready List</a>
+    </div>
+
+    <div class="table-wrapper">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Father's Name</th>
+                    <th>Phone</th>
+                    <th>Class</th>
+                    <th>Age</th>
+                    <th>Address</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for candidate in candidates %}
+                <tr>
+                    <td>{{ candidate.name }}</td>
+                    <td>{{ candidate.father_name }}</td>
+                    <td>{{ candidate.phone }}</td>
+                    <td>{{ candidate.student_class }}</td>
+                    <td>{{ candidate.age }}</td>
+                    <td>{{ candidate.address|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 2rem;">No candidates registered yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

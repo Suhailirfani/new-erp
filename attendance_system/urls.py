@@ -27,6 +27,7 @@ urlpatterns = [
     path('', include('students.urls')),
     path('alumni/', include('alumni.urls')),
     path('fees/', include('fees.urls')),
+    path('awards/', include('awards.urls')),
 ]
 
 # Serve static files during development

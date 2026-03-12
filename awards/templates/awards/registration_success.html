@@ -1,0 +1,119 @@
+{% extends 'students/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .success-card {
+        text-align: center;
+        padding: 3rem 2rem;
+    }
+    .success-icon {
+        font-size: 4rem;
+        color: #10b981;
+        margin-bottom: 1.5rem;
+    }
+    .college-name {
+        color: #ffffff !important;
+        font-weight: 800;
+        font-size: 2.5rem;
+        margin-bottom: 0.25rem;
+        background: none !important;
+        -webkit-text-fill-color: #ffffff !important;
+        text-align: center;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    .event-details-card {
+        background: rgba(99, 102, 241, 0.05);
+        border: 2px dashed #6366f1;
+        border-radius: 20px;
+        padding: 2rem;
+        margin: 2rem 0;
+        text-align: left;
+    }
+    .detail-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+    .detail-icon {
+        font-size: 1.5rem;
+        color: #6366f1;
+        width: 30px;
+    }
+    .detail-label {
+        font-weight: 800;
+        color: #1e293b;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.2rem;
+    }
+    .detail-value {
+        color: #475569;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    @media screen and (max-width: 768px) {
+        .college-name { font-size: 1.8rem; }
+        .event-details-card { padding: 1.5rem; }
+    }
+
+    {% if not user.is_authenticated %}
+    .navbar, .nav-sidebar, .nav-overlay, footer {
+        display: none !important;
+    }
+    .container {
+        margin-top: 2rem !important;
+    }
+    {% endif %}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="college-name">MARKAZ HADIYA WOMEN'S COLLEGE</h1>
+    <h2 style="color: #fff59d !important; text-align: center; font-weight: 700; margin-top: 0.5rem;">പ്രതിഭാ സംഗമം</h2>
+</div>
+
+<div class="card success-card">
+    <div class="success-icon">✅</div>
+    <h2 style="color: #10b981; margin-bottom: 1rem;">Registration Successful!</h2>
+    <p style="color: #64748b; font-size: 1.1rem;">
+        Your application for <strong>പ്രതിഭാ സംഗമം</strong> has been submitted successfully.
+    </p>
+
+    <div class="event-details-card">
+        <h3 style="color: #6366f1; margin-bottom: 1.5rem; font-weight: 800; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem;">EVENT DETAILS</h3>
+        
+        <div class="detail-item">
+            <div class="detail-icon">📅</div>
+            <div>
+                <div class="detail-label">Date</div>
+                <div class="detail-value">2026 MARCH 31</div>
+            </div>
+        </div>
+
+        <div class="detail-item">
+            <div class="detail-icon">⏰</div>
+            <div>
+                <div class="detail-label">Time</div>
+                <div class="detail-value">10:00 AM</div>
+            </div>
+        </div>
+
+        <div class="detail-item">
+            <div class="detail-icon">📍</div>
+            <div>
+                <div class="detail-label">Venue</div>
+                <div class="detail-value">CONFERENCE HALL, MARKAZ HADIYA WOMEN'S COLLEGE, THAZHAPRA</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="button-group">
+        <a href="{% url 'candidate_register' %}" class="btn btn-gradient">Register Another Candidate</a>
+    </div>
+</div>
+{% endblock %}

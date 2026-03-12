@@ -1130,9 +1130,14 @@
         <div class="nav-accordion-content">
             <a href="{% url 'students:enquiry_create' %}">New Enquiry</a>
             <a href="{% url 'students:enquiry_list' %}">Dashboard & Tokens</a>
+            <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 5px 0;">
+            <a href="{% url 'candidate_register' %}">🏆 പ്രതിഭാ സംഗമം</a>
+            <a href="{% url 'awaze_register' %}">🚀 AWAZE G-CAMP</a>
+            <a href="{% url 'candidate_list' %}">പ്രതിഭാ സംഗമം - List</a>
+            <a href="{% url 'awaze_list' %}">AWAZE G-CAMP - List</a>
         </div>
         {% endif %}
-        
+
         {% if request.user.is_superuser or request.user.profile.role in 'admin,teacher' %}
         <button class="nav-accordion-btn">📋 Attendance</button>
         <div class="nav-accordion-content">
@@ -1192,7 +1197,7 @@
     
     <nav class="navbar">
         <div class="navbar-content">
-            <h1>📚 InstiFlow</h1>
+            <h1>MARKAZ HADIYA WOMEN'S COLLEGE</h1>
             
             <!-- Hamburger Menu (Mobile Only) -->
             <button class="hamburger" id="hamburger" aria-label="Toggle menu">
@@ -1232,10 +1237,15 @@
                     <div class="dropdown-content">
                         <a href="{% url 'students:enquiry_create' %}">New Enquiry</a>
                         <a href="{% url 'students:enquiry_list' %}">Dashboard & Tokens</a>
+                        <hr style="border: 0; border-top: 1px solid #eee; margin: 4px 0;">
+                        <a href="{% url 'candidate_register' %}">🏆 പ്രതിഭാ സംഗമം</a>
+                        <a href="{% url 'awaze_register' %}">🚀 AWAZE G-CAMP</a>
+                        <a href="{% url 'candidate_list' %}">പ്രതിഭാ സംഗമം - List</a>
+                        <a href="{% url 'awaze_list' %}">AWAZE G-CAMP - List</a>
                     </div>
                 </div>
                 {% endif %}
-                
+
                 {% if request.user.is_superuser or request.user.profile.role in 'admin,teacher' %}
                 <div class="dropdown">
                     <button class="dropdown-btn">Attendance <span>▾</span></button>

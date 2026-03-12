@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWAZE G-CAMP Candidate List</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #333; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        tr:nth-child(even) { background-color: #fafafa; }
+        .footer { margin-top: 50px; text-align: right; font-size: 0.9em; color: #666; }
+        @media print {
+            .no-print { display: none; }
+            body { padding: 0; }
+            th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>MARKAZ HADIYA WOMEN'S COLLEGE</h1>
+        <h2>AWAZE G-CAMP - Candidate List</h2>
+    </div>
+
+    <div class="no-print" style="margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; cursor: pointer; background: #6366f1; color: white; border: none; border-radius: 5px;">Print this list</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Father's Name</th>
+                <th>Phone</th>
+                <th>Class</th>
+                <th>Age</th>
+                <th>Address</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for candidate in candidates %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ candidate.name }}</td>
+                <td>{{ candidate.father_name }}</td>
+                <td>{{ candidate.phone }}</td>
+                <td>{{ candidate.student_class }}</td>
+                <td>{{ candidate.age }}</td>
+                <td>{{ candidate.address|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" style="text-align: center;">No candidates registered yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>Generated on: {% now "jS F Y H:i" %}</p>
+    </div>
+</body>
+</html>
