@@ -1,4 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .decorators import role_required, student_own_data_required
 from django.urls import reverse
 from django.contrib import messages
 from django.db.models import Q, Count
@@ -22,32 +24,121 @@ from .forms import SectionForm, AcademicYearForm, EnquiryForm, GradeForm, Divisi
 
 def home(request):
     """Dashboard/Home page"""
-    today = date.today()
-
-    # Statistics
-    total_students = Student.objects.filter(is_active=True).count()
-    hostel_students = Student.objects.filter(student_type='hostel', is_active=True).count()
-    day_scholar_students = Student.objects.filter(student_type='day_scholar', is_active=True).count()
-
-    # Today's attendance stats
-    today_attendance = Attendance.objects.filter(date=today)
-    today_present = today_attendance.filter(status='present').count()
-    today_absent = today_attendance.filter(status='absent').count()
-
-    # Pending hostel movements (not returned)
-    pending_movements = HostelMovement.objects.filter(is_returned=False).count()
-
-    context = {
-        'total_students': total_students,
-        'hostel_students': hostel_students,
-        'day_scholar_students': day_scholar_students,
-        'today_present': today_present,
-        'today_absent': today_absent,
-        'pending_movements': pending_movements,
-    }
+    context = {}
+    
+    if request.user.is_authenticated and hasattr(request.user, 'profile'):
+        profile = request.user.profile
+        today = date.today()
+        
+        # Only calculate administrative statistics if the user is not a student
+        if profile.role != 'student':
+            # Statistics
+            total_students = Student.objects.filter(is_active=True).count()
+            hostel_students = Student.objects.filter(student_type='hostel', is_active=True).count()
+            day_scholar_students = Student.objects.filter(student_type='day_scholar', is_active=True).count()
+    
+            # Today's attendance stats
+            today_attendance = Attendance.objects.filter(date=today)
+            today_present = today_attendance.filter(status='present').count()
+            today_absent = today_attendance.filter(status='absent').count()
+    
+            # Pending hostel movements (not returned)
+            pending_movements = HostelMovement.objects.filter(is_returned=False).count()
+    
+            context.update({
+                'total_students': total_students,
+                'hostel_students': hostel_students,
+                'day_scholar_students': day_scholar_students,
+                'today_present': today_present,
+                'today_absent': today_absent,
+                'pending_movements': pending_movements,
+            })
+            
+        elif profile.role == 'student' and profile.student_record:
+            # Student-only Portal Data
+            student = profile.student_record
+            active_year = AcademicYear.objects.filter(is_active=True).first()
+            
+            # 1. Attendance Data
+            student_today_att = Attendance.objects.filter(student=student, date=today).first()
+            today_status = student_today_att.status if student_today_att else 'not_marked'
+            
+            # Monthly attendance
+            current_month = today.month
+            curr_year = today.year
+            monthly_att = Attendance.objects.filter(
+                student=student, 
+                date__year=curr_year, 
+                date__month=current_month
+            )
+            monthly_total = monthly_att.count()
+            monthly_present = monthly_att.filter(status='present').count()
+            
+            # Yearly attendance
+            if active_year:
+                yearly_att = Attendance.objects.filter(
+                    student=student,
+                    date__gte=active_year.start_date,
+                    date__lte=active_year.end_date if active_year.end_date else today
+                )
+                yearly_total = yearly_att.count()
+                yearly_present = yearly_att.filter(status='present').count()
+            else:
+                yearly_total = 0
+                yearly_present = 0
+                
+            # 2. Results / Academics Data
+            # All results in the active academic year
+            exam_results = []
+            if active_year:
+                enrollment = Enrollment.objects.filter(student=student, academic_year=active_year).first()
+                if enrollment and enrollment.grade:
+                    # Fetch MarkEntry where exam_type's academic year is active_year
+                    exam_results = MarkEntry.objects.filter(
+                        student=student, 
+                        exam_type__academic_year=active_year
+                    ).select_related('exam_type', 'subject').order_by('-exam_type__start_date', 'subject__name')
+            
+            # 3. Hostel Movement Data
+            hostel_status = None
+            if student.student_type == 'hostel':
+                # Check for an open 'Away' record
+                open_movement = HostelMovement.objects.filter(student=student, is_returned=False).first()
+                hostel_status = 'away' if open_movement else 'present'
+                
+            # 4. Fee Data
+            student_fees = []
+            fee_total_paid = 0
+            fee_total_due = 0
+            try:
+                from fees.models import StudentFee
+                fees_list = StudentFee.objects.filter(student=student)
+                for fee in fees_list:
+                    student_fees.append(fee)
+                    fee_total_paid += fee.amount_paid
+                    if fee.status != 'paid':
+                        # The balance is what is still due
+                        fee_total_due += fee.balance
+            except ImportError:
+                pass # If fees module is missing or disconnected
+                
+            context.update({
+                'student_record': student,
+                'today_status': today_status,
+                'monthly_total': monthly_total,
+                'monthly_present': monthly_present,
+                'yearly_total': yearly_total,
+                'yearly_present': yearly_present,
+                'exam_results': exam_results,
+                'hostel_status': hostel_status,
+                'fee_total_paid': fee_total_paid,
+                'fee_total_due': fee_total_due,
+            })
+        
     return render(request, 'students/home.html', context)
 
 
+@role_required(['admin', 'teacher', 'accountant'])
 def student_create(request):
     """Create a new student"""
     academic_years = AcademicYear.objects.all().order_by('-start_date')
@@ -87,6 +178,10 @@ def student_create(request):
                 address=address,
             )
             
+            siblings_ids = request.POST.getlist('siblings')
+            if siblings_ids:
+                student.siblings.set(siblings_ids)
+            
             if form_year:
                 Enrollment.objects.create(
                     student=student,
@@ -104,7 +199,9 @@ def student_create(request):
     rooms = Room.objects.all()
     sections = Section.objects.all().order_by('order', 'name')
     grades = Grade.objects.all().order_by('order', 'name')
+    all_students = Student.objects.filter(is_active=True).order_by('first_name', 'last_name')
     context = {
+        'all_students': all_students,
         'divisions': divisions,
         'rooms': rooms,
         'sections': sections,
@@ -115,6 +212,7 @@ def student_create(request):
     return render(request, 'students/student_create.html', context)
 
 
+@role_required(['admin', 'accountant'])
 def student_bulk_import(request):
     """Bulk import students from Excel file"""
     if not PANDAS_AVAILABLE:
@@ -296,6 +394,7 @@ def student_bulk_import(request):
     return render(request, 'students/student_bulk_import.html', context)
 
 
+@role_required(['admin', 'accountant'])
 def student_bulk_import_template(request):
     """Download an Excel template for bulk student import"""
     import openpyxl
@@ -341,6 +440,7 @@ def student_bulk_import_template(request):
     
     return response
 
+@role_required(['admin', 'accountant'])
 def student_upgrade(request):
     """Upgrade students to next grade (e.g., grade 11 to 12, or 1st Year to 2nd Year)"""
     active_year = AcademicYear.objects.filter(is_active=True).first()
@@ -430,6 +530,7 @@ def student_upgrade(request):
     return render(request, 'students/student_upgrade.html', context)
 
 
+@role_required(['admin', 'accountant'])
 def student_graduate(request):
     """Graduate students to Alumni (e.g., from Grade 12 or Final Year)"""
     active_year = AcademicYear.objects.filter(is_active=True).first()
@@ -509,6 +610,7 @@ def student_graduate(request):
     return render(request, 'students/student_graduate.html', context)
 
 
+@login_required
 def student_list(request):
     """List all students for the active academic year with filters"""
     active_year = AcademicYear.objects.filter(is_active=True).first()
@@ -545,6 +647,14 @@ def student_list(request):
                 Q(student__first_name__icontains=search) |
                 Q(student__last_name__icontains=search)
             )
+        
+        # Apply ordering: Grade (order then name), Division name, then Student ID
+        enrollments = enrollments.order_by(
+            'grade__order', 
+            'grade__name', 
+            'division__name', 
+            'student__student_id'
+        )
         
         # We will pass enrollments instead of students to the template, but we will adapt the template or rename the variable. 
         # Let's pass 'enrollments' as 'students' variable to MINIMIZE template changes initially,
@@ -616,9 +726,14 @@ def student_list(request):
             'search': search if active_year else None,
         }
     }
+    
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return render(request, 'students/partials/student_table_body.html', context)
+        
     return render(request, 'students/student_list.html', context)
 
 
+@role_required(['admin', 'teacher'])
 def mark_attendance(request):
     """Mark attendance - Step 1: Select Date and Class"""
     attendance_type = request.GET.get('type', 'daily')
@@ -637,7 +752,15 @@ def mark_attendance(request):
         return redirect('students:home')
     
     # Get all active classes
-    active_enrollments = Enrollment.objects.filter(academic_year=active_year, student__is_active=True).values('section__id', 'section__name', 'grade__id', 'grade__name', 'division__id', 'division__name').distinct()
+    active_enrollments = Enrollment.objects.filter(
+        academic_year=active_year, 
+        student__is_active=True,
+        grade__isnull=False
+    ).values(
+        'grade__section__id', 'grade__section__name', 
+        'grade__id', 'grade__name', 
+        'division__id', 'division__name'
+    ).distinct()
     
     for cls in active_enrollments:
         if not cls['grade__id']: # Skip students without a grade
@@ -646,9 +769,9 @@ def mark_attendance(request):
         g_name = cls['grade__name']
         d_id = cls['division__id']
         d_name = cls['division__name'] or 'No Division'
-        s_id = cls['section__id']
-        s_name = cls['section__name'] or 'No Section'
-        cls_name = f"{s_name} - {g_name} - {d_name}"
+        s_id = cls['grade__section__id']
+        s_name = cls['grade__section__name'] or 'No Section'
+        cls_name = f"{g_name} - {d_name}"
         
         # Get count of students in this class
         student_count = Enrollment.objects.filter(academic_year=active_year, student__is_active=True, grade_id=g_id)
@@ -656,11 +779,6 @@ def mark_attendance(request):
             student_count = student_count.filter(division_id=d_id)
         else:
             student_count = student_count.filter(division__isnull=True)
-            
-        if s_id:
-            student_count = student_count.filter(section_id=s_id)
-        else:
-            student_count = student_count.filter(section__isnull=True)
             
         student_count = student_count.count()
         if student_count == 0:
@@ -677,11 +795,6 @@ def mark_attendance(request):
             recorded_query = recorded_query.filter(enrollment__division_id=d_id)
         else:
             recorded_query = recorded_query.filter(enrollment__division__isnull=True)
-            
-        if s_id:
-            recorded_query = recorded_query.filter(enrollment__section_id=s_id)
-        else:
-            recorded_query = recorded_query.filter(enrollment__section__isnull=True)
             
         if attendance_type == 'period' and period_id:
             recorded_query = recorded_query.filter(period_id=period_id)
@@ -732,6 +845,7 @@ def mark_attendance(request):
     }
     return render(request, 'students/mark_attendance.html', context)
 
+@role_required(['admin', 'teacher'])
 def mark_attendance_class(request, grade_id, division_id): # Changed grade to grade_id
     """Mark attendance - Step 2: Enter attendance for specific class"""
     attendance_type = request.GET.get('type', 'daily')
@@ -752,20 +866,19 @@ def mark_attendance_class(request, grade_id, division_id): # Changed grade to gr
 
     # Get enrollments based on class
     enrollments = Enrollment.objects.filter(academic_year=active_year, student__is_active=True, grade=grade_obj).select_related('student', 'division', 'room', 'section')
-    if section_id:
-        enrollments = enrollments.filter(section_id=section_id)
-        section_name = Section.objects.get(id=section_id).name
+    
+    if grade_obj.section:
+        section_name = grade_obj.section.name
     else:
-        enrollments = enrollments.filter(section__isnull=True)
         section_name = "No Section"
         
     if actual_division_id:
         enrollments = enrollments.filter(division_id=actual_division_id)
         division = get_object_or_404(Division, id=actual_division_id)
-        class_name = f"{section_name} - {grade_obj.name} - {division.name}" # Use grade_obj.name
+        class_name = f"{section_name} - {grade_obj.name} - {division.name}" 
     else:
         enrollments = enrollments.filter(division__isnull=True)
-        class_name = f"{section_name} - {grade_obj.name} - No Division" # Use grade_obj.name
+        class_name = f"{section_name} - {grade_obj.name} - No Division"
 
     # Get existing attendance for the date
     existing_attendance = {}
@@ -800,7 +913,11 @@ def mark_attendance_class(request, grade_id, division_id): # Changed grade to gr
         }
 
     if request.method == 'POST':
-        marked_by = request.POST.get('marked_by', '')
+        # Automatically determine who is marking the attendance from the logged-in user
+        marked_by = request.user.get_full_name() or request.user.username
+        if not marked_by:
+            marked_by = "Admin" # Fallback if user somehow has no name/username
+            
         attendance_data = request.POST.getlist('attendance')
         success_count = 0
 
@@ -884,6 +1001,7 @@ from students.models import Student, Division
 
 
 
+@role_required(['admin', 'teacher'])
 def attendance_list(request):
     """
     Attendance List with:
@@ -1149,9 +1267,17 @@ def attendance_list(request):
 
     return render(request, 'students/attendance_list.html', context)
 
+@role_required(['admin', 'ntstaff'])
 def hostel_movement_list(request):
-    """List hostel movements"""
+    """List hostel movements with stats and enhanced search"""
+    from django.db.models import Q
     movements = HostelMovement.objects.select_related('student')
+
+    # Calculate Stats
+    total_hostel_students = Student.objects.filter(student_type='hostel', is_active=True).count()
+    # Away students are those with a movement log where is_returned is False
+    away_students = HostelMovement.objects.filter(is_returned=False, student__is_active=True).values('student').distinct().count()
+    present_students = total_hostel_students - away_students
 
     # Filters
     student_id = request.GET.get('student_id')
@@ -1160,7 +1286,11 @@ def hostel_movement_list(request):
     date_to = request.GET.get('date_to')
 
     if student_id:
-        movements = movements.filter(student__student_id__icontains=student_id)
+        movements = movements.filter(
+            Q(student__student_id__icontains=student_id) | 
+            Q(student__first_name__icontains=student_id) |
+            Q(student__last_name__icontains=student_id)
+        )
     if is_returned is not None:
         movements = movements.filter(is_returned=is_returned == '1')
     if date_from:
@@ -1172,6 +1302,11 @@ def hostel_movement_list(request):
 
     context = {
         'movements': movements,
+        'stats': {
+            'total': total_hostel_students,
+            'present': present_students,
+            'away': away_students
+        },
         'current_filters': {
             'student_id': student_id,
             'is_returned': is_returned,
@@ -1182,6 +1317,7 @@ def hostel_movement_list(request):
     return render(request, 'students/hostel_movement_list.html', context)
 
 
+@role_required(['admin', 'ntstaff'])
 def hostel_movement_create(request):
     """Create hostel movement record"""
     if request.method == 'POST':
@@ -1216,6 +1352,7 @@ def hostel_movement_create(request):
     return render(request, 'students/hostel_movement_create.html', context)
 
 
+@role_required(['admin', 'ntstaff'])
 def hostel_movement_update(request, pk):
     """Update hostel movement (mark as returned)"""
     movement = get_object_or_404(HostelMovement, pk=pk)
@@ -1241,6 +1378,7 @@ def hostel_movement_update(request, pk):
     return render(request, 'students/hostel_movement_update.html', context)
 
 
+@role_required(['admin', 'teacher'])
 def exam_type_list(request):
     """List all exam types"""
     exam_types = ExamType.objects.all()
@@ -1250,6 +1388,7 @@ def exam_type_list(request):
     return render(request, 'students/exam_type_list.html', context)
 
 
+@role_required(['admin', 'teacher'])
 def exam_type_create(request):
     """Create a new exam type"""
     if request.method == 'POST':
@@ -1296,6 +1435,7 @@ def exam_type_create(request):
     return render(request, 'students/exam_type_create.html', context)
 
 
+@role_required(['admin', 'teacher'])
 def exam_type_update(request, pk):
     """Update an exam type"""
     exam_type = get_object_or_404(ExamType, pk=pk)
@@ -1344,6 +1484,7 @@ def exam_type_update(request, pk):
     return render(request, 'students/exam_type_update.html', context)
 
 
+@role_required(['admin', 'teacher'])
 def exam_type_delete(request, pk):
     """Delete an exam type"""
     exam_type = get_object_or_404(ExamType, pk=pk)
@@ -1360,11 +1501,13 @@ def exam_type_delete(request, pk):
     return render(request, 'students/exam_type_delete.html', context)
 
 
+@role_required(['admin', 'teacher'])
 def mark_entry_step1(request):
     """Step 1: Select Exam Type"""
     exam_types = ExamType.objects.all().order_by('order', 'name')
     return render(request, 'students/mark_entry_step1.html', {'exam_types': exam_types})
 
+@role_required(['admin', 'teacher'])
 def mark_entry_step2(request, exam_type_id):
     """Step 2: Select Class (Combination of Grade and Division)"""
     exam_type = get_object_or_404(ExamType, id=exam_type_id)
@@ -1414,6 +1557,7 @@ def mark_entry_step2(request, exam_type_id):
         'classes': classes
     })
 
+@role_required(['admin', 'teacher'])
 def mark_entry_step3(request, exam_type_id):
     """Step 3: Enter marks for all subjects for the selected class"""
     exam_type = get_object_or_404(ExamType, id=exam_type_id)
@@ -1561,6 +1705,7 @@ from .models import MarkEntry
 from django.shortcuts import render
 from .models import ExamType, Division
 
+@role_required(['admin', 'teacher'])
 def mark_entry_list(request):
     context = {
         'exam_types': ExamType.objects.select_related('section').all(),
@@ -1576,6 +1721,7 @@ from django.template.loader import render_to_string
 from .models import MarkEntry
 
 
+@role_required(['admin', 'teacher'])
 def mark_entry_classwise_data(request):
     """
     AJAX view:
@@ -1739,17 +1885,26 @@ def mark_entry_classwise_data(request):
     return JsonResponse({'html': html})
 
 
+@role_required(['admin', 'teacher'])
 def progress_report(request):
     """Generate and view progress reports"""
     student_id = request.GET.get('student_id')
     exam_type_id = request.GET.get('exam_type')
     section_id = request.GET.get('section')
-    grade_id = request.GET.get('grade') # Get grade ID
+    grade_id = request.GET.get('grade')
     division_id = request.GET.get('division')
-    academic_year_name = request.GET.get('academic_year', '') # Changed to academic_year_name
+    academic_year_name = request.GET.get('academic_year', '')
 
-    active_year = AcademicYear.objects.filter(is_active=True).first()
-    enrollments_query = Enrollment.objects.filter(student__is_active=True, academic_year=active_year).select_related('student', 'division', 'room', 'grade')
+    # Data isolation for students
+    is_student = hasattr(request.user, 'profile') and request.user.profile.role == 'student'
+    if is_student:
+        if not request.user.profile.student_record:
+            messages.error(request, "Student record not found.")
+            return redirect('students:home')
+        # Force student_id filter to own student_id
+        student_id = request.user.profile.student_record.student_id
+        
+    enrollments_query = Enrollment.objects.filter(academic_year=active_year).select_related('student', 'grade', 'division', 'section')
 
     if student_id:
         enrollments_query = enrollments_query.filter(student__student_id__icontains=student_id)
@@ -1763,6 +1918,9 @@ def progress_report(request):
     enrollments = enrollments_query
 
     if request.method == 'POST':
+        if is_student:
+             messages.error(request, "Students cannot generate progress reports.")
+             return redirect('students:progress_report')
         student_ids = request.POST.getlist('students')
         exam_type_id = request.POST.get('exam_type')
         academic_year_name = request.POST.get('academic_year', '') # Changed to academic_year_name
@@ -1881,9 +2039,17 @@ def progress_report(request):
     return render(request, 'students/progress_report.html', context)
 
 
+@role_required(['admin', 'teacher', 'student'])
 def progress_report_detail(request, pk):
     """View detailed progress report for a student"""
     report = get_object_or_404(ProgressReport, pk=pk)
+    
+    # Data isolation for students
+    if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
+        if not request.user.profile.student_record or request.user.profile.student_record != report.student:
+            messages.error(request, "You do not have permission to view other students' progress reports.")
+            return redirect('students:home')
+            
     mark_entries = MarkEntry.objects.filter(
         student=report.student,
         exam_type=report.exam_type
@@ -1901,6 +2067,33 @@ def progress_report_detail(request, pk):
     }
     return render(request, 'students/progress_report_detail.html', context)
 
+@login_required
+def student_profile(request, pk):
+    """View a student's full profile (read-only)"""
+    student = get_object_or_404(Student, id=pk)
+    
+    # Ensure students can only view their own profile, unless they are staff/admin
+    if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
+        if not hasattr(request.user.profile, 'student_record') or request.user.profile.student_record != student:
+            messages.error(request, 'You do not have permission to view this profile.')
+            return redirect('students:home')
+            
+    # Get active components
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    enrollment = student.enrollments.filter(academic_year=active_year).first()
+    
+    # If no active enrollment found, just get the most recent one
+    if not enrollment and student.enrollments.exists():
+        enrollment = student.enrollments.order_by('-academic_year__start_date').first()
+        
+    context = {
+        'student': student,
+        'enrollment': enrollment,
+        'active_year': active_year,
+    }
+    return render(request, 'students/student_profile.html', context)
+
+@student_own_data_required
 def student_edit(request, pk):
     """Edit an existing student"""
     student = get_object_or_404(Student, id=pk)
@@ -1945,59 +2138,123 @@ def student_edit(request, pk):
         else:
             form_year = active_year
 
-        # Check duplicate student ID, but allow same ID for this student
-        if Student.objects.exclude(id=student.id).filter(student_id=student_id).exists():
-            messages.error(request, f'Student ID {student_id} already exists.')
-        else:
-            student.student_id = student_id
-            student.first_name = first_name
-            student.last_name = last_name
-            student.student_type = student_type
+        is_student = hasattr(request.user, 'profile') and request.user.profile.role == 'student'
+
+        if is_student:
             student.email = email
             student.phone = phone
             student.address = address
             student.save()
-            
-            if form_year:
-                # Find if an enrollment already exists for this specific student and year
-                year_enrollment = Enrollment.objects.filter(student=student, academic_year=form_year).first()
-                if year_enrollment:
-                    year_enrollment.grade_id = grade_id
-                    year_enrollment.section_id = section_id
-                    year_enrollment.division_id = division_id
-                    year_enrollment.room_id = room_id
-                    year_enrollment.save()
-                else:
-                    Enrollment.objects.create(
-                        student=student,
-                        academic_year=form_year,
-                        grade_id=grade_id,
-                        section_id=section_id,
-                        division_id=division_id,
-                        room_id=room_id
-                    )
+            messages.success(request, f'Your profile was updated successfully!')
+            return redirect('students:home')
+        else:
+            # Check duplicate student ID, but allow same ID for this student
+            if Student.objects.exclude(id=student.id).filter(student_id=student_id).exists():
+                messages.error(request, f'Student ID {student_id} already exists.')
+            else:
+                student.student_id = student_id
+                student.first_name = first_name
+                student.last_name = last_name
+                student.student_type = student_type
+                student.email = email
+                student.phone = phone
+                student.address = address
+                student.save()
+                
+                siblings_ids = request.POST.getlist('siblings')
+                student.siblings.set(siblings_ids)
+                
+                if form_year:
+                    # Find if an enrollment already exists for this specific student and year
+                    year_enrollment = Enrollment.objects.filter(student=student, academic_year=form_year).first()
+                    if year_enrollment:
+                        year_enrollment.grade_id = grade_id
+                        year_enrollment.section_id = section_id
+                        year_enrollment.division_id = division_id
+                        year_enrollment.room_id = room_id
+                        year_enrollment.save()
+                    else:
+                        Enrollment.objects.create(
+                            student=student,
+                            academic_year=form_year,
+                            grade_id=grade_id,
+                            section_id=section_id,
+                            division_id=division_id,
+                            room_id=room_id
+                        )
 
-            messages.success(request, f'Student {student.full_name} updated successfully for {form_year.name if form_year else "the selected year"}!')
-            return redirect('students:student_list')
+                messages.success(request, f'Student {student.full_name} updated successfully for {form_year.name if form_year else "the selected year"}!')
+                return redirect('students:student_list')
 
     divisions = Division.objects.all()
     rooms = Room.objects.all()
     sections = Section.objects.all().order_by('order', 'name')
     grades = Grade.objects.all().order_by('order', 'name')
+    all_students = Student.objects.filter(is_active=True).exclude(id=student.id).order_by('first_name', 'last_name')
 
     context = {
         'student': student,
-        'enrollment': enrollment,
-        'academic_years': academic_years,
-        'selected_year': selected_year,
         'divisions': divisions,
         'rooms': rooms,
         'sections': sections,
         'grades': grades,
+        'all_students': all_students,
+        'academic_years': academic_years,
+        'selected_year': selected_year,
+        'active_year': active_year,
+        'enrollment': enrollment,
     }
     return render(request, 'students/student_edit.html', context)
 
+@role_required(['admin', 'ntstaff'])
+def create_student_user(request, pk):
+    """Create a linked User account for an existing student"""
+    if request.method == 'POST':
+        student = get_object_or_404(Student, id=pk)
+        
+        # Check if already linked
+        if hasattr(student, 'user_profile') and student.user_profile:
+            messages.error(request, f'Student {student.full_name} already has a linked user account.')
+            return redirect('students:student_edit', pk=pk)
+            
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+        
+        if not username or not password:
+            messages.error(request, 'Username and password are required.')
+            return redirect('students:student_edit', pk=pk)
+            
+        # Check if username exists
+        if User.objects.filter(username=username).exists():
+            messages.error(request, f'Username "{username}" is already taken.')
+            return redirect('students:student_edit', pk=pk)
+            
+        try:
+            # Create the auth User
+            user = User.objects.create_user(
+                username=username,
+                password=password,
+                first_name=student.first_name,
+                last_name=student.last_name,
+                email=student.email or ''
+            )
+            
+            # The signal automatically created a UserProfile for this user with role='ntstaff'.
+            # We need to fetch it and update it to 'student' and link the student record.
+            profile = user.profile
+            profile.role = 'student'
+            profile.student_record = student
+            profile.save()
+            
+            messages.success(request, f'Login account created successfully for {student.full_name}!')
+            
+        except Exception as e:
+            messages.error(request, f'Error creating user account: {str(e)}')
+            
+    return redirect('students:student_edit', pk=pk)
 
+
+@role_required(['admin'])
 def student_delete(request, pk):
     student = get_object_or_404(Student, pk=pk)
     student.delete()
@@ -2012,6 +2269,7 @@ from collections import defaultdict
 from calendar import monthrange
 
 
+@role_required(['admin', 'teacher'])
 def attendance_analytics(request):
     """Enhanced attendance analytics with multiple time ranges"""
 
@@ -2302,6 +2560,7 @@ from collections import defaultdict
 from django.shortcuts import render
 from .models import MarkEntry, ExamType
 
+@role_required(['admin', 'teacher'])
 def performance_analysis(request):
     exam_type_id = request.GET.get('exam_type')
 
@@ -2420,6 +2679,7 @@ from django.db.models.functions import Cast
 
 
 
+@role_required(['admin', 'teacher'])
 def bulk_progress_report_pdf(request):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="progress_reports.pdf"'
@@ -2595,6 +2855,7 @@ from students.models import Holiday
 
 
 
+@role_required(['admin', 'teacher'])
 def attendance_update_tracking(request):
     """
     Monthly Attendance Update Tracking
@@ -2697,6 +2958,7 @@ def attendance_update_tracking(request):
 from django.contrib.auth.decorators import login_required
 
 
+@role_required(['admin', 'teacher'])
 def attendance_class_detail(request, grade, division_id):
     """
     Shows a list of students for a specific grade and division,
@@ -2778,11 +3040,18 @@ def attendance_class_detail(request, grade, division_id):
     return render(request, 'students/attendance_class_detail.html', context)
 
 
+@role_required(['admin', 'teacher', 'student'])
 def attendance_student_detail(request, student_id):
     """
     Shows detailed attendance history for a single student.
     Includes monthly breakdown and date-specific checker.
     """
+    # Data isolation for students
+    if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
+        if not request.user.profile.student_record or request.user.profile.student_record.id != int(student_id):
+            messages.error(request, "You do not have permission to view other students' attendance details.")
+            return redirect('students:home')
+            
     try:
         student = Student.objects.get(id=student_id)
     except Student.DoesNotExist:
@@ -2862,6 +3131,7 @@ def attendance_student_detail(request, student_id):
 from .models import Section
 from .forms import SectionForm
 
+@role_required(['admin'])
 def section_list(request):
     """List all sections"""
     sections = Section.objects.all().order_by('order', 'name')
@@ -2869,6 +3139,101 @@ def section_list(request):
     return render(request, 'students/section_list.html', context)
 
 
+@role_required(['admin', 'ntstaff'])
+def hostel_student_list_view(request):
+    """List all students registered to the hostel"""
+    from django.db.models import Q
+    
+    students = Student.objects.filter(student_type='hostel')
+    
+    search_query = request.GET.get('search', '')
+    if search_query:
+        students = students.filter(
+            Q(student_id__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query)
+        )
+        
+    # Calculate current status for each
+    away_student_ids = set(HostelMovement.objects.filter(is_returned=False).values_list('student_id', flat=True))
+    
+    for st in students:
+        st.is_away = st.id in away_student_ids
+        
+    context = {
+        'students': students,
+        'search_query': search_query
+    }
+    return render(request, 'students/hostel_student_list.html', context)
+
+
+@role_required(['admin', 'ntstaff', 'student'])
+def hostel_student_detail_view(request, pk):
+    """Detailed profile for a specific hostel student"""
+    # Data isolation for students
+    if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
+        if not request.user.profile.student_record or request.user.profile.student_record.id != int(pk):
+            from django.contrib import messages
+            messages.error(request, "You do not have permission to view other students' hostel details.")
+            return redirect('students:home')
+    from datetime import datetime, date
+    
+    student = get_object_or_404(Student, pk=pk, student_type='hostel')
+    movements = HostelMovement.objects.filter(student=student).order_by('-departure_date', '-departure_time')
+    
+    # Calculate historical away days
+    total_away_days = 0
+    today = timezone.now().date()
+    
+    for movement in movements:
+        end_date = movement.arrival_date if movement.is_returned else today
+        start_date = movement.departure_date
+        total_away_days += (end_date - start_date).days
+        
+    # Enrollment baseline (when they joined)
+    enroll_date = student.created_at.date()
+    total_days_since_enroll = (today - enroll_date).days
+    total_present_days = max(0, total_days_since_enroll - total_away_days)
+    
+    # Check specific date logic
+    check_date_str = request.GET.get('check_date')
+    check_status = None
+    
+    if check_date_str:
+        try:
+            check_date = datetime.strptime(check_date_str, '%Y-%m-%d').date()
+            # If the date is before enrollment or after today
+            if check_date < enroll_date:
+                check_status = "Not Enrolled Yet"
+            elif check_date > today:
+                check_status = "Future Date"
+            else:
+                # Find if any movement perfectly covers this date
+                was_away = False
+                for movement in movements:
+                    m_end = movement.arrival_date if movement.is_returned else today
+                    if movement.departure_date <= check_date <= m_end:
+                        was_away = True
+                        break
+                check_status = "Away" if was_away else "Present"
+        except ValueError:
+            pass
+            
+    is_currently_away = movements.filter(is_returned=False).exists()
+    
+    context = {
+        'student': student,
+        'movements': movements,
+        'total_away_days': total_away_days,
+        'total_present_days': total_present_days,
+        'is_currently_away': is_currently_away,
+        'check_date_str': check_date_str,
+        'check_status': check_status
+    }
+    return render(request, 'students/hostel_student_detail.html', context)
+
+
+@role_required(['admin'])
 def section_create(request):
     """Create a new section"""
     if request.method == 'POST':
@@ -2888,6 +3253,7 @@ def section_create(request):
     return render(request, 'students/section_form.html', context)
 
 
+@role_required(['admin'])
 def section_update(request, pk):
     """Update an existing section"""
     section = get_object_or_404(Section, pk=pk)
@@ -2908,6 +3274,7 @@ def section_update(request, pk):
     return render(request, 'students/section_form.html', context)
 
 
+@role_required(['admin'])
 def section_delete(request, pk):
     """Delete an existing section"""
     section = get_object_or_404(Section, pk=pk)
@@ -2920,6 +3287,7 @@ def section_delete(request, pk):
 # ==========================================
 from .forms import AcademicYearForm, SubjectForm
 
+@role_required(['admin'])
 def academic_year_list(request):
     """List all academic years"""
     academic_years = AcademicYear.objects.all().order_by('-start_date')
@@ -2927,6 +3295,7 @@ def academic_year_list(request):
     return render(request, 'students/academic_year_list.html', context)
 
 
+@role_required(['admin'])
 def academic_year_create(request):
     """Create a new academic year"""
     if request.method == 'POST':
@@ -2949,6 +3318,7 @@ def academic_year_create(request):
     return render(request, 'students/academic_year_form.html', context)
 
 
+@role_required(['admin'])
 def academic_year_update(request, pk):
     """Update an existing academic year"""
     year = get_object_or_404(AcademicYear, pk=pk)
@@ -2976,6 +3346,7 @@ def academic_year_update(request, pk):
 # SUBJECT MANAGEMENT
 # ==========================================
 
+@role_required(['admin'])
 def subject_list(request):
     """List all subjects with filtering"""
     subjects = Subject.objects.all().order_by('grade', 'subject_type', 'name')
@@ -3003,6 +3374,7 @@ def subject_list(request):
     return render(request, 'students/subject_list.html', context)
 
 
+@role_required(['admin'])
 def subject_create(request):
     """Create a new subject"""
     if request.method == 'POST':
@@ -3022,6 +3394,7 @@ def subject_create(request):
     return render(request, 'students/subject_form.html', context)
 
 
+@role_required(['admin'])
 def subject_update(request, pk):
     """Update an existing subject"""
     subject = get_object_or_404(Subject, pk=pk)
@@ -3047,25 +3420,115 @@ def subject_update(request, pk):
 def enquiry_create_view(request):
     """Public or admin view to submit a new enquiry"""
     from .forms import EnquiryForm
+    from .models import Division, AcademicYear
+    import json
     
     if request.method == 'POST':
         form = EnquiryForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Enquiry submitted successfully.')
-            return redirect('students:enquiry_list')
+            enquiry = form.save(commit=False)
+            
+            # Auto-assign the active academic year for the selected section (or globally)
+            active_year = AcademicYear.objects.filter(is_active=True).first()
+            if active_year:
+                enquiry.academic_year = active_year
+                
+            enquiry.save()
+            return redirect('students:enquiry_success', application_number=enquiry.application_number)
     else:
         form = EnquiryForm()
+
+    # Pass division mapping for the dependent course dropdown
+    divisions = list(Division.objects.values('id', 'name', 'section_id'))
+    divisions_json = json.dumps(divisions)
         
-    return render(request, 'students/enquiry_form.html', {'form': form})
+    return render(request, 'students/enquiry_form.html', {
+        'form': form,
+        'divisions_json': divisions_json
+    })
+
+def enquiry_success_view(request, application_number):
+    """Public page shown after successfully submitting an enquiry"""
+    from .models import Enquiry
+    enquiry = get_object_or_404(Enquiry, application_number=application_number)
+    return render(request, 'students/enquiry_success.html', {
+        'application_number': application_number,
+        'enquiry': enquiry
+    })
+
+def enquiry_status_view(request):
+    """Public page to check enquiry status using application number"""
+    from .models import Enquiry
+    enquiry = None
+    searched = False
+    
+    # Check for both form submission (POST) or direct link (GET parameter)
+    app_number = None
+    if request.method == 'POST':
+        app_number = request.POST.get('application_number', '').strip()
+    else:
+        app_number = request.GET.get('app_no', '').strip()
+        
+    if app_number:
+        searched = True
+        enquiry = Enquiry.objects.filter(application_number__iexact=app_number).first()
+        if not enquiry:
+            messages.error(request, 'Application not found. Please check your application number.')
+            
+    from .models import GlobalSettings
+    global_settings = GlobalSettings.load()
+            
+    return render(request, 'students/enquiry_status.html', {
+        'enquiry': enquiry,
+        'searched': searched,
+        'global_settings': global_settings
+    })
 
 
 def enquiry_list_view(request):
-    """Dashboard to list all enquiries"""
-    from .models import Enquiry
-    enquiries = Enquiry.objects.all()
-    return render(request, 'students/enquiry_list.html', {'enquiries': enquiries})
+    """Dashboard to list all enquiries in tabbed tables"""
+    from .models import Enquiry, GlobalSettings
+    import urllib.parse
+    
+    # Base query ordered by newest
+    all_enquiries = Enquiry.objects.all().order_by('-created_at')
+    global_settings = GlobalSettings.load()
+    template = global_settings.whatsapp_message_template
+    
+    # Pre-compute WhatsApp URLs per enquiry to keep templates clean
+    for enquiry in all_enquiries:
+        status_url = request.build_absolute_uri(f"/students/enquiries/status/?app_no={enquiry.application_number}")
+        message = template.format(
+            name=enquiry.name,
+            app_no=enquiry.application_number,
+            status_link=status_url
+        )
+        enquiry.whatsapp_url = f"https://wa.me/{urllib.parse.urlencode({'phone': enquiry.phone})[6:]}?text={urllib.parse.quote(message)}"
 
+    # Separate querysets for tabs
+    pending_enquiries = [e for e in all_enquiries if e.status == 'Pending']
+    received_enquiries = [e for e in all_enquiries if e.status == 'Received']
+    token_enquiries = [e for e in all_enquiries if e.status == 'Token Generated']
+    enrolled_enquiries = [e for e in all_enquiries if e.status == 'Enrolled']
+
+    return render(request, 'students/enquiry_list.html', {
+        'pending_enquiries': pending_enquiries,
+        'received_enquiries': received_enquiries,
+        'token_enquiries': token_enquiries,
+        'enrolled_enquiries': enrolled_enquiries,
+        'global_settings': global_settings
+    })
+
+
+@role_required(['admin', 'teacher', 'ntstaff'])
+def enquiry_print_list_view(request):
+    """Renders a clean, print-friendly list of all enquiries"""
+    from .models import Enquiry
+    enquiries = Enquiry.objects.all().order_by('-created_at')
+    return render(request, 'students/enquiry_print_list.html', {
+        'enquiries': enquiries,
+        'today': timezone.now()
+    })
 
 def enquiry_generate_token_view(request, pk):
     """Generates the next sequential token for the day for the specific enquiry"""
@@ -3074,32 +3537,66 @@ def enquiry_generate_token_view(request, pk):
     
     enquiry = get_object_or_404(Enquiry, pk=pk)
     
-    if enquiry.status != 'Pending':
-        messages.warning(request, f'Token cannot be generated. Status is currently: {enquiry.status}')
-        return redirect('students:enquiry_list')
-        
-    # Get today's start and end times to scope the token numbers to the current day
-    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    if request.method == 'POST':
+        if enquiry.status == 'Pending' or enquiry.status == 'Received':
+            # Generate Token Logic
+            today = timezone.now().date()
+            # Find max token for today
+            max_token = Enquiry.objects.filter(
+                updated_at__date=today, 
+                status='Token Generated'
+            ).aggregate(Max('token_number'))['token_number__max']
+            
+            next_token = (max_token or 0) + 1
+            
+            enquiry.token_number = next_token
+            enquiry.status = 'Token Generated'
+            enquiry.save()
+            messages.success(request, f'Token #{next_token} generated for {enquiry.name}.')
     
-    # Find max token number generated today
-    max_token = Enquiry.objects.filter(
-        status='Token Generated',
-        updated_at__gte=today_start
-    ).aggregate(Max('token_number'))['token_number__max']
-    
-    # Calculate next token
-    next_token = 1 if max_token is None else max_token + 1
-    
-    # Apply token update
-    enquiry.token_number = next_token
-    enquiry.status = 'Token Generated'
-    enquiry.save()
-    
-    messages.success(request, f'Token #{next_token} successfully generated for {enquiry.name}.')
-    
-    # After generating, redirect to the list view (the user can print anytime via the button)
     return redirect('students:enquiry_list')
 
+@role_required(['admin', 'teacher', 'ntstaff'])
+def enquiry_mark_received(request, pk):
+    """Marks a pending enquiry as Received"""
+    from .models import Enquiry
+    enquiry = get_object_or_404(Enquiry, pk=pk)
+    
+    if request.method == 'POST' and enquiry.status == 'Pending':
+        enquiry.status = 'Received'
+        enquiry.save()
+        messages.success(request, f'Application {enquiry.application_number} marked as Received.')
+        
+    return redirect('students:enquiry_list')
+
+@role_required(['admin', 'teacher', 'ntstaff'])
+def enquiry_set_global_interview_date(request):
+    """Sets the global, common interview date for all enquiries"""
+    from .models import GlobalSettings
+    
+    if request.method == 'POST':
+        form_type = request.POST.get('form_type')
+        
+        try:
+            settings = GlobalSettings.load()
+            
+            if form_type == 'date_form':
+                date_str = request.POST.get('global_interview_date')
+                settings.common_interview_date = date_str if date_str else None
+                settings.save()
+                messages.success(request, f'Global interview date updated successfully.')
+                
+            elif form_type == 'whatsapp_form':
+                msg_template = request.POST.get('whatsapp_message_template')
+                if msg_template:
+                    settings.whatsapp_message_template = msg_template
+                    settings.save()
+                    messages.success(request, f'WhatsApp message template updated successfully.')
+                    
+        except Exception as e:
+            messages.error(request, f'Failed to update settings. Error: {e}')
+                
+    return redirect('students:enquiry_list')
 
 def enquiry_token_print_view(request, pk):
     """View to print a generated token"""
@@ -3154,7 +3651,7 @@ def enquiry_enroll_view(request, pk):
                 academic_year=year,
                 section=enquiry.section,
                 division=enquiry.course,
-                grade='1st Year'  # Default grade, can be edited later
+                grade=None  # Admin must set proper Grade on edit page
             )
 
         messages.success(request, f'Enquiry {enquiry.name} enrolled successfully! Please assign their proper Student ID and Academic Enrollment below.')
@@ -3165,10 +3662,12 @@ def enquiry_enroll_view(request, pk):
 
 # --- GRADE CRUD ---
 
+@role_required(['admin'])
 def grade_list(request):
     grades = Grade.objects.all()
     return render(request, 'students/grade_list.html', {'grades': grades})
 
+@role_required(['admin'])
 def grade_create(request):
     if request.method == 'POST':
         form = GradeForm(request.POST)
@@ -3180,6 +3679,7 @@ def grade_create(request):
         form = GradeForm()
     return render(request, 'students/grade_form.html', {'form': form})
 
+@role_required(['admin'])
 def grade_update(request, pk):
     grade = get_object_or_404(Grade, pk=pk)
     if request.method == 'POST':
@@ -3192,6 +3692,7 @@ def grade_update(request, pk):
         form = GradeForm(instance=grade)
     return render(request, 'students/grade_form.html', {'form': form, 'is_update': True})
 
+@role_required(['admin'])
 def grade_delete(request, pk):
     grade = get_object_or_404(Grade, pk=pk)
     if request.method == 'POST':
@@ -3202,10 +3703,12 @@ def grade_delete(request, pk):
 
 # --- DIVISION CRUD ---
 
+@role_required(['admin'])
 def division_list(request):
     divisions = Division.objects.all()
     return render(request, 'students/division_list.html', {'divisions': divisions})
 
+@role_required(['admin'])
 def division_create(request):
     if request.method == 'POST':
         form = DivisionForm(request.POST)
@@ -3217,6 +3720,7 @@ def division_create(request):
         form = DivisionForm()
     return render(request, 'students/division_form.html', {'form': form})
 
+@role_required(['admin'])
 def division_update(request, pk):
     division = get_object_or_404(Division, pk=pk)
     if request.method == 'POST':
@@ -3229,6 +3733,7 @@ def division_update(request, pk):
         form = DivisionForm(instance=division)
     return render(request, 'students/division_form.html', {'form': form, 'is_update': True})
 
+@role_required(['admin'])
 def division_delete(request, pk):
     division = get_object_or_404(Division, pk=pk)
     if request.method == 'POST':
@@ -3239,10 +3744,12 @@ def division_delete(request, pk):
 
 # --- SUBJECT CRUD ---
 
+@role_required(['admin'])
 def subject_list(request):
     subjects = Subject.objects.select_related('grade', 'division', 'section').all()
     return render(request, 'students/subject_list.html', {'subjects': subjects})
 
+@role_required(['admin'])
 def subject_create(request):
     if request.method == 'POST':
         form = SubjectForm(request.POST)
@@ -3254,6 +3761,7 @@ def subject_create(request):
         form = SubjectForm()
     return render(request, 'students/subject_form.html', {'form': form})
 
+@role_required(['admin'])
 def subject_update(request, pk):
     subject = get_object_or_404(Subject, pk=pk)
     if request.method == 'POST':
@@ -3266,6 +3774,7 @@ def subject_update(request, pk):
         form = SubjectForm(instance=subject)
     return render(request, 'students/subject_form.html', {'form': form, 'is_update': True})
 
+@role_required(['admin'])
 def subject_delete(request, pk):
     subject = get_object_or_404(Subject, pk=pk)
     if request.method == 'POST':
@@ -3273,3 +3782,81 @@ def subject_delete(request, pk):
         messages.success(request, 'Subject deleted successfully.')
         return redirect('students:subject_list')
     return render(request, 'students/subject_confirm_delete.html', {'subject': subject})
+
+from django.contrib.auth.models import User
+from .forms import UserManageForm
+from .models import UserProfile
+
+@role_required(['admin'])
+def user_list(request):
+    users = User.objects.select_related('profile').all().order_by('-date_joined')
+    return render(request, 'students/user_list.html', {'users': users})
+
+@role_required(['admin'])
+def user_create(request):
+    if request.method == 'POST':
+        form = UserManageForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            password = form.cleaned_data.get('password')
+            if password:
+                user.set_password(password)
+            user.save()
+            
+            # The signal might create a default profile, so let's update it or create it
+            profile, created = UserProfile.objects.get_or_create(user=user)
+            profile.role = form.cleaned_data.get('role')
+            profile.student_record = form.cleaned_data.get('student_record')
+            profile.save()
+            
+            messages.success(request, f'User {user.username} created successfully.')
+            return redirect('students:user_list')
+    else:
+        form = UserManageForm()
+    
+    return render(request, 'students/user_form.html', {'form': form, 'title': 'Create User'})
+
+@role_required(['admin'])
+def user_update(request, pk):
+    user = get_object_or_404(User, pk=pk)
+    profile = getattr(user, 'profile', None)
+    
+    if request.method == 'POST':
+        form = UserManageForm(request.POST, instance=user)
+        if form.is_valid():
+            updated_user = form.save(commit=False)
+            password = form.cleaned_data.get('password')
+            if password:
+                updated_user.set_password(password)
+            updated_user.save()
+            
+            if not profile:
+                profile = UserProfile.objects.create(user=updated_user)
+                
+            profile.role = form.cleaned_data.get('role')
+            profile.student_record = form.cleaned_data.get('student_record')
+            profile.save()
+            
+            messages.success(request, f'User {updated_user.username} updated successfully.')
+            return redirect('students:user_list')
+    else:
+        initial = {}
+        if profile:
+            initial['role'] = profile.role
+            initial['student_record'] = profile.student_record
+        form = UserManageForm(instance=user, initial=initial)
+        
+    return render(request, 'students/user_form.html', {'form': form, 'title': 'Edit User'})
+
+@role_required(['admin'])
+def user_delete(request, pk):
+    user_obj = get_object_or_404(User, pk=pk)
+    if user_obj.is_superuser and request.user.pk != user_obj.pk:
+        messages.error(request, "You cannot delete other superusers.")
+        return redirect('students:user_list')
+        
+    if request.method == 'POST':
+        user_obj.delete()
+        messages.success(request, 'User deleted successfully.')
+        return redirect('students:user_list')
+    return render(request, 'students/user_confirm_delete.html', {'user_obj': user_obj})

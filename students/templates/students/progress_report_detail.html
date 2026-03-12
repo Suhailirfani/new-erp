@@ -120,7 +120,11 @@
 {% endif %}
 
 <div style="margin-top: 1rem;">
-    <a href="{% url 'students:progress_report' %}" class="btn">Back to Reports</a>
+    {% if request.user.profile.role != 'student' %}
+        <a href="{% url 'students:progress_report' %}" class="btn">Back to Reports</a>
+    {% else %}
+        <a href="{% url 'students:home' %}" class="btn">Back to Dashboard</a>
+    {% endif %}
     <button onclick="window.print()" class="btn btn-success">Print Report</button>
 </div>
 {% endblock %}
