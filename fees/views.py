@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
+from students.decorators import role_required
 from django.contrib import messages
 from .models import StudentFee, FeePayment, AccountCategory, Income, Expense
 from students.models import Student
@@ -7,7 +7,7 @@ from django.db.models import Sum
 from .forms import IncomeForm, ExpenseForm
 
 # We might want to restrict this to 'accountant' or 'admin' later.
-@login_required
+@role_required(['admin', 'accountant'])
 def dashboard(request):
     """Accountant Dashboard showing Income, Expense, and Student Fees."""
     # Income/Expense Summary
@@ -71,9 +71,15 @@ def dashboard(request):
     }
     return render(request, 'fees/dashboard.html', context)
 
-@login_required
+@role_required(['admin', 'accountant', 'student'])
 def student_fees(request, student_id):
     """View all fees for a specific student."""
+    # Data isolation for students
+    if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
+        if not request.user.profile.student_record or request.user.profile.student_record.id != int(student_id):
+            messages.error(request, "You do not have permission to view other students' fee details.")
+            return redirect('students:home')
+            
     student = get_object_or_404(Student, id=student_id)
     fees = student.fees.all()
     
@@ -103,7 +109,7 @@ def student_fees(request, student_id):
     }
     return render(request, 'fees/student_fees.html', context)
 
-@login_required
+@role_required(['admin', 'accountant'])
 def collect_payment(request, student_id):
     """Collect lumped payment for a student and auto-allocate across pending fees."""
     student = get_object_or_404(Student, id=student_id)
@@ -214,7 +220,7 @@ def collect_payment(request, student_id):
     }
     return render(request, 'fees/collect_payment.html', context)
 
-@login_required
+@role_required(['admin', 'accountant'])
 def download_receipt(request, income_id):
     """Generate and return an itemized PDF/HTML receipt for a unified Income record."""
     income = get_object_or_404(Income, id=income_id)
@@ -241,7 +247,7 @@ def download_receipt(request, income_id):
     return render(request, 'fees/receipt.html', context)
 
 
-@login_required
+@role_required(['admin', 'accountant'])
 def add_income(request):
     if request.method == 'POST':
         form = IncomeForm(request.POST)
@@ -358,7 +364,7 @@ def add_income(request):
     }
     return render(request, 'fees/income_form.html', context)
 
-@login_required
+@role_required(['admin', 'accountant'])
 def add_expense(request):
     if request.method == 'POST':
         form = ExpenseForm(request.POST)
@@ -382,7 +388,7 @@ from django.http import JsonResponse
 from datetime import date
 from .models import FeeCategory, FeeItem
 
-@login_required
+@role_required(['admin', 'accountant'])
 def assign_bulk_admission_fees(request):
     """Admin/Accountant action to assign admission fees to all current students"""
     if request.method == 'POST':
@@ -426,7 +432,7 @@ def assign_bulk_admission_fees(request):
     return redirect('fees:dashboard')
 
 
-@login_required
+@role_required(['admin', 'accountant'])
 def get_student_fees(request, student_id):
     """API endpoint to get pending fees for a student"""
     student = get_object_or_404(Student, id=student_id)
@@ -443,7 +449,7 @@ def get_student_fees(request, student_id):
         
     return JsonResponse({'fees': data})
 
-@login_required
+@role_required(['admin', 'accountant'])
 def get_students_by_grade(request):
     """API endpoint to get students for a specific grade and division combination"""
     class_division = request.GET.get('grade')
@@ -471,7 +477,7 @@ def get_students_by_grade(request):
 from .forms import FeeCategoryForm, FeeItemForm
 from .models import FeeCategory, FeeItem
 
-@login_required
+@role_required(['admin', 'accountant'])
 def fee_setup_dashboard(request):
     categories = FeeCategory.objects.prefetch_related('fee_items').all()
     context = {
@@ -480,7 +486,7 @@ def fee_setup_dashboard(request):
     }
     return render(request, 'fees/setup_dashboard.html', context)
 
-@login_required
+@role_required(['admin', 'accountant'])
 def fee_category_create(request):
     if request.method == 'POST':
         form = FeeCategoryForm(request.POST)
@@ -494,7 +500,7 @@ def fee_category_create(request):
     context = {'form': form, 'page_title': 'Add Fee Category'}
     return render(request, 'fees/setup_form.html', context)
 
-@login_required
+@role_required(['admin', 'accountant'])
 def fee_category_update(request, pk):
     category = get_object_or_404(FeeCategory, pk=pk)
     if request.method == 'POST':
@@ -509,7 +515,7 @@ def fee_category_update(request, pk):
     context = {'form': form, 'page_title': 'Edit Fee Category', 'is_edit': True}
     return render(request, 'fees/setup_form.html', context)
 
-@login_required
+@role_required(['admin', 'accountant'])
 def fee_category_delete(request, pk):
     category = get_object_or_404(FeeCategory, pk=pk)
     if request.method == 'POST':
@@ -519,7 +525,7 @@ def fee_category_delete(request, pk):
     context = {'object': category, 'page_title': 'Delete Fee Category'}
     return render(request, 'fees/setup_confirm_delete.html', context)
 
-@login_required
+@role_required(['admin', 'accountant'])
 def fee_item_create(request):
     if request.method == 'POST':
         form = FeeItemForm(request.POST)
@@ -537,7 +543,7 @@ def fee_item_create(request):
     context = {'form': form, 'page_title': 'Add Fee Item'}
     return render(request, 'fees/setup_form.html', context)
 
-@login_required
+@role_required(['admin', 'accountant'])
 def fee_item_update(request, pk):
     item = get_object_or_404(FeeItem, pk=pk)
     if request.method == 'POST':
@@ -552,7 +558,7 @@ def fee_item_update(request, pk):
     context = {'form': form, 'page_title': 'Edit Fee Item', 'is_edit': True}
     return render(request, 'fees/setup_form.html', context)
 
-@login_required
+@role_required(['admin', 'accountant'])
 def fee_item_delete(request, pk):
     item = get_object_or_404(FeeItem, pk=pk)
     if request.method == 'POST':

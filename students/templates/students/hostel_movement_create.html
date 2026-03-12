@@ -10,12 +10,62 @@
         {% csrf_token %}
         <div class="form-group">
             <label>Student *</label>
-            <select name="student" required>
-                <option value="">Select Student</option>
+            <input type="text" list="studentList" id="studentNameInput" placeholder="Search by student name or ID..." 
+                   style="width: 100%; border: 2px solid var(--border); padding: 1rem; border-radius: 12px;" required autocomplete="off"
+                   value="{% for e in enrollments %}{% if request.GET.student == e.student.id|stringformat:'i' %}{{ e.student.full_name }} ({{ e.student.student_id }}){% endif %}{% endfor %}">
+
+            <datalist id="studentList">
                 {% for enrollment in enrollments %}
-                <option value="{{ enrollment.student.id }}">{{ enrollment.student.full_name }} ({{ enrollment.student.student_id }}) - Grade {{ enrollment.grade }}</option>
+                <option data-id="{{ enrollment.student.id }}" value="{{ enrollment.student.full_name }} ({{ enrollment.student.student_id }})"></option>
                 {% endfor %}
-            </select>
+            </datalist>
+            
+            <input type="hidden" name="student" id="studentIdInput" value="{{ request.GET.student }}">
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const input = document.getElementById('studentNameInput');
+                    const hiddenId = document.getElementById('studentIdInput');
+                    const datalist = document.getElementById('studentList');
+
+                    // If pre-filled by URL, clear Custom Validity immediately
+                    if (hiddenId.value && input.value) {
+                        input.setCustomValidity("");
+                    } else {
+                        input.setCustomValidity("Please strictly select a student from the dropdown list.");
+                    }
+
+                    input.addEventListener('input', function() {
+                        const val = this.value;
+                        let id = "";
+                        let found = false;
+                        
+                        for (let i = 0; i < datalist.options.length; i++) {
+                            if (datalist.options[i].value === val) {
+                                id = datalist.options[i].getAttribute('data-id');
+                                found = true;
+                                break;
+                            }
+                        }
+                        
+                        hiddenId.value = id;
+                        
+                        if (!found && val.trim() !== "") {
+                            input.setCustomValidity("Please strictly select a student from the dropdown list.");
+                        } else {
+                            input.setCustomValidity("");
+                        }
+                    });
+
+                    // Prevent form submission if the ID hasn't been properly matched
+                    input.form.addEventListener('submit', function(e) {
+                        if (!hiddenId.value) {
+                            input.setCustomValidity("Please strictly select a student from the dropdown list.");
+                            e.preventDefault();
+                        }
+                    });
+                });
+            </script>
         </div>
         
         <h2>Departure Information</h2>

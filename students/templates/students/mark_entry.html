@@ -38,22 +38,14 @@
             </div>
             <div class="form-group">
                 <label>Grade/Year * <span style="color: red;">Required</span></label>
-                {% if grades %}
                 <select name="grade" id="gradeSelect" required onchange="this.form.submit()">
                     <option value="">-- Select Grade/Year --</option>
                     {% for g in grades %}
-                    <option value="{{ g }}" {% if selected_grade == g %}selected{% endif %}>{{ g }}</option>
+                    <option value="{{ g.id }}" {% if selected_grade == g.id|stringformat:"s" %}selected{% endif %}>{{ g.name }}</option>
                     {% endfor %}
                 </select>
-                {% else %}
-                <input type="text" name="grade" value="{{ selected_grade }}" placeholder="e.g., 11, 12, 1st Year" required>
-                {% endif %}
                 <small style="display: block; margin-top: 0.5rem; color: #666;">
-                    {% if grades %}
-                        Select from existing grades or enter a new one
-                    {% else %}
-                        Enter the grade/year (e.g., 11, 12, 1st Year, 2nd Year)
-                    {% endif %}
+                    Select an existing grade
                 </small>
             </div>
             <div class="form-group">

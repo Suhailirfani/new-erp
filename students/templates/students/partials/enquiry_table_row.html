@@ -1,0 +1,70 @@
+<tr>
+    <td style="white-space: nowrap;">{{ enquiry.created_at|date:"M d, Y" }}</td>
+    <td><strong style="color: #2c3e50;">{{ enquiry.application_number|default:"-" }}</strong></td>
+    <td>
+        <strong>{{ enquiry.name }}</strong><br>
+        <span style="color: #666; font-size: 0.9em;">📞 {{ enquiry.phone }}</span>
+    </td>
+    <td>{{ enquiry.course.name|default:"-" }}</td>
+    <td>
+        {{ enquiry.section.name|default:"-" }}
+    </td>
+    <td>{{ enquiry.district }}</td>
+    <td>
+        {% if enquiry.status == 'Pending' %}
+            <span class="status-badge status-warning">Pending</span>
+        {% elif enquiry.status == 'Received' %}
+            <span class="status-badge" style="background-color: #f39c12; color: white;">Received</span>
+        {% elif enquiry.status == 'Token Generated' %}
+            <span class="status-badge" style="background-color: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85em;">Interview Ready</span>
+        {% elif enquiry.status == 'Enrolled' %}
+            <span class="status-badge status-success">Enrolled</span>
+        {% else %}
+            <span class="status-badge status-danger">{{ enquiry.status }}</span>
+        {% endif %}
+    </td>
+    <td>
+        {% if enquiry.token_number %}
+            <strong style="font-size: 1.2em; color: #2c3e50;">#{{ enquiry.token_number }}</strong>
+        {% else %}
+            <span style="color: #ccc;">-</span>
+        {% endif %}
+    </td>
+    <td>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            {% if enquiry.status == 'Pending' %}
+                <form action="{% url 'students:enquiry_mark_received' enquiry.pk %}" method="post" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn" style="background-color: #f39c12; color: white; padding: 0.4rem 0.8rem; font-size: 0.9em;" title="Acknowledge Application">📥 Mark Received</button>
+                </form>
+                <form action="{% url 'students:enquiry_generate_token' enquiry.pk %}" method="post" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn" style="background-color: #3498db; padding: 0.4rem 0.8rem; font-size: 0.9em;" title="Candidate Arrived - Generate Token">🎫 Generate Token</button>
+                </form>
+            {% elif enquiry.status == 'Received' %}
+                <form action="{% url 'students:enquiry_generate_token' enquiry.pk %}" method="post" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn" style="background-color: #3498db; padding: 0.4rem 0.8rem; font-size: 0.9em;" title="Candidate Arrived - Generate Token">🎫 Generate Token</button>
+                </form>
+            {% elif enquiry.status == 'Token Generated' %}
+                <form action="{% url 'students:enquiry_enroll' enquiry.pk %}" method="post" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success" style="padding: 0.4rem 0.8rem; font-size: 0.9em;" title="Interview Passed - Enroll Student" onclick="return confirm('Are you sure you want to enroll {{ enquiry.name }}? This will create an active Student profile.');">✅ Enroll</button>
+                </form>
+                <a href="{% url 'students:enquiry_token_print' enquiry.pk %}" class="btn" style="background-color: #95a5a6; padding: 0.4rem 0.8rem; font-size: 0.9em;" target="_blank">🖨️ Print Token</a>
+            {% elif enquiry.status == 'Enrolled' %}
+                <span style="color: #27ae60; font-weight: bold; margin-right: 0.5rem;">✔ Application Complete</span>
+            {% elif enquiry.status == 'Rejected' %}
+                <span style="color: #c0392b; font-weight: bold; margin-right: 0.5rem;">❌ Application Rejected</span>
+            {% endif %}
+            
+            <a href="{{ enquiry.whatsapp_url }}" 
+               class="btn" style="background-color: #25D366; color: white; font-size: 0.9em; padding: 0.4rem 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem;" target="_blank" title="Send WhatsApp Update">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592"/>
+                </svg>
+                WhatsApp
+            </a>
+        </div>
+    </td>
+</tr>

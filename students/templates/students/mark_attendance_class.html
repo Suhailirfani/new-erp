@@ -19,10 +19,6 @@
 <div class="card" style="background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.5rem;">
     <form method="post">
         {% csrf_token %}
-        <div class="form-group" style="margin-bottom: 2rem; background: #f8f9fa; padding: 1rem; border-radius: 8px; border: 1px solid #e9ecef;">
-            <label style="font-weight: 600; color: #34495e; display: block; margin-bottom: 0.5rem;">Marked By <span style="color: red;">*</span></label>
-            <input type="text" name="marked_by" required placeholder="Enter your name" style="width: 100%; max-width: 400px; padding: 0.6rem; border: 1px solid #ddd; border-radius: 6px;">
-        </div>
 
         <h2 style="margin: 0 0 1rem 0; color: #2c3e50; font-size: 1.25rem;">Students ({{ enrollments.count }})</h2>
         <div class="table-wrapper" style="overflow-x: auto;">

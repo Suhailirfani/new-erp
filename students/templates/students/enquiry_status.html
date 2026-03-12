@@ -1,0 +1,134 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Check Application Status - InstiFlow{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hide navigation for public page */
+    .navbar, .nav-sidebar, .hamburger, .page-header { display: none !important; }
+    
+    .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 2rem;
+    }
+    
+    .card {
+        width: 100%;
+        max-width: 600px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+    }
+    
+    .status-box {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        border-radius: 12px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .status-badge-lg {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin-top: 0.5rem;
+    }
+    
+    .status-pending { background: #fef3c7; color: #d97706; }
+    .status-token { background: #dbeafe; color: #1d4ed8; }
+    .status-enrolled { background: #d1fae5; color: #059669; }
+    .status-rejected { background: #fee2e2; color: #dc2626; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h2 style="margin-bottom: 0.5rem;">Check Application Status</h2>
+        <p style="color: #666;">Enter your application number below to check your current status, interview details, and enrollment progress.</p>
+    </div>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="message {{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if not searched or not enquiry %}
+    <form method="post" style="margin-bottom: 2rem;">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Application Number</label>
+            <input type="text" name="application_number" class="form-control" placeholder="e.g. D260301" required style="font-size: 1.2rem; text-transform: uppercase;">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Check Status</button>
+    </form>
+    {% endif %}
+
+    {% if searched and enquiry %}
+    <div class="status-box">
+        <h3 style="margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e2e8f0;">Applicant Details</h3>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+            <div>
+                <span style="color: #64748b; font-size: 0.9rem;">Name</span>
+                <div style="font-weight: 600; font-size: 1.1rem;">{{ enquiry.name }}</div>
+            </div>
+            <div>
+                <span style="color: #64748b; font-size: 0.9rem;">Course</span>
+                <div style="font-weight: 600; font-size: 1.1rem;">{{ enquiry.course.name|default:"-" }}</div>
+            </div>
+            <div>
+                <span style="color: #64748b; font-size: 0.9rem;">Section</span>
+                <div style="font-weight: 600;">{{ enquiry.section.name|default:"-" }}</div>
+            </div>
+            <div>
+                <span style="color: #64748b; font-size: 0.9rem;">Application Date</span>
+                <div style="font-weight: 600;">{{ enquiry.created_at|date:"M d, Y" }}</div>
+            </div>
+        </div>
+
+        <div style="background: white; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+            <div style="color: #64748b; font-size: 0.95rem; font-weight: 500;">Current Status</div>
+            
+            {% if enquiry.status == 'Pending' %}
+                <div class="status-badge-lg status-pending">Pending Review</div>
+                <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">Your application is under review. Please check back later for interview details.</p>
+            {% elif enquiry.status == 'Received' %}
+                <div class="status-badge-lg" style="background: #fef08a; color: #a16207;">Application Received</div>
+                <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">Your application has been received and acknowledged by the institution. Please wait for interview token generation.</p>
+            {% elif enquiry.status == 'Token Generated' %}
+                <div class="status-badge-lg status-token">Interview Scheduled</div>
+                <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">Your interview token has been generated. Token number: <strong style="color:var(--primary-dark);">#{{ enquiry.token_number }}</strong>.</p>
+            {% elif enquiry.status == 'Enrolled' %}
+                <div class="status-badge-lg status-enrolled">Enrolled Successfully</div>
+                <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">Congratulations! You have been successfully enrolled. Welcome to the institution.</p>
+            {% else %}
+                <div class="status-badge-lg status-rejected">{{ enquiry.status }}</div>
+            {% endif %}
+        </div>
+        
+        {% if enquiry.status in 'Pending,Received,Token Generated' and global_settings.common_interview_date %}
+        <div style="margin-top: 1.5rem; padding: 1rem; background: #f0fdf4; border-radius: 8px; border: 1px solid #bbf7d0; text-align: center;">
+            <div style="color: #16a34a; font-weight: 600; margin-bottom: 0.5rem;">📅 Common Interview Date & Time</div>
+            <div style="font-size: 1.2rem; font-weight: bold; color: #15803d;">{{ global_settings.common_interview_date|date:"l, F j, Y" }} at {{ global_settings.common_interview_date|date:"g:i A" }}</div>
+        </div>
+        {% endif %}
+        
+    </div>
+    {% endif %}
+    
+    <div style="text-align: center; margin-top: 2rem; display: flex; flex-direction: column; gap: 0.8rem; align-items: center;">
+        {% if searched and enquiry %}
+        <a href="{% url 'students:enquiry_status' %}" class="btn" style="background-color: #f1f5f9; color: #475569; width: fit-content;">Check another application status</a>
+        {% endif %}
+        <a href="{% url 'students:enquiry_create' %}" style="color: var(--primary); text-decoration: none; font-weight: 500;">← Submit a new application</a>
+    </div>
+</div>
+{% endblock %}

@@ -9,22 +9,22 @@
 
         <div class="form-group">
             <label>Student ID</label>
-            <input type="text" name="student_id" value="{{ student.student_id }}" required>
+            <input type="text" name="student_id" value="{{ student.student_id }}" {% if request.user.profile.role == 'student' %}readonly style="background-color: #f0f0f0;"{% else %}required{% endif %}>
         </div>
 
         <div class="form-group">
             <label>First Name</label>
-            <input type="text" name="first_name" value="{{ student.first_name }}" required>
+            <input type="text" name="first_name" value="{{ student.first_name }}" {% if request.user.profile.role == 'student' %}readonly style="background-color: #f0f0f0;"{% else %}required{% endif %}>
         </div>
 
         <div class="form-group">
             <label>Last Name</label>
-            <input type="text" name="last_name" value="{{ student.last_name }}" required>
+            <input type="text" name="last_name" value="{{ student.last_name }}" {% if request.user.profile.role == 'student' %}readonly style="background-color: #f0f0f0;"{% else %}required{% endif %}>
         </div>
 
         <div class="form-group">
             <label>Academic Year</label>
-            <select name="academic_year_id" id="academicYearSelect" class="form-control" onchange="window.location.href='?year=' + this.value">
+            <select name="academic_year_id" id="academicYearSelect" class="form-control" onchange="window.location.href='?year=' + this.value" {% if request.user.profile.role == 'student' %}disabled{% endif %}>
                 {% for year in academic_years %}
                     <option value="{{ year.id }}" {% if selected_year and selected_year.id == year.id %}selected{% endif %}>
                         {{ year.name }} {% if year.is_active %}(Active){% endif %}
@@ -36,12 +36,20 @@
 
         <div class="form-group">
             <label>Grade</label>
-            <input type="text" name="grade" value="{{ enrollment.grade|default:'' }}" required>
+            <select name="grade" class="form-control" {% if request.user.profile.role == 'student' %}disabled{% else %}required{% endif %}>
+                <option value="">-- No Grade --</option>
+                {% for g in grades %}
+                <option value="{{ g.id }}" {% if enrollment and enrollment.grade_id == g.id %}selected{% endif %}>{{ g.name }}</option>
+                {% endfor %}
+            </select>
+            {% if request.user.profile.role == 'student' and enrollment %}
+                <input type="hidden" name="grade" value="{{ enrollment.grade_id|default:'' }}">
+            {% endif %}
         </div>
 
         <div class="form-group">
             <label>Division</label>
-            <select name="division" class="form-control">
+            <select name="division" class="form-control" {% if request.user.profile.role == 'student' %}disabled{% endif %}>
                 <option value="">-- No Division --</option>
                 {% for div in divisions %}
                 <option value="{{ div.id }}" {% if enrollment and enrollment.division_id == div.id %}selected{% endif %}>{{ div.name }}</option>
@@ -51,7 +59,7 @@
 
         <div class="form-group">
             <label>Section</label>
-            <select name="section" class="form-control">
+            <select name="section" class="form-control" {% if request.user.profile.role == 'student' %}disabled{% endif %}>
                 <option value="">-- No Section --</option>
                 {% for section in sections %}
                 <option value="{{ section.id }}" {% if enrollment and enrollment.section_id == section.id %}selected{% endif %}>{{ section.name }}</option>
@@ -61,7 +69,7 @@
 
         <div class="form-group">
             <label>Room</label>
-            <select name="room">
+            <select name="room" {% if request.user.profile.role == 'student' %}disabled{% endif %}>
                 <option value="">-- No Room --</option>
                 {% for room in rooms %}
                 <option value="{{ room.id }}" {% if enrollment and enrollment.room_id == room.id %}selected{% endif %}>{{ room.room_number }}</option>
@@ -71,10 +79,22 @@
 
         <div class="form-group">
             <label>Student Type</label>
-            <select name="student_type">
+            <select name="student_type" {% if request.user.profile.role == 'student' %}disabled{% endif %}>
                 <option value="hostel" {% if student.student_type == 'hostel' %}selected{% endif %}>Hostel</option>
                 <option value="day_scholar" {% if student.student_type == 'day_scholar' %}selected{% endif %}>Day Scholar</option>
             </select>
+        </div>
+
+        <div class="form-group">
+            <label>Siblings</label>
+            <select name="siblings" class="form-control" multiple style="height: 150px;" {% if request.user.profile.role == 'student' %}disabled{% endif %}>
+                {% for other_student in all_students %}
+                    <option value="{{ other_student.id }}" {% if other_student in student.siblings.all %}selected{% endif %}>
+                        {{ other_student.full_name }} ({{ other_student.student_id }})
+                    </option>
+                {% endfor %}
+            </select>
+            <small style="color: #666; display: block; margin-top: 5px;">Hold down the Ctrl (Windows) or Command (Mac) button to select multiple siblings.</small>
         </div>
 
         <div class="form-group">
@@ -93,8 +113,54 @@
         </div>
 
         <button class="btn btn-success">Save Changes</button>
-        <a href="{% url 'students:student_list' %}" class="btn btn-secondary">Cancel</a>
+        {% if request.user.profile.role == 'student' %}
+            <a href="{% url 'students:home' %}" class="btn btn-secondary">Cancel</a>
+        {% else %}
+            <a href="{% url 'students:student_list' %}" class="btn btn-secondary">Cancel</a>
+        {% endif %}
     </form>
 </div>
+
+{% if request.user.profile.role != 'student' %}
+<div class="card" style="padding: 1.5rem; margin-top: 2rem;">
+    <h2>User Account Access</h2>
+    {% if hasattr_user_profile %}
+        <!-- In Django templates we can't do hasattr easily without custom tags, so we check if student.user_profile exists directly in a safe way -->
+    {% endif %}
+    
+    {% if student.user_profile %}
+        <div style="background: #f0fdf4; border-left: 4px solid #166534; padding: 1rem; border-radius: 4px;">
+            <p style="margin: 0; color: #166534; font-weight: 500;">
+                <span style="font-size: 1.2em; margin-right: 0.5rem;">✅</span>
+                This student has an active login account.
+            </p>
+            <p style="margin: 0.5rem 0 0 0; color: #15803d;">
+                <strong>Username:</strong> {{ student.user_profile.user.username }}
+            </p>
+        </div>
+    {% else %}
+        <div style="background: #fff7ed; border-left: 4px solid #c2410c; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+            <p style="margin: 0; color: #9a3412;">
+                This student does not currently have a login account to access the portal. You can create one below.
+            </p>
+        </div>
+        
+        <form method="post" action="{% url 'students:create_student_user' student.id %}">
+            {% csrf_token %}
+            <div class="form-row" style="display: flex; gap: 1rem;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Username (Suggested: Student ID)</label>
+                    <input type="text" name="username" value="{{ student.student_id }}" required>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Initial Password</label>
+                    <input type="text" name="password" placeholder="e.g. Password@123" required>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-success" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);" onclick="return confirm('Create a user login for {{ student.full_name }} with this username and password?')">Create Login Account</button>
+        </form>
+    {% endif %}
+</div>
+{% endif %}
 
 {% endblock %}

@@ -3,90 +3,250 @@
 {% block title %}Enquiries Dashboard - Student Attendance System{% endblock %}
 
 {% block content %}
-<div class="flex-between align-center" style="margin-bottom: 2rem;">
+<div class="flex-between align-center" style="margin-bottom: 2rem; align-items: flex-start;">
     <div>
         <h1 style="margin: 0;">Enquiries Dashboard</h1>
         <p style="color: #666; margin-top: 0.5rem;">Manage prospective student enquiries and interview tokens.</p>
     </div>
-    <a href="{% url 'students:enquiry_create' %}" class="btn btn-primary">+ New Enquiry</a>
+    
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <!-- Card 1: Global Interview Date -->
+        <div class="card" style="padding: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 0;">
+            <h3 style="margin-top: 0; margin-bottom: 0.5rem; font-size: 1.0em; color: #334155; display: flex; align-items: center; gap: 0.5rem;">
+                📅 Global Interview Date
+            </h3>
+            <form action="{% url 'students:enquiry_set_global_interview_date' %}" method="post" style="display: flex; gap: 0.5rem; align-items: flex-end;">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="date_form">
+                <div style="flex-grow: 1;">
+                    <div style="font-size: 0.8em; color: #64748b; margin-bottom: 0.2rem;">
+                        <strong style="color:var(--primary-dark);">{% if global_settings.common_interview_date %}{{ global_settings.common_interview_date|date:"M d, Y h:i A" }}{% else %}Not Set{% endif %}</strong>
+                    </div>
+                    <input type="datetime-local" name="global_interview_date" class="form-control" style="font-size: 0.8em; padding: 0.3rem;" {% if global_settings.common_interview_date %}value="{{ global_settings.common_interview_date|date:'Y-m-d\TH:i' }}"{% endif %}>
+                </div>
+                <button type="submit" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.9em;">Save</button>
+            </form>
+        </div>
+
+        <!-- Card 2: WhatsApp Template -->
+        <div class="card" style="padding: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 0;">
+            <h3 style="margin-top: 0; margin-bottom: 0.5rem; font-size: 1.0em; color: #334155; display: flex; align-items: center; gap: 0.5rem;">
+                💬 WhatsApp Template
+            </h3>
+            <form action="{% url 'students:enquiry_set_global_interview_date' %}" method="post" style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="whatsapp_form">
+                <div style="flex-grow: 1; min-width: 250px;">
+                    <textarea name="whatsapp_message_template" class="form-control" rows="2" style="font-size: 0.8em; padding: 0.3rem;" required>{{ global_settings.whatsapp_message_template }}</textarea>
+                    <div style="font-size: 0.7em; color: #94a3b8; margin-top: 0.2rem;">Vars: {name}, {app_no}, {status_link}</div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.9em;">Save</button>
+            </form>
+        </div>
+        
+        <div style="display: flex; gap: 0.5rem; align-items: flex-start; height: fit-content;">
+            <a href="{% url 'students:enquiry_create' %}" class="btn btn-primary">+ New Enquiry</a>
+            <a href="{% url 'students:enquiry_print_list' %}" class="btn" style="background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;" target="_blank">🖨️ Print List</a>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-tabs">
+    <button class="dashboard-tab active" onclick="switchTab('tab-fresh')">Fresh <span class="tab-counter">{{ pending_enquiries|length }}</span></button>
+    <button class="dashboard-tab" onclick="switchTab('tab-received')">Received <span class="tab-counter">{{ received_enquiries|length }}</span></button>
+    <button class="dashboard-tab" onclick="switchTab('tab-token')">Token Generated <span class="tab-counter">{{ token_enquiries|length }}</span></button>
+    <button class="dashboard-tab" onclick="switchTab('tab-enrolled')">Enrolled <span class="tab-counter">{{ enrolled_enquiries|length }}</span></button>
 </div>
 
 <div class="card">
-    <div class="table-wrapper">
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Candidate Details</th>
-                    <th>Course</th>
-                    <th>Academic Year & Section</th>
-                    <th>District</th>
-                    <th>Status</th>
-                    <th>Interview Token</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for enquiry in enquiries %}
-                <tr>
-                    <td style="white-space: nowrap;">{{ enquiry.created_at|date:"M d, Y" }}</td>
-                    <td>
-                        <strong>{{ enquiry.name }}</strong><br>
-                        <span style="color: #666; font-size: 0.9em;">📞 {{ enquiry.phone }}</span>
-                    </td>
-                    <td>{{ enquiry.course.name|default:"-" }}</td>
-                    <td>
-                        {{ enquiry.academic_year.name|default:"-" }}<br>
-                        <span style="color: #666; font-size: 0.9em;">Sec: {{ enquiry.section.name|default:"-" }}</span>
-                    </td>
-                    <td>{{ enquiry.district }}</td>
-                    <td>
-                        {% if enquiry.status == 'Pending' %}
-                            <span class="status-badge status-warning">Pending</span>
-                        {% elif enquiry.status == 'Token Generated' %}
-                            <span class="status-badge" style="background-color: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85em;">Interview Ready</span>
-                        {% elif enquiry.status == 'Enrolled' %}
-                            <span class="status-badge status-success">Enrolled</span>
-                        {% else %}
-                            <span class="status-badge status-danger">{{ enquiry.status }}</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if enquiry.token_number %}
-                            <strong style="font-size: 1.2em; color: #2c3e50;">#{{ enquiry.token_number }}</strong>
-                        {% else %}
-                            <span style="color: #ccc;">-</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <div style="display: flex; gap: 0.5rem;">
-                            {% if enquiry.status == 'Pending' %}
-                                <form action="{% url 'students:enquiry_generate_token' enquiry.pk %}" method="post" style="margin:0;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn" style="background-color: #3498db; padding: 0.4rem 0.8rem; font-size: 0.9em;" title="Candidate Arrived - Generate Token">🎫 Generate Token</button>
-                                </form>
-                            {% elif enquiry.status == 'Token Generated' %}
-                                <form action="{% url 'students:enquiry_enroll' enquiry.pk %}" method="post" style="margin:0;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-success" style="padding: 0.4rem 0.8rem; font-size: 0.9em;" title="Interview Passed - Enroll Student" onclick="return confirm('Are you sure you want to enroll {{ enquiry.name }}? This will create an active Student profile.');">✅ Enroll</button>
-                                </form>
-                                <a href="{% url 'students:enquiry_token_print' enquiry.pk %}" class="btn" style="background-color: #95a5a6; padding: 0.4rem 0.8rem; font-size: 0.9em;" target="_blank">🖨️ Print Token</a>
-                            {% elif enquiry.status == 'Enrolled' %}
-                                <span style="color: #27ae60; font-weight: bold;">✔ Application Complete</span>
-                            {% endif %}
-                        </div>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="8" style="text-align: center; padding: 3rem; color: #666;">
-                        No enquiries found in the system.<br>
-                        <a href="{% url 'students:enquiry_create' %}" style="display: inline-block; margin-top: 1rem; color: var(--primary-color);">Register your first enquiry</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- Fresh Enquiries Tab (Active Default) -->
+    <div id="tab-fresh" class="tab-content active">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>App No.</th>
+                        <th>Candidate Details</th>
+                        <th>Course</th>
+                        <th>Section</th>
+                        <th>District</th>
+                        <th>Status</th>
+                        <th>Interview Token</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for enquiry in pending_enquiries %}
+                    {% include "students/partials/enquiry_table_row.html" %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 3rem; color: #666;">
+                            No pending enquiries found.<br>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Received Enquiries Tab -->
+    <div id="tab-received" class="tab-content">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>App No.</th>
+                        <th>Candidate Details</th>
+                        <th>Course</th>
+                        <th>Section</th>
+                        <th>District</th>
+                        <th>Status</th>
+                        <th>Interview Token</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for enquiry in received_enquiries %}
+                    {% include "students/partials/enquiry_table_row.html" %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 3rem; color: #666;">
+                            No received enquiries found.<br>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Token Generated Enquiries Tab -->
+    <div id="tab-token" class="tab-content">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>App No.</th>
+                        <th>Candidate Details</th>
+                        <th>Course</th>
+                        <th>Section</th>
+                        <th>District</th>
+                        <th>Status</th>
+                        <th>Interview Token</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for enquiry in token_enquiries %}
+                    {% include "students/partials/enquiry_table_row.html" %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 3rem; color: #666;">
+                            No token generated enquiries found.<br>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Enrolled Enquiries Tab -->
+    <div id="tab-enrolled" class="tab-content">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>App No.</th>
+                        <th>Candidate Details</th>
+                        <th>Course</th>
+                        <th>Section</th>
+                        <th>District</th>
+                        <th>Status</th>
+                        <th>Interview Token</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for enquiry in enrolled_enquiries %}
+                    {% include "students/partials/enquiry_table_row.html" %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 3rem; color: #666;">
+                            No enrolled enquiries found.<br>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+
+<style>
+    /* Tab Styles */
+    .dashboard-tabs {
+        display: flex;
+        gap: 0;
+        border-bottom: 2px solid #e2e8f0;
+        margin-bottom: 1.5rem;
+    }
+    .dashboard-tab {
+        padding: 0.8rem 1.5rem;
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.95em;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-bottom: -2px;
+    }
+    .dashboard-tab:hover {
+        color: var(--primary-color);
+        background: #f8fafc;
+    }
+    .dashboard-tab.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+    }
+    .tab-counter {
+        background: #e2e8f0;
+        color: #475569;
+        padding: 0.1rem 0.5rem;
+        border-radius: 999px;
+        font-size: 0.8em;
+        margin-left: 0.4rem;
+    }
+    .dashboard-tab.active .tab-counter {
+        background: var(--primary-color);
+        color: white;
+    }
+    
+    /* Tab Content Selection */
+    .tab-content {
+        display: none;
+    }
+    .tab-content.active {
+        display: block;
+    }
+</style>
+
+<script>
+    function switchTab(tabId) {
+        // Deactivate all tabs and buttons
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.dashboard-tab').forEach(el => el.classList.remove('active'));
+        
+        // Activate selected
+        document.getElementById(tabId).classList.add('active');
+        document.querySelector(`.dashboard-tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
+    }
+</script>
 {% endblock %}

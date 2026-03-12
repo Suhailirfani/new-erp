@@ -11,6 +11,112 @@
     <a href="{% url 'students:student_upgrade' %}" class="btn" style="background-color: #9b59b6;">Upgrade Students</a>
 </div>
 
+<style>
+    .filter-form {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin-bottom: 1rem;
+    }
+    .filter-form .form-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: flex-end;
+    }
+    .filter-form .form-group {
+        flex: 1;
+        min-width: 120px;
+        margin-bottom: 0.5rem;
+    }
+    .filter-form label {
+        font-size: 0.8rem;
+        margin-bottom: 0.2rem;
+        display: block;
+        color: #555;
+    }
+    .filter-form input, .filter-form select {
+        width: 100%;
+        padding: 0.4rem;
+        font-size: 0.85rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    .filter-form .btn {
+        padding: 0.4rem 1rem;
+        font-size: 0.85rem;
+        margin-top: 0;
+        margin-bottom: 0.5rem;
+        height: auto;
+    }
+    .filter-form small {
+        display: none !important; /* Hide the generic small text to save space */
+    }
+    
+    @media print {
+        @page {
+            size: A4 portrait;
+            margin: 0.5cm;
+        }
+        /* Hide everything except the table */
+        .sidebar, .navbar, .button-group, .filter-form, h1, .btn {
+            display: none !important;
+        }
+        body, .main-content {
+            background-color: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 10pt !important;
+        }
+        .card {
+            box-shadow: none !important;
+            border: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        /* Hide the Actions column */
+        th:last-child, td:last-child {
+            display: none !important;
+        }
+        /* Ensure table prints nicely and compactly */
+        table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            margin-bottom: 0 !important;
+        }
+        table th, table td {
+            border: 1px solid #ddd !important;
+            padding: 2px 4px !important;
+            font-size: 9pt !important;
+        }
+        table th {
+            font-weight: bold !important;
+            background-color: #f8f9fa !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        table tr.table-secondary {
+            display: table-row !important;
+        }
+        table tr.table-secondary td {
+            display: table-cell !important;
+            font-size: 10pt !important;
+            padding: 4px !important;
+            background-color: #e9ecef !important;
+            font-weight: bold !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        h2#studentCountHeader {
+            font-size: 14pt !important;
+            margin-bottom: 8px !important;
+            text-align: center;
+            display: block !important;
+        }
+    }
+</style>
+
 <div class="filter-form">
     <form method="get">
         <div class="form-row">
@@ -19,23 +125,15 @@
                 <input type="text" name="search" value="{{ current_filters.search|default_if_none:''  }}" placeholder="Student ID, Name...">
             </div>
             <div class="form-group">
-                <label>Grade/Year * <span style="color: red;">Required</span></label>
-                {% if grades %}
-                <select name="grade" id="gradeSelect" required >
-                    <option value="">-- Select Grade/Year --</option>
+                <label>Grade/Year</label>
+                <select name="grade" id="gradeSelect">
+                    <option value="">-- All Grades --</option>
                     {% for g in grades %}
-                    <option value="{{ g }}" {% if selected_grade == g %}selected{% endif %}>{{ g }}</option>
+                    <option value="{{ g.id }}" {% if current_filters.grade == g.id|stringformat:"s" %}selected{% endif %}>{{ g.name }}</option>
                     {% endfor %}
                 </select>
-                {% else %}
-                <input type="text" name="grade" value="{{ selected_grade }}" placeholder="e.g., 11, 12, 1st Year" required>
-                {% endif %}
                 <small style="display: block; margin-top: 0.5rem; color: #666;">
-                    {% if grades %}
-                        Select from existing grades or enter a new one
-                    {% else %}
-                        Enter the grade/year (e.g., 11, 12, 1st Year, 2nd Year)
-                    {% endif %}
+                    Select from existing grades to filter
                 </small>
             </div>
             <div class="form-group">
@@ -76,63 +174,77 @@
         </div>
         <button type="submit" class="btn">Filter</button>
         <button type="submit" name="export" value="excel" class="btn" style="background-color: #2980b9; color: white;">Export to Excel</button>
+        <button type="button" class="btn" style="background-color: #34495e; color: white;" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
         <a href="{% url 'students:student_list' %}" class="btn btn-danger">Clear</a>
     </form>
 </div>
 
 <div class="card">
-    <h2>Students ({{ students.count }})</h2>
+    <h2 id="studentCountHeader">Students ({{ students.count }})</h2>
     <div class="table-wrapper">
     <table>
         <thead>
             <tr>
                 <th>Student ID</th>
                 <th>Name</th>
-                <th>Grade</th>
-                <th>Section</th>
-                <th>Division</th>
-                <th>Room</th>
                 <th>Type</th>
-                <th>Email</th>
                 <th>Phone</th>
                 <th style="text-align: center; background-color: #5f6871; color: white;">Actions</th>
             </tr>
         </thead>
-        <tbody>
-            {% for enrollment in students %}
-            <tr>
-                <td>{{ enrollment.student.student_id }}</td>
-                <td>{{ enrollment.student.full_name }}</td>
-                <td>{{ enrollment.grade }}</td>
-                <td>{{ enrollment.section|default:"-" }}</td>
-                <td>{{ enrollment.division|default:"-" }}</td>
-                <td>{{ enrollment.room.room_number|default:"-" }}</td>
-                <td>{{ enrollment.student.get_student_type_display }}</td>
-                <td>{{ enrollment.student.email|default:"-" }}</td>
-                <td>{{ enrollment.student.phone|default:"-" }}</td>
-                <td style="white-space: nowrap;">
-                    <a href="{% url 'students:student_edit' enrollment.student.id %}"
-                       class="btn btn-sm"
-                       style="background:#f1c40f; color:black; padding:4px 10px; border-radius:12px; margin-right:5px;">
-                        Edit
-                    </a>
-
-                    <a href="{% url 'students:student_delete' enrollment.student.id %}"
-                       class="btn btn-sm"
-                       style="background:#e74c3c; color:white; padding:4px 10px; border-radius:12px;"
-                       onclick="return confirm('Are you sure?');">
-                        Delete
-                    </a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="9" style="text-align: center;">No students found.</td>
-            </tr>
-            {% endfor %}
+        <tbody id="studentTableBody">
+            {% include 'students/partials/student_table_body.html' %}
         </tbody>
     </table>
     </div>
 </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Function to perform the AJAX search
+        function performSearch() {
+            var searchData = $('form').serialize();
+            
+            $.ajax({
+                url: "{% url 'students:student_list' %}",
+                type: 'GET',
+                data: searchData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function(response) {
+                    $('#studentTableBody').html(response);
+                    
+                    // Update the student count based on the number of rows returned
+                    var rowCount = $('#studentTableBody tr').length;
+                    
+                    // If the only row is the "No students found" message, count is 0
+                    if (rowCount === 1 && $('#studentTableBody tr td').text().trim() === 'No students found.') {
+                        rowCount = 0;
+                    }
+                    
+                    $('#studentCountHeader').text('Students (' + rowCount + ')');
+                },
+                error: function(error) {
+                    console.log("Error fetching search results:", error);
+                }
+            });
+        }
+
+        // Trigger search when typing in the search box
+        var searchTimer;
+        $('input[name="search"]').on('keyup', function() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(performSearch, 300); // 300ms debounce
+        });
+
+        // Trigger search when any dropdown changes
+        $('select[name="grade"], select[name="division"], select[name="section"], select[name="student_type"], select[name="room"]').on('change', function() {
+            performSearch();
+        });
+    });
+</script>
 {% endblock %}
 

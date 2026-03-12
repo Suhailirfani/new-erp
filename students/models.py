@@ -91,6 +91,7 @@ class Student(models.Model):
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=20, blank=True)
     address = models.TextField(blank=True)
+    siblings = models.ManyToManyField('self', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
@@ -140,6 +141,14 @@ class Enrollment(models.Model):
         
     def __str__(self):
         return f"{self.student.full_name} - {self.academic_year.name} ({self.grade})"
+
+    @property
+    def class_name(self):
+        if self.grade and self.division:
+            return f"{self.grade.name} - {self.division.name}"
+        elif self.grade:
+            return f"{self.grade.name} - No Division"
+        return "Unassigned"
 
 
 class Period(models.Model):
@@ -445,24 +454,44 @@ class Holiday(models.Model):
         return f"{self.date} - {self.title}"
 
 
+class GlobalSettings(models.Model):
+    """Singleton model for system-wide settings"""
+    common_interview_date = models.DateTimeField(null=True, blank=True, help_text="Common date and time for all interviews")
+    whatsapp_message_template = models.TextField(
+        default="We have received your application. Your application number is {app_no}. You can check your application status directly by clicking this link: {status_link}",
+        help_text="Available placeholders: {name}, {app_no}, {status_link}"
+    )
+
+    def save(self, *args, **kwargs):
+        self.pk = 1 # Ensure only one instance exists
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+
 class Enquiry(models.Model):
     """Model to store prospective student enquiries and interview tokens"""
     STATUS_CHOICES = [
         ('Pending', 'Pending'),
+        ('Received', 'Application Received'),
         ('Token Generated', 'Token Generated'),
         ('Enrolled', 'Enrolled'),
         ('Rejected', 'Rejected'),
     ]
 
     name = models.CharField(max_length=100)
+    application_number = models.CharField(max_length=50, unique=True, blank=True, null=True, help_text="Auto-generated application number")
     phone = models.CharField(max_length=15)
     course = models.ForeignKey('Division', on_delete=models.SET_NULL, null=True, blank=True)
     district = models.CharField(max_length=100)
     academic_year = models.ForeignKey('AcademicYear', on_delete=models.SET_NULL, null=True, blank=True)
-    section = models.ForeignKey('Section', on_delete=models.SET_NULL, null=True, blank=True)
+    section = models.ForeignKey('Section', on_delete=models.SET_NULL, null=True, blank=True) # Assuming it can still be None initially but we mandate it in forms
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
     token_number = models.IntegerField(null=True, blank=True)
+    interview_date = models.DateTimeField(null=True, blank=True, help_text="Scheduled date and time for the interview")
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -472,5 +501,59 @@ class Enquiry(models.Model):
         verbose_name_plural = 'Enquiries'
 
     def __str__(self):
-        return f"{self.name} - {self.phone} ({self.status})"
+        return f"{self.application_number or 'Pending'} - {self.name} - {self.phone} ({self.status})"
 
+    def save(self, *args, **kwargs):
+        if not self.application_number:
+            # Need to create it: Section First Letter + YY + MM + Count
+            today = timezone.now().date()
+            year_str = today.strftime('%y') # e.g. '26'
+            month_str = today.strftime('%m') # e.g. '03'
+            
+            section_letter = 'X' # Default if no section
+            if self.section and self.section.name:
+                section_letter = self.section.name.strip()[0].upper()
+                
+            # Find the count for this month and year and section letter
+            # We can count how many enquiries exist for this month/year/section
+            prefix = f"{section_letter}{year_str}{month_str}"
+            
+            # Count enquiries starting with this prefix
+            count = Enquiry.objects.filter(application_number__startswith=prefix).count()
+            
+            # Format count as 2 digits minimally (01, 02, etc.)
+            count_str = f"{count + 1:02d}"
+            self.application_number = f"{prefix}{count_str}"
+            
+        super().save(*args, **kwargs)
+
+from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+class UserProfile(models.Model):
+    ROLE_CHOICES = [
+        ('admin', 'Admin'),
+        ('teacher', 'Teacher'),
+        ('accountant', 'Accountant'),
+        ('ntstaff', 'Non-Teaching Staff'),
+        ('student', 'Student/Parent'),
+    ]
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='ntstaff')
+    
+    # Only populated if role == 'student'
+    student_record = models.OneToOneField('Student', on_delete=models.SET_NULL, null=True, blank=True, related_name='user_profile')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_role_display()}"
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    if hasattr(instance, 'profile'):
+        instance.profile.save()

@@ -19,12 +19,12 @@
             </div>
             <div class="form-group">
                 <label>Grade/Year</label>
-                <input type="text" name="grade" list="grades-list" value="{{ current_filters.grade }}" placeholder="e.g., 11, 12">
-                <datalist id="grades-list">
+                <select name="grade">
+                    <option value="">-- All Grades --</option>
                     {% for g in grades %}
-                    <option value="{{ g }}">
+                    <option value="{{ g.id }}" {% if current_filters.grade == g.id|stringformat:"s" %}selected{% endif %}>{{ g.name }}</option>
                     {% endfor %}
-                </datalist>
+                </select>
             </div>
             <div class="form-group">
                 <label>Division</label>

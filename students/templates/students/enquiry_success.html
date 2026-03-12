@@ -1,0 +1,67 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Enquiry Submitted - InstiFlow{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hide navigation for public page */
+    .navbar, .nav-sidebar, .hamburger, .page-header { display: none !important; }
+    
+    .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 2rem;
+    }
+    
+    .card {
+        width: 100%;
+        max-width: 600px;
+        text-align: center;
+        padding: 3rem 2rem;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+    }
+    
+    .success-icon {
+        font-size: 4rem;
+        color: #10b981;
+        margin-bottom: 1.5rem;
+    }
+    
+    .app-number-box {
+        background: rgba(99, 102, 241, 0.1);
+        border: 2px dashed var(--primary);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 2rem 0;
+    }
+    
+    .app-number {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--primary-dark);
+        letter-spacing: 2px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="success-icon">✅</div>
+    <h2 style="margin-bottom: 1rem;">Application Submitted Successfully!</h2>
+    <p style="color: #666; font-size: 1.1rem;">Your enquiry has been registered in our system. Please keep the following application number safe for future reference.</p>
+    
+    <div class="app-number-box">
+        <div style="font-size: 0.9rem; text-transform: uppercase; font-weight: 600; color: var(--gray); margin-bottom: 0.5rem;">Your Application Number</div>
+        <div class="app-number">{{ application_number }}</div>
+    </div>
+    
+    <p style="margin-bottom: 2rem; color: #444;">You can use this number to check your application status, interview date, and results.</p>
+    
+    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <a href="{% url 'students:enquiry_status' %}" class="btn btn-primary">Check Status Now</a>
+        <a href="{% url 'students:enquiry_create' %}" class="btn btn-outline-glass">Submit Another</a>
+    </div>
+</div>
+{% endblock %}

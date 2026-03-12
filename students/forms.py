@@ -64,12 +64,33 @@ class EnquiryForm(forms.ModelForm):
     class Meta:
         from .models import Enquiry
         model = Enquiry
-        fields = ['name', 'phone', 'course', 'district', 'academic_year', 'section']
+        fields = ['name', 'phone', 'course', 'district', 'section']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Full Name'}),
             'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Phone Number'}),
             'course': forms.Select(attrs={'class': 'form-control'}),
             'district': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'District'}),
-            'academic_year': forms.Select(attrs={'class': 'form-control'}),
-            'section': forms.Select(attrs={'class': 'form-control'}),
+            'section': forms.Select(attrs={'class': 'form-control', 'required': 'required'}),
+        }
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['section'].required = True
+
+from django.contrib.auth.models import User
+from .models import UserProfile, Student
+
+class UserManageForm(forms.ModelForm):
+    role = forms.ChoiceField(choices=UserProfile.ROLE_CHOICES, required=True, widget=forms.Select(attrs={'class': 'form-control'}))
+    student_record = forms.ModelChoiceField(queryset=Student.objects.all(), required=False, widget=forms.Select(attrs={'class': 'form-control'}))
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}), required=False, help_text="Leave blank to keep existing password (only when editing).")
+
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name', 'email']
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
         }

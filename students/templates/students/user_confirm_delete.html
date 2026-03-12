@@ -1,0 +1,17 @@
+{% extends 'students/base.html' %}
+{% block content %}
+
+<h1>Delete User</h1>
+
+<div class="card" style="padding: 1.5rem; max-width: 600px; margin: 0 auto; text-align: center;">
+    <p>Are you sure you want to delete the user <strong>{{ user_obj.username }}</strong>?</p>
+    <p style="color: red;">This action cannot be undone and will permanently remove their access.</p>
+    
+    <form method="post" style="margin-top: 20px;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        <a href="{% url 'students:user_list' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+{% endblock %}

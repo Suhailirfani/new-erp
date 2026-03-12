@@ -3,7 +3,8 @@ from django.utils.html import format_html
 from .models import (
     Student, Division, Room, Period, Activity,
     Attendance, HostelMovement, ExamType, Subject,
-    MarkEntry, ProgressReport, AcademicYear, Enrollment
+    MarkEntry, ProgressReport, AcademicYear, Enrollment,
+    UserProfile
 )
 
 
@@ -233,3 +234,24 @@ from .models import Holiday
 class HolidayAdmin(admin.ModelAdmin):
     list_display = ('date', 'title')
     ordering = ('date',)
+
+from django.contrib.auth.models import User
+from django.contrib.auth.admin import UserAdmin
+
+class UserProfileInline(admin.StackedInline):
+    model = UserProfile
+    can_delete = False
+    verbose_name_plural = 'Profile'
+    fk_name = 'user'
+
+class CustomUserAdmin(UserAdmin):
+    inlines = (UserProfileInline, )
+
+    def get_inline_instances(self, request, obj=None):
+        if not obj:
+            return list()
+        return super(CustomUserAdmin, self).get_inline_instances(request, obj)
+
+admin.site.unregister(User)
+admin.site.register(User, CustomUserAdmin)
+

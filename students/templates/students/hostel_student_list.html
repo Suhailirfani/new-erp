@@ -1,0 +1,81 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Total Hostel Students - Student Attendance System{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1>Total Hostel Students</h1>
+    <a href="{% url 'students:hostel_movement_list' %}" class="btn" style="background-color: #64748b; color: white;">← Back to Dashboard</a>
+</div>
+
+<div class="filter-form card" style="margin-bottom: 2rem;">
+    <form method="get" style="display: flex; gap: 1rem; align-items: flex-end;">
+        <div class="form-group" style="flex: 1; margin: 0;">
+            <label style="display: block; margin-bottom: 0.5rem; color: #475569; font-weight: 600;">Search Students</label>
+            <input type="text" name="search" value="{{ search_query }}" placeholder="Search by Student ID or Name..." style="width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+        </div>
+        <button type="submit" class="btn btn-primary" style="padding: 0.6rem 1.5rem;">Search</button>
+        {% if search_query %}
+            <a href="{% url 'students:hostel_student_list' %}" class="btn" style="border: 1px solid #cbd5e1; color: #64748b;">Clear</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="margin: 0;">Student Register ({{ students.count }})</h2>
+        <span style="font-size: 0.9em; color: #64748b;">Click a student to view their detailed hostel profile and history.</span>
+    </div>
+    
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Grade</th>
+                    <th>Contact Phone</th>
+                    <th>Current Hostel Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr class="clickable-row" onclick="window.location='{% url 'students:hostel_student_detail' student.pk %}'" style="cursor: pointer; transition: background-color 0.2s;">
+                    <td><strong>{{ student.student_id }}</strong></td>
+                    <td>{{ student.full_name }}</td>
+                    <td>{{ student.grade|default:"-" }}</td>
+                    <td>{{ student.phone|default:"-" }}</td>
+                    <td>
+                        {% if student.is_away %}
+                            <span style="background-color: #fff7ed; color: #c2410c; padding: 0.3rem 0.6rem; border-radius: 9999px; font-size: 0.85em; font-weight: 600; border: 1px solid #fed7aa;">🚶 Currently Away</span>
+                        {% else %}
+                            <span style="background-color: #f0fdf4; color: #15803d; padding: 0.3rem 0.6rem; border-radius: 9999px; font-size: 0.85em; font-weight: 600; border: 1px solid #bbf7d0;">🏠 In Hostel</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'students:hostel_student_detail' student.pk %}" class="btn" style="background-color: #f8fafc; color: #3b82f6; border: 1px solid #bfdbfe; padding: 0.4rem 0.8rem; font-size: 0.9em;">View Profile</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 3rem; color: #64748b;">
+                        {% if search_query %}
+                            No hostel students found matching "{{ search_query }}".
+                        {% else %}
+                            No hostel students recorded in the system.
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .clickable-row:hover {
+        background-color: #f8fafc !important;
+    }
+</style>
+{% endblock %}

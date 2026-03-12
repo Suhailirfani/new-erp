@@ -1,0 +1,61 @@
+{% extends 'students/base.html' %}
+{% block content %}
+
+<div class="header-actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h1>User Management</h1>
+    <a href="{% url 'students:user_create' %}" class="btn btn-primary">➕ Add New User</a>
+</div>
+
+<div class="card">
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Linked Student</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user_obj in users %}
+                <tr>
+                    <td>{{ user_obj.username }} {% if user_obj.is_superuser %}<span style="color:red; font-size:12px;">(Superadmin)</span>{% endif %}</td>
+                    <td>{{ user_obj.get_full_name }}</td>
+                    <td>{{ user_obj.email }}</td>
+                    <td>
+                        {% if user_obj.profile %}
+                            <span class="badge" style="background: #2B3A42; color: #fff; padding: 4px 8px; border-radius: 4px;">
+                                {{ user_obj.profile.get_role_display }}
+                            </span>
+                        {% else %}
+                            <span style="color:gray;">No Profile</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user_obj.profile and user_obj.profile.student_record %}
+                            <a href="{% url 'students:student_edit' user_obj.profile.student_record.id %}">{{ user_obj.profile.student_record.student_id }}</a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'students:user_update' user_obj.pk %}" class="btn btn-sm btn-primary">Edit</a>
+                        {% if not user_obj.is_superuser or request.user == user_obj %}
+                        <a href="{% url 'students:user_delete' user_obj.pk %}" class="btn btn-sm btn-danger">Delete</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center;">No users found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

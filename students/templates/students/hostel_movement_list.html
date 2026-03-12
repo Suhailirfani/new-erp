@@ -5,16 +5,32 @@
 {% block content %}
 <h1>Hostel Movement Records</h1>
 
-<div style="margin-bottom: 1rem;">
-    <a href="{% url 'students:hostel_movement_create' %}" class="btn btn-success">Record New Movement</a>
+<div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+    <div class="card" style="flex: 1; min-width: 200px; text-align: center; border-left: 4px solid #3b82f6; padding: 1.5rem;">
+        <h3 style="margin-top: 0; color: #64748b; font-size: 0.9em; text-transform: uppercase;">Total Hostel Students</h3>
+        <p style="font-size: 2.5em; font-weight: bold; color: #1e293b; margin: 0.5rem 0;">{{ stats.total }}</p>
+    </div>
+    <div class="card" style="flex: 1; min-width: 200px; text-align: center; border-left: 4px solid #22c55e; padding: 1.5rem;">
+        <h3 style="margin-top: 0; color: #64748b; font-size: 0.9em; text-transform: uppercase;">Present in Hostel</h3>
+        <p style="font-size: 2.5em; font-weight: bold; color: #166534; margin: 0.5rem 0;">{{ stats.present }}</p>
+    </div>
+    <div class="card" style="flex: 1; min-width: 200px; text-align: center; border-left: 4px solid #f59e0b; padding: 1.5rem;">
+        <h3 style="margin-top: 0; color: #64748b; font-size: 0.9em; text-transform: uppercase;">Currently Away</h3>
+        <p style="font-size: 2.5em; font-weight: bold; color: #b45309; margin: 0.5rem 0;">{{ stats.away }}</p>
+    </div>
 </div>
 
-<div class="filter-form">
+<div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center;">
+    <a href="{% url 'students:hostel_movement_create' %}" class="btn btn-success">+ Record New Movement</a>
+    <a href="{% url 'students:hostel_student_list' %}" class="btn" style="background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">👥 View Total Student List</a>
+</div>
+
+<div class="filter-form card" style="margin-bottom: 2rem;">
     <form method="get">
         <div class="form-row">
-            <div class="form-group">
-                <label>Student ID</label>
-                <input type="text" name="student_id" value="{{ current_filters.student_id|default_if_none:''  }}" placeholder="Student ID">
+            <div class="form-group" style="flex: 2;">
+                <label>Student ID or Name</label>
+                <input type="text" name="student_id" value="{{ current_filters.student_id|default_if_none:''  }}" placeholder="Search by ID or Name...">
             </div>
             <div class="form-group">
                 <label>Return Status</label>

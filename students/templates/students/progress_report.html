@@ -32,16 +32,12 @@
             </div>
             <div class="form-group">
                 <label>Grade/Year</label>
-                {% if grades %}
                 <select name="grade">
                     <option value="">-- All Grades --</option>
                     {% for g in grades %}
-                    <option value="{{ g }}" {% if current_filters.grade == g %}selected{% endif %}>{{ g }}</option>
+                    <option value="{{ g.id }}" {% if current_filters.grade == g.id|stringformat:"s" %}selected{% endif %}>{{ g.name }}</option>
                     {% endfor %}
                 </select>
-                {% else %}
-                <input type="text" name="grade" value="{{ current_filters.grade }}" placeholder="e.g., 11, 12, 1st Year">
-                {% endif %}
             </div>
             <div class="form-group">
                 <label>Division</label>

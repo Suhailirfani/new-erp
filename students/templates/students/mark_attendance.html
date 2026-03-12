@@ -52,7 +52,7 @@
 <div class="card" style="background: transparent; box-shadow: none; padding: 0;">
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
         {% for div_name, data in division_summary.items %}
-        <a href="{% url 'students:mark_attendance_class' data.grade data.division_id|default:0 %}?section={{ data.section_id|default:'' }}&date={{ selected_date }}&type={{ attendance_type }}{% if selected_period %}&period={{ selected_period }}{% endif %}{% if selected_activity %}&activity={{ selected_activity }}{% endif %}" style="text-decoration: none; color: inherit; display: block;">
+        <a href="{% url 'students:mark_attendance_class' data.grade_id data.division_id|default:0 %}?section={{ data.section_id|default:'' }}&date={{ selected_date }}&type={{ attendance_type }}{% if selected_period %}&period={{ selected_period }}{% endif %}{% if selected_activity %}&activity={{ selected_activity }}{% endif %}" style="text-decoration: none; color: inherit; display: block;">
             <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; height: 100%; display: flex; flex-direction: column;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 15px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.05)';">
                 
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">

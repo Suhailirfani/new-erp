@@ -42,10 +42,12 @@
         <div class="form-row">
             <div class="form-group">
                 <label>Grade/Year *</label>
-                <input type="text" name="grade" required placeholder="e.g., 11, 12, 1st Year, 2nd Year, Final Year, B.Sc, B.A">
-                <small style="display: block; margin-top: 0.5rem; color: #666;">
-                    Enter grade or year (e.g., 11, 12, 1st Year, 2nd Year, Final Year, B.Sc, B.A, etc.)
-                </small>
+                <select name="grade" class="form-control" required>
+                    <option value="">Select Grade</option>
+                    {% for grade in grades %}
+                    <option value="{{ grade.id }}">{{ grade.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
             <div class="form-group">
                 <label>Division</label>
@@ -73,6 +75,19 @@
                     <option value="{{ room.id }}">{{ room.room_number }}</option>
                     {% endfor %}
                 </select>
+            </div>
+        </div>
+        
+        <h2>Family Information</h2>
+        <div class="form-row">
+            <div class="form-group" style="width: 100%;">
+                <label>Siblings</label>
+                <select name="siblings" class="form-control" multiple style="height: 150px;">
+                    {% for other_student in all_students %}
+                        <option value="{{ other_student.id }}">{{ other_student.full_name }} ({{ other_student.student_id }})</option>
+                    {% endfor %}
+                </select>
+                <small style="color: #666; display: block; margin-top: 5px;">Hold down the Ctrl (Windows) or Command (Mac) button to select multiple siblings.</small>
             </div>
         </div>
         
