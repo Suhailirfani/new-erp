@@ -26,8 +26,13 @@ def home(request):
     """Dashboard/Home page"""
     context = {}
     
-    if request.user.is_authenticated and hasattr(request.user, 'profile'):
-        profile = request.user.profile
+    if request.user.is_authenticated:
+        # Ensure profile exists (common for superusers created via CLI)
+        if hasattr(request.user, 'profile'):
+            profile = request.user.profile
+        else:
+            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            
         today = date.today()
         
         # Only calculate administrative statistics if the user is not a student
