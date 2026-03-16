@@ -23,11 +23,26 @@
         -webkit-text-fill-color: #fff59d !important;
     }
     .ceremony-desc {
-        color: #000000 !important;
-        font-weight: 700;
-        font-size: 1.25rem;
+        color: #f8fafc !important; 
+        font-weight: 600;
+        font-size: 1.1rem;
         text-align: center;
         margin-bottom: 2rem;
+        opacity: 0.9;
+    }
+
+    /* Specific Button Overrides for Dark Text */
+    .btn-light-custom {
+        background: rgba(255, 255, 255, 0.95) !important;
+        color: #0f172a !important;
+        border: 1px solid rgba(255, 255, 255, 1) !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2) !important;
+        font-weight: 700 !important;
+    }
+    .btn-light-custom:hover {
+        background: #ffffff !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3) !important;
     }
 
     @media screen and (max-width: 768px) {
@@ -100,7 +115,7 @@
             <div class="button-group">
                 <button type="submit" class="btn btn-gradient">Register Candidate</button>
                 {% if user.is_authenticated %}
-                <a href="{% url 'awaze_list' %}" class="btn btn-outline-glass">View Candidate List</a>
+                <a href="{% url 'awaze_list' %}" class="btn btn-light-custom">View Candidate List</a>
                 {% endif %}
             </div>
         </div>

@@ -22,11 +22,30 @@
         -webkit-text-fill-color: #fff59d !important;
     }
     .ceremony-desc {
-        color: #000000 !important;
-        font-weight: 700;
-        font-size: 1.25rem;
+        color: #f8fafc !important; 
+        font-weight: 600;
+        font-size: 1.1rem;
         text-align: center;
         margin-bottom: 2rem;
+        opacity: 0.9;
+    }
+
+    /* Specific Button Overrides for Dark Text */
+    .btn-light-custom {
+        background: rgba(255, 255, 255, 0.95) !important;
+        color: #0f172a !important;
+        border: 1px solid rgba(255, 255, 255, 1) !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2) !important;
+        font-weight: 700 !important;
+    }
+    .btn-light-custom:hover {
+        background: #ffffff !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    .view-switcher .btn {
+        min-width: 180px;
     }
 
     @media screen and (max-width: 768px) {
@@ -56,12 +75,28 @@
     <h1 class="college-name">MARKAZ HADIYA WOMEN'S COLLEGE</h1>
     <h2 class="ceremony-title">പ്രതിഭാ സംഗമം 2026 - REGISTERED CANDIDATES</h2>
     <p class="ceremony-desc">List of candidates for the award ceremony.</p>
+    
+    <div class="view-switcher" style="display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem;">
+        <a href="{% url 'candidate_list' %}" class="btn {% if not current_grade %}btn-gradient{% else %}btn-light-custom{% endif %}">📋 All Candidates</a>
+        <a href="{% url 'madrasa_wise_list' %}" class="btn btn-light-custom">🏠 Madrasa Wise</a>
+    </div>
 </div>
 
 <div class="card">
-    <div class="button-group" style="margin-bottom: 2rem;">
-        <a href="{% url 'candidate_register' %}" class="btn btn-gradient">Add New Candidate</a>
-        <a href="{% url 'candidate_print' %}" target="_blank" class="btn btn-outline-glass">Print Ready List</a>
+    <div class="list-controls" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="button-group">
+            <a href="{% url 'candidate_register' %}" class="btn btn-gradient">Add New Candidate</a>
+            <a href="{% url 'candidate_print' %}" target="_blank" class="btn btn-light-custom">Print Ready List</a>
+        </div>
+        
+        <div class="filter-pills" style="display: flex; gap: 0.5rem; background: rgba(255,255,255,0.05); padding: 0.5rem; border-radius: 50px;">
+            <a href="?grade=DISTINCTION" class="btn btn-sm {% if current_grade == 'DISTINCTION' %}btn-gradient{% else %}btn-light-custom{% endif %}" style="border-radius: 50px; font-size: 0.8rem;">Distinction</a>
+            <a href="?grade=TOPPER" class="btn btn-sm {% if current_grade == 'TOPPER' %}btn-gradient{% else %}btn-light-custom{% endif %}" style="border-radius: 50px; font-size: 0.8rem;">Topper</a>
+            <a href="?grade=TOP_PLUS" class="btn btn-sm {% if current_grade == 'TOP_PLUS' %}btn-gradient{% else %}btn-light-custom{% endif %}" style="border-radius: 50px; font-size: 0.8rem;">Top Plus</a>
+            {% if current_grade %}
+            <a href="{% url 'candidate_list' %}" class="btn btn-sm btn-light-custom" style="border-radius: 50px; font-size: 0.8rem; border-color: #ef4444; color: #ef4444 !important;">Clear</a>
+            {% endif %}
+        </div>
     </div>
 
     <div class="table-wrapper">
