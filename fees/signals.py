@@ -40,48 +40,9 @@ def generate_student_fees(sender, instance, created, **kwargs):
                 due_date=inst.due_date
             )
 
-        # 3. Generate Hostel Fee
-        if instance.student_type == 'hostel':
-            try:
-                hostel_category = FeeCategory.objects.get(name__icontains='Hostel')
-                hostel_items = FeeItem.objects.filter(category=hostel_category)
-                for item in hostel_items:
-                    if item.default_amount > 0:
-                        StudentFee.objects.create(
-                            student=instance,
-                            fee_item=item,
-                            total_amount=item.default_amount,
-                            due_date=date.today()
-                        )
-            except FeeCategory.DoesNotExist:
-                pass
-
-    # For both Created and Updated (e.g. bus stop assigned later)
-    # 4. Generate Bus Fee if assigned
-    if hasattr(instance, 'bus_stop') and instance.bus_stop:
-        # Check if bus fee already assigned to avoid duplicates
-        bus_fee_exists = StudentFee.objects.filter(
-            student=instance, 
-            fee_item__name__icontains='Bus Fee'
-        ).exists()
-        
-        if not bus_fee_exists:
-            # Ensure we have a Transport category and Bus Fee item
-            transport_cat, _ = FeeCategory.objects.get_or_create(name='Transport', defaults={'description': 'Transportation/Bus Fees'})
-            bus_item, _ = FeeItem.objects.get_or_create(
-                category=transport_cat, 
-                name='Bus Fee', 
-                defaults={'default_amount': 0} # Real amount comes from stop
-            )
-            
-            StudentFee.objects.create(
-                student=instance,
-                fee_item=bus_item,
-                total_amount=instance.bus_stop.fee_amount,
-                due_date=date.today(),
-                remarks=f"Bus Stop: {instance.bus_stop.stop_name}"
-            )
-    else:
-        # If student's bus_stop is removed, do we delete the un-paid bus fee?
-        # That's a business logic decision. Usually, yes or kept as cancelled.
+        # 3. Monthly Fees (Hostel, Vehicle) are now handled by the Monthly Fee Generator tool
+        # to ensure consistency and proper monthly billing cycles.
         pass
+    
+    # 4. Bus Fee updates are also handled by the Monthly Generator
+    pass

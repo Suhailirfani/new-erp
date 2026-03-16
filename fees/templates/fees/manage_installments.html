@@ -1,0 +1,118 @@
+{% extends 'students/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h2>{{ page_title }}</h2>
+        <p class="text-muted">Define how <strong>{{ fee_item.name }}</strong> should be broken down into payments.</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'fees:fee_setup_dashboard' %}" class="btn btn-secondary"><i class="fas fa-arrow-left me-1"></i> Back</a>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <form method="post" id="installment-form">
+        {% csrf_token %}
+        <div class="card-body">
+            <div class="row mb-3 align-items-center">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Number of Installments</label>
+                    <div class="input-group">
+                        <input type="number" id="installment-count" name="count" value="{{ existing_templates.count|default:1 }}" min="1" max="12" class="form-control">
+                        <button type="button" class="btn btn-outline-primary" onclick="generateRows()">Update Table</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="installment-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 80px;">No.</th>
+                            <th>Installment Name</th>
+                            <th>Due Date</th>
+                            <th>Amount (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="installment-tbody">
+                        {% for template in existing_templates %}
+                        <tr>
+                            <td><strong>{{ template.installment_number }}</strong></td>
+                            <td>
+                                <input type="text" name="name_{{ template.installment_number }}" value="{{ template.name }}" class="form-control" required placeholder="e.g. 1st Term">
+                            </td>
+                            <td>
+                                <input type="date" name="date_{{ template.installment_number }}" value="{{ template.due_date|date:'Y-m-d' }}" class="form-control" required>
+                            </td>
+                            <td>
+                                <input type="number" name="amount_{{ template.installment_number }}" value="{{ template.amount|floatformat:2 }}" class="form-control" step="0.01" required>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td><strong>1</strong></td>
+                            <td>
+                                <input type="text" name="name_1" value="Full Payment" class="form-control" required>
+                            </td>
+                            <td>
+                                <input type="date" name="date_1" class="form-control" required>
+                            </td>
+                            <td>
+                                <input type="number" name="amount_1" class="form-control" step="0.01" required>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white border-0 py-3 text-end">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-save me-2"></i> Save Installment Plan
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function generateRows() {
+    const count = document.getElementById('installment-count').value;
+    const tbody = document.getElementById('installment-tbody');
+    const currentRows = tbody.rows.length;
+    
+    // Save current values
+    const data = [];
+    for (let i = 0; i < currentRows; i++) {
+        const row = tbody.rows[i];
+        data.push({
+            name: row.cells[1].querySelector('input').value,
+            date: row.cells[2].querySelector('input').value,
+            amount: row.cells[3].querySelector('input').value
+        });
+    }
+
+    tbody.innerHTML = '';
+    
+    for (let i = 1; i <= count; i++) {
+        const row = tbody.insertRow();
+        const existingData = data[i-1] || { name: `${i}${getOrdinal(i)} Installment`, date: '', amount: '' };
+        
+        row.innerHTML = `
+            <td><strong>${i}</strong></td>
+            <td><input type="text" name="name_${i}" value="${existingData.name}" class="form-control" required></td>
+            <td><input type="date" name="date_${i}" value="${existingData.date}" class="form-control" required></td>
+            <td><input type="number" name="amount_${i}" value="${existingData.amount}" class="form-control" step="0.01" required></td>
+        `;
+    }
+}
+
+function getOrdinal(n) {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return s[(v - 20) % 10] || s[v] || s[0];
+}
+</script>
+{% endblock %}

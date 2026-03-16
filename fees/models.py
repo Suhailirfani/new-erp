@@ -19,7 +19,19 @@ class FeeItem(models.Model):
     name = models.CharField(max_length=100)
     default_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     is_refundable = models.BooleanField(default=False)
+    is_monthly = models.BooleanField(default=False, help_text="Generation happens 1st of every month (e.g., Hostel/Vehicle)")
     description = models.TextField(blank=True)
+    
+    # Targeting
+    applicable_grades = models.ManyToManyField('students.Grade', blank=True, related_name='applicable_fees', help_text="If none selected, applies to all grades.")
+    applicable_divisions = models.ManyToManyField('students.Division', blank=True, related_name='applicable_fees', help_text="If none selected, applies to all divisions.")
+
+    STUDENT_TYPE_TARGET_CHOICES = [
+        ('all', 'All Students'),
+        ('hostel', 'Hostel Students Only'),
+        ('day_scholar', 'Day Scholars Only'),
+    ]
+    target_student_type = models.CharField(max_length=20, choices=STUDENT_TYPE_TARGET_CHOICES, default='all')
 
     class Meta:
         ordering = ['category', 'name']
@@ -185,5 +197,38 @@ class Expense(models.Model):
     class Meta:
         ordering = ['-date']
 
+
+class FeeStructure(models.Model):
+    """Specific fee amounts for combinations of Academic Year, Grade, and Division"""
+    academic_year = models.ForeignKey('students.AcademicYear', on_delete=models.CASCADE, related_name='fee_structures')
+    grade = models.ForeignKey('students.Grade', on_delete=models.CASCADE, related_name='fee_structures')
+    division = models.ForeignKey('students.Division', on_delete=models.CASCADE, null=True, blank=True, related_name='fee_structures')
+    fee_item = models.ForeignKey(FeeItem, on_delete=models.CASCADE, related_name='fee_structures')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [['academic_year', 'grade', 'division', 'fee_item']]
+        verbose_name = "Fee Structure"
+        verbose_name_plural = "Fee Structures"
+
     def __str__(self):
-        return f"Expense: {self.category.name} - ₹{self.amount} on {self.date}"
+        div_name = f" - {self.division.name}" if self.division else ""
+        return f"{self.fee_item.name}: {self.grade.name}{div_name} ({self.academic_year.name}) - ₹{self.amount}"
+
+class FeeInstallmentTemplate(models.Model):
+    """Template for breaking a FeeItem into multiple installments"""
+    fee_item = models.ForeignKey(FeeItem, on_delete=models.CASCADE, related_name='installment_templates')
+    installment_number = models.PositiveIntegerField()
+    name = models.CharField(max_length=100, help_text="e.g., 1st Installment")
+    due_date = models.DateField()
+    amount = models.DecimalField(max_digits=10, decimal_places=2, help_text="Amount for this specific installment")
+
+    class Meta:
+        ordering = ['installment_number']
+        unique_together = [['fee_item', 'installment_number']]
+
+    def __str__(self):
+        return f"{self.fee_item.name} - {self.name} (₹{self.amount})"

@@ -1,5 +1,28 @@
 from django import forms
-from .models import Income, Expense, AccountCategory, StudentFee, FeeCategory, FeeItem
+from .models import Income, Expense, AccountCategory, StudentFee, FeeCategory, FeeItem, FeeStructure
+
+# ... (rest of imports and forms)
+
+class FeeStructureForm(forms.ModelForm):
+    class Meta:
+        model = FeeStructure
+        fields = ['academic_year', 'grade', 'division', 'fee_item', 'amount']
+        widgets = {
+            'academic_year': forms.Select(attrs={'class': 'form-select'}),
+            'grade': forms.Select(attrs={'class': 'form-select'}),
+            'division': forms.Select(attrs={'class': 'form-select'}),
+            'fee_item': forms.Select(attrs={'class': 'form-select'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Limit division choices based on grade if possible, or just leave as is for now
+        # Also ensure academic year is active by default if creating
+        from students.models import AcademicYear
+        active_year = AcademicYear.objects.filter(is_active=True).first()
+        if active_year and not self.instance.pk:
+            self.initial['academic_year'] = active_year
 from students.models import Student
 
 class IncomeForm(forms.ModelForm):
@@ -125,11 +148,22 @@ class FeeCategoryForm(forms.ModelForm):
 class FeeItemForm(forms.ModelForm):
     class Meta:
         model = FeeItem
-        fields = ['category', 'name', 'default_amount', 'is_refundable', 'description']
+        fields = ['category', 'name', 'default_amount', 'is_monthly', 'is_refundable', 'description', 'target_student_type', 'applicable_grades', 'applicable_divisions']
         widgets = {
             'category': forms.Select(attrs={'class': 'form-select'}),
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Uniform Fee, Monthly Tuition'}),
             'default_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'is_refundable': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_monthly': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'target_student_type': forms.Select(attrs={'class': 'form-select'}),
+            'applicable_grades': forms.CheckboxSelectMultiple(),
+            'applicable_divisions': forms.CheckboxSelectMultiple(),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Style the checkboxes a bit within a container usually handled in template
+        # But we can add some classes if needed for CSS targeting
+        self.fields['applicable_grades'].help_text = "Select one or more grades. Leave blank for all grades."
+        self.fields['applicable_divisions'].help_text = "Select one or more divisions. Leave blank for all divisions."

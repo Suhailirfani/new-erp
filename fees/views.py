@@ -1,75 +1,115 @@
+from decimal import Decimal
 from django.shortcuts import render, get_object_or_404, redirect
 from students.decorators import role_required
 from django.contrib import messages
-from .models import StudentFee, FeePayment, AccountCategory, Income, Expense
-from students.models import Student
+from .models import StudentFee, FeePayment, AccountCategory, Income, Expense, FeeCategory, FeeItem, FeeStructure
+from students.models import Student, Grade, Division
 from django.db.models import Sum
 from .forms import IncomeForm, ExpenseForm
 
 # We might want to restrict this to 'accountant' or 'admin' later.
 @role_required(['admin', 'accountant'])
-def dashboard(request):
-    """Accountant Dashboard showing Income, Expense, and Student Fees."""
+def finance_dashboard(request):
+    """Accountant Dashboard showing Income and Expense."""
     # Income/Expense Summary
     total_income = Income.objects.aggregate(total=Sum('amount'))['total'] or 0
     total_expense = Expense.objects.aggregate(total=Sum('amount'))['total'] or 0
     net_balance = total_income - total_expense
 
-    recent_incomes = Income.objects.all().order_by('-date')[:5]
-    recent_expenses = Expense.objects.all().order_by('-date')[:5]
+    recent_incomes = Income.objects.all().order_by('-date')[:10]
+    recent_expenses = Expense.objects.all().order_by('-date')[:10]
 
-    # Student Filtering
-    class_filter = request.GET.get('class_filter', '')
-    type_filter = request.GET.get('type_filter', '')
-    
-    students = Student.objects.filter(is_active=True)
-    
-    if class_filter:
-        parts = class_filter.split(' - ')
-        grade = parts[0]
-        if len(parts) > 1:
-            division_name = parts[1]
-            students = students.filter(enrollments__academic_year__is_active=True, enrollments__grade=grade, enrollments__division__name=division_name).distinct()
-        else:
-            students = students.filter(enrollments__academic_year__is_active=True, enrollments__grade=grade, enrollments__division__isnull=True).distinct()
-            
-    if type_filter:
-        students = students.filter(student_type=type_filter)
-        
-    student_data = []
-    
-    for student in students:
-        fees = student.fees.all()
-        total_due = sum(f.balance for f in fees if f.balance > 0)
-        
-        # Always append the student, even if total_due is 0
-        student_data.append({
-            'student': student,
-            'total_due': total_due,
-        })
-            
-    # Get distinct active class/division combinations for the filter dropdown
-    class_divisions_query = Student.objects.filter(is_active=True, enrollments__academic_year__is_active=True).values_list('enrollments__grade', 'enrollments__division__name').distinct().order_by('enrollments__grade', 'enrollments__division__name')
-    class_divisions = []
-    for grade, division in class_divisions_query:
-        if division:
-            class_divisions.append(f"{grade} - {division}")
-        else:
-            class_divisions.append(grade)
-        
     context = {
         'total_income': total_income,
         'total_expense': total_expense,
         'net_balance': net_balance,
         'recent_incomes': recent_incomes,
         'recent_expenses': recent_expenses,
-        'student_data': student_data,
-        'class_divisions': class_divisions,
-        'current_class_filter': class_filter,
-        'current_type_filter': type_filter,
-        'page_title': 'Accounts Dashboard'
+        'page_title': 'Finance Dashboard'
     }
-    return render(request, 'fees/dashboard.html', context)
+    return render(request, 'fees/finance_dashboard.html', context)
+
+@role_required(['admin', 'accountant'])
+def fees_dashboard(request):
+    """Dashboard focusing on Classroom-wise Fee Summary."""
+    # Get all students with active enrollments
+    active_students = Student.objects.filter(is_active=True, enrollments__academic_year__is_active=True).distinct()
+    
+    # Group students by (Grade, Division)
+    classroom_data = {}
+    
+    for student in active_students:
+        enrollment = student.current_enrollment
+        if not enrollment:
+            continue
+            
+        grade = enrollment.grade
+        if not grade:
+            continue
+        division = enrollment.division
+        classroom_key = (grade.id, division.id if division else None)
+        
+        if classroom_key not in classroom_data:
+            classroom_data[classroom_key] = {
+                'grade': grade,
+                'division': division,
+                'total_due': Decimal('0.00'),
+                'student_count': 0,
+                'name': f"{grade.name} - {division.name}" if grade and division else (grade.name if grade else "Unassigned")
+            }
+            
+        # Calculate due for this student
+        student_due = sum(f.balance for f in student.fees.all() if f.balance > 0)
+        classroom_data[classroom_key]['total_due'] += Decimal(str(student_due))
+        classroom_data[classroom_key]['student_count'] += 1
+            
+    # Convert to list and sort by grade name
+    classrooms = sorted(classroom_data.values(), key=lambda x: x['name'])
+    
+    total_institution_due = sum(c['total_due'] for c in classrooms)
+        
+    context = {
+        'classrooms': classrooms,
+        'total_institution_due': total_institution_due,
+        'page_title': 'Fee Dashboard'
+    }
+    return render(request, 'fees/fees_dashboard.html', context)
+
+@role_required(['admin', 'accountant'])
+def classroom_detail(request, grade_id, division_id=None):
+    """Detailed student fee list for a specific classroom."""
+    grade = get_object_or_404(Grade, id=grade_id)
+    division = None
+    if division_id:
+        division = get_object_or_404(Division, id=division_id)
+        
+    students = Student.objects.filter(
+        is_active=True,
+        enrollments__academic_year__is_active=True,
+        enrollments__grade=grade,
+        enrollments__division=division
+    ).distinct()
+    
+    student_data = []
+    total_class_due = Decimal('0.00')
+    
+    for student in students:
+        total_due = sum(f.balance for f in student.fees.all() if f.balance > 0)
+        total_class_due += Decimal(str(total_due))
+        student_data.append({
+            'student': student,
+            'total_due': total_due,
+        })
+        
+    context = {
+        'grade': grade,
+        'division': division,
+        'student_data': student_data,
+        'total_class_due': total_class_due,
+        'class_name': f"{grade.name} - {division.name}" if division else grade.name,
+        'page_title': f"Class Detail: {grade.name}"
+    }
+    return render(request, 'fees/classroom_detail.html', context)
 
 @role_required(['admin', 'accountant', 'student'])
 def student_fees(request, student_id):
@@ -125,7 +165,7 @@ def collect_payment(request, student_id):
         selected_fee_ids = request.POST.getlist('selected_fees')
         
         try:
-            amount = float(amount)
+            amount = Decimal(amount)
             if amount <= 0:
                 raise ValueError("Amount must be positive.")
                 
@@ -390,36 +430,101 @@ from .models import FeeCategory, FeeItem
 
 @role_required(['admin', 'accountant'])
 def assign_bulk_admission_fees(request):
-    """Admin/Accountant action to assign admission fees to all current students"""
+    """Admin/Accountant action to assign admission fees to selected students"""
     if request.method == 'POST':
+        student_ids = request.POST.getlist('student_ids')
+        if not student_ids:
+            messages.warning(request, "No students selected for fee assignment.")
+            return redirect(request.META.get('HTTP_REFERER', 'fees:fees_dashboard'))
+
         try:
             admission_category = FeeCategory.objects.get(name__icontains='Admission')
             admission_items = FeeItem.objects.filter(category=admission_category)
             
             if not admission_items.exists():
                 messages.warning(request, "No fee items found in the Admission category.")
-                return redirect('fees:dashboard')
+                return redirect('fees:fee_setup_dashboard')
 
-            students = Student.objects.all()
+            students = Student.objects.filter(id__in=student_ids, is_active=True).distinct()
             assigned_count = 0
             
             for student in students:
+                enrollment = student.current_enrollment 
+                if not enrollment:
+                    continue
+
                 for item in admission_items:
-                    if item.default_amount > 0:
-                        # Check if this specific fee item is already assigned to this student
-                        fee_exists = StudentFee.objects.filter(
-                            student=student,
-                            fee_item=item
-                        ).exists()
+                    # Logic: Respect targeting
+                    # 1. Does it target specific grades? If so, student must be in one of them.
+                    if item.applicable_grades.exists() and not item.applicable_grades.filter(id=enrollment.grade.id).exists():
+                        continue
                         
-                        if not fee_exists:
-                            StudentFee.objects.create(
+                    # 2. Does it target specific divisions? If so, student must be in one of them.
+                    if item.applicable_divisions.exists():
+                        if not enrollment.division or not item.applicable_divisions.filter(id=enrollment.division.id).exists():
+                            continue
+
+                    # 3. Does it target specific student types?
+                    if item.target_student_type != 'all':
+                        if student.student_type != item.target_student_type:
+                            continue
+
+                    # Check for FeeStructure specific amount first
+                    fee_struct = FeeStructure.objects.filter(
+                        academic_year=enrollment.academic_year,
+                        grade=enrollment.grade,
+                        division=enrollment.division,
+                        fee_item=item
+                    ).first()
+
+                    # Fallback to grade-only structure if division-specific not found
+                    if not fee_struct and enrollment.division:
+                        fee_struct = FeeStructure.objects.filter(
+                            academic_year=enrollment.academic_year,
+                            grade=enrollment.grade,
+                            division__isnull=True,
+                            fee_item=item
+                        ).first()
+
+                    amount = fee_struct.amount if fee_struct else item.default_amount
+                    if amount > 0:
+                        # Check for installments
+                        installments = item.installment_templates.all()
+                        
+                        if installments.exists():
+                            # Assign each installment
+                            for inst in installments:
+                                # Check if this specific installment is already assigned
+                                inst_exists = StudentFee.objects.filter(
+                                    student=student,
+                                    fee_item=item,
+                                    remarks__icontains=inst.name
+                                ).exists()
+                                
+                                if not inst_exists:
+                                    StudentFee.objects.create(
+                                        student=student,
+                                        fee_item=item,
+                                        total_amount=inst.amount,
+                                        due_date=inst.due_date,
+                                        remarks=f"Installment: {inst.name}"
+                                    )
+                                    assigned_count += 1
+                        else:
+                            # Standard single fee item assignment
+                            fee_exists = StudentFee.objects.filter(
                                 student=student,
-                                fee_item=item,
-                                total_amount=item.default_amount,
-                                due_date=date.today()
-                            )
-                            assigned_count += 1
+                                fee_item=item
+                            ).exists()
+                            
+                            if not fee_exists:
+                                StudentFee.objects.create(
+                                    student=student,
+                                    fee_item=item,
+                                    total_amount=amount,
+                                    due_date=date.today()
+                                )
+                                assigned_count += 1
             
             if assigned_count > 0:
                 messages.success(request, f"Successfully assigned {assigned_count} admission fee records to existing students.")
@@ -429,7 +534,282 @@ def assign_bulk_admission_fees(request):
         except FeeCategory.DoesNotExist:
             messages.error(request, "Admission fee category does not exist. Please create it first.")
 
-    return redirect('fees:dashboard')
+    return redirect(request.META.get('HTTP_REFERER', 'fees:fees_dashboard'))
+
+@role_required(['admin', 'accountant'])
+def cancel_selective_admission_fees(request):
+    """Admin/Accountant action to cancel admission fees for selected students"""
+    if request.method == 'POST':
+        student_ids = request.POST.getlist('student_ids')
+        if not student_ids:
+            messages.warning(request, "No students selected for fee cancellation.")
+            return redirect(request.META.get('HTTP_REFERER', 'fees:fees_dashboard'))
+
+        try:
+            admission_category = FeeCategory.objects.get(name__icontains='Admission')
+            admission_items = FeeItem.objects.filter(category=admission_category)
+            
+            if not admission_items.exists():
+                messages.warning(request, "No fee items found in the Admission category.")
+                return redirect('fees:fee_setup_dashboard')
+
+            # Find fees that are unpaid (amount_paid == 0)
+            fees_to_cancel = StudentFee.objects.filter(
+                student_id__in=student_ids,
+                fee_item__in=admission_items,
+                amount_paid=0
+            )
+            
+            cancel_count = fees_to_cancel.count()
+            if cancel_count > 0:
+                fees_to_cancel.delete()
+                messages.success(request, f"Successfully cancelled {cancel_count} admission fee records.")
+            else:
+                messages.info(request, "No eligible unpaid admission fees were found for the selected students.")
+                
+        except FeeCategory.DoesNotExist:
+            messages.error(request, "Admission fee category does not exist.")
+            
+    return redirect(request.META.get('HTTP_REFERER', 'fees:fees_dashboard'))
+
+@role_required(['admin', 'accountant'])
+def bulk_course_fee_update(request):
+    """Bulk update interface for Course Fees across all grades/divisions"""
+    from students.models import AcademicYear, Grade, Division
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    
+    if not active_year:
+        messages.error(request, "No active academic year found. Please set one up first.")
+        return redirect('fees:fee_setup_dashboard')
+
+    # Get or create the Course Fee category and item
+    category, _ = FeeCategory.objects.get_or_create(name='Course Fee', defaults={'description': 'Main tuition/course fees'})
+    course_fee_item, _ = FeeItem.objects.get_or_create(
+        category=category, 
+        name='Course Fee', 
+        defaults={'default_amount': 0, 'description': 'Standard course fee for the grade'}
+    )
+
+    grades = Grade.objects.all().order_by('order', 'name')
+    divisions = Division.objects.all().order_by('name')
+    
+    # We want a list of (Grade, Division or None)
+    classrooms = []
+    for g in grades:
+        if g.section:
+            grade_divisions = divisions.filter(section=g.section)
+            if grade_divisions.exists():
+                for d in grade_divisions:
+                    classrooms.append({'grade': g, 'division': d})
+            else:
+                classrooms.append({'grade': g, 'division': None})
+        else:
+            classrooms.append({'grade': g, 'division': None})
+
+    if request.method == 'POST':
+        updates_count = 0
+        for classroom in classrooms:
+            g_id = classroom['grade'].id
+            d_id = classroom['division'].id if classroom['division'] else 'none'
+            input_key = f"fee_{g_id}_{d_id}"
+            amount = request.POST.get(input_key)
+            
+            if amount is not None and amount.strip() != '':
+                try:
+                    amount = float(amount)
+                    FeeStructure.objects.update_or_create(
+                        academic_year=active_year,
+                        grade=classroom['grade'],
+                        division=classroom['division'],
+                        fee_item=course_fee_item,
+                        defaults={'amount': amount}
+                    )
+                    updates_count += 1
+                except (ValueError, TypeError):
+                    continue
+        
+        messages.success(request, f"Successfully updated {updates_count} course fee structures for {active_year.name}.")
+        return redirect('fees:fee_setup_dashboard')
+
+    existing_structures = FeeStructure.objects.filter(academic_year=active_year, fee_item=course_fee_item)
+    fee_map = {(fs.grade_id, fs.division_id): fs.amount for fs in existing_structures}
+
+    from collections import defaultdict
+    sections = defaultdict(list)
+    for c in classrooms:
+        section_name = c['grade'].section.name if c['grade'].section else "General"
+        c['current_amount'] = fee_map.get((c['grade'].id, c['division'].id if c['division'] else None), 0)
+        sections[section_name].append(c)
+
+    context = {
+        'sections': dict(sections),
+        'active_year': active_year,
+        'course_fee_item': course_fee_item,
+        'page_title': 'Bulk Manage Course Fees'
+    }
+    return render(request, 'fees/bulk_course_fee_form.html', context)
+
+@role_required(['admin', 'accountant'])
+def manage_fee_installments(request, item_id):
+    """Manage the breakdown of a FeeItem into multiple installments"""
+    fee_item = get_object_or_404(FeeItem, pk=item_id)
+    
+    if request.method == 'POST':
+        # Clear existing templates to replace them
+        fee_item.installment_templates.all().delete()
+        
+        counts = int(request.POST.get('count', 0))
+        templates_to_create = []
+        
+        for i in range(1, counts + 1):
+            name = request.POST.get(f'name_{i}')
+            date_val = request.POST.get(f'date_{i}')
+            amount = request.POST.get(f'amount_{i}')
+            
+            if name and date_val and amount:
+                templates_to_create.append(FeeInstallmentTemplate(
+                    fee_item=fee_item,
+                    installment_number=i,
+                    name=name,
+                    due_date=date_val,
+                    amount=amount
+                ))
+        
+        if templates_to_create:
+            FeeInstallmentTemplate.objects.bulk_create(templates_to_create)
+            messages.success(request, f"Successfully set up {len(templates_to_create)} installments for {fee_item.name}.")
+        else:
+            messages.info(request, "No installments were created.")
+            
+        return redirect('fees:fee_setup_dashboard')
+
+    existing_templates = fee_item.installment_templates.all()
+    context = {
+        'fee_item': fee_item,
+        'existing_templates': existing_templates,
+        'page_title': f'Manage Installments: {fee_item.name}'
+    }
+    return render(request, 'fees/manage_installments.html', context)
+
+@role_required(['admin', 'accountant'])
+def generate_monthly_fees(request):
+    """Batch generate recurring (monthly) fees for all active students"""
+    from students.models import Student, AcademicYear
+    from datetime import date
+    
+    if request.method == 'POST':
+        month = int(request.POST.get('month'))
+        year = int(request.POST.get('year'))
+        due_date = date(year, month, 1)
+        month_name = due_date.strftime('%B %Y')
+        
+        # 1. Identify Monthly Fee Items
+        monthly_items = FeeItem.objects.filter(is_monthly=True)
+        hostel_item = monthly_items.filter(category__name__icontains='Hostel').first()
+        bus_item = monthly_items.filter(name__icontains='Bus Fee').first()
+        
+        active_students = Student.objects.filter(is_active=True)
+        created_count = 0
+        
+        for student in active_students:
+            # - Hostel Fee logic
+            if student.student_type == 'hostel' and hostel_item:
+                # Check for existing
+                exists = StudentFee.objects.filter(
+                    student=student, 
+                    fee_item=hostel_item, 
+                    due_date=due_date
+                ).exists()
+                
+                if not exists:
+                    StudentFee.objects.create(
+                        student=student,
+                        fee_item=hostel_item,
+                        total_amount=hostel_item.default_amount,
+                        due_date=due_date,
+                        remarks=f"Hostel Fee - {month_name}"
+                    )
+                    created_count += 1
+            
+            # - Vehicle Fee logic (Stop-wise)
+            if hasattr(student, 'bus_stop') and student.bus_stop and bus_item:
+                exists = StudentFee.objects.filter(
+                    student=student, 
+                    fee_item=bus_item, 
+                    due_date=due_date
+                ).exists()
+                
+                if not exists:
+                    StudentFee.objects.create(
+                        student=student,
+                        fee_item=bus_item,
+                        total_amount=student.bus_stop.fee_amount, # CALCULATED STOP WISE
+                        due_date=due_date,
+                        remarks=f"Vehicle Fee - {month_name} (Stop: {student.bus_stop.stop_name})"
+                    )
+                    created_count += 1
+                    
+        messages.success(request, f"Successfully generated {created_count} recurring fee records for {month_name}.")
+        return redirect('fees:fee_setup_dashboard')
+
+    # For non-POST, just render the setup dashboard or a simple tool page? 
+    # Let's assume this is triggered from setup dashboard directly via a modal or simple form section.
+    return redirect('fees:fee_setup_dashboard')
+
+from .forms import FeeStructureForm
+
+@role_required(['admin', 'accountant'])
+def fee_structure_list(request):
+    """List all specific fee variations"""
+    structures = FeeStructure.objects.select_related('academic_year', 'grade', 'division', 'fee_item').all().order_by('-academic_year__name', 'grade', 'division', 'fee_item__name')
+    context = {
+        'structures': structures,
+        'page_title': 'Grade-Specific Fee Structures'
+    }
+    return render(request, 'fees/fee_structure_list.html', context)
+
+@role_required(['admin', 'accountant'])
+def fee_structure_create(request):
+    if request.method == 'POST':
+        form = FeeStructureForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Fee structure created successfully.')
+            return redirect('fees:fee_structure_list')
+    else:
+        initial = {}
+        item_id = request.GET.get('item')
+        if item_id:
+            initial['fee_item'] = item_id
+        form = FeeStructureForm(initial=initial)
+    
+    context = {'form': form, 'page_title': 'Add Fee Structure'}
+    return render(request, 'fees/fee_structure_form.html', context)
+
+@role_required(['admin', 'accountant'])
+def fee_structure_update(request, pk):
+    structure = get_object_or_404(FeeStructure, pk=pk)
+    if request.method == 'POST':
+        form = FeeStructureForm(request.POST, instance=structure)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Fee structure updated successfully.')
+            return redirect('fees:fee_structure_list')
+    else:
+        form = FeeStructureForm(instance=structure)
+        
+    context = {'form': form, 'page_title': 'Edit Fee Structure', 'is_edit': True}
+    return render(request, 'fees/fee_structure_form.html', context)
+
+@role_required(['admin', 'accountant'])
+def fee_structure_delete(request, pk):
+    structure = get_object_or_404(FeeStructure, pk=pk)
+    if request.method == 'POST':
+        structure.delete()
+        messages.success(request, 'Fee structure deleted successfully.')
+        return redirect('fees:fee_structure_list')
+    context = {'object': structure, 'page_title': 'Delete Fee Structure'}
+    return render(request, 'fees/setup_confirm_delete.html', context)
 
 
 @role_required(['admin', 'accountant'])

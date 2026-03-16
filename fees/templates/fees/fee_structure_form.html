@@ -1,0 +1,95 @@
+{% extends 'students/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'fees:dashboard' %}">Accounts</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'fees:fee_setup_dashboard' %}">Fee Setup</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'fees:fee_structure_list' %}">Variations</a></li>
+                <li class="breadcrumb-item active">{{ page_title }}</li>
+            </ol>
+        </nav>
+        <h2>{{ page_title }}</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Academic Year</label>
+                            {{ form.academic_year }}
+                            {% if form.academic_year.errors %}
+                                <div class="text-danger small">{{ form.academic_year.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Fee Item</label>
+                            {{ form.fee_item }}
+                            {% if form.fee_item.errors %}
+                                <div class="text-danger small">{{ form.fee_item.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Select the fee you want to customize.</div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Applicable Grade (Class)</label>
+                            {{ form.grade }}
+                            {% if form.grade.errors %}
+                                <div class="text-danger small">{{ form.grade.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Applicable Division (Optional)</label>
+                            {{ form.division }}
+                            {% if form.division.errors %}
+                                <div class="text-danger small">{{ form.division.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Leave blank to apply to all divisions in this grade.</div>
+                        </div>
+
+                        <div class="col-md-12 mt-4">
+                            <div class="p-3 bg-light border rounded">
+                                <label class="form-label fw-bold text-primary">Override Amount (₹)</label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text">₹</span>
+                                    {{ form.amount }}
+                                </div>
+                                {% if form.amount.errors %}
+                                    <div class="text-danger small">{{ form.amount.errors }}</div>
+                                {% endif %}
+                                <div class="form-text mt-2 italic text-muted">This amount will be used instead of the default item amount during bulk assignment.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex justify-content-between">
+                        <a href="{% url 'fees:fee_structure_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-5">
+                            {% if is_edit %}Save Changes{% else %}Create Structure{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

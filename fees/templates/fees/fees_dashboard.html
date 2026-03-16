@@ -1,0 +1,72 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Fee Dashboard - Classroom View{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h2 style="font-size: 1.8rem; font-weight: 800; background: var(--gradient-1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Classroom Fee Dashboard</h2>
+            <p class="text-muted">Select a class to view detailed student fees</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <a href="{% url 'fees:fee_setup_dashboard' %}" class="btn btn-gradient"><i class="fas fa-cog"></i> Fee Setup</a>
+        </div>
+    </div>
+</div>
+
+<!-- Institution-wide Summary -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="stat-card" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); padding: 1.5rem 2.5rem; text-align: left; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <p style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem; font-weight: 600;">Overall Institution Balance Due</p>
+                <h2 style="font-size: 2.8rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 0.75rem;">
+                    <i class="fas fa-university" style="opacity: 0.5; font-size: 2rem;"></i>
+                    ₹ {{ total_institution_due|floatformat:2 }}
+                </h2>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.15); padding: 1rem 1.5rem; border-radius: 16px; backdrop-filter: blur(5px);">
+                <span style="font-size: 1.1rem; font-weight: 600;">{{ classrooms|length }} Active Classrooms</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+    {% for classroom in classrooms %}
+    <div class="glass-card" style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; min-height: 200px;">
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                <h3 style="font-size: 1.4rem; font-weight: 700; color: var(--dark-secondary); margin: 0;">{{ classroom.name }}</h3>
+                <span class="badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">{{ classroom.student_count }} Students</span>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <p style="font-size: 0.85rem; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Total Balance Due</p>
+                <h2 style="font-size: 2rem; font-weight: 800; color: {% if classroom.total_due > 0 %}var(--danger){% else %}var(--success){% endif %}; margin: 0;">
+                    ₹ {{ classroom.total_due|floatformat:2 }}
+                </h2>
+            </div>
+        </div>
+        
+        {% if classroom.division %}
+            <a href="{% url 'fees:classroom_detail_with_division' classroom.grade.id classroom.division.id %}" class="btn btn-outline-glass" style="width: 100%; text-align: center; margin: 0;">
+                <i class="fas fa-sign-in-alt"></i> Enter Classroom
+            </a>
+        {% else %}
+            <a href="{% url 'fees:classroom_detail' classroom.grade.id %}" class="btn btn-outline-glass" style="width: 100%; text-align: center; margin: 0;">
+                <i class="fas fa-sign-in-alt"></i> Enter Classroom
+            </a>
+        {% endif %}
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="card p-5 text-center">
+            <h4 class="text-muted">No active classrooms found.</h4>
+            <p>Make sure students are enrolled in an active academic year.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

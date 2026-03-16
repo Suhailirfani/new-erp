@@ -10,6 +10,8 @@
     </div>
     <div class="col-md-7 text-end">
         <a href="{% url 'fees:dashboard' %}" class="btn btn-secondary me-2"><i class="fas fa-arrow-left me-1"></i> Back to Accounts</a>
+        <a href="{% url 'fees:bulk_course_fee_update' %}" class="btn btn-warning me-2"><i class="fas fa-table me-1"></i> Manage Course Fees (Bulk)</a>
+        <a href="{% url 'fees:fee_structure_list' %}" class="btn btn-info me-2 text-white"><i class="fas fa-layer-group me-1"></i> Grade-wise Variations</a>
         <a href="{% url 'fees:fee_category_create' %}" class="btn btn-primary"><i class="fas fa-folder-plus me-1"></i> New Category</a>
     </div>
 </div>
@@ -26,37 +28,13 @@
 
 <div class="row">
     <div class="col-12">
-        {% for category in categories %}
-        <div class="card mb-4 shadow-sm border-0">
-            <div class="card-header bg-gradient text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);">
-                <h5 class="mb-0">
-                    <i class="fas fa-folder-open me-2"></i> {{ category.name }}
-                </h5>
-                <div>
-                    <a href="{% url 'fees:fee_item_create' %}?category={{ category.id }}" class="btn btn-sm btn-light text-primary me-2"><i class="fas fa-plus me-1"></i> Add Item</a>
-                    <div class="dropdown d-inline">
-                        <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="dropdownMenuButton{{ category.id }}" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-cog"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ category.id }}">
-                            <li><a class="dropdown-item" href="{% url 'fees:fee_category_update' category.id %}"><i class="fas fa-edit text-warning me-2"></i> Edit Category</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="{% url 'fees:fee_category_delete' category.id %}"><i class="fas fa-trash-alt me-2"></i> Delete</a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+        <div class="card shadow-sm border-0">
             <div class="card-body p-0">
-                {% if category.description %}
-                <div class="p-3 bg-light border-bottom text-muted small">
-                    {{ category.description }}
-                </div>
-                {% endif %}
-                
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
                         <thead class="table-light">
                             <tr>
+                                <th>Category</th>
                                 <th>Fee Item Name</th>
                                 <th>Default Amount (₹)</th>
                                 <th>Refundable</th>
@@ -65,43 +43,136 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for item in category.fee_items.all %}
-                            <tr>
-                                <td class="fw-bold">{{ item.name }}</td>
-                                <td>₹{{ item.default_amount }}</td>
-                                <td>
-                                    {% if item.is_refundable %}
-                                        <span class="badge bg-success">Yes</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">No</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-muted small">{{ item.description|truncatechars:50 }}</td>
-                                <td class="text-end">
-                                    <a href="{% url 'fees:fee_item_update' item.id %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
-                                    <a href="{% url 'fees:fee_item_delete' item.id %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
-                                </td>
-                            </tr>
+                            {% for category in categories %}
+                                <tr class="table-secondary">
+                                    <td colspan="5">
+                                        <strong class="text-uppercase"><i class="fas fa-folder-open me-2"></i> {{ category.name }}</strong>
+                                        {% if category.description %}
+                                            <span class="text-muted small ms-2">- {{ category.description }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{% url 'fees:fee_item_create' %}?category={{ category.id }}" class="btn btn-xs btn-primary me-1" title="Add Item"><i class="fas fa-plus me-1"></i> Add</a>
+                                        <a href="{% url 'fees:fee_category_update' category.id %}" class="btn btn-xs btn-warning me-1" title="Edit Category"><i class="fas fa-edit me-1"></i> Edit</a>
+                                        <a href="{% url 'fees:fee_category_delete' category.id %}" class="btn btn-xs btn-danger" title="Delete Category"><i class="fas fa-trash-alt me-1"></i> Delete</a>
+                                    </td>
+                                </tr>
+                                {% for item in category.fee_items.all %}
+                                <tr>
+                                    <td class="ps-4 text-muted small">{{ category.name }}</td>
+                                    <td class="fw-bold">
+                                        {{ item.name }}
+                                        {% if item.target_student_type != 'all' or item.applicable_grades.exists or item.applicable_divisions.exists %}
+                                            <div class="mt-1">
+                                                {% if item.target_student_type == 'hostel' %}
+                                                    <span class="badge rounded-pill bg-warning text-dark" style="font-size: 0.7rem;"><i class="fas fa-hotel me-1"></i> Hostel</span>
+                                                {% elif item.target_student_type == 'day_scholar' %}
+                                                    <span class="badge rounded-pill bg-secondary text-white" style="font-size: 0.7rem;"><i class="fas fa-walking me-1"></i> Day Scholar</span>
+                                                {% endif %}
+                                                
+                                                {% for grade in item.applicable_grades.all %}
+                                                    <span class="badge rounded-pill bg-info text-dark" style="font-size: 0.7rem;">{{ grade.name }}</span>
+                                                {% endfor %}
+                                                {% for div in item.applicable_divisions.all %}
+                                                    <span class="badge rounded-pill bg-light text-dark border" style="font-size: 0.7rem;">{{ div.name }}</span>
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <div class="text-muted" style="font-size: 0.7rem;"><i class="fas fa-users-cog me-1"></i> All Students</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.is_refundable %}
+                                            <span class="badge bg-success" title="Refundable">R</span>
+                                        {% endif %}
+                                        {% if item.is_monthly %}
+                                            <span class="badge bg-primary" title="Generates Monthly">M</span>
+                                        {% endif %}
+                                        ₹{{ item.default_amount }}
+                                    </td>
+                                    <td>
+                                        {% if item.installment_templates.exists %}
+                                            <span class="badge bg-info text-white">{{ item.installment_templates.count }} Inst.</span>
+                                        {% else %}
+                                            <span class="text-muted small">Single</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-muted small">{{ item.description|truncatechars:50 }}</td>
+                                    <td class="text-end">
+                                        <a href="{% url 'fees:manage_fee_installments' item.id %}" class="btn btn-sm btn-outline-warning" title="Manage Installments"><i class="fas fa-list-ol"></i></a>
+                                        <a href="{% url 'fees:fee_item_update' item.id %}" class="btn btn-sm btn-outline-primary" title="Edit Item"><i class="fas fa-edit"></i></a>
+                                        <a href="{% url 'fees:fee_item_delete' item.id %}" class="btn btn-sm btn-outline-danger" title="Delete Item"><i class="fas fa-trash"></i></a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-3 text-muted small italic">
+                                        No items in this category.
+                                    </td>
+                                </tr>
+                                {% endfor %}
                             {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">
-                                    No fee items configured for this category yet.
-                                </td>
-                            </tr>
+                                <tr>
+                                    <td colspan="6" class="text-center py-5">
+                                        <div class="display-6 text-muted opacity-25 mb-3"><i class="fas fa-folder-open"></i></div>
+                                        <h4 class="text-muted">No Fee Categories Found</h4>
+                                        <p class="text-muted mb-4">Start by creating your first fee category.</p>
+                                        <a href="{% url 'fees:fee_category_create' %}" class="btn btn-primary"><i class="fas fa-plus me-2"></i> Create Category</a>
+                                    </td>
+                                </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
-        {% empty %}
-        <div class="text-center py-5">
-            <div class="display-1 text-muted opacity-25 mb-3"><i class="fas fa-folder-open"></i></div>
-            <h3 class="text-muted">No Fee Categories Found</h3>
-            <p class="text-muted mb-4">Start by creating your first fee category (e.g., Admission, Tuition).</p>
-            <a href="{% url 'fees:fee_category_create' %}" class="btn btn-primary btn-lg"><i class="fas fa-plus me-2"></i> Create Category</a>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card border-warning shadow-sm">
+            <div class="card-header bg-warning text-dark fw-bold">
+                <i class="fas fa-tools me-2"></i> Administrative Tools
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h5 class="card-title">Monthly Fee Generator</h5>
+                        <p class="card-text text-muted small">Batch generate recurring fees (Hostel, Vehicle) for all active students. This tool implements stop-wise vehicle fee calculation automatically.</p>
+                    </div>
+                    <div class="col-md-6">
+                        <form action="{% url 'fees:generate_monthly_fees' %}" method="post" class="row g-2 justify-content-end">
+                            {% csrf_token %}
+                            <div class="col-auto">
+                                <select name="month" class="form-select form-select-sm" required>
+                                    <option value="1">January</option>
+                                    <option value="2">February</option>
+                                    <option value="3">March</option>
+                                    <option value="4">April</option>
+                                    <option value="5">May</option>
+                                    <option value="6">June</option>
+                                    <option value="7">July</option>
+                                    <option value="8">August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                            </div>
+                            <div class="col-auto">
+                                <input type="number" name="year" value="2026" class="form-control form-control-sm" style="width: 80px;" required>
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-warning btn-sm text-dark fw-bold" onclick="return confirm('Generate recurring fees for the selected month?')">
+                                    <i class="fas fa-magic me-1"></i> Generate Fees
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
-        {% endfor %}
     </div>
 </div>
 {% endblock %}

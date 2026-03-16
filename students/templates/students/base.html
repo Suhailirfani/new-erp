@@ -1161,7 +1161,8 @@
         {% if request.user.is_superuser or request.user.profile.role in 'admin,accountant' %}
         <button class="nav-accordion-btn">💰 Finance</button>
         <div class="nav-accordion-content">
-            <a href="{% url 'fees:dashboard' %}">Fees Dashboard</a>
+            <a href="{% url 'fees:finance_dashboard' %}">Finance Dashboard</a>
+            <a href="{% url 'fees:fees_dashboard' %}">Fees Dashboard</a>
             <a href="{% url 'fees:add_income' %}">Add Income</a>
             <a href="{% url 'fees:add_expense' %}">Add Expense</a>
         </div>
@@ -1274,7 +1275,8 @@
                 <div class="dropdown">
                     <button class="dropdown-btn">Finance <span>▾</span></button>
                     <div class="dropdown-content">
-                        <a href="{% url 'fees:dashboard' %}">Fees Dashboard</a>
+                        <a href="{% url 'fees:finance_dashboard' %}">Finance Dashboard</a>
+                        <a href="{% url 'fees:fees_dashboard' %}">Fees Dashboard</a>
                         <a href="{% url 'fees:add_income' %}">Add Income</a>
                         <a href="{% url 'fees:add_expense' %}">Add Expense</a>
                     </div>

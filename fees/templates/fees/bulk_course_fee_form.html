@@ -1,0 +1,74 @@
+{% extends 'students/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h2>{{ page_title }}</h2>
+        <p class="text-muted">Manage <strong>{{ course_fee_item.name }}</strong> for all grades in <strong>{{ active_year.name }}</strong></p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'fees:fee_setup_dashboard' %}" class="btn btn-secondary"><i class="fas fa-times me-1"></i> Cancel</a>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <form method="post">
+        {% csrf_token %}
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 250px;">Section / Grade</th>
+                            <th>Division</th>
+                            <th style="width: 250px;">Fee Amount (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for section_name, classrooms in sections.items %}
+                            <tr class="table-secondary">
+                                <td colspan="3">
+                                    <strong class="text-uppercase"><i class="fas fa-layer-group me-2"></i> {{ section_name }}</strong>
+                                </td>
+                            </tr>
+                            {% for c in classrooms %}
+                            <tr>
+                                <td class="ps-4">
+                                    <span class="fw-bold">{{ c.grade.name }}</span>
+                                </td>
+                                <td>
+                                    {% if c.division %}
+                                        <span class="badge bg-light text-dark border">{{ c.division.name }}</span>
+                                    {% else %}
+                                        <span class="text-muted small">Standard</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₹</span>
+                                        <input type="number" 
+                                               name="fee_{{ c.grade.id }}_{% if c.division %}{{ c.division.id }}{% else %}none{% endif %}" 
+                                               value="{{ c.current_amount|floatformat:2 }}" 
+                                               class="form-control" 
+                                               step="0.01" 
+                                               min="0"
+                                               placeholder="0.00">
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white border-0 py-3 text-end">
+            <button type="submit" class="btn btn-primary btn-lg px-5">
+                <i class="fas fa-save me-2"></i> Save All Course Fees
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
