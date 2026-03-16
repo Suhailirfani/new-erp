@@ -7,6 +7,7 @@ class Candidate(models.Model):
     ]
     
     GRADE_CHOICES = [
+        ('TOPPER', 'Topper'),
         ('TOP_PLUS', 'Top Plus'),
         ('DISTINCTION', 'Distinction'),
     ]
@@ -14,7 +15,7 @@ class Candidate(models.Model):
     name = models.CharField(max_length=255)
     father_name = models.CharField(max_length=255)
     mobile_number = models.CharField(max_length=15)
-    madrasa = models.CharField(max_length=255)
+    madrasa_and_place = models.CharField(max_length=255)
     student_class = models.CharField(max_length=50) # 'class' is a reserved keyword in Python
     board = models.CharField(max_length=10, choices=BOARD_CHOICES)
     grade = models.CharField(max_length=15, choices=GRADE_CHOICES)
