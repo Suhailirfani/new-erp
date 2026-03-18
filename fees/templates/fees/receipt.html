@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -60,8 +61,14 @@
         <div class="receipt-header row align-items-center">
             <div class="col-sm-6">
                 <!-- Replace with Institution Name / Logo -->
-                <div class="logo">INSTITUTION ERP</div>
-                <div class="text-muted small mt-1">123 Education Lane, City, Country</div>
+                <div class="logo" style="display:flex;align-items:center;gap:10px;">
+                    <img src="{% static 'img/M_LOGO.png' %}" alt="Logo" style="height:50px;">
+                    <div>
+                        <div style="font-size:15px;font-weight:800;color:#1a1a2e;line-height:1.2;">MARKAZ HADIYA</div>
+                        <div style="font-size:13px;font-weight:700;color:#6a0606;">WOMEN'S COLLEGE</div>
+                    </div>
+                </div>
+                <div class="text-muted small mt-1">Thazhapra, Malappuram, Kerala</div>
             </div>
             <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
                 <div class="receipt-title">FEE RECEIPT</div>
