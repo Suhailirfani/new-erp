@@ -12,7 +12,11 @@ urlpatterns = [
     path('dashboard/', views.finance_dashboard, name='dashboard'), # Keep legacy name for now to prevent breaks
     path('student/<int:student_id>/', views.student_fees, name='student_fees'),
     path('collect/<int:student_id>/', views.collect_payment, name='collect_payment'),
-    path('receipt/<int:income_id>/', views.download_receipt, name='download_receipt'),
+    # Finance & Reports
+    path('finance/day-book/', views.day_book, name='day_book'),
+    path('finance/ledger/', views.ledger_book, name='ledger_book'),
+    path('finance/reports/', views.finance_report, name='finance_report'),
+    path('finance/departments/', views.departmental_dashboard, name='departmental_dashboard'),
     
     # Income & Expense Routes
     path('income/add/', views.add_income, name='add_income'),
@@ -28,6 +32,7 @@ urlpatterns = [
     path('setup/bulk-course-fees/', views.bulk_course_fee_update, name='bulk_course_fee_update'),
     path('setup/generate-monthly/', views.generate_monthly_fees, name='generate_monthly_fees'),
     path('setup/', views.fee_setup_dashboard, name='fee_setup_dashboard'),
+    path('receipt/<int:income_id>/', views.download_receipt, name='download_receipt'),
     path('setup/item/<int:item_id>/installments/', views.manage_fee_installments, name='manage_fee_installments'),
     path('setup/category/add/', views.fee_category_create, name='fee_category_create'),
     path('setup/category/<int:pk>/edit/', views.fee_category_update, name='fee_category_update'),
@@ -36,9 +41,20 @@ urlpatterns = [
     path('setup/item/<int:pk>/edit/', views.fee_item_update, name='fee_item_update'),
     path('setup/item/<int:pk>/delete/', views.fee_item_delete, name='fee_item_delete'),
     
+    # Bus Stop Management
+    path('setup/bus-stops/', views.bus_stop_list, name='bus_stop_list'),
+    path('setup/bus-stops/add/', views.bus_stop_create, name='bus_stop_create'),
+    path('setup/bus-stops/<int:pk>/edit/', views.bus_stop_update, name='bus_stop_update'),
+    path('setup/bus-stops/<int:pk>/delete/', views.bus_stop_delete, name='bus_stop_delete'),
+    
+    # Fee Adjustment
+    path('adjustments/', views.monthly_fee_adjustment, name='monthly_fee_adjustment'),
+    
     # Fee Structure (Grade/Division variations)
     path('setup/structures/', views.fee_structure_list, name='fee_structure_list'),
     path('setup/structures/add/', views.fee_structure_create, name='fee_structure_create'),
     path('setup/structures/<int:pk>/edit/', views.fee_structure_update, name='fee_structure_update'),
     path('setup/structures/<int:pk>/delete/', views.fee_structure_delete, name='fee_structure_delete'),
+    path('student/<int:student_id>/add-medical-fee/', views.add_medical_fee, name='add_medical_fee'),
+    path('student/<int:student_id>/payment-history/', views.print_payment_history, name='print_payment_history'),
 ]

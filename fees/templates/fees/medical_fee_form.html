@@ -1,0 +1,59 @@
+{% extends 'students/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-lg border-0" style="border-radius: 20px;">
+            <div class="card-header bg-white py-3 border-bottom-0">
+                <h4 class="mb-0 fw-bold text-primary">
+                    <i class="fas fa-plus-circle me-2"></i> Add Medical Fee
+                </h4>
+                <p class="text-muted small mb-0">Student: {{ student.full_name }} ({{ student.student_id }})</p>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Fee Amount (₹)</label>
+                        <input type="number" name="amount" class="form-control" step="0.01" value="{{ fee_item.default_amount }}" required>
+                        <div class="form-text small">Enter the amount to be charged to the student's account.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Due Date</label>
+                        <input type="date" name="due_date" class="form-control" value="{{ today|date:'Y-m-d' }}">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Remarks / Description</label>
+                        <textarea name="remarks" class="form-control" rows="3" placeholder="e.g., Annual Checkup, Vaccination, etc."></textarea>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary py-2 fw-bold">
+                            <i class="fas fa-save me-1"></i> Assign Fee
+                        </button>
+                        <a href="{% url 'fees:student_fees' student.id %}" class="btn btn-outline-secondary py-2 fw-bold">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Autofill today's date if empty
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateInput = document.querySelector('input[name="due_date"]');
+        if (!dateInput.value) {
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
+        }
+    });
+</script>
+{% endblock %}

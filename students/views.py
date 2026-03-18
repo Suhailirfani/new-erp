@@ -27,6 +27,11 @@ def landing_page(request):
     return render(request, 'students/landing.html')
 
 
+def about_us(request):
+    """Public About Us page"""
+    return render(request, 'students/about_us.html')
+
+
 def home(request):
     """Dashboard/Home page"""
     context = {}
@@ -166,6 +171,7 @@ def student_create(request):
         email = request.POST.get('email', '')
         phone = request.POST.get('phone', '')
         address = request.POST.get('address', '')
+        bus_stop_id = request.POST.get('bus_stop') if student_type == 'day_scholar' else None
         
         form_year_id = request.POST.get('academic_year_id')
         form_year = None
@@ -186,6 +192,7 @@ def student_create(request):
                 email=email,
                 phone=phone,
                 address=address,
+                bus_stop_id=bus_stop_id,
             )
             
             siblings_ids = request.POST.getlist('siblings')
@@ -210,6 +217,8 @@ def student_create(request):
     sections = Section.objects.all().order_by('order', 'name')
     grades = Grade.objects.all().order_by('order', 'name')
     all_students = Student.objects.filter(is_active=True).order_by('first_name', 'last_name')
+    from fees.models import BusStop
+    bus_stops = BusStop.objects.all().order_by('stop_name')
     context = {
         'all_students': all_students,
         'divisions': divisions,
@@ -218,6 +227,7 @@ def student_create(request):
         'grades': grades,
         'academic_years': academic_years,
         'active_year': active_year,
+        'bus_stops': bus_stops,
     }
     return render(request, 'students/student_create.html', context)
 
@@ -2139,6 +2149,7 @@ def student_edit(request, pk):
         email = request.POST.get('email', '')
         phone = request.POST.get('phone', '')
         address = request.POST.get('address', '')
+        bus_stop_id = request.POST.get('bus_stop') if student_type == 'day_scholar' else None
         
         # Get the selected academic year from the form
         form_year_id = request.POST.get('academic_year_id')
@@ -2169,6 +2180,7 @@ def student_edit(request, pk):
                 student.email = email
                 student.phone = phone
                 student.address = address
+                student.bus_stop_id = bus_stop_id
                 student.save()
                 
                 siblings_ids = request.POST.getlist('siblings')
@@ -2201,6 +2213,8 @@ def student_edit(request, pk):
     sections = Section.objects.all().order_by('order', 'name')
     grades = Grade.objects.all().order_by('order', 'name')
     all_students = Student.objects.filter(is_active=True).exclude(id=student.id).order_by('first_name', 'last_name')
+    from fees.models import BusStop
+    bus_stops = BusStop.objects.all().order_by('stop_name')
 
     context = {
         'student': student,
@@ -2213,6 +2227,7 @@ def student_edit(request, pk):
         'selected_year': selected_year,
         'active_year': active_year,
         'enrollment': enrollment,
+        'bus_stops': bus_stops,
     }
     return render(request, 'students/student_edit.html', context)
 

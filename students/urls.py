@@ -6,6 +6,7 @@ app_name = 'students'
 urlpatterns = [
     path('home/', views.home, name='home'),
     path('', views.landing_page, name='landing'),
+    path('about-us/', views.about_us, name='about_us'),
     path('students/', views.student_list, name='student_list'),
     path('students/create/', views.student_create, name='student_create'),
     path('students/bulk-import/', views.student_bulk_import, name='student_bulk_import'),

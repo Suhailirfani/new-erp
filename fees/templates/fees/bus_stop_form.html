@@ -1,0 +1,62 @@
+{% extends 'students/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-6">
+        <h2>{{ page_title }}</h2>
+        <p class="text-muted">{% if is_edit %}Update the monthly fee or name for this bus stop.{% else %}Add a new location where the college bus picks up students.{% endif %}</p>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'fees:bus_stop_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left me-1"></i> Back to Bus Stops</a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label for="{{ form.stop_name.id_for_label }}" class="form-label fw-bold">Bus Stop Name <span class="text-danger">*</span></label>
+                            {{ form.stop_name }}
+                            {% if form.stop_name.errors %}
+                                <div class="text-danger small mt-1">{{ form.stop_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="{{ form.fee_amount.id_for_label }}" class="form-label fw-bold">Monthly Fee (₹) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">₹</span>
+                                {{ form.fee_amount }}
+                            </div>
+                            {% if form.fee_amount.errors %}
+                                <div class="text-danger small mt-1">{{ form.fee_amount.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top text-end">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-save me-1"></i> {% if is_edit %}Update Bus Stop{% else %}Save Bus Stop{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

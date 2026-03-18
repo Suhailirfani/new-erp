@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment History - {{ student.full_name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
+        .page-container { max-width: 900px; margin: 30px auto; background: #fff; padding: 40px; box-shadow: 0 0 20px rgba(0,0,0,0.1); border-radius: 8px; }
+        .header-title { font-size: 26px; font-weight: 700; color: #1a1a2e; }
+        .sub-label { color: #6c757d; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+        .summary-box { background: #f1f3f5; border-radius: 8px; padding: 15px 20px; }
+        .badge-paid { background-color: #d1fae5; color: #065f46; }
+        .badge-partial { background-color: #fef3c7; color: #92400e; }
+        .badge-due { background-color: #fee2e2; color: #991b1b; }
+        .section-title { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 12px; }
+        .advance-row { background-color: #fffbeb; }
+        @media print {
+            @page { size: A4; margin: 10mm; }
+            body { background: white; font-size: 11px; }
+            .page-container { box-shadow: none; margin: 0; padding: 10px; border-radius: 0; }
+            .no-print { display: none !important; }
+            table td, table th { padding: 5px 8px !important; }
+            .summary-box { padding: 8px 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="row mb-3 mt-3 no-print">
+        <div class="col text-end">
+            <button onclick="window.print()" class="btn btn-primary">🖨 Print / Save as PDF</button>
+            <a href="javascript:history.back()" class="btn btn-secondary">← Back</a>
+        </div>
+    </div>
+
+    <div class="page-container">
+        <!-- Header -->
+        <div class="row mb-4 align-items-center">
+            <div class="col-7">
+                <div class="header-title">MARKAZ HADIYA WOMEN'S COLLEGE</div>
+                <div class="text-muted small">Thazhapra | Fee Payment History</div>
+            </div>
+            <div class="col-5 text-end">
+                <div class="text-muted small">Printed on: {{ today|date:"d M, Y" }}</div>
+                <div class="fw-bold fs-5 text-primary mt-1">PAYMENT HISTORY</div>
+            </div>
+        </div>
+
+        <!-- Student Info -->
+        <div class="summary-box mb-4">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="sub-label">Student Name</div>
+                    <div class="fw-bold">{{ student.full_name }}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="sub-label">Student ID</div>
+                    <div class="fw-bold">{{ student.student_id }}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="sub-label">Type</div>
+                    <div class="fw-bold">{{ student.get_student_type_display }}</div>
+                </div>
+                <div class="col-md-2">
+                    <div class="sub-label">Grade</div>
+                    <div class="fw-bold">{{ student.grade|default:"—" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Totals -->
+        <div class="row mb-4 text-center">
+            <div class="col-md-4">
+                <div class="border rounded p-3">
+                    <div class="sub-label">Total Charged</div>
+                    <div class="fs-4 fw-bold text-dark">₹{{ total_charged|floatformat:2 }}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="border rounded p-3">
+                    <div class="sub-label">Total Paid</div>
+                    <div class="fs-4 fw-bold text-success">₹{{ total_paid|floatformat:2 }}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="border rounded p-3">
+                    <div class="sub-label">Balance Due</div>
+                    <div class="fs-4 fw-bold {% if total_balance > 0 %}text-danger{% else %}text-success{% endif %}">₹{{ total_balance|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 1: Fee Breakdown -->
+        <div class="mb-4">
+            <div class="section-title">📋 Fee Breakdown (All Assigned Fees)</div>
+            <table class="table table-sm table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Fee Item</th>
+                        <th>Category</th>
+                        <th class="text-end">Total (₹)</th>
+                        <th class="text-end">Paid (₹)</th>
+                        <th class="text-end">Balance (₹)</th>
+                        <th>Due Date</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fee in fees %}
+                    <tr>
+                        <td>
+                            {% if fee.fee_item %}{{ fee.fee_item.name }}{% elif fee.installment %}{{ fee.installment.name }}{% else %}General Fee{% endif %}
+                            {% if fee.remarks %}<div class="text-muted" style="font-size:0.75rem;">{{ fee.remarks|truncatechars:40 }}</div>{% endif %}
+                        </td>
+                        <td class="text-muted small">{% if fee.fee_item %}{{ fee.fee_item.category }}{% endif %}</td>
+                        <td class="text-end">{{ fee.total_amount|floatformat:2 }}</td>
+                        <td class="text-end text-success">{{ fee.amount_paid|floatformat:2 }}</td>
+                        <td class="text-end {% if fee.balance > 0 %}text-danger fw-bold{% endif %}">{{ fee.balance|floatformat:2 }}</td>
+                        <td class="small">{{ fee.due_date|date:"d/m/Y"|default:"—" }}</td>
+                        <td class="text-center">
+                            {% if fee.status == 'paid' or fee.balance <= 0 %}
+                                <span class="badge badge-paid px-2">Paid</span>
+                            {% elif fee.status == 'partial' %}
+                                <span class="badge badge-partial px-2">Partial</span>
+                            {% else %}
+                                <span class="badge badge-due px-2">Due</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="text-center text-muted">No fees assigned.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Section 2: Payment Transactions -->
+        <div class="mb-4">
+            <div class="section-title">💳 Payment Transactions</div>
+            {% for row in receipts %}
+            <div class="mb-3 border rounded p-3 {% if forloop.last %}mb-0{% endif %}">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <strong>Receipt Date: {{ row.income.date|date:"d M, Y" }}</strong>
+                        <span class="badge bg-secondary ms-2">{{ row.income.get_payment_method_display }}</span>
+                        {% if row.income.reference_number %}<span class="text-muted small ms-2">Ref: {{ row.income.reference_number }}</span>{% endif %}
+                    </div>
+                    <div class="fw-bold text-success fs-5">₹{{ row.income.amount|floatformat:2 }}</div>
+                </div>
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Applied To</th>
+                            <th>Note</th>
+                            <th class="text-end">Amount (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in row.payments %}
+                        <tr {% if "advance" in payment.remarks|lower %}class="advance-row"{% endif %}>
+                            <td class="small">
+                                {% if payment.student_fee.fee_item %}{{ payment.student_fee.fee_item.name }}{% else %}General Fee{% endif %}
+                                {% if payment.student_fee.due_date %}<span class="text-muted"> (due {{ payment.student_fee.due_date|date:"d/m/Y" }})</span>{% endif %}
+                            </td>
+                            <td class="small">
+                                {% if "advance" in payment.remarks|lower %}
+                                    <span class="badge bg-info text-dark">Advance → Future Fee</span>
+                                {% else %}
+                                    <span class="badge bg-success">Current Due</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end small">{{ payment.amount|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% if row.advance_amount > 0 %}
+                        <tr class="advance-row">
+                            <td class="small fw-bold">Unallocated Advance Balance</td>
+                            <td class="small"><span class="badge bg-warning text-dark">Stored as Credit</span></td>
+                            <td class="text-end small fw-bold">{{ row.advance_amount|floatformat:2 }}</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            {% empty %}
+            <div class="text-muted text-center p-3">No payments recorded yet.</div>
+            {% endfor %}
+        </div>
+
+        <!-- Footer -->
+        <div class="border-top pt-3 mt-4 text-center text-muted small">
+            This is a computer-generated document. | InstiFlow - Institution Management System
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -94,11 +94,22 @@
         <h2>Student Type</h2>
         <div class="form-group">
             <label>
-                <input type="radio" name="student_type" value="day_scholar" checked> Day Scholar
+                <input type="radio" name="student_type" value="day_scholar" checked onchange="toggleBusStop()"> Day Scholar
             </label>
             <label style="margin-left: 2rem;">
-                <input type="radio" name="student_type" value="hostel"> Hostel
+                <input type="radio" name="student_type" value="hostel" onchange="toggleBusStop()"> Hostel
             </label>
+        </div>
+
+        <div class="form-group" id="bus-stop-group">
+            <label>Bus Stop</label>
+            <select name="bus_stop" class="form-control">
+                <option value="">-- No Bus Required --</option>
+                {% for stop in bus_stops %}
+                    <option value="{{ stop.id }}">{{ stop.stop_name }} (₹{{ stop.fee_amount }}/month)</option>
+                {% endfor %}
+            </select>
+            <small style="color: #666; display: block; margin-top: 5px;">Select a bus stop to automatically assign monthly vehicle fees.</small>
         </div>
         
         <h2>Contact Information</h2>
@@ -121,5 +132,19 @@
         <a href="{% url 'students:student_list' %}" class="btn btn-danger">Cancel</a>
     </form>
 </div>
-{% endblock %}
 
+<script>
+    function toggleBusStop() {
+        const studentType = document.querySelector('input[name="student_type"]:checked').value;
+        const busStopGroup = document.getElementById('bus-stop-group');
+        if (studentType === 'day_scholar') {
+            busStopGroup.style.display = 'block';
+        } else {
+            busStopGroup.style.display = 'none';
+        }
+    }
+    
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', toggleBusStop);
+</script>
+{% endblock %}

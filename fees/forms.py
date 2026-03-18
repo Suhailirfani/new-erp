@@ -1,5 +1,5 @@
 from django import forms
-from .models import Income, Expense, AccountCategory, StudentFee, FeeCategory, FeeItem, FeeStructure
+from .models import Income, Expense, AccountCategory, StudentFee, FeeCategory, FeeItem, FeeStructure, BusStop
 
 # ... (rest of imports and forms)
 
@@ -39,13 +39,14 @@ class IncomeForm(forms.ModelForm):
 
     class Meta:
         model = Income
-        fields = ['category', 'amount', 'received_from', 'payment_method', 'reference_number', 'remarks']
+        fields = ['category', 'amount', 'received_from', 'payment_method', 'reference_number', 'remarks', 'department']
         widgets = {
             'category': forms.Select(attrs={'class': 'form-select'}),
             'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'payment_method': forms.Select(attrs={'class': 'form-select'}),
             'reference_number': forms.TextInput(attrs={'class': 'form-control'}),
             'remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'department': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -90,8 +91,11 @@ class IncomeForm(forms.ModelForm):
         else:
             # Not a fee, so received from is required
             if not cleaned_data.get('received_from'):
-                 self.add_error('received_from', 'This field is required.')
+                self.add_error('received_from', 'This field is required.')
                 
+        if category and not cleaned_data.get('department'):
+            cleaned_data['department'] = category.department
+            
         return cleaned_data
 
 
@@ -101,7 +105,7 @@ class ExpenseForm(forms.ModelForm):
 
     class Meta:
         model = Expense
-        fields = ['category', 'amount', 'paid_to', 'payment_method', 'reference_number', 'remarks']
+        fields = ['category', 'amount', 'paid_to', 'payment_method', 'reference_number', 'remarks', 'department']
         widgets = {
             'category': forms.Select(attrs={'class': 'form-select'}),
             'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
@@ -109,6 +113,7 @@ class ExpenseForm(forms.ModelForm):
             'payment_method': forms.Select(attrs={'class': 'form-select'}),
             'reference_number': forms.TextInput(attrs={'class': 'form-control'}),
             'remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'department': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -132,23 +137,25 @@ class ExpenseForm(forms.ModelForm):
                 name=new_category_name,
                 type='expense'
             )
-            cleaned_data['category'] = category
+        if category and not cleaned_data.get('department'):
+            cleaned_data['department'] = category.department
             
         return cleaned_data
 
 class FeeCategoryForm(forms.ModelForm):
     class Meta:
         model = FeeCategory
-        fields = ['name', 'description']
+        fields = ['name', 'description', 'department']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Admission, Medical, Course'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Optional description for this category'}),
+            'department': forms.Select(attrs={'class': 'form-select'}),
         }
 
 class FeeItemForm(forms.ModelForm):
     class Meta:
         model = FeeItem
-        fields = ['category', 'name', 'default_amount', 'is_monthly', 'is_refundable', 'description', 'target_student_type', 'applicable_grades', 'applicable_divisions']
+        fields = ['category', 'name', 'default_amount', 'is_monthly', 'is_refundable', 'description', 'target_student_type', 'department', 'applicable_grades', 'applicable_divisions']
         widgets = {
             'category': forms.Select(attrs={'class': 'form-select'}),
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Uniform Fee, Monthly Tuition'}),
@@ -156,6 +163,7 @@ class FeeItemForm(forms.ModelForm):
             'is_refundable': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_monthly': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'department': forms.Select(attrs={'class': 'form-select'}),
             'target_student_type': forms.Select(attrs={'class': 'form-select'}),
             'applicable_grades': forms.CheckboxSelectMultiple(),
             'applicable_divisions': forms.CheckboxSelectMultiple(),
@@ -167,3 +175,12 @@ class FeeItemForm(forms.ModelForm):
         # But we can add some classes if needed for CSS targeting
         self.fields['applicable_grades'].help_text = "Select one or more grades. Leave blank for all grades."
         self.fields['applicable_divisions'].help_text = "Select one or more divisions. Leave blank for all divisions."
+
+class BusStopForm(forms.ModelForm):
+    class Meta:
+        model = BusStop
+        fields = ['stop_name', 'fee_amount']
+        widgets = {
+            'stop_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Downtown, North Side'}),
+            'fee_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+        }

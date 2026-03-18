@@ -93,6 +93,7 @@
                     <thead class="bg-light">
                         <tr>
                             <th>Fee Description</th>
+                            <th>Note</th>
                             <th class="text-end">Amount</th>
                         </tr>
                     </thead>
@@ -101,14 +102,23 @@
                         <tr>
                             <td>
                                 {% if payment.student_fee.fee_item %}{{ payment.student_fee.fee_item.name }}{% elif payment.student_fee.installment %}{{ payment.student_fee.installment.name }}{% else %}General Fee{% endif %}
+                                {% if payment.student_fee.due_date %}<br><small class="text-muted">Due: {{ payment.student_fee.due_date|date:"d/m/Y" }}</small>{% endif %}
+                            </td>
+                            <td class="small">
+                                {% if "advance" in payment.remarks|lower %}
+                                    <span class="badge bg-info text-dark">Advance → Future Fee</span>
+                                {% else %}
+                                    <span class="badge bg-success">Current Due</span>
+                                {% endif %}
                             </td>
                             <td class="text-end">₹ {{ payment.amount }}</td>
                         </tr>
                         {% endfor %}
                         {% if advance_amount > 0 %}
-                        <tr>
-                            <td class="text-info font-weight-bold">Advance Payment</td>
-                            <td class="text-end text-success">₹ {{ advance_amount }}</td>
+                        <tr class="table-warning">
+                            <td class="fw-bold">Unallocated Advance Balance</td>
+                            <td class="small"><span class="badge bg-warning text-dark">Stored as Credit</span></td>
+                            <td class="text-end fw-bold text-warning-emphasis">₹ {{ advance_amount }}</td>
                         </tr>
                         {% endif %}
                     </tbody>

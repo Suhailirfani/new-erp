@@ -1,0 +1,345 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us | MARKAZ HADIYA WOMEN'S COLLEGE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6a0606;
+            --accent: #a00000;
+            --text-gold: #f1c40f;
+            --glass: rgba(106, 6, 6, 0.2);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --dark-bg: #1a0202;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: white;
+            background: var(--dark-bg);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Hero section */
+        .about-hero {
+            height: 60vh;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), 
+                        url('{% static "images/college_hero_niqab_full.png" %}') center/cover no-repeat;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding-top: 50px;
+        }
+
+        .about-hero h1 {
+            font-family: 'Cinzel', serif;
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
+            color: var(--text-gold);
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Content Sections */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 20px;
+        }
+
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.8rem;
+            color: white;
+            margin-bottom: 40px;
+            text-align: center;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background: var(--text-gold);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+        }
+
+        .glass-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            padding: 40px;
+            border-radius: 30px;
+            backdrop-filter: blur(15px);
+            margin-bottom: 40px;
+        }
+
+        .vision-mission-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .vm-card i {
+            font-size: 2.5rem;
+            color: var(--text-gold);
+            margin-bottom: 20px;
+        }
+
+        .vm-card h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+        }
+
+        /* Leader Section */
+        .leaders-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .leader-card {
+            text-align: center;
+            transition: transform 0.4s ease;
+        }
+
+        .leader-card:hover {
+            transform: translateY(-15px);
+        }
+
+        .leader-img-wrap {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            margin: 0 auto 25px;
+            border-radius: 50%;
+            padding: 8px;
+            border: 2px solid var(--text-gold);
+        }
+
+        .leader-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            filter: grayscale(20%);
+            transition: all 0.3s ease;
+        }
+
+        /* Specific alignment for leadership images */
+        .zoom-out { transform: scale(01); object-position: center top; }
+        .zoom-in { transform: scale(1.3); object-position: center 20%; }
+
+        .leader-card:hover .leader-img {
+            filter: grayscale(0%);
+        }
+
+        .leader-card h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            color: var(--text-gold);
+        }
+
+        .leader-card p {
+            font-size: 1rem;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        /* Nav and Buttons */
+        .back-btn {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .btn-outline {
+            padding: 12px 30px;
+            border: 1px solid var(--text-gold);
+            color: var(--text-gold);
+            text-decoration: none;
+            border-radius: 50px;
+            transition: all 0.3s;
+            display: inline-block;
+            margin-top: 20px;
+        }
+
+        .btn-outline:hover {
+            background: var(--text-gold);
+            color: var(--primary);
+        }
+
+        /* Animation */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease-out;
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .grid-2, .vision-mission-grid {
+                grid-template-columns: 1fr;
+            }
+            .section-title { font-size: 2.2rem; }
+            .about-hero h1 { font-size: 2.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <a href="{% url 'students:landing' %}" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Home</a>
+
+    <section class="about-hero">
+        <div style="z-index: 2;">
+            <img src="{% static 'img/M_LOGO.png' %}" alt="Markaz Hadiya Logo" style="width: 120px; margin-bottom: 20px; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));">
+            <h1>About MARKAZ HADIYA WOMEN'S COLLEGE</h1>
+        </div>
+    </section>
+
+    <div class="container">
+        <section class="grid-2 reveal">
+            <div>
+                <h2 class="section-title" style="text-align: left; margin-bottom: 20px;">Excellence in Every Step</h2>
+                <p style="font-size: 1.1rem; margin-bottom: 20px;">
+                    Markaz Hadiya Women's College, Thazhapra, is a premier institution dedicated to the holistic empowerment of women. Affiliated with the world-renowned <strong>Jamia Markazu Sakhafathi Ssunniyya, Karanthur</strong>, we provide a unique education model that bridges the gap between contemporary academics and profound spiritual wisdom.
+                </p>
+                <p style="font-size: 1.1rem;">
+                    Located in the serene landscapes of Thazhapra, our campus offers a sanctuary of knowledge, where students are nurtured with care, safety, and an uncompromising commitment to excellence.
+                </p>
+            </div>
+            <div class="glass-card">
+                <img src="{% static 'images/college_campus_thazhapra_1773342079964.jpg' %}" alt="College Campus" style="width: 100%; border-radius: 20px;">
+            </div>
+        </section>
+
+        <section class="vision-mission-grid reveal">
+            <div class="glass-card vm-card">
+                <i class="fas fa-eye"></i>
+                <h3>Our Vision</h3>
+                <p>To empower women with a holistic blend of profound moral values and advanced contemporary knowledge, fostering excellence in both spiritual and academic spheres.</p>
+            </div>
+            <div class="glass-card vm-card">
+                <i class="fas fa-bullseye"></i>
+                <h3>Our Mission</h3>
+                <p>To provide a secure and nurturing environment that facilitates high-quality education, character development, and academic excellence, ensuring a safe space for personal and intellectual growth.</p>
+            </div>
+        </section>
+
+        <section class="reveal" style="margin-top: 100px;">
+            <h2 class="section-title">Academic Programs</h2>
+            <div class="glass-card" style="display: flex; flex-wrap: wrap; gap: 30px; justify-content: center; text-align: center;">
+                <div style="flex: 1; min-width: 250px;">
+                    <i class="fas fa-graduation-cap" style="font-size: 2.5rem; color: var(--text-gold); margin-bottom: 15px;"></i>
+                    <h4>Plus Two</h4>
+                    <p>Integrated with Hadiya Higher Secondary curriculum.</p>
+                </div>
+                <div style="flex: 1; min-width: 250px;">
+                    <i class="fas fa-university" style="font-size: 2.5rem; color: var(--text-gold); margin-bottom: 15px;"></i>
+                    <h4>Degree Programs</h4>
+                    <p>Undergraduate studies with Hadiya Diploma (1st Year) and Zadiya (2nd & 3rd Year).</p>
+                </div>
+                <div style="flex: 1; min-width: 250px;">
+                    <i class="fas fa-certificate" style="font-size: 2.5rem; color: var(--text-gold); margin-bottom: 15px;"></i>
+                    <h4>Diploma Courses</h4>
+                    <p>Professional diplomas integrated with Hadiya Diploma.</p>
+                </div>
+            </div>
+        </section>
+
+
+        <section class="reveal" style="margin-top: 80px;">
+            <h2 class="section-title">Our Leaders </h2>
+            <div class="leaders-grid">
+                <div class="leader-card">
+                    <div class="leader-img-wrap">
+                        <img src="{% static 'img/thazhapra usthad.jpg' %}" alt="PV Muhyiddeen Kutty Musliyar" class="leader-img">
+                    </div>
+                    <h3>PV Muhyiddeen Kutty Musliyar</h3>
+                    <p>President</p>
+                </div>
+                <div class="leader-card">
+                    <div class="leader-img-wrap" style="overflow: hidden;">
+                        <img src="{% static 'img/kadar_saqafi4.jpg' %}" alt="Abdul Kadar Saqafi" class="leader-img zoom-out">
+                    </div>
+                    <h3>Abdul Kadar Saqafi</h3>
+                    <p>General Secretary</p>
+                </div>
+                <div class="leader-card">
+                    <div class="leader-img-wrap" style="overflow: hidden;">
+                        <img src="{% static 'img/moosa_haji3.jpg' %}" alt="Moosa Haji Thazhapra" class="leader-img zoom-in">
+                    </div>
+                    <h3>Moosa Haji Thazhapra</h3>
+                    <p>Treasurer</p>
+                </div>
+                <div class="leader-card">
+                    <div class="leader-img-wrap" style="overflow: hidden;">
+                        <img src="{% static 'img/suhail_irf.jpg' %}" alt="Suhail Shamil Irfani" class="leader-img zoom-out">
+                    </div>
+                    <h3>Suhail Shamil Irfani</h3>
+                    <p>Principal</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer style="padding: 50px 20px; text-align: center; border-top: 1px solid var(--glass-border); background: #070b14; margin-top: 50px;">
+        <p>&copy; 2026 Markaz Hadiya Women's College, Thazhapra. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        function reveal() {
+            var reveals = document.querySelectorAll(".reveal");
+            for (var i = 0; i < reveals.length; i++) {
+                var windowHeight = window.innerHeight;
+                var elementTop = reveals[i].getBoundingClientRect().top;
+                var elementVisible = 150;
+                if (elementTop < windowHeight - elementVisible) {
+                    reveals[i].classList.add("active");
+                }
+            }
+        }
+        window.addEventListener("scroll", reveal);
+        reveal();
+    </script>
+</body>
+</html>

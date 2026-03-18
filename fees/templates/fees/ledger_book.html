@@ -1,0 +1,175 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Ledger Book{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 d-print-none">
+    <div>
+        <h2 style="font-size:2rem; font-weight:800; color:#fff; margin:0;">
+            <i class="fas fa-book-open me-2"></i> Ledger Book
+        </h2>
+        <p style="color:rgba(255,255,255,0.7); margin:0; font-size:0.95rem;">Categorized account summaries</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'fees:finance_dashboard' %}" class="btn btn-outline-glass">
+            <i class="fas fa-arrow-left me-1"></i> Dashboard
+        </a>
+        <button class="btn btn-gradient" onclick="window.print()">
+            <i class="fas fa-print me-1"></i> Print
+        </button>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <!-- LEFT PANEL: Category List -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm" style="border-radius:16px; overflow:hidden; background:#fff;">
+            <div class="card-header border-bottom py-3 px-4" style="background:#f8f9fa;">
+                <h6 class="mb-0 fw-bold" style="color:#374151;">
+                    <i class="fas fa-tags me-2" style="color:#3b82f6;"></i>Account Categories
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                {% for cat in categories %}
+                <a href="?category={{ cat.id }}"
+                   style="display:block; padding:14px 20px; text-decoration:none; border-bottom:1px solid #f0f0f0;
+                          background:{% if selected_cat.id == cat.id %}#1e40af{% else %}#fff{% endif %};
+                          transition:background 0.2s;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span style="display:inline-block; font-size:0.65rem; letter-spacing:0.5px; font-weight:700;
+                                         padding:2px 8px; border-radius:20px; margin-bottom:4px;
+                                         background:{% if cat.type == 'income' %}#d1fae5{% else %}#fee2e2{% endif %};
+                                         color:{% if cat.type == 'income' %}#065f46{% else %}#991b1b{% endif %};">
+                                {{ cat.type|upper }}
+                            </span>
+                            <div style="font-weight:600; font-size:0.92rem;
+                                        color:{% if selected_cat.id == cat.id %}#fff{% else %}#111827{% endif %};">
+                                {{ cat.name }}
+                            </div>
+                        </div>
+                        <div style="font-weight:700; font-size:1rem;
+                                    color:{% if selected_cat.id == cat.id %}#bfdbfe{% elif cat.type == 'income' %}#059669{% else %}#dc2626{% endif %};">
+                            ₹{{ cat.total_amount|floatformat:2 }}
+                        </div>
+                    </div>
+                </a>
+                {% empty %}
+                <div style="padding:24px; text-align:center; color:#9ca3af; font-size:0.9rem;">No categories found.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL: Ledger Detail -->
+    <div class="col-lg-8">
+        {% if selected_cat %}
+        <div class="card border-0 shadow-sm" style="border-radius:16px; overflow:hidden; background:#fff;">
+            <!-- Header -->
+            <div class="card-header border-bottom px-4 py-3" style="background:#f8f9fa;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span style="display:inline-block; font-size:0.65rem; letter-spacing:0.5px; font-weight:700;
+                                     padding:2px 8px; border-radius:20px; margin-bottom:4px;
+                                     background:{% if selected_cat.type == 'income' %}#d1fae5{% else %}#fee2e2{% endif %};
+                                     color:{% if selected_cat.type == 'income' %}#065f46{% else %}#991b1b{% endif %};">
+                            {{ selected_cat.type|upper }}
+                        </span>
+                        <h5 style="margin:0; font-weight:700; color:#111827;">{{ selected_cat.name }}</h5>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:1px; color:#6b7280; margin-bottom:2px;">Category Total</div>
+                        <div style="font-size:1.5rem; font-weight:800;
+                                    color:{% if selected_cat.type == 'income' %}#059669{% else %}#dc2626{% endif %};">
+                            ₹{{ selected_cat.total_amount|floatformat:2 }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-responsive">
+                <table style="width:100%; border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:#f8f9fa; border-bottom:2px solid #e5e7eb;">
+                            <th style="padding:12px 20px; font-size:0.75rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; width:130px;">Date</th>
+                            <th style="padding:12px 10px; font-size:0.75rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px;">
+                                {% if selected_cat.type == 'income' %}Received From{% else %}Paid To{% endif %} / Remarks
+                            </th>
+                            <th style="padding:12px 20px; font-size:0.75rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; text-align:right; width:140px;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in ledger_entries %}
+                        <tr style="border-bottom:1px solid #f0f0f0;">
+                            <td style="padding:14px 20px; vertical-align:top;">
+                                <div style="font-weight:600; font-size:0.9rem; color:#111827;">{{ entry.date|date:"d M Y" }}</div>
+                                <div style="font-size:0.75rem; color:#9ca3af;">{{ entry.date|date:"l" }}</div>
+                            </td>
+                            <td style="padding:14px 10px; vertical-align:top;">
+                                <div style="font-weight:600; font-size:0.9rem; color:#111827;">
+                                    {% if selected_cat.type == 'income' %}{{ entry.received_from|default:"—" }}{% else %}{{ entry.paid_to|default:"—" }}{% endif %}
+                                </div>
+                                <div style="font-size:0.78rem; color:#6b7280; margin-top:2px;">
+                                    {% if entry.reference_number %}<span style="margin-right:8px;"># {{ entry.reference_number }}</span>{% endif %}
+                                    {% if entry.remarks %}{{ entry.remarks|truncatechars:60 }}{% endif %}
+                                </div>
+                            </td>
+                            <td style="padding:14px 20px; text-align:right; vertical-align:top; font-weight:700; font-size:1rem;
+                                       color:{% if selected_cat.type == 'income' %}#059669{% else %}#dc2626{% endif %};">
+                                ₹{{ entry.amount|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" style="padding:48px 20px; text-align:center; color:#9ca3af;">
+                                <i class="fas fa-inbox fa-2x" style="display:block; margin-bottom:12px; opacity:0.4;"></i>
+                                No entries found in this ledger.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <!-- Total Footer - always shown when category is selected -->
+                    <tfoot>
+                        <tr style="background:#f8f9fa; border-top:2px solid #e5e7eb;">
+                            <td colspan="2" style="padding:14px 20px; font-weight:700; font-size:0.95rem; color:#374151;">
+                                TOTAL
+                            </td>
+                            <td style="padding:14px 20px; text-align:right; font-weight:800; font-size:1.1rem;
+                                       color:{% if selected_cat.type == 'income' %}#059669{% else %}#dc2626{% endif %};">
+                                ₹{{ selected_cat.total_amount|floatformat:2 }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        {% else %}
+
+        <!-- Empty state -->
+        <div class="card border-0 shadow-sm d-flex flex-column align-items-center justify-content-center text-center"
+             style="border-radius:16px; min-height:400px; background:#fff; padding:48px;">
+            <i class="fas fa-book-open fa-4x" style="color:#d1d5db; margin-bottom:20px;"></i>
+            <h5 style="font-weight:700; color:#374151; margin-bottom:8px;">Select a Category</h5>
+            <p style="color:#9ca3af; max-width:320px; margin:0;">
+                Click on any account category on the left to view its full transaction history and total.
+            </p>
+        </div>
+
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    @media print {
+        body { background: white !important; }
+        .d-print-none { display: none !important; }
+        .card { box-shadow: none !important; }
+    }
+</style>
+
+{% endblock %}

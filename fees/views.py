@@ -4,27 +4,62 @@ from students.decorators import role_required
 from django.contrib import messages
 from .models import StudentFee, FeePayment, AccountCategory, Income, Expense, FeeCategory, FeeItem, FeeStructure
 from students.models import Student, Grade, Division
-from django.db.models import Sum
+from django.db.models import Sum, Case, When, DecimalField, Q
 from .forms import IncomeForm, ExpenseForm
 
 # We might want to restrict this to 'accountant' or 'admin' later.
 @role_required(['admin', 'accountant'])
 def finance_dashboard(request):
-    """Accountant Dashboard showing Income and Expense."""
-    # Income/Expense Summary
-    total_income = Income.objects.aggregate(total=Sum('amount'))['total'] or 0
-    total_expense = Expense.objects.aggregate(total=Sum('amount'))['total'] or 0
+    """Accountant Dashboard showing Income and Expense with detailed reporting."""
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    today = timezone.now().date()
+    start_of_week = today - timedelta(days=today.weekday())
+    start_of_month = today.replace(day=1)
+    start_of_year = today.replace(month=1, day=1)
+    
+    # 1. High-Level Summary
+    total_income = Income.objects.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    total_expense = Expense.objects.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     net_balance = total_income - total_expense
+    
+    # 2. Time-period statistics
+    daily_income = Income.objects.filter(date=today).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    daily_expense = Expense.objects.filter(date=today).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    
+    monthly_income = Income.objects.filter(date__gte=start_of_month).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    monthly_expense = Expense.objects.filter(date__gte=start_of_month).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
-    recent_incomes = Income.objects.all().order_by('-date')[:10]
-    recent_expenses = Expense.objects.all().order_by('-date')[:10]
+    yearly_income = Income.objects.filter(date__gte=start_of_year).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    yearly_expense = Expense.objects.filter(date__gte=start_of_year).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+    # 3. Item-wise Collection Breakdown (by AccountCategory)
+    # We focus on Income categories
+    category_collections = AccountCategory.objects.filter(type='income').annotate(
+        total=Sum('incomes__amount')
+    ).filter(total__gt=0).order_by('-total')
+
+    recent_incomes = Income.objects.all().order_by('-date')[:15]
+    recent_expenses = Expense.objects.all().order_by('-date')[:15]
 
     context = {
         'total_income': total_income,
         'total_expense': total_expense,
         'net_balance': net_balance,
+        
+        'daily_income': daily_income,
+        'daily_expense': daily_expense,
+        'monthly_income': monthly_income,
+        'monthly_expense': monthly_expense,
+        'yearly_income': yearly_income,
+        'yearly_expense': yearly_expense,
+        
+        'category_collections': category_collections,
         'recent_incomes': recent_incomes,
         'recent_expenses': recent_expenses,
+        
+        'today': today,
         'page_title': 'Finance Dashboard'
     }
     return render(request, 'fees/finance_dashboard.html', context)
@@ -113,7 +148,7 @@ def classroom_detail(request, grade_id, division_id=None):
 
 @role_required(['admin', 'accountant', 'student'])
 def student_fees(request, student_id):
-    """View all fees for a specific student."""
+    """View all fees for a specific student with dashboard summaries."""
     # Data isolation for students
     if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
         if not request.user.profile.student_record or request.user.profile.student_record.id != int(student_id):
@@ -121,16 +156,41 @@ def student_fees(request, student_id):
             return redirect('students:home')
             
     student = get_object_or_404(Student, id=student_id)
-    fees = student.fees.all()
+    from django.utils import timezone
+    today = timezone.now().date()
     
+    fees = student.fees.all().order_by('due_date')
+    
+    # Calculate Summaries
+    total_paid = fees.aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')
+    
+    total_due = Decimal('0.00')
+    balance_pending = Decimal('0.00')
+    next_due_date = None
+    
+    for fee in fees:
+        if fee.balance > 0:
+            if not next_due_date or (fee.due_date and fee.due_date < next_due_date):
+                if fee.due_date and fee.due_date >= today:
+                    next_due_date = fee.due_date
+            
+            if fee.due_date and fee.due_date <= today:
+                total_due += fee.balance
+            else:
+                balance_pending += fee.balance
+
+    # If no future due dates, and still has balance, find the oldest due date
+    if not next_due_date:
+        overdue_fees = [f for f in fees if f.balance > 0 and f.due_date and f.due_date <= today]
+        if overdue_fees:
+            next_due_date = overdue_fees[0].due_date
+
     # Fetch grouped payments to act as combined receipts
-    # We can fetch all unique Income records tied to this student's fee payments
     income_ids = FeePayment.objects.filter(student_fee__student=student, income__isnull=False).values_list('income__id', flat=True).distinct()
     incomes = Income.objects.filter(id__in=income_ids).order_by('-date')
     
     unified_receipts = []
     for inc in incomes:
-        # Get all payments associated with this specific income receipt
         payments_for_inc = inc.fee_payments.all()
         allocated = sum(p.amount for p in payments_for_inc)
         advance = inc.amount - allocated
@@ -144,8 +204,12 @@ def student_fees(request, student_id):
     context = {
         'student': student,
         'fees': fees,
+        'total_paid': total_paid,
+        'total_due': total_due,
+        'balance_pending': balance_pending,
+        'next_due_date': next_due_date,
         'unified_receipts': unified_receipts,
-        'page_title': f"Fees for {student.full_name}"
+        'page_title': f"Fees Dashboard: {student.full_name}"
     }
     return render(request, 'fees/student_fees.html', context)
 
@@ -218,36 +282,93 @@ def collect_payment(request, student_id):
                 fee.update_status()
                 remaining_amount -= payment_for_this_fee
                 
-            # Loop 3: If funds still remain, store as advance on student profile
+            # Loop 3: If funds still remain, apply to UPCOMING (future) fees sorted by due date
             advance_message = ""
+            advance_allocated_messages = []
             if remaining_amount > 0:
-                student.advance_balance += remaining_amount
-                student.save()
-                advance_message = f" ₹{remaining_amount:.2f} added as Advance."
+                # Get all future fees (status 'due', not yet past due, or already partial) sorted by earliest due date
+                future_fees = student.fees.filter(
+                    status__in=['due', 'partial']
+                ).exclude(
+                    id__in=[f.id for f in all_pending_fees]  # exclude already-processed fees
+                ).order_by('due_date')
 
-            # Automatically log this in the general Income ledger
-            fee_category, _ = AccountCategory.objects.get_or_create(
-                name="Student Fees", 
-                type="income",
-                defaults={'description': 'Automatically generated category for student fees'}
-            )
-            income_record = Income.objects.create(
-                category=fee_category,
-                amount=amount,
-                received_from=student.full_name,
-                payment_method=payment_method,
-                reference_number=reference_number,
-                remarks=f"Mass Collection across {len(payments_created)} fees.{advance_message} Remarks: {remarks}",
-                fee_payment_ref=payments_created[0] if payments_created else None,
-                collected_by=request.user.username
-            )
+                for future_fee in future_fees:
+                    if remaining_amount <= 0:
+                        break
+                    payment_for_this_fee = min(remaining_amount, future_fee.balance)
+                    payment = FeePayment.objects.create(
+                        student_fee=future_fee,
+                        amount=payment_for_this_fee,
+                        payment_method=payment_method,
+                        reference_number=reference_number,
+                        remarks=f"Auto-advance allocation from overpayment. " + remarks,
+                        collected_by=request.user.username
+                    )
+                    payments_created.append(payment)
+                    future_fee.amount_paid += payment.amount
+                    future_fee.update_status()
+                    remaining_amount -= payment_for_this_fee
+                    item_name = future_fee.fee_item.name if future_fee.fee_item else 'Fee'
+                    due_label = future_fee.due_date.strftime('%d/%m/%Y') if future_fee.due_date else 'upcoming'
+                    advance_allocated_messages.append(f"₹{payment.amount:.2f} → {item_name} (due {due_label})")
+
+                if advance_allocated_messages:
+                    advance_message = f" Advance applied: {', '.join(advance_allocated_messages)}."
+
+                # If still leftover after all future fees also settled, store rest as advance
+                if remaining_amount > 0:
+                    student.advance_balance += remaining_amount
+                    student.save()
+                    advance_message += f" ₹{remaining_amount:.2f} stored as Advance Balance."
+
+            # Automatically log this in the Departmental Income ledger
+            from collections import defaultdict
+            dept_totals = defaultdict(Decimal)
+            payments_by_dept = defaultdict(list)
             
-            # Now update all generated FeePayments to link to this overarching Income record
             for payment in payments_created:
-                payment.income = income_record
-                payment.save()
+                # Assuming StudentFee.fee_item is the link to FeeItem
+                # We need to ensure we can access the department
+                dept = getattr(payment.student_fee.fee_item, 'department', 'academic')
+                dept_totals[dept] += payment.amount
+                payments_by_dept[dept].append(payment)
             
-            messages.success(request, f"Payment of ₹{amount} collected and allocated successfully.{advance_message}")
+            if remaining_amount > 0:
+                dept_totals['general'] += remaining_amount
+            
+            for dept, total_dept_amount in dept_totals.items():
+                if total_dept_amount <= 0:
+                    continue
+                    
+                # Get or create a category for this department
+                cat_name = f"Student Fees ({dept.capitalize()})"
+                fee_category, _ = AccountCategory.objects.get_or_create(
+                    name=cat_name, 
+                    type='income',
+                    defaults={
+                        'description': f'Automatically generated category for {dept} student fees',
+                        'department': dept
+                    }
+                )
+                
+                income_record = Income.objects.create(
+                    category=fee_category,
+                    amount=total_dept_amount,
+                    received_from=student.full_name,
+                    payment_method=payment_method,
+                    reference_number=reference_number,
+                    remarks=f"Departmental Collection: {dept}.{advance_message if dept == 'general' else ''} Remarks: {remarks}",
+                    department=dept,
+                    collected_by=request.user.username
+                )
+                
+                # Link related payments to this specific departmental income record
+                for payment in payments_by_dept[dept]:
+                    payment.income = income_record
+                    payment.save()
+            
+            messages.success(request, f"Payment of ₹{amount} collected and allocated successfully across departments.{advance_message}")
             return redirect('fees:student_fees', student_id=student.id)
         except ValueError as e:
             messages.error(request, str(e))
@@ -694,66 +815,19 @@ def manage_fee_installments(request, item_id):
 @role_required(['admin', 'accountant'])
 def generate_monthly_fees(request):
     """Batch generate recurring (monthly) fees for all active students"""
-    from students.models import Student, AcademicYear
     from datetime import date
+    from .services import generate_monthly_fees_for_all
     
     if request.method == 'POST':
         month = int(request.POST.get('month'))
         year = int(request.POST.get('year'))
-        due_date = date(year, month, 1)
-        month_name = due_date.strftime('%B %Y')
+        billing_date = date(year, month, 1)
         
-        # 1. Identify Monthly Fee Items
-        monthly_items = FeeItem.objects.filter(is_monthly=True)
-        hostel_item = monthly_items.filter(category__name__icontains='Hostel').first()
-        bus_item = monthly_items.filter(name__icontains='Bus Fee').first()
+        created, updated = generate_monthly_fees_for_all(billing_date)
         
-        active_students = Student.objects.filter(is_active=True)
-        created_count = 0
-        
-        for student in active_students:
-            # - Hostel Fee logic
-            if student.student_type == 'hostel' and hostel_item:
-                # Check for existing
-                exists = StudentFee.objects.filter(
-                    student=student, 
-                    fee_item=hostel_item, 
-                    due_date=due_date
-                ).exists()
-                
-                if not exists:
-                    StudentFee.objects.create(
-                        student=student,
-                        fee_item=hostel_item,
-                        total_amount=hostel_item.default_amount,
-                        due_date=due_date,
-                        remarks=f"Hostel Fee - {month_name}"
-                    )
-                    created_count += 1
-            
-            # - Vehicle Fee logic (Stop-wise)
-            if hasattr(student, 'bus_stop') and student.bus_stop and bus_item:
-                exists = StudentFee.objects.filter(
-                    student=student, 
-                    fee_item=bus_item, 
-                    due_date=due_date
-                ).exists()
-                
-                if not exists:
-                    StudentFee.objects.create(
-                        student=student,
-                        fee_item=bus_item,
-                        total_amount=student.bus_stop.fee_amount, # CALCULATED STOP WISE
-                        due_date=due_date,
-                        remarks=f"Vehicle Fee - {month_name} (Stop: {student.bus_stop.stop_name})"
-                    )
-                    created_count += 1
-                    
-        messages.success(request, f"Successfully generated {created_count} recurring fee records for {month_name}.")
+        messages.success(request, f"Monthly fees processed: {created} new generated, {updated} updated based on attendance.")
         return redirect('fees:fee_setup_dashboard')
 
-    # For non-POST, just render the setup dashboard or a simple tool page? 
-    # Let's assume this is triggered from setup dashboard directly via a modal or simple form section.
     return redirect('fees:fee_setup_dashboard')
 
 from .forms import FeeStructureForm
@@ -948,3 +1022,377 @@ def fee_item_delete(request, pk):
     context = {'object': item, 'page_title': 'Delete Fee Item'}
     return render(request, 'fees/setup_confirm_delete.html', context)
 
+@role_required(['admin', 'accountant'])
+def day_book(request):
+    """Chronological list of all financial transactions."""
+    from django.db.models import Value, CharField
+    from django.utils import timezone
+    
+    start_date = request.GET.get('start_date', timezone.now().date().isoformat())
+    end_date = request.GET.get('end_date', timezone.now().date().isoformat())
+    
+    incomes = Income.objects.filter(date__range=[start_date, end_date]).annotate(
+        trans_type=Value('income', output_field=CharField())
+    )
+    expenses = Expense.objects.filter(date__range=[start_date, end_date]).annotate(
+        trans_type=Value('expense', output_field=CharField())
+    )
+    
+    # Combine and sort
+    from itertools import chain
+    transactions = sorted(
+        chain(incomes, expenses),
+        key=lambda x: (x.date, x.id),
+        reverse=True
+    )
+    
+    total_in = Sum(i.amount for i in incomes) # Note: Sum aggregation on queryset is faster but this works for context
+    total_in = incomes.aggregate(Sum('amount'))['amount__sum'] or 0
+    total_out = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    context = {
+        'transactions': transactions,
+        'start_date': start_date,
+        'end_date': end_date,
+        'total_in': total_in,
+        'total_out': total_out,
+        'net': total_in - total_out,
+        'page_title': 'Day Book'
+    }
+    return render(request, 'fees/day_book.html', context)
+
+@role_required(['admin', 'accountant'])
+def ledger_book(request):
+    """Ledger view: Financials grouped by AccountCategory."""
+    categories = AccountCategory.objects.annotate(
+        total_amount=Sum(
+            Case(
+                When(type='income', then='incomes__amount'),
+                When(type='expense', then='expenses__amount'),
+                output_field=DecimalField()
+            )
+        )
+    ).filter(total_amount__isnull=False).order_by('type', 'name')
+    
+    # Detail view if category is selected
+    selected_cat_id = request.GET.get('category')
+    selected_cat = None
+    ledger_entries = []
+    if selected_cat_id:
+        # Use the annotated queryset so total_amount is available in the template
+        selected_cat = categories.filter(id=selected_cat_id).first()
+        if not selected_cat:
+            selected_cat = AccountCategory.objects.filter(id=selected_cat_id).first()
+        if selected_cat:
+            if selected_cat.type == 'income':
+                ledger_entries = selected_cat.incomes.all().order_by('-date')
+            else:
+                ledger_entries = selected_cat.expenses.all().order_by('-date')
+            
+    context = {
+        'categories': categories,
+        'selected_cat': selected_cat,
+        'ledger_entries': ledger_entries,
+        'page_title': 'Ledger Book'
+    }
+    return render(request, 'fees/ledger_book.html', context)
+
+@role_required(['admin', 'accountant'])
+def finance_report(request):
+    """Profit and Loss / Monthly Performance Report."""
+    from django.utils import timezone
+    month = int(request.GET.get('month', timezone.now().month))
+    year = int(request.GET.get('year', timezone.now().year))
+    
+    incomes = Income.objects.filter(date__month=month, date__year=year)
+    expenses = Expense.objects.filter(date__month=month, date__year=year)
+    
+    inc_total = incomes.aggregate(Sum('amount'))['amount__sum'] or 0
+    exp_total = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    # Categorized breakdown for P&L
+    inc_breakdown = AccountCategory.objects.filter(type='income').annotate(
+        total=Sum('incomes__amount', filter=Q(incomes__date__month=month, incomes__date__year=year))
+    ).filter(total__gt=0)
+    
+    exp_breakdown = AccountCategory.objects.filter(type='expense').annotate(
+        total=Sum('expenses__amount', filter=Q(expenses__date__month=month, expenses__date__year=year))
+    ).filter(total__gt=0)
+    
+    context = {
+        'month': month,
+        'year': year,
+        'inc_total': inc_total,
+        'exp_total': exp_total,
+        'profit': inc_total - exp_total,
+        'inc_breakdown': inc_breakdown,
+        'exp_breakdown': exp_breakdown,
+        'page_title': 'Finance Performance Report'
+    }
+    return render(request, 'fees/finance_report.html', context)
+
+@role_required(['admin', 'accountant'])
+def departmental_dashboard(request):
+    """Comparative Profit & Loss dashboard for Academic vs Hostel departments."""
+    from django.db.models import Sum, Q, DecimalField, Case, When
+    
+    # Financial aggregate by department
+    def get_dept_financials(dept):
+        inc = Income.objects.filter(department=dept).aggregate(total=Sum('amount'))['total'] or 0
+        exp = Expense.objects.filter(department=dept).aggregate(total=Sum('amount'))['total'] or 0
+        return {
+            'income': inc,
+            'expense': exp,
+            'profit': inc - exp
+        }
+    
+    academic = get_dept_financials('academic')
+    hostel = get_dept_financials('hostel')
+    general = get_dept_financials('general')
+    
+    # Total institution-wide
+    total_income = academic['income'] + hostel['income'] + general['income']
+    total_expense = academic['expense'] + hostel['expense'] + general['expense']
+    
+    # Category break down by department
+    cat_summary = AccountCategory.objects.annotate(
+        inc_total=Sum('incomes__amount'),
+        exp_total=Sum('expenses__amount')
+    ).filter(Q(inc_total__gt=0) | Q(exp_total__gt=0)).order_by('department', 'name')
+    
+    context = {
+        'academic': academic,
+        'hostel': hostel,
+        'general': general,
+        'total_income': total_income,
+        'total_expense': total_expense,
+        'overall_profit': total_income - total_expense,
+        'cat_summary': cat_summary,
+        'page_title': 'Departmental Accounting'
+    }
+    return render(request, 'fees/departmental_dashboard.html', context)
+
+from .forms import BusStopForm
+from .models import BusStop
+
+@role_required(['admin', 'accountant'])
+def bus_stop_list(request):
+    """List all bus stops."""
+    bus_stops = BusStop.objects.all().order_by('stop_name')
+    context = {'bus_stops': bus_stops, 'page_title': 'Manage Bus Stops'}
+    return render(request, 'fees/bus_stop_list.html', context)
+
+@role_required(['admin', 'accountant'])
+def bus_stop_create(request):
+    """Create a new bus stop."""
+    if request.method == 'POST':
+        form = BusStopForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Bus stop created successfully.')
+            return redirect('fees:bus_stop_list')
+    else:
+        form = BusStopForm()
+    
+    context = {'form': form, 'page_title': 'Add Bus Stop'}
+    return render(request, 'fees/bus_stop_form.html', context)
+
+@role_required(['admin', 'accountant'])
+def bus_stop_update(request, pk):
+    """Edit an existing bus stop."""
+    bus_stop = get_object_or_404(BusStop, pk=pk)
+    if request.method == 'POST':
+        form = BusStopForm(request.POST, instance=bus_stop)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Bus stop updated successfully.')
+            return redirect('fees:bus_stop_list')
+    else:
+        form = BusStopForm(instance=bus_stop)
+        
+    context = {'form': form, 'page_title': 'Edit Bus Stop', 'is_edit': True}
+    return render(request, 'fees/bus_stop_form.html', context)
+
+@role_required(['admin', 'accountant'])
+def bus_stop_delete(request, pk):
+    """Delete a bus stop."""
+    bus_stop = get_object_or_404(BusStop, pk=pk)
+    if request.method == 'POST':
+        bus_stop.delete()
+        messages.success(request, 'Bus stop deleted successfully.')
+        return redirect('fees:bus_stop_list')
+        
+    context = {'object': bus_stop, 'page_title': 'Delete Bus Stop'}
+    return render(request, 'fees/setup_confirm_delete.html', context)
+
+@role_required(['admin', 'accountant'])
+def monthly_fee_adjustment(request):
+    """Interface to list generated monthly fees and allow manual adjustment based on present days."""
+    from students.models import AcademicYear
+    from .models import StudentFee
+    import datetime
+    
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    
+    # Process AJAX update
+    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        fee_id = request.POST.get('fee_id')
+        present_days = request.POST.get('present_days')
+        
+        try:
+            fee = StudentFee.objects.get(id=fee_id)
+            if fee.fee_item and fee.fee_item.is_monthly:
+                present_days = int(present_days)
+                fee.present_days = present_days
+                
+                # Apply the 40/80/100 logic (matching services.py logic or user request)
+                from .services import calculate_prorated_percentage
+                # If the user enters present days manually, we can use the same calculation
+                percentage = calculate_prorated_percentage(present_days)
+                fee.prorated_percentage = percentage
+                
+                # Default amount calculation points to what the item initially cost
+                base_amount = fee.fee_item.default_amount
+                if fee.remarks.startswith("Vehicle Fee") and fee.student.bus_stop:
+                    base_amount = fee.student.bus_stop.fee_amount
+                
+                from decimal import Decimal
+                new_total = (base_amount * percentage) / Decimal('100.00')
+                
+                fee.total_amount = new_total
+                fee.update_status()
+                fee.save()
+                
+                return JsonResponse({'success': True, 'new_total': float(new_total), 'percentage': float(percentage)})
+            else:
+                return JsonResponse({'success': False, 'message': 'Not a monthly fee.'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+
+    # GET request - list fees
+    month = request.GET.get('month', datetime.date.today().month)
+    year = request.GET.get('year', datetime.date.today().year)
+    
+    try:
+        month = int(month)
+        year = int(year)
+    except ValueError:
+        month = datetime.date.today().month
+        year = datetime.date.today().year
+        
+    target_date = datetime.date(year, month, 1)
+    
+    monthly_fees = StudentFee.objects.filter(
+        billing_month=target_date,
+        fee_item__is_monthly=True
+    ).select_related('student', 'fee_item')
+    
+    # Filter by category if requested
+    fee_type = request.GET.get('type')
+    if fee_type == 'hostel':
+        monthly_fees = monthly_fees.filter(fee_item__name__icontains='Hostel')
+    elif fee_type == 'vehicle':
+        monthly_fees = monthly_fees.filter(fee_item__name__icontains='Bus')
+        
+    context = {
+        'page_title': 'Monthly Fee Adjustments',
+        'monthly_fees': monthly_fees,
+        'current_month': month,
+        'current_year': year,
+        'fee_type': fee_type
+    }
+    return render(request, 'fees/monthly_adjustment.html', context)
+
+@role_required(['admin', 'accountant'])
+def add_medical_fee(request, student_id):
+    """Manually assign a medical fee to a student."""
+    student = get_object_or_404(Student, id=student_id)
+    medical_item = FeeItem.objects.filter(name__icontains='Medical Fee').first()
+    
+    if not medical_item:
+        # Fallback if not found, though we created it in shell
+        cat, _ = FeeCategory.objects.get_or_create(name='Medical')
+        medical_item, _ = FeeItem.objects.get_or_create(
+            category=cat, 
+            name='Medical Fee', 
+            defaults={'default_amount': 0}
+        )
+
+    if request.method == 'POST':
+        amount = request.POST.get('amount')
+        remarks = request.POST.get('remarks', '')
+        due_date = request.POST.get('due_date') or timezone.now().date()
+        
+        try:
+            amount = Decimal(amount)
+            if amount < 0:
+                raise ValueError("Amount cannot be negative.")
+                
+            StudentFee.objects.create(
+                student=student,
+                fee_item=medical_item,
+                total_amount=amount,
+                due_date=due_date,
+                remarks=remarks
+            )
+            messages.success(request, f"Medical fee of ₹{amount} assigned to {student.full_name}.")
+            return redirect('fees:student_fees', student_id=student.id)
+        except (ValueError, Decimal.InvalidOperation) as e:
+            messages.error(request, f"Invalid data: {str(e)}")
+            
+    context = {
+        'student': student,
+        'fee_item': medical_item,
+        'page_title': f"Add Medical Fee: {student.full_name}"
+    }
+    return render(request, 'fees/medical_fee_form.html', context)
+
+
+@role_required(['admin', 'accountant', 'student'])
+def print_payment_history(request, student_id):
+    """Printable complete payment history for a student."""
+    # Data isolation for student role
+    if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
+        if not request.user.profile.student_record or request.user.profile.student_record.id != int(student_id):
+            messages.error(request, "You do not have permission to view other students' details.")
+            return redirect('students:home')
+
+    student = get_object_or_404(Student, id=student_id)
+    from django.utils import timezone
+    today = timezone.now().date()
+
+    # All fees ever assigned to this student
+    fees = student.fees.all().order_by('due_date')
+
+    # All payment transactions
+    income_ids = FeePayment.objects.filter(
+        student_fee__student=student, income__isnull=False
+    ).values_list('income__id', flat=True).distinct()
+    incomes = Income.objects.filter(id__in=income_ids).order_by('date')
+
+    receipts = []
+    for inc in incomes:
+        payments_for_inc = inc.fee_payments.all()
+        allocated = sum(p.amount for p in payments_for_inc)
+        advance = inc.amount - allocated
+        receipts.append({
+            'income': inc,
+            'payments': payments_for_inc,
+            'advance_amount': advance,
+        })
+
+    total_charged = fees.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+    total_paid = fees.aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')
+    total_balance = sum(f.balance for f in fees)
+
+    context = {
+        'student': student,
+        'fees': fees,
+        'receipts': receipts,
+        'total_charged': total_charged,
+        'total_paid': total_paid,
+        'total_balance': total_balance,
+        'today': today,
+        'page_title': f"Payment History: {student.full_name}",
+    }
+    return render(request, 'fees/payment_history_print.html', context)

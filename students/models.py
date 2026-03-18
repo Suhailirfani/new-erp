@@ -96,6 +96,7 @@ class Student(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
     advance_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    bus_stop = models.ForeignKey('fees.BusStop', on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
 
     class Meta:
         ordering = ['last_name', 'first_name']

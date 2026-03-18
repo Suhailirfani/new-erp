@@ -283,13 +283,13 @@
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
         }
         
-        /* Glass Card for Alumni */
+        /* Glass Card - Modern Transparent Style */
         .glass-card {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(20px);
             border-radius: 24px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             overflow: hidden;
             position: relative;
@@ -319,8 +319,8 @@
         .btn {
             display: inline-block;
             padding: 0.875rem 2rem;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); /* Improved Contrast */
-            color: white !important;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
             text-decoration: none;
             border-radius: 12px;
             border: none;
@@ -374,6 +374,39 @@
         .btn-danger:hover {
             box-shadow: 0 12px 24px -5px rgba(239, 68, 68, 0.5);
         }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+            box-shadow: 0 4px 6px -1px rgba(100, 116, 139, 0.3);
+            color: white !important;
+        }
+        .btn-secondary:hover {
+            box-shadow: 0 12px 24px -5px rgba(100, 116, 139, 0.5);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.3);
+            color: white !important;
+        }
+        .btn-warning:hover {
+            box-shadow: 0 12px 24px -5px rgba(245, 158, 11, 0.5);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.3);
+            color: white !important;
+        }
+        .btn-info:hover {
+            box-shadow: 0 12px 24px -5px rgba(14, 165, 233, 0.5);
+        }
+
+        .btn-xs {
+            padding: 0.25rem 0.5rem !important;
+            font-size: 0.75rem !important;
+            border-radius: 6px !important;
+        }
         
         .btn-gradient {
             background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
@@ -410,6 +443,52 @@
             border-color: white !important;
             transform: translateY(-3px);
             box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Outline Button Fixes */
+        .btn-outline-primary { color: #4f46e5 !important; border-color: #4f46e5 !important; background: transparent; }
+        .btn-outline-primary:hover { background: #4f46e5 !important; color: white !important; }
+        
+        .btn-outline-success { color: #10b981 !important; border-color: #10b981 !important; background: transparent; }
+        .btn-outline-success:hover { background: #10b981 !important; color: white !important; }
+        
+        .btn-outline-danger { color: #ef4444 !important; border-color: #ef4444 !important; background: transparent; }
+        .btn-outline-danger:hover { background: #ef4444 !important; color: white !important; }
+        
+        .btn-outline-warning { color: #d97706 !important; border-color: #d97706 !important; background: transparent; }
+        .btn-outline-warning:hover { background: #d97706 !important; color: white !important; }
+        
+        .btn-outline-info { color: #0284c7 !important; border-color: #0284c7 !important; background: transparent; }
+        .btn-outline-info:hover { background: #0284c7 !important; color: white !important; }
+
+        .btn-outline-secondary { color: #475569 !important; border-color: #475569 !important; background: transparent; }
+        .btn-outline-secondary:hover { background: #475569 !important; color: white !important; }
+
+        /* Force high contrast for solid buttons */
+        .btn-primary, .btn-success, .btn-danger, .btn-secondary, .btn-warning, .btn-info, .btn-gradient, .btn-xs.btn-primary, .btn-xs.btn-danger, .btn-xs.btn-warning {
+            color: white !important;
+        }
+
+        /* Inside glass cards, everything should be white for contrast */
+        .glass-card .btn, .glass-card .btn-outline-glass {
+            color: white !important;
+            border-color: rgba(255, 255, 255, 0.4) !important;
+        }
+        .glass-card .btn-outline-glass:hover {
+            background: rgba(255, 255, 255, 0.2) !important;
+            border-color: white !important;
+        }
+
+        /* Ensure heading contrast inside cards */
+        .glass-card h1, .glass-card h2, .glass-card h3, .glass-card h4, .glass-card p {
+            color: white !important;
+        }
+        .glass-card .text-muted {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
+        .glass-card .badge {
+            background: rgba(255, 255, 255, 0.2) !important;
+            color: white !important;
         }
         
         /* Table Styles */

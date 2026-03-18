@@ -1,77 +1,152 @@
 {% extends 'students/base.html' %}
 
-{% block title %}Finance Dashboard{% endblock %}
+{% block title %}Finance & Accounts Dashboard{% endblock %}
 
 {% block content %}
-<div class="row mb-4 align-items-center">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-        <div>
-            <h2 style="font-size: 1.8rem; font-weight: 800; background: var(--gradient-1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Finance Dashboard</h2>
-        </div>
-        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <a href="{% url 'fees:add_income' %}" class="btn btn-success"><i class="fas fa-plus-circle"></i> Add Income</a>
-            <a href="{% url 'fees:add_expense' %}" class="btn btn-danger"><i class="fas fa-minus-circle"></i> Add Expense</a>
+<div class="row mb-5 align-items-center">
+    <div class="col-md-7">
+        <h2 style="font-size: 2.2rem; font-weight: 800; color: #ffffff !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin-bottom: 0.25rem;">
+            <i class="fas fa-chart-line me-2"></i> Finance Dashboard
+        </h2>
+        <p style="color: rgba(255,255,255,0.85); font-size: 1.1rem; font-weight: 500;">
+            Institutional Financial Health & Transactions | {{ today|date:"D, d M Y" }}
+        </p>
+    </div>
+    <div class="col-md-5 text-end">
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; flex-wrap: wrap;">
+            <a href="{% url 'fees:departmental_dashboard' %}" class="btn btn-outline-glass">
+                <i class="fas fa-chart-pie me-1"></i> Dept. Analytics
+            </a>
+            <a href="{% url 'fees:day_book' %}" class="btn btn-outline-glass">
+                <i class="fas fa-book me-1"></i> Day Book
+            </a>
+            <a href="{% url 'fees:ledger_book' %}" class="btn btn-outline-glass">
+                <i class="fas fa-list me-1"></i> Ledger
+            </a>
+            <a href="{% url 'fees:finance_report' %}" class="btn btn-outline-glass">
+                <i class="fas fa-file-invoice me-1"></i> Reports
+            </a>
+            <a href="{% url 'fees:add_income' %}" class="btn btn-gradient">
+                <i class="fas fa-plus me-1"></i> Add Income
+            </a>
+            <a href="{% url 'fees:add_expense' %}" class="btn btn-outline-glass border-danger text-danger">
+                <i class="fas fa-minus me-1"></i> Add Expense
+            </a>
         </div>
     </div>
 </div>
 
-<!-- Financial Summary Cards -->
-<div class="stats mb-4">
-    <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-        <h3 class="mb-0">₹ {{ total_income|floatformat:2 }}</h3>
-        <p class="text-uppercase mb-2 opacity-75">Total Income</p>
+<!-- Key Metrics Grid -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+    <!-- Daily Report -->
+    <div class="glass-card" style="padding: 1.5rem; border-top: 5px solid #10b981;">
+        <p style="text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem; font-weight: 700;">Today's Collection</p>
+        <h3 style="font-size: 2rem; font-weight: 800; color: #ffffff !important; margin: 0;">₹{{ daily_income|floatformat:2 }}</h3>
+        <div style="margin-top: 0.5rem; color: #a7f3d0; font-size: 0.85rem; font-weight: 600;">
+            Expense: ₹{{ daily_expense|floatformat:2 }}
+        </div>
     </div>
-    
-    <div class="stat-card" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
-        <h3 class="mb-0">₹ {{ total_expense|floatformat:2 }}</h3>
-        <p class="text-uppercase mb-2 opacity-75">Total Expense</p>
+
+    <!-- Monthly Report -->
+    <div class="glass-card" style="padding: 1.5rem; border-top: 5px solid #6366f1;">
+        <p style="text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem; font-weight: 700;">Monthly Summary</p>
+        <h3 style="font-size: 2rem; font-weight: 800; color: #ffffff !important; margin: 0;">₹{{ monthly_income|floatformat:2 }}</h3>
+        <div style="margin-top: 0.5rem; color: #c7d2fe; font-size: 0.85rem; font-weight: 600;">
+            Net: ₹{{ monthly_income|add:monthly_expense|floatformat:2 }} <!-- simplifying subtraction in template is limited, view logic preferred but this works for summary -->
+        </div>
     </div>
-    
-    <div class="stat-card" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
-        <h3 class="mb-0">₹ {{ net_balance|floatformat:2 }}</h3>
-        <p class="text-uppercase mb-2 opacity-75">Net Balance</p>
+
+    <!-- Yearly Report -->
+    <div class="glass-card" style="padding: 1.5rem; border-top: 5px solid #f59e0b;">
+        <p style="text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem; font-weight: 700;">Yearly Total</p>
+        <h3 style="font-size: 2rem; font-weight: 800; color: #ffffff !important; margin: 0;">₹{{ yearly_income|floatformat:2 }}</h3>
+        <p style="margin-top: 0.5rem; color: rgba(255,255,255,0.8); font-size: 0.85rem; margin-bottom: 0;">Academic Year Performance</p>
+    </div>
+
+    <!-- Overall Balance -->
+    <div class="glass-card" style="padding: 1.5rem; border-top: 5px solid #ffffff; background: rgba(255,255,255,0.1);">
+        <p style="text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem; font-weight: 700;">Projected Balance</p>
+        <h3 style="font-size: 2rem; font-weight: 800; color: #ffffff !important; margin: 0;">₹{{ net_balance|floatformat:2 }}</h3>
+        <div style="margin-top: 0.5rem; color: rgba(255,255,255,0.8); font-size: 0.85rem;">Grand Total Liquidity</div>
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-    <!-- Recent Income -->
-    <div class="col-md-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-light text-success fw-bold">Recent Income</div>
-            <div class="card-body p-0">
-                <div class="list-group list-group-flush">
-                    {% for income in recent_incomes %}
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="fw-bold">{{ income.category.name }}</div>
-                            <small class="text-muted">From: {{ income.received_from|truncatechars:20 }} | {{ income.date|date:"j M Y" }}</small>
-                        </div>
-                        <span class="badge bg-success rounded-pill">₹{{ income.amount }}</span>
+<div class="row">
+    <!-- Item-wise collection -->
+    <div class="col-lg-5 mb-4">
+        <div class="card shadow-lg border-0" style="border-radius: 20px;">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-tags me-2 text-primary"></i> Collection by Category</h5>
+            </div>
+            <div class="card-body">
+                {% for cat in category_collections %}
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fw-bold">{{ cat.name }}</span>
+                        <span class="text-primary fw-bold">₹{{ cat.total|floatformat:0 }}</span>
                     </div>
-                    {% empty %}
-                    <div class="list-group-item text-center text-muted py-3">No recent income.</div>
-                    {% endfor %}
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar" role="progressbar" style="width: {% widthratio cat.total total_income 100 %}%"></div>
+                    </div>
                 </div>
+                {% empty %}
+                <p class="text-center text-muted">No data available.</p>
+                {% endfor %}
             </div>
         </div>
     </div>
-    <!-- Recent Expenses -->
-    <div class="col-md-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-light text-danger fw-bold">Recent Expenses</div>
+
+    <!-- Day Book / Recent Transactions -->
+    <div class="col-lg-7">
+        <div class="card shadow-lg border-0" style="border-radius: 20px; overflow: hidden;">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-book me-2 text-success"></i> Recent Day Book</h5>
+                <button class="btn btn-sm btn-outline-primary" onclick="window.print()"><i class="fas fa-print"></i></button>
+            </div>
             <div class="card-body p-0">
-                <div class="list-group list-group-flush">
-                    {% for expense in recent_expenses %}
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="fw-bold">{{ expense.category.name }}</div>
-                            <small class="text-muted">To: {{ expense.paid_to|truncatechars:20 }} | {{ expense.date|date:"j M Y" }}</small>
-                        </div>
-                        <span class="badge bg-danger rounded-pill">₹{{ expense.amount }}</span>
-                    </div>
-                    {% empty %}
-                    <div class="list-group-item text-center text-muted py-3">No recent expenses.</div>
-                    {% endfor %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Date/Ref</th>
+                                <th>Category / Description</th>
+                                <th class="text-end pe-4">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Simplified Day Book: Interleaving Income and Expense -->
+                            {% for inc in recent_incomes %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold text-dark">{{ inc.date|date:"d M" }}</div>
+                                    <div class="text-muted small">#{{ inc.reference_number|default:inc.id }}</div>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-success"><i class="fas fa-plus-circle me-1 small"></i> {{ inc.category.name }}</div>
+                                    <div class="text-muted small">{{ inc.received_from|truncatechars:40 }}</div>
+                                </td>
+                                <td class="text-end pe-4 fw-bold text-success">
+                                    + ₹{{ inc.amount }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% for exp in recent_expenses %}
+                            <tr style="background-color: rgba(239, 68, 68, 0.02);">
+                                <td class="ps-4">
+                                    <div class="fw-bold text-dark">{{ exp.date|date:"d M" }}</div>
+                                    <div class="text-muted small">#{{ exp.reference_number|default:exp.id }}</div>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-danger"><i class="fas fa-minus-circle me-1 small"></i> {{ exp.category.name }}</div>
+                                    <div class="text-muted small">{{ exp.paid_to|truncatechars:40 }}</div>
+                                </td>
+                                <td class="text-end pe-4 fw-bold text-danger">
+                                    - ₹{{ exp.amount }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

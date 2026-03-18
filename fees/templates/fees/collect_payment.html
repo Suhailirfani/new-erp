@@ -39,18 +39,18 @@
                                 </label>
                             </div>
                         </td>
-                        <td class="text-danger small pt-2 text-end align-middle">₹{{ f.balance }}</td>
+                        <td class="text-danger small pt-2 text-end align-middle">₹{{ f.balance|floatformat:2 }}</td>
                     </tr>
                     {% empty %}
                     <tr><td colspan="2" class="text-success small pt-2">No pending fees. Any payment will be saved as Advance.</td></tr>
                     {% endfor %}
                     <tr>
                         <th class="pt-3 border-top mt-2">Total Balance Due:</th>
-                        <td class="text-danger fw-bold fs-4 pt-3 border-top mt-2 text-end">₹{{ total_due }}</td>
+                        <td class="text-danger fw-bold fs-4 pt-3 border-top mt-2 text-end">₹{{ total_due|floatformat:2 }}</td>
                     </tr>
                     <tr>
                         <th class="pt-2 text-muted small mt-2">Current Advance Credit:</th>
-                        <td class="text-success fw-bold small pt-2 mt-2 text-end">₹{{ student.advance_balance }}</td>
+                        <td class="text-success fw-bold small pt-2 mt-2 text-end">₹{{ student.advance_balance|floatformat:2 }}</td>
                     </tr>
                     <tr>
                         <td colspan="2" class="text-muted small pt-2 border-top">
@@ -81,7 +81,7 @@
                     {% csrf_token %}
                     <div class="mb-3">
                         <label for="amount" class="form-label">Payment Amount (₹)</label>
-                        <input type="number" step="0.01" min="0.01" max="{{ total_due|stringformat:'f' }}" class="form-control" id="amount" name="amount" value="{{ total_due|stringformat:'f' }}" required>
+                        <input type="number" step="0.01" min="0.01" class="form-control" id="amount" name="amount" value="{{ total_due|floatformat:2 }}" required>
                     </div>
                     
                     <div class="mb-3">

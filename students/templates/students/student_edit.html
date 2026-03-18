@@ -79,10 +79,21 @@
 
         <div class="form-group">
             <label>Student Type</label>
-            <select name="student_type" {% if request.user.profile.role == 'student' %}disabled{% endif %}>
+            <select name="student_type" id="studentTypeSelect" onchange="toggleBusStop()" {% if request.user.profile.role == 'student' %}disabled{% endif %}>
                 <option value="hostel" {% if student.student_type == 'hostel' %}selected{% endif %}>Hostel</option>
                 <option value="day_scholar" {% if student.student_type == 'day_scholar' %}selected{% endif %}>Day Scholar</option>
             </select>
+        </div>
+
+        <div class="form-group" id="bus-stop-group" style="{% if student.student_type != 'day_scholar' %}display: none;{% endif %}">
+            <label>Bus Stop</label>
+            <select name="bus_stop" class="form-control" {% if request.user.profile.role == 'student' %}disabled{% endif %}>
+                <option value="">-- No Bus Required --</option>
+                {% for stop in bus_stops %}
+                    <option value="{{ stop.id }}" {% if student.bus_stop_id == stop.id %}selected{% endif %}>{{ stop.stop_name }} (₹{{ stop.fee_amount }}/month)</option>
+                {% endfor %}
+            </select>
+            <small style="color: #666; display: block; margin-top: 5px;">Select a bus stop to automatically assign monthly vehicle fees.</small>
         </div>
 
         <div class="form-group">
@@ -163,4 +174,21 @@
 </div>
 {% endif %}
 
+<script>
+    function toggleBusStop() {
+        const studentTypeSelect = document.getElementById('studentTypeSelect');
+        const busStopGroup = document.getElementById('bus-stop-group');
+        
+        if (studentTypeSelect && busStopGroup) {
+            if (studentTypeSelect.value === 'day_scholar') {
+                busStopGroup.style.display = 'block';
+            } else {
+                busStopGroup.style.display = 'none';
+            }
+        }
+    }
+    
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', toggleBusStop);
+</script>
 {% endblock %}

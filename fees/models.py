@@ -1,10 +1,17 @@
 from django.db import models
+from decimal import Decimal
 import uuid
 
 class FeeCategory(models.Model):
     """Categories like Admission, Course, Hostel, Transport, etc."""
+    DEPARTMENT_CHOICES = [
+        ('academic', 'Academic'),
+        ('hostel', 'Hostel'),
+        ('general', 'General/Institutional'),
+    ]
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
+    department = models.CharField(max_length=20, choices=DEPARTMENT_CHOICES, default='general')
 
     class Meta:
         verbose_name_plural = "Fee Categories"
@@ -32,6 +39,12 @@ class FeeItem(models.Model):
         ('day_scholar', 'Day Scholars Only'),
     ]
     target_student_type = models.CharField(max_length=20, choices=STUDENT_TYPE_TARGET_CHOICES, default='all')
+    department = models.CharField(
+        max_length=20, 
+        choices=FeeCategory.DEPARTMENT_CHOICES, 
+        default='academic',
+        help_text="The department this fee belongs to (Academic vs Hostel)"
+    )
 
     class Meta:
         ordering = ['category', 'name']
@@ -81,6 +94,15 @@ class StudentFee(models.Model):
     remarks = models.TextField(blank=True)
     due_date = models.DateField(null=True, blank=True)
     
+    # Concessions
+    concession_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    concession_remark = models.TextField(blank=True)
+    
+    # Prorating for Monthly Fees (Hostel/Vehicle)
+    prorated_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=100, help_text="e.g., 40, 80, 100")
+    present_days = models.PositiveIntegerField(null=True, blank=True, help_text="Manual adjustment of days present in the billing month")
+    billing_month = models.DateField(null=True, blank=True, help_text="The month this recurring fee covers")
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -93,7 +115,9 @@ class StudentFee(models.Model):
 
     @property
     def balance(self):
-        return self.total_amount - self.amount_paid
+        # Effective total is amount minus any concession
+        effective_total = self.total_amount - self.concession_amount
+        return max(Decimal('0.00'), effective_total - self.amount_paid)
 
     def update_status(self):
         if self.amount_paid >= self.total_amount:
@@ -138,6 +162,7 @@ class AccountCategory(models.Model):
     ]
     name = models.CharField(max_length=100, unique=True)
     type = models.CharField(max_length=10, choices=CATEGORY_TYPES)
+    department = models.CharField(max_length=20, choices=FeeCategory.DEPARTMENT_CHOICES, default='general')
     description = models.TextField(blank=True)
 
     class Meta:
@@ -167,6 +192,7 @@ class Income(models.Model):
     remarks = models.TextField(blank=True)
     fee_payment_ref = models.OneToOneField(FeePayment, null=True, blank=True, on_delete=models.SET_NULL, related_name='income_record', help_text="Linked to a student fee payment if applicable")
     collected_by = models.CharField(max_length=100)
+    department = models.CharField(max_length=20, choices=FeeCategory.DEPARTMENT_CHOICES, default='general')
 
     class Meta:
         ordering = ['-date']
@@ -193,6 +219,7 @@ class Expense(models.Model):
     reference_number = models.CharField(max_length=100, blank=True)
     remarks = models.TextField(blank=True)
     recorded_by = models.CharField(max_length=100)
+    department = models.CharField(max_length=20, choices=FeeCategory.DEPARTMENT_CHOICES, default='general')
 
     class Meta:
         ordering = ['-date']

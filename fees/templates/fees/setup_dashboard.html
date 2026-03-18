@@ -12,6 +12,7 @@
         <a href="{% url 'fees:dashboard' %}" class="btn btn-secondary me-2"><i class="fas fa-arrow-left me-1"></i> Back to Accounts</a>
         <a href="{% url 'fees:bulk_course_fee_update' %}" class="btn btn-warning me-2"><i class="fas fa-table me-1"></i> Manage Course Fees (Bulk)</a>
         <a href="{% url 'fees:fee_structure_list' %}" class="btn btn-info me-2 text-white"><i class="fas fa-layer-group me-1"></i> Grade-wise Variations</a>
+        <a href="{% url 'fees:bus_stop_list' %}" class="btn btn-secondary me-2"><i class="fas fa-bus me-1"></i> Manage Bus Stops</a>
         <a href="{% url 'fees:fee_category_create' %}" class="btn btn-primary"><i class="fas fa-folder-plus me-1"></i> New Category</a>
     </div>
 </div>
@@ -63,7 +64,12 @@
                                     <td class="fw-bold">
                                         {{ item.name }}
                                         {% if item.target_student_type != 'all' or item.applicable_grades.exists or item.applicable_divisions.exists %}
-                                            <div class="mt-1">
+                                                {% if item.department == 'hostel' %}
+                                                    <span class="badge rounded-pill bg-warning text-dark border-dark border" style="font-size: 0.7rem;"><i class="fas fa-hotel me-1"></i> HOSTEL DEPT</span>
+                                                {% elif item.department == 'academic' %}
+                                                    <span class="badge rounded-pill bg-primary border" style="font-size: 0.7rem;"><i class="fas fa-graduation-cap me-1"></i> ACADEMIC DEPT</span>
+                                                {% endif %}
+                                                
                                                 {% if item.target_student_type == 'hostel' %}
                                                     <span class="badge rounded-pill bg-warning text-dark" style="font-size: 0.7rem;"><i class="fas fa-hotel me-1"></i> Hostel</span>
                                                 {% elif item.target_student_type == 'day_scholar' %}
@@ -99,9 +105,9 @@
                                     </td>
                                     <td class="text-muted small">{{ item.description|truncatechars:50 }}</td>
                                     <td class="text-end">
-                                        <a href="{% url 'fees:manage_fee_installments' item.id %}" class="btn btn-sm btn-outline-warning" title="Manage Installments"><i class="fas fa-list-ol"></i></a>
-                                        <a href="{% url 'fees:fee_item_update' item.id %}" class="btn btn-sm btn-outline-primary" title="Edit Item"><i class="fas fa-edit"></i></a>
-                                        <a href="{% url 'fees:fee_item_delete' item.id %}" class="btn btn-sm btn-outline-danger" title="Delete Item"><i class="fas fa-trash"></i></a>
+                                        <a href="{% url 'fees:manage_fee_installments' item.id %}" class="btn btn-sm btn-outline-warning" title="Manage Installments" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;"><i class="fas fa-list-ol me-1"></i> Inst.</a>
+                                        <a href="{% url 'fees:fee_item_update' item.id %}" class="btn btn-sm btn-outline-primary" title="Edit Item" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;"><i class="fas fa-edit me-1"></i> Edit</a>
+                                        <a href="{% url 'fees:fee_item_delete' item.id %}" class="btn btn-sm btn-outline-danger" title="Delete Item" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;"><i class="fas fa-trash me-1"></i> Del</a>
                                     </td>
                                 </tr>
                                 {% empty %}
@@ -169,6 +175,20 @@
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+                
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h5 class="card-title">Monthly Fee Adjustments</h5>
+                        <p class="card-text text-muted small">View generated monthly fees and manually adjust the "Present Days" to recalculate the prorated amount for absent students.</p>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <a href="{% url 'fees:monthly_fee_adjustment' %}" class="btn btn-outline-warning text-dark fw-bold">
+                            <i class="fas fa-sliders-h me-1"></i> Adjust Monthly Fees
+                        </a>
                     </div>
                 </div>
             </div>

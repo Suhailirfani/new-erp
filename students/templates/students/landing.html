@@ -257,6 +257,45 @@
             .college-name { font-size: 2rem; }
             .ticker { font-size: 0.9rem; }
         }
+        /* Floating Social Icons */
+        .social-float {
+            position: fixed;
+            right: 20px;
+            bottom: 80px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 9999;
+        }
+
+        .social-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-decoration: none;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .social-icon:hover {
+            transform: scale(1.1) translateX(-5px);
+        }
+
+        .social-icon.facebook { background: #1877F2; }
+        .social-icon.instagram { background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); }
+        .social-icon.whatsapp { background: #25D366; }
+
+        @media (max-width: 768px) {
+            .social-float { right: 15px; bottom: 30px; }
+            .social-icon { width: 45px; height: 45px; font-size: 1.3rem; }
+        }
     </style>
 </head>
 <body>
@@ -294,6 +333,7 @@
                 {% endif %}
                 <a href="{% url 'awaze_register' %}" class="btn btn-outline">AWAZE G-CAMP <i class="fas fa-rocket"></i></a>
                 <a href="{% url 'candidate_register' %}" class="btn btn-outline">Award Ceremony <i class="fas fa-award"></i></a>
+                <a href="{% url 'students:about_us' %}" class="btn btn-outline">About Us <i class="fas fa-info-circle"></i></a>
                 <a href="{% url 'students:enquiry_create' %}" class="btn btn-outline">Admission Enquiry <i class="fas fa-paper-plane"></i></a>
             </div>
         </div>
@@ -346,13 +386,29 @@
     </section>
 
     <footer style="padding: 50px 20px; text-align: center; border-top: 1px solid var(--glass-border); background: #070b14;">
-        <p>&copy; 2026 Markaz Hadiya Women's College, Thazhapra. All Rights Reserved.</p>
+        <p>&copy; 2026 Markaz Hadiya Women's College, Thazhapra. All Rights Reserved. | <a href="{% url 'students:about_us' %}" style="color: var(--text-gold); text-decoration: none;">About Us</a></p>
         <div style="margin-top: 20px; font-size: 1.5rem; display: flex; justify-content: center; gap: 20px;">
             <i class="fab fa-facebook"></i>
             <i class="fab fa-instagram"></i>
             <i class="fab fa-youtube"></i>
         </div>
     </footer>
+
+    <!-- Floating Social Bar -->
+    <div class="social-float">
+        <a href="https://www.facebook.com/profile.php?id=100063669619167" target="_blank" class="social-icon facebook" title="Facebook">
+            <i class="fab fa-facebook-f"></i>
+        </a>
+        <a href="https://www.instagram.com/hadiya_womenscollege_thazhapra/" target="_blank" class="social-icon instagram" title="Instagram">
+            <i class="fab fa-instagram"></i>
+        </a>
+        <a href="https://wa.me/919961209007" target="_blank" class="social-icon whatsapp" title="WhatsApp 1">
+            <i class="fab fa-whatsapp"></i>
+        </a>
+        <a href="https://wa.me/919061559007" target="_blank" class="social-icon whatsapp" title="WhatsApp 2">
+            <i class="fab fa-whatsapp"></i>
+        </a>
+    </div>
 
     <script>
         // Scroll Animation

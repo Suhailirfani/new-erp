@@ -97,10 +97,18 @@
                         </div>
                     </div>
 
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Remarks</label>
-                        {{ form.remarks }}
-                        <div class="text-danger small">{{ form.remarks.errors }}</div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Department *</label>
+                            {{ form.department }}
+                            <div class="text-danger small">{{ form.department.errors }}</div>
+                            <small class="text-muted">Academic, Hostel, or General.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Remarks</label>
+                            {{ form.remarks }}
+                            <div class="text-danger small">{{ form.remarks.errors }}</div>
+                        </div>
                     </div>
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">

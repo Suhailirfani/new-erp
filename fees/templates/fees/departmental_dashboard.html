@@ -1,0 +1,149 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Departmental Accounting{% endblock %}
+
+{% block content %}
+<div class="row mb-5 align-items-center">
+    <div class="col-md-7">
+        <h2 style="font-size: 2.2rem; font-weight: 800; color: #ffffff !important; margin-bottom: 0.25rem;">
+            <i class="fas fa-chart-pie me-2"></i> Departmental Accounting
+        </h2>
+        <p style="color: rgba(255,255,255,0.85); font-size: 1.1rem;">Hostel vs Academic Performance Analysis</p>
+    </div>
+    <div class="col-md-5 text-end">
+        <a href="{% url 'fees:finance_dashboard' %}" class="btn btn-outline-glass me-2">
+            <i class="fas fa-arrow-left me-1"></i> General Dashboard
+        </a>
+        <button class="btn btn-gradient" onclick="window.print()">
+            <i class="fas fa-print me-1"></i> Print Analysis
+        </button>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <!-- Academic Column -->
+    <div class="col-lg-4">
+        <div class="card h-100 shadow border-0 overflow-hidden" style="border-radius: 20px;">
+            <div class="card-header bg-primary text-white text-center py-4">
+                <i class="fas fa-graduation-cap fa-2x mb-2"></i>
+                <h4 class="fw-bold mb-0">Academic Running</h4>
+            </div>
+            <div class="card-body p-4 bg-white text-dark">
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted">Income</span>
+                    <span class="fw-bold text-success">₹{{ academic.income|floatformat:2 }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-4">
+                    <span class="text-muted">Expenses</span>
+                    <span class="fw-bold text-danger">₹{{ academic.expense|floatformat:2 }}</span>
+                </div>
+                <hr>
+                <div class="text-center mt-3">
+                    <span class="text-muted small d-block mb-1">DEPARTMENT PROFIT</span>
+                    <h3 class="fw-800 {% if academic.profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        ₹{{ academic.profit|floatformat:2 }}
+                    </h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hostel Column -->
+    <div class="col-lg-4">
+        <div class="card h-100 shadow border-0 overflow-hidden" style="border-radius: 20px;">
+            <div class="card-header bg-warning text-dark text-center py-4">
+                <i class="fas fa-hotel fa-2x mb-2"></i>
+                <h4 class="fw-bold mb-0">Hostel Department</h4>
+            </div>
+            <div class="card-body p-4 bg-white text-dark">
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted">Income</span>
+                    <span class="fw-bold text-success">₹{{ hostel.income|floatformat:2 }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-4">
+                    <span class="text-muted">Expenses</span>
+                    <span class="fw-bold text-danger">₹{{ hostel.expense|floatformat:2 }}</span>
+                </div>
+                <hr>
+                <div class="text-center mt-3">
+                    <span class="text-muted small d-block mb-1">DEPARTMENT PROFIT</span>
+                    <h3 class="fw-800 {% if hostel.profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        ₹{{ hostel.profit|floatformat:2 }}
+                    </h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Combined Overall -->
+    <div class="col-lg-4">
+        <div class="card h-100 shadow border-0 overflow-hidden" style="border-radius: 20px;">
+            <div class="card-header bg-dark text-white text-center py-4">
+                <i class="fas fa-university fa-2x mb-2"></i>
+                <h4 class="fw-bold mb-0">Institutional Total</h4>
+            </div>
+            <div class="card-body p-4 bg-white text-dark">
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted">Total Income</span>
+                    <span class="fw-bold text-success">₹{{ total_income|floatformat:2 }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-4">
+                    <span class="text-muted">Total expenses</span>
+                    <span class="fw-bold text-danger">₹{{ total_expense|floatformat:2 }}</span>
+                </div>
+                <hr>
+                <div class="text-center mt-3">
+                    <span class="text-muted small d-block mb-1">OVERALL SURPLUS</span>
+                    <h3 class="fw-800 {% if overall_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        ₹{{ overall_profit|floatformat:2 }}
+                    </h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="glass-card p-0 overflow-hidden" style="background: white; color: black;">
+    <div class="p-4 bg-light border-bottom">
+        <h5 class="mb-0 fw-bold"><i class="fas fa-list-ul me-2"></i>Departmental Breakdown by Category</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-4">Department</th>
+                    <th>Account Category</th>
+                    <th class="text-end">Income</th>
+                    <th class="text-end pe-4">Expense</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cat in cat_summary %}
+                <tr>
+                    <td class="ps-4">
+                        <span class="badge {% if cat.department == 'academic' %}bg-primary{% elif cat.department == 'hostel' %}bg-warning text-dark{% else %}bg-secondary{% endif %} text-uppercase" style="font-size: 0.7rem;">
+                            {{ cat.department }}
+                        </span>
+                    </td>
+                    <td class="fw-bold text-dark">{{ cat.name }}</td>
+                    <td class="text-end text-success fw-bold">₹{{ cat.inc_total|default:"0.00" }}</td>
+                    <td class="text-end pe-4 text-danger fw-bold">₹{{ cat.exp_total|default:"0.00" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center py-5 text-muted italic">No data available for the categories.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+@media print {
+    body { background: white !important; }
+    .glass-card, .card { border: 1px solid #ddd !important; box-shadow: none !important; }
+    .btn { display: none !important; }
+}
+</style>
+{% endblock %}
