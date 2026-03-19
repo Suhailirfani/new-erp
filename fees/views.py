@@ -1327,48 +1327,42 @@ def monthly_fee_adjustment(request):
     return render(request, 'fees/monthly_adjustment.html', context)
 
 @role_required(['admin', 'accountant'])
-def add_medical_fee(request, student_id):
-    """Manually assign a medical fee to a student."""
+def add_custom_fee(request, student_id):
+    """Manually assign any custom fee to a student."""
     student = get_object_or_404(Student, id=student_id)
-    medical_item = FeeItem.objects.filter(name__icontains='Medical Fee').first()
+    # Get all non-monthly fee items that can be assigned manually
+    fee_items = FeeItem.objects.filter(is_monthly=False).order_by('category__name', 'name')
     
-    if not medical_item:
-        # Fallback if not found, though we created it in shell
-        cat, _ = FeeCategory.objects.get_or_create(name='Medical')
-        medical_item, _ = FeeItem.objects.get_or_create(
-            category=cat, 
-            name='Medical Fee', 
-            defaults={'default_amount': 0}
-        )
-
     if request.method == 'POST':
+        item_id = request.POST.get('fee_item')
         amount = request.POST.get('amount')
         remarks = request.POST.get('remarks', '')
         due_date = request.POST.get('due_date') or timezone.now().date()
         
         try:
+            fee_item = get_object_or_404(FeeItem, id=item_id)
             amount = Decimal(amount)
             if amount < 0:
                 raise ValueError("Amount cannot be negative.")
                 
             StudentFee.objects.create(
                 student=student,
-                fee_item=medical_item,
+                fee_item=fee_item,
                 total_amount=amount,
                 due_date=due_date,
                 remarks=remarks
             )
-            messages.success(request, f"Medical fee of ₹{amount} assigned to {student.full_name}.")
+            messages.success(request, f"{fee_item.name} of ₹{amount} assigned to {student.full_name}.")
             return redirect('fees:student_fees', student_id=student.id)
         except (ValueError, Decimal.InvalidOperation) as e:
             messages.error(request, f"Invalid data: {str(e)}")
             
     context = {
         'student': student,
-        'fee_item': medical_item,
-        'page_title': f"Add Medical Fee: {student.full_name}"
+        'fee_items': fee_items,
+        'page_title': f"Add Custom Fee: {student.full_name}"
     }
-    return render(request, 'fees/medical_fee_form.html', context)
+    return render(request, 'fees/custom_fee_form.html', context)
 
 
 @role_required(['admin', 'accountant', 'student'])

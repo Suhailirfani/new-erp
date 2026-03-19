@@ -8,7 +8,7 @@
         <div class="card shadow-lg border-0" style="border-radius: 20px;">
             <div class="card-header bg-white py-3 border-bottom-0">
                 <h4 class="mb-0 fw-bold text-primary">
-                    <i class="fas fa-plus-circle me-2"></i> Add Medical Fee
+                    <i class="fas fa-plus-circle me-2"></i> Add Custom Fee
                 </h4>
                 <p class="text-muted small mb-0">Student: {{ student.full_name }} ({{ student.student_id }})</p>
             </div>
@@ -17,8 +17,18 @@
                     {% csrf_token %}
                     
                     <div class="mb-4">
+                        <label class="form-label fw-bold">Select Fee</label>
+                        <select name="fee_item" class="form-select" id="feeSelect" required>
+                            <option value="">-- Choose a Fee --</option>
+                            {% for item in fee_items %}
+                                <option value="{{ item.id }}" data-amount="{{ item.default_amount }}">{{ item.name }} ({{ item.category.name }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
                         <label class="form-label fw-bold">Fee Amount (₹)</label>
-                        <input type="number" name="amount" class="form-control" step="0.01" value="{{ fee_item.default_amount }}" required>
+                        <input type="number" name="amount" id="amountInput" class="form-control" step="0.01" value="0.00" required>
                         <div class="form-text small">Enter the amount to be charged to the student's account.</div>
                     </div>
 
@@ -54,6 +64,16 @@
             const today = new Date().toISOString().split('T')[0];
             dateInput.value = today;
         }
+
+        const feeSelect = document.getElementById('feeSelect');
+        const amountInput = document.getElementById('amountInput');
+
+        feeSelect.addEventListener('change', function() {
+            const selectedOption = feeSelect.options[feeSelect.selectedIndex];
+            if (selectedOption && selectedOption.dataset.amount) {
+                amountInput.value = parseFloat(selectedOption.dataset.amount).toFixed(2);
+            }
+        });
     });
 </script>
 {% endblock %}

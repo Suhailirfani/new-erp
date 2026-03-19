@@ -55,6 +55,6 @@ urlpatterns = [
     path('setup/structures/add/', views.fee_structure_create, name='fee_structure_create'),
     path('setup/structures/<int:pk>/edit/', views.fee_structure_update, name='fee_structure_update'),
     path('setup/structures/<int:pk>/delete/', views.fee_structure_delete, name='fee_structure_delete'),
-    path('student/<int:student_id>/add-medical-fee/', views.add_medical_fee, name='add_medical_fee'),
+    path('student/<int:student_id>/add-custom-fee/', views.add_custom_fee, name='add_custom_fee'),
     path('student/<int:student_id>/payment-history/', views.print_payment_history, name='print_payment_history'),
 ]
