@@ -1,6 +1,17 @@
 {% extends 'students/base.html' %}
 
-{% block title %}Fee Dashboard - Classroom View{% endblock %}
+{% block title %}Fee Dashboard - MARKAZ HADIYA WOMEN'S COLLEGE{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media (max-width: 768px) {
+        .row.mb-4 > div { flex-direction: column !important; }
+        .row.mb-4 h2 { font-size: 1.4rem !important; }
+        .stat-card { flex-direction: column !important; text-align: center; padding: 1.2rem !important; }
+        .stat-card h2 { font-size: 2rem !important; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="row mb-4 align-items-center">

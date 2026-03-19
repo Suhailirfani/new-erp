@@ -1,6 +1,18 @@
 {% extends 'students/base.html' %}
 
-{% block title %}Manage Divisions - Student Management System{% endblock %}
+{% block title %}Manage Divisions - MARKAZ HADIYA WOMEN'S COLLEGE{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media (max-width: 768px) {
+        .header-actions { flex-direction: column !important; align-items: flex-start !important; gap: 0.75rem; }
+        .header-actions .btn { width: 100%; text-align: center; }
+        .card { overflow-x: auto; }
+        table { min-width: 400px; }
+        table th, table td { white-space: nowrap; font-size: 0.82rem; padding: 6px 8px; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="header-actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">

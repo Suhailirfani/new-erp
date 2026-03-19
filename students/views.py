@@ -1924,6 +1924,16 @@ def progress_report(request):
         # Force student_id filter to own student_id
         student_id = request.user.profile.student_record.student_id
         
+    # Get the active academic year (or most recent if none is active)
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    if not active_year:
+        active_year = AcademicYear.objects.order_by('-start_date').first()
+
+    if academic_year_name:
+        year_obj = AcademicYear.objects.filter(name=academic_year_name).first()
+        if year_obj:
+            active_year = year_obj
+
     enrollments_query = Enrollment.objects.filter(academic_year=active_year).select_related('student', 'grade', 'division', 'section')
 
     if student_id:

@@ -1,6 +1,22 @@
 {% extends 'students/base.html' %}
 
-{% block title %}{{ page_title }}{% endblock %}
+{% block title %}{{ page_title }} - MARKAZ HADIYA WOMEN'S COLLEGE{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media (max-width: 768px) {
+        .row.mb-4 { flex-direction: column; }
+        .row.mb-4 .col-md-5, .row.mb-4 .col-md-7 { width: 100%; }
+        .row.mb-4 .col-md-7 { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+        .row.mb-4 .col-md-7 .btn { flex: 1 1 auto; min-width: 130px; text-align: center; }
+        h2 { font-size: 1.4rem !important; }
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { min-width: 500px; }
+        table th, table td { white-space: nowrap; font-size: 0.82rem; padding: 6px 8px; }
+        .card { margin-bottom: 1rem; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="row mb-4 align-items-center">

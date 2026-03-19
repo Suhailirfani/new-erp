@@ -1,6 +1,21 @@
 {% extends 'students/base.html' %}
 
-{% block title %}Students - Student Attendance System{% endblock %}
+{% block title %}Students - MARKAZ HADIYA WOMEN'S COLLEGE{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media (max-width: 768px) {
+        h1 { font-size: 1.4rem; margin-bottom: 0.75rem; }
+        .button-group { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .button-group .btn { flex: 1 1 auto; min-width: 140px; font-size: 0.82rem; padding: 0.5rem 0.75rem; text-align: center; }
+        .filter-form .form-row { flex-direction: column; }
+        .filter-form .form-group { min-width: 100% !important; }
+        .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { min-width: 600px; }
+        table th, table td { white-space: nowrap; font-size: 0.82rem; padding: 6px 8px; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <h1>Student List</h1>

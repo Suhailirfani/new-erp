@@ -1,6 +1,17 @@
 {% extends 'students/base.html' %}
 
-{% block title %}Academic Years - Student Attendance System{% endblock %}
+{% block title %}Academic Years - MARKAZ HADIYA WOMEN'S COLLEGE{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media (max-width: 768px) {
+        h1 { font-size: 1.4rem; }
+        .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { min-width: 500px; }
+        table th, table td { white-space: nowrap; font-size: 0.82rem; padding: 6px 8px; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <h1>Academic Years</h1>

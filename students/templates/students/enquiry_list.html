@@ -1,6 +1,22 @@
 {% extends 'students/base.html' %}
 
-{% block title %}Enquiries Dashboard - Student Attendance System{% endblock %}
+{% block title %}Enquiries Dashboard - MARKAZ HADIYA WOMEN'S COLLEGE{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media (max-width: 768px) {
+        .flex-between { flex-direction: column !important; align-items: flex-start !important; gap: 1rem; }
+        .flex-between > div:last-child { flex-direction: column !important; width: 100%; }
+        .flex-between .card { min-width: 100% !important; width: 100%; margin-bottom: 0.5rem; }
+        .flex-between form { flex-direction: column !important; }
+        .dashboard-tabs { overflow-x: auto; white-space: nowrap; flex-wrap: nowrap !important; }
+        .dashboard-tab { padding: 0.6rem 0.9rem; font-size: 0.82rem; }
+        .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { min-width: 700px; }
+        table th, table td { white-space: nowrap; font-size: 0.82rem; padding: 6px 8px; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="flex-between align-center" style="margin-bottom: 2rem; align-items: flex-start;">

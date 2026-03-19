@@ -1,6 +1,19 @@
 {% extends 'students/base.html' %}
 
-{% block title %}Bulk Import Students - Student Attendance System{% endblock %}
+{% block title %}Bulk Import Students - MARKAZ HADIYA WOMEN'S COLLEGE{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media (max-width: 768px) {
+        h1 { font-size: 1.4rem; }
+        .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { min-width: 600px; }
+        table th, table td { white-space: nowrap; font-size: 0.82rem; padding: 6px 8px; }
+        form .btn { display: block; width: 100%; margin-left: 0 !important; margin-bottom: 0.5rem; text-align: center; }
+        form .form-group input[type="file"] { width: 100%; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <h1>Bulk Import Students from Excel</h1>

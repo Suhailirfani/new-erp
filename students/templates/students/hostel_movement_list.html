@@ -1,6 +1,23 @@
 {% extends 'students/base.html' %}
 
-{% block title %}Hostel Movements - Student Attendance System{% endblock %}
+{% block title %}Hostel Movements - MARKAZ HADIYA WOMEN'S COLLEGE{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media (max-width: 768px) {
+        h1 { font-size: 1.4rem; }
+        .stat-cards { flex-direction: column !important; }
+        .stat-cards .card { min-width: 100% !important; width: 100%; }
+        .action-bar { flex-direction: column !important; align-items: stretch !important; }
+        .action-bar .btn { width: 100%; text-align: center; margin-bottom: 0.4rem; }
+        .filter-form .form-row { flex-direction: column; }
+        .filter-form .form-group { min-width: 100% !important; }
+        .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { min-width: 700px; }
+        table th, table td { white-space: nowrap; font-size: 0.82rem; padding: 6px 8px; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <h1>Hostel Movement Records</h1>
