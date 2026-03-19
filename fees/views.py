@@ -745,6 +745,29 @@ def bulk_course_fee_update(request):
                         fee_item=course_fee_item,
                         defaults={'amount': amount}
                     )
+                    
+                    # Apply this new fee amount to students currently enrolled in this class
+                    from students.models import Enrollment
+                    from datetime import date
+                    
+                    if classroom['division']:
+                        enrollments = Enrollment.objects.filter(academic_year=active_year, grade=classroom['grade'], division=classroom['division'])
+                    else:
+                        enrollments = Enrollment.objects.filter(academic_year=active_year, grade=classroom['grade'], division__isnull=True)
+                        
+                    # We only bulk update if there are no complex installment templates for this item
+                    if not course_fee_item.installment_templates.exists():
+                        for enrollment in enrollments:
+                            student = enrollment.student
+                            fee, created = StudentFee.objects.get_or_create(
+                                student=student,
+                                fee_item=course_fee_item,
+                                defaults={'total_amount': amount, 'due_date': date.today(), 'remarks': 'Automatically allocated from bulk structure update'}
+                            )
+                            if not created and fee.total_amount != amount:
+                                fee.total_amount = amount
+                                fee.update_status()
+                                
                     updates_count += 1
                 except (ValueError, TypeError):
                     continue
