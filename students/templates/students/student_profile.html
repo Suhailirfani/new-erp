@@ -9,6 +9,9 @@
         <a href="{% url 'students:student_edit' student.id %}" class="btn btn-primary">
             <i class="fas fa-edit"></i> Edit Student
         </a>
+        <a href="{% url 'fees:student_fees' student.id %}" class="btn btn-info">
+            <i class="fas fa-wallet"></i> Fee Dashboard
+        </a>
         <a href="{% url 'students:student_list' %}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Back to List
         </a>
