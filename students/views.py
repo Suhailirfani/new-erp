@@ -1954,7 +1954,7 @@ def progress_report(request):
         student_ids = request.POST.getlist('students')
         exam_type_id = request.POST.get('exam_type')
         academic_year_name = request.POST.get('academic_year', '') # Changed to academic_year_name
-        generated_by = request.POST.get('generated_by', '')
+        generated_by = request.user.get_full_name() or request.user.username
 
         if not student_ids or not exam_type_id:
             messages.error(request, 'Please select students and exam type.')
@@ -2055,13 +2055,15 @@ def progress_report(request):
         'reports': reports,
         'exam_types': exam_types,
         'divisions': divisions,
-        'grades': all_grades, # Pass Grade objects
+        'grades': all_grades,
         'sections': sections,
+        'academic_years': AcademicYear.objects.order_by('-start_date'),
+        'active_year': active_year,
         'current_filters': {
             'student_id': student_id,
             'exam_type': exam_type_id,
             'section': section_id,
-            'grade': grade_id, # Use grade_id
+            'grade': grade_id,
             'division': division_id,
             'academic_year': academic_year_name,
         }
