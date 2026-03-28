@@ -1,0 +1,18 @@
+{% extends 'students/base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin-top: 5rem;">
+    <div class="card" style="text-align: center;">
+        <h2 style="color: #ef4444; margin-bottom: 1.5rem;">Confirm Deletion</h2>
+        <p style="margin-bottom: 2rem;">Are you sure you want to delete candidate <strong>{{ candidate.name }}</strong>?</p>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div style="display: flex; justify-content: center; gap: 1rem;">
+                <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                <a href="{% url 'candidate_list' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

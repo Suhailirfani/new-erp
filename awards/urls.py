@@ -5,6 +5,8 @@ urlpatterns = [
     path('register/', views.candidate_register, name='candidate_register'),
     path('success/', views.registration_success, name='registration_success'),
     path('list/', views.candidate_list, name='candidate_list'),
+    path('edit/<int:pk>/', views.candidate_edit, name='candidate_edit'),
+    path('delete/<int:pk>/', views.candidate_delete, name='candidate_delete'),
     path('madrasa-wise/', views.madrasa_wise_list, name='madrasa_wise_list'),
     path('print/', views.candidate_print, name='candidate_print'),
     

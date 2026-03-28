@@ -13,13 +13,13 @@
         text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     }
     .ceremony-title {
-        color: #fff59d !important; /* White mixed yellow */
+        color: #ffffff !important; 
         font-weight: 700;
         font-size: 1.8rem;
         margin-bottom: 1rem;
         text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
         text-align: center;
-        -webkit-text-fill-color: #fff59d !important;
+        -webkit-text-fill-color: #ffffff !important;
     }
     .ceremony-desc {
         color: #f8fafc !important; 
@@ -82,6 +82,25 @@
     </div>
 </div>
 
+<div class="stats-overview" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <div class="stat-card" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="font-size: 0.9rem; opacity: 0.7; margin-bottom: 0.25rem;">Total Registered</div>
+        <div style="font-size: 1.8rem; font-weight: 800; color: #ffffff;">{{ total_count }}</div>
+    </div>
+    <div class="stat-card" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="font-size: 0.9rem; opacity: 0.7; margin-bottom: 0.25rem;">Distinction</div>
+        <div style="font-size: 1.8rem; font-weight: 800; color: #10b981;">{{ distinction_count }}</div>
+    </div>
+    <div class="stat-card" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="font-size: 0.9rem; opacity: 0.7; margin-bottom: 0.25rem;">Topper</div>
+        <div style="font-size: 1.8rem; font-weight: 800; color: #3b82f6;">{{ topper_count }}</div>
+    </div>
+    <div class="stat-card" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="font-size: 0.9rem; opacity: 0.7; margin-bottom: 0.25rem;">Top Plus</div>
+        <div style="font-size: 1.8rem; font-weight: 800; color: #8b5cf6;">{{ top_plus_count }}</div>
+    </div>
+</div>
+
 <div class="card">
     <div class="list-controls" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1.5rem; margin-bottom: 2rem;">
         <div class="button-group">
@@ -99,41 +118,61 @@
         </div>
     </div>
 
+    {% for group in grouped_candidates %}
+    <div class="grade-section" style="margin-bottom: 3rem;">
+        <h3 style="color: #6366f1; margin-bottom: 1rem; border-left: 4px solid #6366f1; padding-left: 1rem;">
+            {{ group.grade_display }} ({{ group.count }})
+        </h3>
+        <div class="table-wrapper">
+            <table class="table-custom">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Father's Name</th>
+                        <th>Mobile</th>
+                        <th>Madrasa and Place</th>
+                        <th>Class</th>
+                        <th>Board</th>
+                        <th>Grade</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for candidate in group.candidates %}
+                    <tr>
+                        <td>{{ candidate.name }}</td>
+                        <td>{{ candidate.father_name }}</td>
+                        <td>{{ candidate.mobile_number }}</td>
+                        <td>{{ candidate.madrasa_and_place }}</td>
+                        <td>{{ candidate.student_class }}</td>
+                        <td>{{ candidate.get_board_display }}</td>
+                        <td>
+                            <span class="badge {% if candidate.grade == 'TOP_PLUS' %}bg-success{% else %}bg-light{% endif %}">
+                                {{ candidate.get_grade_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <a href="{% url 'candidate_edit' candidate.pk %}" class="btn btn-xs btn-primary" title="Edit">✏️</a>
+                                <a href="{% url 'candidate_delete' candidate.pk %}" class="btn btn-xs btn-danger" title="Delete">🗑️</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% empty %}
     <div class="table-wrapper">
         <table class="table-custom">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Father's Name</th>
-                    <th>Mobile</th>
-                    <th>Madrasa and Place</th>
-                    <th>Class</th>
-                    <th>Board</th>
-                    <th>Grade</th>
-                </tr>
-            </thead>
             <tbody>
-                {% for candidate in candidates %}
                 <tr>
-                    <td>{{ candidate.name }}</td>
-                    <td>{{ candidate.father_name }}</td>
-                    <td>{{ candidate.mobile_number }}</td>
-                    <td>{{ candidate.madrasa_and_place }}</td>
-                    <td>{{ candidate.student_class }}</td>
-                    <td>{{ candidate.get_board_display }}</td>
-                    <td>
-                        <span class="badge {% if candidate.grade == 'TOP_PLUS' %}bg-success{% else %}bg-light{% endif %}">
-                            {{ candidate.get_grade_display }}
-                        </span>
-                    </td>
+                    <td style="text-align: center; padding: 2rem;">No candidates registered yet.</td>
                 </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" style="text-align: center; padding: 2rem;">No candidates registered yet.</td>
-                </tr>
-                {% endfor %}
             </tbody>
         </table>
     </div>
+    {% endfor %}
 </div>
 {% endblock %}
