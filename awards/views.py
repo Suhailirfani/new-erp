@@ -39,7 +39,7 @@ def registration_success(request):
 @login_required
 def candidate_list(request):
     grade_filter = request.GET.get('grade')
-    all_candidates = Candidate.objects.all().order_by('-created_at')
+    all_candidates = Candidate.objects.all().order_by('created_at')
     
     # Calculate counts
     total_count = all_candidates.count()
@@ -157,7 +157,7 @@ def awaze_success(request):
 
 @login_required
 def awaze_list(request):
-    candidates = AwazeGCampCandidate.objects.all().order_by('-created_at')
+    candidates = AwazeGCampCandidate.objects.all().order_by('created_at')
     return render(request, 'awards/awaze_candidate_list.html', {'candidates': candidates})
 
 @login_required

@@ -54,6 +54,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'attendance_system.urls'
+CSRF_FAILURE_VIEW = 'attendance_system.views.csrf_failure'
 
 TEMPLATES = [
     {

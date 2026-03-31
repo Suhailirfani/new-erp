@@ -1,0 +1,41 @@
+{% extends "students/base.html" %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="card shadow border-danger">
+                <div class="card-body p-5">
+                    <h2 class="text-danger mb-4">
+                        <i class="fas fa-exclamation-triangle"></i> Session Expired (സെഷൻ അവസാനിച്ചു)
+                    </h2>
+                    
+                    <p class="lead text-dark">
+                        നിങ്ങൾ സമയം കൂടുതൽ എടുത്തതുകൊണ്ടോ അല്ലെങ്കിൽ നിങ്ങളുടെ ബ്രൗസറിൽ കുക്കീസ് (cookies) ഡിസേബിൾ ചെയ്തതുകൊണ്ടോ ആകാം ഈ പ്രശ്നം വന്നത്.
+                    </p>
+                    
+                    <div class="alert alert-warning mt-4 text-left" style="font-size: 1.1rem;">
+                        <strong>എങ്ങനെ പരിഹരിക്കാം (How to fix):</strong><br><br>
+                        1. താഴെയുള്ള ബട്ടൺ ക്ലിക്ക് ചെയ്ത് പുറകോട്ട് പോകുക.<br>
+                        2. ആ പേജ് ഒന്ന് <strong>Refresh</strong> (റീഫ്രഷ്) ചെയ്യുക.<br>
+                        3. അതിനുശേഷം വിവരങ്ങൾ സബ്മിറ്റ് ചെയ്യുക.
+                    </div>
+                    
+                    <div class="mt-4 p-4 bg-light rounded border">
+                        <h4 class="text-primary mb-3">എന്തെങ്കിലും സംശയമുണ്ടെങ്കിൽ ബന്ധപ്പെടുക:</h4>
+                        <h2 class="text-success font-weight-bold mb-0" style="font-size: 2.5rem;">
+                            <i class="fas fa-phone-alt"></i> 9947924613
+                        </h2>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button onclick="window.history.back()" class="btn btn-secondary btn-lg mt-2">
+                            Go Back (പുറകോട്ട് പോകുക)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
