@@ -68,13 +68,14 @@
                 {% for candidate in candidates %}
                 <tr>
                     <td>{{ forloop.counter }}</td>
-                    <td>{{ candidate.name }}</td>
-                    <td>{{ candidate.father_name }}</td>
-                    <td>{{ candidate.phone }}
-                        <a href="https://wa.me/91{{ candidate.phone }}?text={{ 'പ്രിയ '|urlencode }}{{ candidate.name|urlencode }}{{ ', സ്നേഹപൂർവ്വം ഓർമ്മിപ്പിക്കുന്നു, നമ്മുടെ AWAZE G-CAMP പരിപാടി നാളെയാണ്. കൃത്യസമയത്ത് എത്തിച്ചേരുമല്ലോ.'|urlencode }}" target="_blank" title="Send WhatsApp Message" style="color: #25D366; margin-left: 8px; font-size: 1.1em; text-decoration: none;">
+                    <td style="display: flex; align-items: center; justify-content: space-between;">
+                        <span>{{ candidate.name }}</span>
+                        <a href="https://wa.me/91{{ candidate.phone }}?text={{ 'To: '|urlencode }}{{ candidate.name|urlencode }}{{ ', സ്നേഹപൂർവ്വം ഓർമ്മിപ്പിക്കുന്നു, നമ്മുടെ AWAZE G-CAMP പരിപാടി നാളെയാണ്. കൃത്യസമയത്ത് എത്തിച്ചേരുമല്ലോ.'|urlencode }}" target="_blank" title="Send WhatsApp Message" style="color: #25D366; font-size: 1.1em; text-decoration: none;">
                             <i class="fa-brands fa-whatsapp"></i>
                         </a>
                     </td>
+                    <td>{{ candidate.father_name }}</td>
+                    <td>{{ candidate.phone }}</td>
                     <td>{{ candidate.student_class }}</td>
                     <td>{{ candidate.age }}</td>
                     <td>{{ candidate.address|default:"-" }}</td>

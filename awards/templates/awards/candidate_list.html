@@ -144,7 +144,12 @@
                     {% for candidate in group.candidates %}
                     <tr>
                         <td>{{ forloop.counter }}</td>
-                        <td>{{ candidate.name }}</td>
+                        <td style="display: flex; align-items: center; justify-content: space-between;">
+                            <span>{{ candidate.name }}</span>
+                            <a href="https://wa.me/91{{ candidate.mobile_number }}?text={{ 'To: '|urlencode }}{{ candidate.name|urlencode }},%0A%0Aമർക്കസ് ഹാദിയ വിമൻസ് കോളേജ് സംഘടിപ്പിക്കുന്ന 'പ്രതിഭാ സംഗമം 2026' ലേക്ക് രജിസ്റ്റർ ചെയ്ത വിദ്യാർത്ഥിനികളുടെ ശ്രദ്ധയ്ക്ക്.%0A%0Aസമസ്ത പൊതുപരീക്ഷകളിൽ മികച്ച വിജയം കൈവരിച്ച നിങ്ങളെ ആദരിക്കുന്ന ഈ സന്തോഷ നിമിഷം നാളെയാണ്. കൃത്യസമയത്ത് തന്നെ പരിപാടിയിൽ പങ്കുചേരുമല്ലോ.%0A%0A• തിയതി: 2026 ഏപ്രിൽ 01 (നാളെ, ബുധനാഴ്ച)%0A• സമയം: രാവിലെ 10.00 മണി%0A• വേദി: ഹാദിയ കോൺഫറൻസ് ഹാൾ%0A%0A• Location: https://maps.app.goo.gl/4w6ibRWRbbSzqCwt5%0A%0Aവിജയത്തിന്റെ ഈ ആദരവ് ഏറ്റുവാങ്ങാൻ എല്ലാവരെയും സ്നേഹപൂർവ്വം സ്വാഗതം ചെയ്യുന്നു." title="Send WhatsApp Message" target="_blank" style="color: #25D366; font-size: 1.1em; text-decoration: none;">
+                                <i class="fa-brands fa-whatsapp"></i>
+                            </a>
+                        </td>
                         <td>{{ candidate.father_name }}</td>
                         <td>{{ candidate.mobile_number }}</td>
                         <td>{{ candidate.madrasa_and_place }}</td>
@@ -157,9 +162,7 @@
                         </td>
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
-                                <a href="https://wa.me/91{{ candidate.mobile_number }}?text={{ 'പ്രിയ '|urlencode }}{{ candidate.name|urlencode }},%0A%0Aമർക്കസ് ഹാദിയ വിമൻസ് കോളേജ് സംഘടിപ്പിക്കുന്ന 'പ്രതിഭാ സംഗമം 2026' ലേക്ക് രജിസ്റ്റർ ചെയ്ത വിദ്യാർത്ഥിനികളുടെ ശ്രദ്ധയ്ക്ക്.%0A%0Aസമസ്ത പൊതുപരീക്ഷകളിൽ മികച്ച വിജയം കൈവരിച്ച നിങ്ങളെ ആദരിക്കുന്ന ഈ സന്തോഷ നിമിഷം നാളെയാണ്. കൃത്യസമയത്ത് തന്നെ പരിപാടിയിൽ പങ്കുചേരുമല്ലോ.%0A%0A📅 തിയതി: 2026 ഏപ്രിൽ 01 (നാളെ, ബുധനാഴ്ച)%0A🕙 സമയം: രാവിലെ 10.00 മണി%0A📍 വേദി: ഹാദിയ കോൺഫറൻസ് ഹാൾ%0A%0A📍 Location: https://maps.app.goo.gl/4w6ibRWRbbSzqCwt5%0A%0Aവിജയത്തിന്റെ ഈ ആദരവ് ഏറ്റുവാങ്ങാൻ എല്ലാവരെയും സ്നേഹപൂർവ്വം സ്വാഗതം ചെയ്യുന്നു." class="btn btn-xs btn-success" title="Send WhatsApp Message" target="_blank" style="background-color: #25D366; border-color: #25D366; color: white;">
-                                    <i class="fa-brands fa-whatsapp"></i>
-                                </a>
+
                                 <a href="{% url 'candidate_edit' candidate.pk %}" class="btn btn-xs btn-primary" title="Edit">✏️</a>
                                 <a href="{% url 'candidate_delete' candidate.pk %}" class="btn btn-xs btn-danger" title="Delete">🗑️</a>
                             </div>
