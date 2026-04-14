@@ -1,0 +1,117 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Edit Enquiry - Student Management System{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <h2 style="margin-bottom: 0.5rem;">Edit Student Enquiry</h2>
+    <p style="color: #666; margin-bottom: 2rem;">Update the details for <strong>{{ enquiry.name }}</strong> (App No: {{ enquiry.application_number|default:"-" }}).</p>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Full Name *</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+            <div style="color: #e74c3c; font-size: 0.9rem; margin-top: 0.3rem;">{{ form.name.errors }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Phone Number *</label>
+            {{ form.phone }}
+            {% if form.phone.errors %}
+            <div style="color: #e74c3c; font-size: 0.9rem; margin-top: 0.3rem;">{{ form.phone.errors }}</div>
+            {% endif %}
+        </div>
+
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Section *</label>
+            {{ form.section }}
+            {% if form.section.errors %}
+            <div style="color: #e74c3c; font-size: 0.9rem; margin-top: 0.3rem;">{{ form.section.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Desired Course *</label>
+            <select name="course" id="id_course" class="form-control" required>
+                <option value="" selected>---------</option>
+            </select>
+            {% if form.course.errors %}
+            <div style="color: #e74c3c; font-size: 0.9rem; margin-top: 0.3rem;">{{ form.course.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group" style="margin-bottom: 2rem;">
+            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">District *</label>
+            {{ form.district }}
+            {% if form.district.errors %}
+            <div style="color: #e74c3c; font-size: 0.9rem; margin-top: 0.3rem;">{{ form.district.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">Update Enquiry</button>
+            <a href="{% url 'students:enquiry_list' %}" class="btn" style="background-color: #f8f9fa; color: #333; border: 1px solid #ddd; flex: 1; text-align: center;">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<!-- Pass data to JS securely and linter-friendly -->
+<script id="divisions-data" type="application/json">
+    {{ divisions_json|safe }}
+</script>
+
+<script>
+(function() {
+    'use strict';
+    document.addEventListener('DOMContentLoaded', function() {
+        const sectionSelect = document.getElementById('id_section');
+        const courseSelect = document.getElementById('id_course');
+        const divisionsElement = document.getElementById('divisions-data');
+        
+        if (!sectionSelect || !courseSelect || !divisionsElement) return;
+
+        let divisionsData = [];
+        try {
+            divisionsData = JSON.parse(divisionsElement.textContent);
+        } catch (e) {
+            console.error('Error parsing divisions data', e);
+        }
+
+        const currentCourseVal = "{{ form.course.value|default_if_none:'' }}";
+        
+        function updateCourseOptions() {
+            const selectedSectionId = sectionSelect.value;
+            const previousVal = courseSelect.value || currentCourseVal;
+            courseSelect.innerHTML = '<option value="" selected>---------</option>';
+            
+            if (selectedSectionId) {
+                const filteredDivisions = divisionsData.filter(function(d) {
+                    return d.section_id.toString() === selectedSectionId.toString();
+                });
+
+                filteredDivisions.forEach(function(div) {
+                    const option = document.createElement('option');
+                    option.value = div.id;
+                    option.textContent = div.name;
+                    if (div.id.toString() === previousVal.toString()) {
+                        option.selected = true;
+                    }
+                    courseSelect.appendChild(option);
+                });
+            }
+        }
+
+        // Initialize on load
+        updateCourseOptions();
+        
+        // Update on change
+        sectionSelect.addEventListener('change', updateCourseOptions);
+    });
+})();
+</script>
+{% endblock %}

@@ -8,6 +8,10 @@
     <link rel="icon" type="image/png" href="{% static 'img/M_LOGO.png' %}">
     <link rel="shortcut icon" type="image/png" href="{% static 'img/M_LOGO.png' %}">
     <link rel="apple-touch-icon" type="image/png" href="{% static 'img/M_LOGO.png' %}">
+    
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         
@@ -28,36 +32,78 @@
             --warning: #f59e0b;
             --dark: #0f172a;
             --dark-secondary: #1e293b;
-            --light: #f8fafc;
-            --gray: #64748b;
-            --border: #e2e8f0;
-            --shadow: rgba(0, 0, 0, 0.1);
-            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --light: #ffffff;
+            --bg-main: #f8fafc;
+            --gray: #94a3b8;
+            --border: rgba(255, 255, 255, 0.3);
+            --glass-bg: rgba(255, 255, 255, 0.45);
+            --glass-blur: blur(16px);
+            --shadow-soft: 0 20px 40px rgba(0, 0, 0, 0.05);
+            --shadow-float: 0 30px 60px rgba(0, 0, 0, 0.08);
+            --gradient-lavender: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            --gradient-sky: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
         }
         
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--bg-main);
             color: var(--dark);
             min-height: 100vh;
             line-height: 1.6;
-            display: flex;
-            flex-direction: column;
+            display: flex; /* Sidebar and Main Layout */
+            flex-direction: row;
+            position: relative;
+            overflow-x: hidden;
+            letter-spacing: -0.01em;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("{% static 'img/edu_texture.png' %}") repeat;
+            opacity: 0.03; /* Ultra faint watermark */
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Ensure content at least starts above the texture z-index */
+        .navbar, .container, footer, .page-header {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Texture Overlay for Navbar/Footer - Minimalist version */
+        .textured-bg {
+            position: relative;
+        }
+        
+        .textured-bg::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("{% static 'img/edu_texture.png' %}") repeat;
+            opacity: 0.02;
+            z-index: -1;
+            pointer-events: none;
         }
         
         /* Navbar Styles */
         .navbar {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            padding: 1rem 2rem;
+            background: rgba(245, 243, 255, 0.85); /* Mild Lavender */
+            backdrop-filter: blur(15px);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.07);
+            padding: 0.75rem 2rem;
             position: sticky;
             top: 0;
             z-index: 1000;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
         }
         
         .navbar-content {
@@ -82,36 +128,31 @@
             gap: 0.5rem;
         }
         
-        /* Hamburger Menu */
-        .hamburger {
-            display: none;
-            flex-direction: column;
-            gap: 5px;
+        .menu-toggle {
+            display: flex; /* Always visible to allow toggling */
+            background: var(--light);
+            border: 1px solid var(--border);
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            color: var(--primary);
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            padding: 0.5rem;
-            z-index: 1001;
-            background: none;
-            border: none;
+            box-shadow: var(--shadow-soft);
+            transition: all 0.3s ease;
         }
-        
-        .hamburger span {
-            width: 28px;
-            height: 3px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 3px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+        .menu-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-float);
         }
-        
-        .hamburger.active span:nth-child(1) {
-            transform: rotate(45deg) translate(8px, 8px);
-        }
-        
-        .hamburger.active span:nth-child(2) {
-            opacity: 0;
-        }
-        
-        .hamburger.active span:nth-child(3) {
-            transform: rotate(-45deg) translate(7px, -7px);
+
+        .page-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--dark);
+            letter-spacing: -0.02em;
         }
         
         .nav-links {
@@ -121,21 +162,114 @@
             align-items: center;
         }
         
-        /* Mobile Sidebar */
-        .nav-sidebar {
-            display: none;
+        /* Main Layout Structure */
+        .sidebar {
+            width: 280px;
+            height: 100vh;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border-right: 1px solid var(--border);
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem 1.5rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 10px 0 30px rgba(0,0,0,0.02);
         }
-        
-        .nav-links a {
-            color: var(--dark);
+
+        .main-workspace {
+            flex: 1;
+            margin-left: 280px; /* Sidebar width */
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            width: calc(100% - 280px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Sidebar Hidden State (Desktop) */
+        body.sidebar-closed .sidebar {
+            transform: translateX(-100%);
+        }
+
+        body.sidebar-closed .main-workspace {
+            margin-left: 0;
+            width: 100%;
+        }
+
+        .sidebar-logo {
+            padding-bottom: 3rem;
+            text-align: center;
+        }
+
+        .sidebar-logo h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: -0.02em;
+        }
+
+        .nav-sidebar-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.875rem 1.25rem;
+            color: var(--gray);
             text-decoration: none;
-            padding: 0.6rem 1.2rem;
-            border-radius: 12px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 16px;
             font-weight: 500;
-            font-size: 0.9rem;
-            position: relative;
-            overflow: hidden;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: var(--light);
+            color: var(--primary);
+            box-shadow: var(--shadow-soft);
+            transform: translateX(4px);
+        }
+
+        .nav-item i {
+            font-size: 1.1rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Mobile Styles for Sidebar */
+        @media screen and (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+                background: rgba(255, 255, 255, 0.98); /* Less transparent for legibility */
+                box-shadow: 20px 0 60px rgba(0, 0, 0, 0.1);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .main-workspace {
+                margin-left: 0;
+                width: 100%;
+            }
+            .nav-item {
+                color: var(--dark-secondary); /* Darker text for visibility */
+                font-weight: 600; /* Bolder text */
+                padding: 1.1rem 1.5rem; /* Larger touch targets */
+            }
+            .nav-item i {
+                color: var(--primary); /* More distinct icon color */
+            }
         }
         
         .nav-links a::before {
@@ -267,34 +401,33 @@
         }
         
         .card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border);
+            border-radius: 28px;
             padding: 2.5rem;
             margin-bottom: 2rem;
             width: 100%;
-            max-width: 100%;
-
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-soft);
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+            position: relative;
         }
         
         .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-float);
         }
         
-        /* Glass Card - Modern Transparent Style */
+        /* Glass Card Utility */
         .glass-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
-            position: relative;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border-radius: 28px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-soft);
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
         }
         
         .glass-card::before {
@@ -1199,282 +1332,193 @@
     <!-- Mobile Navigation Overlay -->
     <div class="nav-overlay" id="navOverlay"></div>
     
-    <!-- Mobile Sidebar Navigation -->
-    <div class="nav-sidebar" id="navSidebar">
-        <a href="{% url 'students:home' %}">🏠 Home</a>
-        
-        {% if request.user.is_superuser or request.user.profile.role in 'admin,teacher,accountant' %}
-        <button class="nav-accordion-btn">👥 Students</button>
-        <div class="nav-accordion-content">
-            <a href="{% url 'students:student_list' %}">Students List</a>
-            <a href="{% url 'students:student_bulk_import' %}">Bulk Import</a>
-            <a href="{% url 'students:student_upgrade' %}">Upgrade Students</a>
-            <a href="{% url 'students:student_graduate' %}">Graduate to Alumni</a>
-            <a href="{% url 'students:hostel_movement_list' %}">Hostel Movements</a>
-            <a href="{% url 'alumni_home' %}">Alumni</a>
+    <!-- Sleek Left Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <h2 style="color: var(--primary); font-weight: 800; font-size: 1.5rem; margin-bottom: 0.25rem; letter-spacing: -0.02em;">MARKAZ HADIYA</h2>
+            <h3 style="color: var(--dark-secondary); font-weight: 700; font-size: 1rem; opacity: 0.8; letter-spacing: 0.05em;">WOMEN'S COLLEGE</h3>
         </div>
-        {% endif %}
         
-        {% if request.user.is_superuser or request.user.profile.role in 'admin,accountant,ntstaff' %}
-        <button class="nav-accordion-btn">📥 Enquiries</button>
-        <div class="nav-accordion-content">
-            <a href="{% url 'students:enquiry_create' %}">New Enquiry</a>
-            <a href="{% url 'students:enquiry_list' %}">Dashboard & Tokens</a>
-            <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 5px 0;">
-            <a href="{% url 'candidate_register' %}">🏆 പ്രതിഭാ സംഗമം</a>
-            <a href="{% url 'awaze_register' %}">🚀 AWAZE G-CAMP</a>
-            <a href="{% url 'candidate_list' %}">പ്രതിഭാ സംഗമം - List</a>
-            <a href="{% url 'awaze_list' %}">AWAZE G-CAMP - List</a>
-        </div>
-        {% endif %}
+        <div class="nav-sidebar-items">
+            <a href="{% url 'students:home' %}" class="nav-item active">
+                <i class="fa-solid fa-house"></i>
 
-        {% if request.user.is_superuser or request.user.profile.role in 'admin,teacher' %}
-        <button class="nav-accordion-btn">📋 Attendance</button>
-        <div class="nav-accordion-content">
-            <a href="{% url 'students:mark_attendance' %}">Mark Attendance</a>
-            <a href="{% url 'students:attendance_list' %}">Attendance Records</a>
-            <a href="{% url 'students:attendance_analytics' %}">Analyse Attendance</a>
-        </div>
-        {% endif %}
-        
-        {% if request.user.is_superuser or request.user.profile.role in 'admin,teacher' %}
-        <button class="nav-accordion-btn">📝 Examination</button>
-        <div class="nav-accordion-content">
-            <a href="{% url 'students:exam_type_list' %}">Exam Types</a>
-            <a href="{% url 'students:subject_list' %}">Subjects</a>
-            <a href="{% url 'students:mark_entry' %}">Mark Entry</a>
-            <a href="{% url 'students:mark_entry_list' %}">Mark List</a>
-            <a href="{% url 'students:progress_report' %}">Progress Report</a>
-        </div>
-        {% endif %}
-        
-        {% if request.user.is_superuser or request.user.profile.role in 'admin,accountant' %}
-        <button class="nav-accordion-btn">💰 Finance</button>
-        <div class="nav-accordion-content">
-            <a href="{% url 'fees:finance_dashboard' %}">Finance Dashboard</a>
-            <a href="{% url 'fees:fees_dashboard' %}">Fees Dashboard</a>
-            <a href="{% url 'fees:add_income' %}">Add Income</a>
-            <a href="{% url 'fees:add_expense' %}">Add Expense</a>
-        </div>
-        {% endif %}
-        
-        {% if request.user.is_superuser or request.user.profile.role == 'admin' %}
-        <button class="nav-accordion-btn">⚙️ Settings</button>
-        <div class="nav-accordion-content">
-            <a href="{% url 'students:section_list' %}">Sections</a>
-            <a href="{% url 'students:academic_year_list' %}">Academic Years</a>
-            <a href="{% url 'students:grade_list' %}">Grades</a>
-            <a href="{% url 'students:division_list' %}">Divisions</a>
-            <a href="{% url 'students:user_list' %}">User Management</a>
-            <a href="{% url 'admin:index' %}">Django Admin</a>
-        </div>
-        {% endif %}
+                <span>Dashboard</span>
+            </a>
+            
+            {% if request.user.is_superuser or request.user.profile.role in 'admin,teacher,accountant' %}
+            <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">Academics</div>
+            <a href="{% url 'students:student_list' %}" class="nav-item">
+                <i class="fa-solid fa-users"></i>
+                <span>Students</span>
+            </a>
+            <a href="{% url 'students:attendance_list' %}" class="nav-item">
+                <i class="fa-solid fa-calendar-check"></i>
+                <span>Attendance</span>
+            </a>
+            <a href="{% url 'students:mark_entry_list' %}" class="nav-item">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <span>Examination</span>
+            </a>
+            {% endif %}
 
-        <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-            {% if user.is_authenticated %}
-            <form method="post" action="{% url 'admin:logout' %}?next=/" style="display:block; padding: 10px 20px; text-align: left;">
-                {% csrf_token %}
-                <button type="submit" style="background:none; border:none; padding:0; color:#e74c3c; cursor:pointer; font-weight:bold; font-size: 1rem;" onmouseover="this.style.color='#f39c12';" onmouseout="this.style.color='#e74c3c';">
-                    Logout <i class="fas fa-sign-out-alt"></i>
-                </button>
-            </form>
-            {% else %}
-            <a href="{% url 'login' %}?next=/" style="display:block; padding: 10px 20px; text-align: left; color:#3498db; font-weight:bold; text-decoration:none;">
-                Login <i class="fas fa-sign-in-alt"></i>
+            {% if request.user.is_superuser or request.user.profile.role in 'admin,accountant,ntstaff' %}
+            <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">Operations</div>
+            <a href="{% url 'students:enquiry_list' %}" class="nav-item">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Enquiries</span>
+            </a>
+            <a href="{% url 'fees:finance_dashboard' %}" class="nav-item">
+                <i class="fa-solid fa-wallet"></i>
+                <span>Finance</span>
+            </a>
+            <a href="{% url 'students:hostel_movement_list' %}" class="nav-item">
+                <i class="fa-solid fa-bed"></i>
+                <span>Hostel</span>
+            </a>
+            {% endif %}
+
+            {% if request.user.is_superuser or request.user.profile.role == 'admin' %}
+            <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">System</div>
+            <a href="{% url 'students:academic_year_list' %}" class="nav-item">
+                <i class="fa-solid fa-gear"></i>
+                <span>Settings</span>
             </a>
             {% endif %}
         </div>
-    </div>
-    
-    <nav class="navbar">
-        <div class="navbar-content">
-            <h1>MARKAZ HADIYA WOMEN'S COLLEGE</h1>
-            
-            <!-- Hamburger Menu (Mobile Only) -->
-            <button class="hamburger" id="hamburger" aria-label="Toggle menu">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            
-            <!-- Desktop Navigation -->
-            <div class="nav-links">
-                <a href="{% url 'students:home' %}">Home</a>
-                
-                {% if request.user.profile.role == 'student' and request.user.profile.student_record %}
-                <a href="{% url 'students:student_edit' request.user.profile.student_record.id %}">My Profile</a>
-                {% endif %}
-                
-                {% if request.user.profile.role == 'ntstaff' %}
-                <a href="#" onclick="alert('Profile edit for staff coming soon!'); return false;">My Profile</a>
-                {% endif %}
-                {% if request.user.is_superuser or request.user.profile.role in 'admin,teacher,accountant' %}
-                <div class="dropdown">
-                    <button class="dropdown-btn">Students <span>▾</span></button>
-                    <div class="dropdown-content">
-                        <a href="{% url 'students:student_list' %}">Students List</a>
-                        <a href="{% url 'students:student_bulk_import' %}">Bulk Import</a>
-                        <a href="{% url 'students:student_upgrade' %}">Upgrade Students</a>
-                        <a href="{% url 'students:student_graduate' %}">Graduate to Alumni</a>
-                        <a href="{% url 'students:hostel_movement_list' %}">Hostel Movements</a>
-                        <a href="{% url 'alumni_home' %}">Alumni</a>
-                    </div>
-                </div>
-                {% endif %}
-                
-                {% if request.user.is_superuser or request.user.profile.role in 'admin,accountant,ntstaff' %}
-                <div class="dropdown">
-                    <button class="dropdown-btn">Enquiries <span>▾</span></button>
-                    <div class="dropdown-content">
-                        <a href="{% url 'students:enquiry_create' %}">New Enquiry</a>
-                        <a href="{% url 'students:enquiry_list' %}">Dashboard & Tokens</a>
-                        <hr style="border: 0; border-top: 1px solid #eee; margin: 4px 0;">
-                        <a href="{% url 'candidate_register' %}">🏆 പ്രതിഭാ സംഗമം</a>
-                        <a href="{% url 'awaze_register' %}">🚀 AWAZE G-CAMP</a>
-                        <a href="{% url 'candidate_list' %}">പ്രതിഭാ സംഗമം - List</a>
-                        <a href="{% url 'awaze_list' %}">AWAZE G-CAMP - List</a>
-                    </div>
-                </div>
-                {% endif %}
 
-                {% if request.user.is_superuser or request.user.profile.role in 'admin,teacher' %}
-                <div class="dropdown">
-                    <button class="dropdown-btn">Attendance <span>▾</span></button>
-                    <div class="dropdown-content">
-                        <a href="{% url 'students:mark_attendance' %}">Mark Attendance</a>
-                        <a href="{% url 'students:attendance_list' %}">Attendance Records</a>
-                        <a href="{% url 'students:attendance_analytics' %}">Analyse Attendance</a>
-                    </div>
-                </div>
-                {% endif %}
-                
-                {% if request.user.is_superuser or request.user.profile.role in 'admin,teacher' %}
-                <div class="dropdown">
-                    <button class="dropdown-btn">Examination <span>▾</span></button>
-                    <div class="dropdown-content">
-                        <a href="{% url 'students:exam_type_list' %}">Exam Types</a>
-                        <a href="{% url 'students:subject_list' %}">Subjects</a>
-                        <a href="{% url 'students:mark_entry' %}">Mark Entry</a>
-                        <a href="{% url 'students:mark_entry_list' %}">Mark List</a>
-                        <a href="{% url 'students:progress_report' %}">Progress Report</a>
-                    </div>
-                </div>
-                {% endif %}
-                
-                {% if request.user.is_superuser or request.user.profile.role in 'admin,accountant' %}
-                <div class="dropdown">
-                    <button class="dropdown-btn">Finance <span>▾</span></button>
-                    <div class="dropdown-content">
-                        <a href="{% url 'fees:finance_dashboard' %}">Finance Dashboard</a>
-                        <a href="{% url 'fees:fees_dashboard' %}">Fees Dashboard</a>
-                        <a href="{% url 'fees:add_income' %}">Add Income</a>
-                        <a href="{% url 'fees:add_expense' %}">Add Expense</a>
-                    </div>
-                </div>
-                {% endif %}
-                
-                {% if request.user.is_superuser or request.user.profile.role == 'admin' %}
-                <div class="dropdown">
-                    <button class="dropdown-btn">Settings <span>▾</span></button>
-                    <div class="dropdown-content">
-                        <a href="{% url 'students:section_list' %}">Sections</a>
-                        <a href="{% url 'students:academic_year_list' %}">Academic Years</a>
-                        <a href="{% url 'students:grade_list' %}">Grades</a>
-                        <a href="{% url 'students:division_list' %}">Divisions</a>
-                        <a href="{% url 'students:user_list' %}">User Management</a>
-                        <a href="{% url 'admin:index' %}">Django Admin</a>
-                    </div>
-                </div>
-                {% endif %}
-                
-                {% if user.is_authenticated %}
-                <form method="post" action="{% url 'admin:logout' %}?next=/" style="display:inline; margin-left: 10px;">
-                    {% csrf_token %}
-                    <button type="submit" class="logout-btn" style="background:none; border:none; padding: 6px 15px; border-radius: 4px; color: #fff; background: #e74c3c; cursor: pointer; font-weight: bold;">
-                        Logout
+        <div style="margin-top: auto; padding-top: 2rem;">
+            {% if user.is_authenticated %}
+            <form action="{% url 'logout' %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="nav-item" style="width: 100%; border: none; background: none; cursor: pointer; color: #ef4444; text-align: left;">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span>Log Out</span>
+                </button>
+            </form>
+            {% else %}
+            <a href="{% url 'login' %}" class="nav-item">
+                <i class="fa-solid fa-sign-in-alt"></i>
+                <span>Log In</span>
+            </a>
+            {% endif %}
+        </div>
+    </aside>
+
+    <div class="main-workspace">
+        <nav class="navbar">
+            <div class="navbar-content">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">
+                        <i class="fa-solid fa-bars-staggered"></i>
                     </button>
-                </form>
-                {% else %}
-                <a href="{% url 'login' %}?next=/" class="login-btn" style="margin-left: 10px; background: #3498db; color: #fff; padding: 6px 15px; border-radius: 4px; text-decoration: none; font-weight: bold;">
-                    Login
-                </a>
-                {% endif %}
+                    <div class="page-title">{% block page_heading %}{% endblock %}</div>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 1.5rem;">
+                    <div class="user-meta">
+                        <div style="font-weight: 700; font-size: 0.9rem; color: var(--dark);">{{ request.user.first_name|default:request.user.username }}</div>
+                        <div style="font-size: 0.75rem; color: var(--gray);">{{ request.user.profile.get_role_display|default:"Administrator" }}</div>
+                    </div>
+                    <div class="user-avatar" style="width: 42px; height: 42px; border-radius: 14px; background: var(--gradient-lavender); display: flex; align-items: center; justify-content: center; color: var(--primary); font-weight: 800; border: 1px solid var(--border); box-shadow: var(--shadow-soft);">
+                        {{ request.user.username|first|upper }}
+                    </div>
+                </div>
             </div>
-        </div>
-    </nav>
+        </nav>
 
-    <div class="container">
-        {% if messages %}
-        <div class="messages">
-            {% for message in messages %}
-            <div class="message {{ message.tags }}">
-                {{ message }}
+        <div class="container">
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="message {{ message.tags }}">
+                    {% if message.tags == 'success' %}
+                    <i class="fa-solid fa-circle-check"></i>
+                    {% elif message.tags == 'error' %}
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    {% endif %}
+                    {{ message }}
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
-        {% endif %}
+            {% endif %}
 
-        {% block content %}{% endblock %}
-    </div>
+            {% block content %}{% endblock %}
+        </div> <!-- End container -->
 
-    <!-- Footer Section -->
-    <footer style="margin-top: auto; padding: 1.5rem; text-align: center; border-top: 1px solid rgba(255,255,255,0.2); font-size: 0.9rem; color: var(--dark); background: rgba(255, 255, 255, 0.95); box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);">
-        <p style="margin-bottom: 0.25rem;"><strong>InstiFlow - Institution Management System</strong></p>
-        <p style="margin-top: 0; font-size: 0.85rem; color: var(--gray);">
-            Developed by: <strong>Bytola Tech Solutions</strong><br>
-            Email: <a href="mailto:bytolatechsol@gmail.com" style="color: var(--primary); text-decoration: none; font-weight: 500;">bytolatechsol@gmail.com</a> | 
-            Phone: <a href="tel:9947924613" style="color: var(--primary); text-decoration: none; font-weight: 500;">9947924613</a>
-        </p>
-    </footer>
+        <!-- Footer Section -->
+        <footer style="margin-top: auto; padding: 4rem 2rem 2rem; background: var(--bg-main); border-top: 1px solid var(--border);">
+            <div style="max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 3rem; text-align: left;">
+                <!-- Brand Column -->
+                <div>
+                    <h3 style="font-size: 1.5rem; font-weight: 800; color: var(--primary); margin-bottom: 1.5rem;">InstiFlow</h3>
+                    <p style="color: var(--gray); font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.8;">
+                        Advanced Institution Management System designed to empower educational excellence through innovation and seamless digital integration.
+                    </p>
+                </div>
+
+                <!-- Quick Links -->
+                <div>
+                    <h4 style="font-weight: 700; color: var(--dark); margin-bottom: 1.5rem; font-size: 1.1rem;">Quick Navigation</h4>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 0.8rem;"><a href="/" style="color: var(--gray); text-decoration: none; font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--gray)'">Dashboard Home</a></li>
+                        <li style="margin-bottom: 0.8rem;"><a href="{% url 'students:enquiry_list' %}" style="color: var(--gray); text-decoration: none; font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--gray)'">Manage Enquiries</a></li>
+                        <li style="margin-bottom: 0.8rem;"><a href="#" style="color: var(--gray); text-decoration: none; font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--gray)'">Student Directory</a></li>
+                    </ul>
+                </div>
+
+                <!-- Contact Information -->
+                <div>
+                    <h4 style="font-weight: 700; color: var(--dark); margin-bottom: 1.5rem; font-size: 1.1rem;">Get In Touch</h4>
+                    <p style="color: var(--gray); font-size: 0.9rem; line-height: 1.8; margin-bottom: 1rem;">
+                        <strong>Bytola Tech Solutions</strong><br>
+                        Email: <a href="mailto:bytolatechsol@gmail.com" style="color: var(--primary); text-decoration: none; font-weight: 600;">bytolatechsol@gmail.com</a><br>
+                        Support: <a href="tel:9947924613" style="color: var(--primary); text-decoration: none; font-weight: 600;">+91 9947924613</a>
+                    </p>
+                </div>
+            </div>
+
+            <div style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid rgba(0,0,0,0.05); color: var(--gray); font-size: 0.85rem; text-align: center;">
+                &copy; 2026 MARKAZ HADIYA WOMEN'S COLLEGE. All rights reserved. | Powered by InstiFlow
+            </div>
+        </footer>
+    </div> <!-- End main-workspace -->
 
     <script>
-        // Hamburger Menu Toggle
-        const hamburger = document.getElementById('hamburger');
-        const navSidebar = document.getElementById('navSidebar');
+        // Sidebar Toggle Logic
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
         const navOverlay = document.getElementById('navOverlay');
         
-        function toggleMenu() {
-            hamburger.classList.toggle('active');
-            navSidebar.classList.toggle('active');
-            navOverlay.classList.toggle('active');
-            document.body.style.overflow = navSidebar.classList.contains('active') ? 'hidden' : '';
+        function toggleSidebar() {
+            if (window.innerWidth > 1024) {
+                // Desktop toggle: Toggle margin/width
+                document.body.classList.toggle('sidebar-closed');
+            } else {
+                // Mobile toggle: Drawer logic
+                sidebar.classList.toggle('active');
+                navOverlay.classList.toggle('active');
+                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+            }
         }
         
-        hamburger.addEventListener('click', toggleMenu);
-        navOverlay.addEventListener('click', toggleMenu);
+        if (menuToggle) menuToggle.addEventListener('click', toggleSidebar);
+        if (navOverlay) navOverlay.addEventListener('click', toggleSidebar);
         
-        // Close menu when clicking a direct link (not an accordion)
-        const sidebarLinks = navSidebar.querySelectorAll('a');
-        sidebarLinks.forEach(link => {
-            link.addEventListener('click', toggleMenu);
+        // Mobile Sidebar Transition
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1024 && sidebar && sidebar.classList.contains('active')) {
+                toggleSidebar();
+            }
         });
 
-        // Mobile Accordion Logic
-        const accordionBtns = document.querySelectorAll('.nav-accordion-btn');
-        
-        accordionBtns.forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                // Prevent menu from closing when clicking accordion
-                e.stopPropagation();
-                
-                // Toggle active class on button
-                this.classList.toggle('active');
-                
-                // Toggle content max-height
-                const content = this.nextElementSibling;
-                if (content.style.maxHeight) {
-                    content.style.maxHeight = null;
-                } else {
-                    // Calculate auto height by setting temporary max-height
-                    content.style.maxHeight = content.scrollHeight + "px";
-                }
-            });
-        });
-        
-        // Close menu on window resize to desktop
-        window.addEventListener('resize', () => {
-            if (window.innerWidth > 768 && navSidebar.classList.contains('active')) {
-                toggleMenu();
+        // Set Active Nav Item
+        const currentPath = window.location.pathname;
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            if (item.getAttribute('href') === currentPath) {
+                navItems.forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
             }
         });
     </script>

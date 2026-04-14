@@ -15,4 +15,6 @@ urlpatterns = [
     path('awaze/success/', views.awaze_success, name='awaze_success'),
     path('awaze/list/', views.awaze_list, name='awaze_list'),
     path('awaze/print/', views.awaze_print, name='awaze_print'),
+    path('awaze/edit/<int:pk>/', views.awaze_edit, name='awaze_edit'),
+    path('awaze/delete/<int:pk>/', views.awaze_delete, name='awaze_delete'),
 ]

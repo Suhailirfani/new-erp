@@ -60,9 +60,10 @@
             </form>
         </div>
         
-        <div style="display: flex; gap: 0.5rem; align-items: flex-start; height: fit-content;">
+        <div style="display: flex; gap: 0.5rem; align-items: flex-start; height: fit-content; flex-wrap: wrap;">
             <a href="{% url 'students:enquiry_create' %}" class="btn btn-primary">+ New Enquiry</a>
             <a href="{% url 'students:enquiry_print_list' %}" class="btn" style="background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;" target="_blank">🖨️ Print List</a>
+            <a href="https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=https://hadiyaerp2.pythonanywhere.com/enquiries/new/" class="btn" style="background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;" target="_blank" title="Download QR Code for Enquiry Form">📱 Get QR Code</a>
         </div>
     </div>
 </div>

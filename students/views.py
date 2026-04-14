@@ -3697,6 +3697,49 @@ def enquiry_enroll_view(request, pk):
         
     return redirect('students:enquiry_list')
 
+@role_required(['admin', 'teacher', 'ntstaff'])
+def enquiry_update_view(request, pk):
+    """View to edit an existing enquiry"""
+    from .models import Enquiry, Division
+    from .forms import EnquiryForm
+    import json
+    
+    enquiry = get_object_or_404(Enquiry, pk=pk)
+    
+    if request.method == 'POST':
+        form = EnquiryForm(request.POST, instance=enquiry)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Enquiry for {enquiry.name} updated successfully.')
+            return redirect('students:enquiry_list')
+    else:
+        form = EnquiryForm(instance=enquiry)
+
+    # Pass division mapping for the dependent course dropdown
+    divisions = list(Division.objects.values('id', 'name', 'section_id'))
+    divisions_json = json.dumps(divisions)
+        
+    return render(request, 'students/enquiry_edit.html', {
+        'form': form,
+        'enquiry': enquiry,
+        'divisions_json': divisions_json
+    })
+
+@role_required(['admin', 'teacher', 'ntstaff'])
+def enquiry_delete_view(request, pk):
+    """View to delete an enquiry"""
+    from .models import Enquiry
+    enquiry = get_object_or_404(Enquiry, pk=pk)
+    
+    if request.method == 'POST':
+        name = enquiry.name
+        enquiry.delete()
+        messages.success(request, f'Enquiry for {name} deleted successfully.')
+        return redirect('students:enquiry_list')
+        
+    return render(request, 'students/enquiry_confirm_delete.html', {'enquiry': enquiry})
+
+
 # --- GRADE CRUD ---
 
 @role_required(['admin'])

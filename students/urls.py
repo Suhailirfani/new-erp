@@ -84,6 +84,8 @@ urlpatterns = [
     path('enquiries/<int:pk>/token/', views.enquiry_generate_token_view, name='enquiry_generate_token'),
     path('enquiries/<int:pk>/enroll/', views.enquiry_enroll_view, name='enquiry_enroll'),
     path('enquiries/<int:pk>/token/print/', views.enquiry_token_print_view, name='enquiry_token_print'),
+    path('enquiries/<int:pk>/edit/', views.enquiry_update_view, name='enquiry_edit'),
+    path('enquiries/<int:pk>/delete/', views.enquiry_delete_view, name='enquiry_delete'),
 
     # User Management
     path('users/', views.user_list, name='user_list'),

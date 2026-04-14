@@ -164,3 +164,23 @@ def awaze_list(request):
 def awaze_print(request):
     candidates = AwazeGCampCandidate.objects.all().order_by('name')
     return render(request, 'awards/awaze_candidate_print.html', {'candidates': candidates})
+
+@login_required
+def awaze_edit(request, pk):
+    candidate = get_object_or_404(AwazeGCampCandidate, pk=pk)
+    if request.method == 'POST':
+        form = AwazeGCampForm(request.POST, instance=candidate)
+        if form.is_valid():
+            form.save()
+            return redirect('awaze_list')
+    else:
+        form = AwazeGCampForm(instance=candidate)
+    return render(request, 'awards/awaze_candidate_form.html', {'form': form, 'is_edit': True})
+
+@login_required
+def awaze_delete(request, pk):
+    candidate = get_object_or_404(AwazeGCampCandidate, pk=pk)
+    if request.method == 'POST':
+        candidate.delete()
+        return redirect('awaze_list')
+    return render(request, 'awards/awaze_candidate_confirm_delete.html', {'candidate': candidate})

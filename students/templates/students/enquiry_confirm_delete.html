@@ -1,0 +1,32 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Delete Enquiry - MARKAZ HADIYA{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 2rem auto; text-align: center; padding: 3rem;">
+    <div style="background: #fee2e2; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="#dc2626" viewBox="0 0 16 16">
+            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+        </svg>
+    </div>
+    
+    <h2 style="margin-bottom: 1rem; color: #1e293b;">Confirm Deletion</h2>
+    <p style="color: #64748b; font-size: 1.1rem; margin-bottom: 2rem;">
+        Are you sure you want to delete the enquiry for <br>
+        <strong style="color: #0f172a;">{{ enquiry.name }}</strong> (App No: {{ enquiry.application_number|default:"-" }})?
+    </p>
+    
+    <div style="background: #fff7ed; border-left: 4px solid #f97316; padding: 1rem; text-align: left; margin-bottom: 2rem; border-radius: 4px;">
+        <p style="color: #9a3412; font-size: 0.95rem; margin: 0;">
+            <strong>Warning:</strong> This action is permanent and cannot be undone. All data associated with this enquiry will be removed.
+        </p>
+    </div>
+
+    <form method="post" style="display: flex; gap: 1rem; justify-content: center;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger" style="background-color: #dc2626; padding: 0.8rem 2rem;">Yes, Delete Enquiry</button>
+        <a href="{% url 'students:enquiry_list' %}" class="btn" style="background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 0.8rem 2rem;">No, Keep it</a>
+    </form>
+</div>
+{% endblock %}
