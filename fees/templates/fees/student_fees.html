@@ -3,34 +3,37 @@
 {% block title %}Fees Dashboard: {{ student.full_name }}{% endblock %}
 
 {% block content %}
-<div class="row mb-5 align-items-center">
+<div class="row mb-5 align-items-end">
     <div class="col-md-7">
-        <h2 style="font-size: 2.2rem; font-weight: 800; color: #ffffff !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin-bottom: 0.25rem;">
-            <i class="fas fa-wallet me-2"></i> {{ student.full_name }}
-        </h2>
-        <p style="color: rgba(255,255,255,0.85); font-size: 1.1rem; font-weight: 500;">
-            ID: <span class="badge bg-white text-primary px-2 py-1">{{ student.student_id }}</span> | 
-            Grade: <span class="text-white">{{ student.grade|default:"Not Assigned" }}</span> | 
-            Type: <span class="text-white">{{ student.get_student_type_display }}</span>
-        </p>
+        <div style="display: flex; align-items: center; gap: 1.25rem; margin-bottom: 0.75rem;">
+            <div style="width: 54px; height: 54px; background: var(--gradient-lavender); border-radius: 16px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; box-shadow: var(--shadow-soft);">
+                <i class="fas fa-user-graduate"></i>
+            </div>
+            <div>
+                <h2 style="font-size: 2.25rem; font-weight: 800; color: var(--dark); margin: 0; letter-spacing: -0.02em;">{{ student.full_name }}</h2>
+                <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.25rem;">
+                    <span style="background: var(--primary); color: white; padding: 0.2rem 0.75rem; border-radius: 8px; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.05em;">ID: {{ student.student_id }}</span>
+                    <span style="color: var(--gray); font-weight: 600; font-size: 0.95rem;">
+                        <i class="fas fa-graduation-cap me-1"></i> Grade: <span style="color: var(--dark-secondary);">{{ student.grade|default:"Not Assigned" }}</span>
+                    </span>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="col-md-5 text-end">
+    <div class="col-md-5">
         <div style="display: flex; gap: 0.75rem; justify-content: flex-end; flex-wrap: wrap;">
             {% if request.user.profile.role != 'student' %}
-                <a href="{% url 'fees:fees_dashboard' %}" class="btn btn-outline-glass">
+                <a href="{% url 'fees:fees_dashboard' %}" class="btn btn-secondary" style="padding: 0.6rem 1.25rem; font-size: 0.9rem;">
                     <i class="fas fa-arrow-left me-1"></i> Classrooms
                 </a>
-                <a href="{% url 'fees:collect_payment' student.id %}" class="btn btn-gradient">
+                <a href="{% url 'fees:collect_payment' student.id %}" class="btn btn-success" style="padding: 0.75rem 1.5rem;">
                     <i class="fas fa-hand-holding-usd me-1"></i> Collect Payment
                 </a>
-                <a href="{% url 'fees:add_custom_fee' student.id %}" class="btn btn-outline-glass">
+                <a href="{% url 'fees:add_custom_fee' student.id %}" class="btn btn-secondary" style="padding: 0.6rem 1.25rem; font-size: 0.9rem;">
                     <i class="fas fa-plus-circle me-1"></i> Add Custom Fee
                 </a>
-                <a href="{% url 'fees:print_payment_history' student.id %}" class="btn btn-outline-glass" target="_blank">
-                    <i class="fas fa-print me-1"></i> Print History
-                </a>
             {% else %}
-                <a href="{% url 'students:home' %}" class="btn btn-outline-glass">
+                <a href="{% url 'students:home' %}" class="btn btn-secondary">
                     <i class="fas fa-home me-1"></i> Home Dashboard
                 </a>
             {% endif %}
@@ -39,74 +42,92 @@
 </div>
 
 <!-- Summary Dashboard Cards -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+<div class="dashboard-grid">
     <!-- Currently Due -->
-    <div class="glass-card" style="padding: 1.5rem; border-left: 5px solid #ef4444;">
-        <p style="text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem; font-weight: 700;">Currently Due</p>
-        <h3 style="font-size: 2.2rem; font-weight: 800; color: #ffffff !important; margin: 0;">₹{{ total_due|floatformat:2 }}</h3>
-        {% if total_due > 0 %}
-            <div style="margin-top: 0.5rem; color: #fecaca; font-size: 0.85rem; font-weight: 600;">
-                <i class="fas fa-exclamation-circle me-1"></i> Requires Attention
-            </div>
-        {% else %}
-            <div style="margin-top: 0.5rem; color: #a7f3d0; font-size: 0.85rem; font-weight: 600;">
-                <i class="fas fa-check-circle me-1"></i> All Caught Up
-            </div>
-        {% endif %}
+    <div class="stat-card-new">
+        <div class="icon-box" style="background: #fef2f2; color: #ef4444;">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-info">
+            <div class="label" style="color: #ef4444;">Currently Due</div>
+            <div class="value">₹{{ total_due|floatformat:2 }}</div>
+            {% if total_due > 0 %}
+                <div style="font-size: 0.85rem; color: #ef4444; font-weight: 700;">
+                    <i class="fas fa-clock me-1"></i> Requires Attention
+                </div>
+            {% else %}
+                <div style="font-size: 0.85rem; color: #10b981; font-weight: 700;">
+                    <i class="fas fa-check-circle me-1"></i> All Settled
+                </div>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Total Paid -->
-    <div class="glass-card" style="padding: 1.5rem; border-left: 5px solid #10b981;">
-        <p style="text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem; font-weight: 700;">Total Paid</p>
-        <h3 style="font-size: 2.2rem; font-weight: 800; color: #ffffff !important; margin: 0;">₹{{ total_paid|floatformat:2 }}</h3>
-        <div style="margin-top: 0.5rem; color: rgba(255,255,255,0.8); font-size: 0.85rem;">
-            Successfully Processed
+    <div class="stat-card-new">
+        <div class="icon-box" style="background: #ecfdf5; color: #10b981;">
+            <i class="fas fa-check-double"></i>
+        </div>
+        <div class="stat-info">
+            <div class="label" style="color: #10b981;">Total Paid</div>
+            <div class="value">₹{{ total_paid|floatformat:2 }}</div>
+            <div style="font-size: 0.85rem; color: var(--gray); font-weight: 600;">Successfully Processed</div>
         </div>
     </div>
 
     <!-- Future Balance -->
-    <div class="glass-card" style="padding: 1.5rem; border-left: 5px solid #6366f1;">
-        <p style="text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem; font-weight: 700;">Future Balance</p>
-        <h3 style="font-size: 2.2rem; font-weight: 800; color: #ffffff !important; margin: 0;">₹{{ balance_pending|floatformat:2 }}</h3>
-        <p style="margin-top: 0.5rem; color: rgba(255,255,255,0.8); font-size: 0.85rem; margin-bottom: 0;">Expected installments</p>
+    <div class="stat-card-new">
+        <div class="icon-box" style="background: #eef2ff; color: #6366f1;">
+            <i class="fas fa-hourglass-half"></i>
+        </div>
+        <div class="stat-info">
+            <div class="label" style="color: #6366f1;">Future Balance</div>
+            <div class="value">₹{{ balance_pending|floatformat:2 }}</div>
+            <div style="font-size: 0.85rem; color: var(--gray); font-weight: 600;">Upcoming Installments</div>
+        </div>
     </div>
 
     <!-- Next Payment Date -->
-    <div class="glass-card" style="padding: 1.5rem; border-left: 5px solid #f59e0b;">
-        <p style="text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem; font-weight: 700;">Next Payment Due</p>
-        <h3 style="font-size: 1.8rem; font-weight: 800; color: #ffffff !important; margin: 0;">
-            {% if next_due_date %}{{ next_due_date|date:"d M, Y" }}{% else %}No Dues{% endif %}
-        </h3>
-        <div style="margin-top: 0.5rem; color: rgba(255,255,255,0.8); font-size: 0.85rem;">
-            Scheduled due date
+    <div class="stat-card-new" style="background: var(--gradient-lavender); color: white;">
+        <div class="icon-box" style="background: rgba(255,255,255,0.2); color: white;">
+            <i class="fas fa-calendar-day"></i>
+        </div>
+        <div class="stat-info">
+            <div class="label" style="color: rgba(255,255,255,0.8);">Next Payment Due</div>
+            <div class="value" style="color: white; font-size: 1.5rem;">
+                {% if next_due_date %}{{ next_due_date|date:"d M, Y" }}{% else %}No Dues{% endif %}
+            </div>
+            <div style="font-size: 0.85rem; color: rgba(255,255,255,0.9); font-weight: 600;">Scheduled Deadline</div>
         </div>
     </div>
 </div>
 
 <div class="row">
     <div class="col-lg-8">
-        <div class="card shadow-lg border-0 mb-4" style="border-radius: 20px; overflow: hidden;">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0 fw-bold"><i class="fas fa-list-ul me-2 text-primary"></i> Detailed Fee Breakdown</h5>
+        <div class="card shadow-soft border-0 mb-4" style="border-radius: 24px; overflow: hidden; background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--border);">
+            <div class="card-header bg-transparent py-4 border-0">
+                <h5 class="mb-0 fw-bold" style="color: var(--dark); font-size: 1.25rem;">
+                    <i class="fas fa-list-ul me-2" style="color: var(--primary);"></i> Detailed Fee Breakdown
+                </h5>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="ps-4">Fee Item / Installment</th>
-                                <th>Total</th>
-                                <th>Paid</th>
-                                <th>Balance</th>
-                                <th>Due Date</th>
-                                <th class="text-center">Status</th>
+                        <thead>
+                            <tr style="background: rgba(0,0,0,0.02);">
+                                <th class="ps-4 border-0" style="color: var(--gray); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; padding: 1.25rem 1rem;">Fee Item / Installment</th>
+                                <th class="border-0" style="color: var(--gray); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;">Total</th>
+                                <th class="border-0" style="color: var(--gray); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;">Paid</th>
+                                <th class="border-0" style="color: var(--gray); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;">Balance</th>
+                                <th class="border-0" style="color: var(--gray); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;">Due Date</th>
+                                <th class="text-center border-0" style="color: var(--gray); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for fee in fees %}
                             <tr>
-                                <td class="ps-4">
-                                    <div class="fw-bold text-dark">
+                                <td class="ps-4" style="padding: 1.25rem 1rem;">
+                                    <div style="font-weight: 700; color: var(--dark); font-size: 1rem;">
                                         {% if fee.fee_item %}
                                             {{ fee.fee_item.name }}
                                         {% elif fee.installment %}
@@ -115,36 +136,36 @@
                                             General Fee
                                         {% endif %}
                                     </div>
-                                    <div class="text-muted small">
+                                    <div style="color: var(--gray); font-size: 0.8rem;">
                                         {% if fee.fee_item %}{{ fee.fee_item.category }}{% endif %}
                                         {% if fee.concession_amount > 0 %}
-                                            <span class="text-success ms-1">• Concession: ₹{{ fee.concession_amount }}</span>
+                                            <span style="color: #10b981; margin-left: 0.25rem; font-weight: 600;">• Concession: ₹{{ fee.concession_amount }}</span>
                                         {% endif %}
                                     </div>
                                 </td>
-                                <td>₹{{ fee.total_amount }}</td>
-                                <td>₹{{ fee.amount_paid }}</td>
-                                <td class="fw-bold {% if fee.balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                                <td style="color: var(--dark-secondary); font-weight: 600;">₹{{ fee.total_amount }}</td>
+                                <td style="color: #10b981; font-weight: 700;">₹{{ fee.amount_paid }}</td>
+                                <td style="font-weight: 800; color: {% if fee.balance > 0 %}#ef4444{% else %}#10b981{% endif %};">
                                     ₹{{ fee.balance }}
                                 </td>
                                 <td>
-                                    <span class="{% if fee.due_date < today and fee.balance > 0 %}text-danger fw-bold{% endif %}">
+                                    <span style="{% if fee.due_date < today and fee.balance > 0 %}color: #ef4444; font-weight: 800;{% else %}color: var(--dark-secondary); font-weight: 600;{% endif %}">
                                         {{ fee.due_date|date:"d/m/Y"|default:"-" }}
                                     </span>
                                 </td>
                                 <td class="text-center">
                                     {% if fee.status == 'paid' or fee.balance <= 0 %}
-                                        <span class="badge rounded-pill bg-success-soft text-success px-3">Paid</span>
+                                        <span style="background: #d1fae5; color: #065f46; padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Completed</span>
                                     {% elif fee.status == 'partial' %}
-                                        <span class="badge rounded-pill bg-warning-soft text-warning px-3">Partial</span>
+                                        <span style="background: #fef3c7; color: #92400e; padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Partial</span>
                                     {% else %}
-                                        <span class="badge rounded-pill bg-danger-soft text-danger px-3">Due</span>
+                                        <span style="background: #fee2e2; color: #991b1b; padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Pending</span>
                                     {% endif %}
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="6" class="text-center py-5 text-muted">No fees assigned to this student.</td>
+                                <td colspan="6" class="text-center py-5" style="color: var(--gray); font-style: italic;">No fees assigned to this student.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -156,41 +177,43 @@
     
     <div class="col-lg-4">
         <!-- Recent Receipts -->
-        <div class="card shadow-lg border-0" style="border-radius: 20px; overflow: hidden;">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0 fw-bold"><i class="fas fa-history me-2 text-success"></i> Recent Payments</h5>
+        <div class="card shadow-soft border-0" style="border-radius: 24px; overflow: hidden; background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--border);">
+            <div class="card-header bg-transparent py-4 border-0 px-4">
+                <h5 class="mb-0 fw-bold" style="color: var(--dark); font-size: 1.25rem;">
+                    <i class="fas fa-history me-2" style="color: #10b981;"></i> Recent Payments
+                </h5>
             </div>
             <div class="card-body p-0">
                 <div class="list-group list-group-flush">
                     {% for row in unified_receipts %}
-                    <div class="list-group-item p-3">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="list-group-item bg-transparent px-4 py-4" style="border-color: rgba(0,0,0,0.05);">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
                             <div>
-                                <h6 class="mb-0 fw-bold text-dark">₹{{ row.income.amount }}</h6>
-                                <small class="text-muted">{{ row.income.date|date:"d M, Y" }}</small>
+                                <h4 class="mb-0 fw-bold" style="color: var(--dark); font-size: 1.4rem;">₹{{ row.income.amount }}</h4>
+                                <div style="color: var(--gray); font-size: 0.85rem; font-weight: 600; margin-top: 0.2rem;">{{ row.income.date|date:"d M, Y" }}</div>
                             </div>
-                            <span class="badge bg-light text-dark border">{{ row.income.get_payment_method_display }}</span>
+                            <span style="background: #f3f4f6; color: var(--dark-secondary); padding: 0.25rem 0.75rem; border-radius: 8px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">{{ row.income.get_payment_method_display }}</span>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-4">
                             {% for payment in row.payments %}
-                                <div class="text-muted small" style="display: flex; justify-content: space-between;">
-                                    <span>• {{ payment.student_fee.fee_item.name|default:"General Fee" }}</span>
-                                    <span class="text-success">₹{{ payment.amount }}</span>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem;">
+                                    <span style="color: var(--dark-secondary);">• {{ payment.student_fee.fee_item.name|default:"General Fee" }}</span>
+                                    <span style="font-weight: 700; color: #10b981;">₹{{ payment.amount }}</span>
                                 </div>
                             {% endfor %}
                             {% if row.advance_amount > 0 %}
-                                <div class="text-info small" style="display: flex; justify-content: space-between;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.35rem; color: #6366f1; font-weight: 600; border-top: 1px dashed rgba(99, 102, 241, 0.2); padding-top: 0.4rem; margin-top: 0.4rem;">
                                     <span>• Advance Credit</span>
                                     <span>₹{{ row.advance_amount }}</span>
                                 </div>
                             {% endif %}
                         </div>
-                        <a href="{% url 'fees:download_receipt' row.income.id %}" target="_blank" class="btn btn-sm btn-outline-primary text-primary w-100">
-                            <i class="fas fa-print me-1"></i> Receipt
+                        <a href="{% url 'fees:download_receipt' row.income.id %}" target="_blank" class="btn btn-secondary w-100" style="padding: 0.6rem; border-radius: 12px; font-size: 0.85rem;">
+                            <i class="fas fa-print me-1"></i> Download Receipt
                         </a>
                     </div>
                     {% empty %}
-                    <div class="p-4 text-center text-muted">No payment history found.</div>
+                    <div class="p-5 text-center" style="color: var(--gray); font-style: italic;">No payment history found.</div>
                     {% endfor %}
                 </div>
             </div>

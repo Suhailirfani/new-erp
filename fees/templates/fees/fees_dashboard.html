@@ -17,8 +17,8 @@
 <div class="row mb-4 align-items-center">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
         <div>
-            <h2 style="font-size: 2rem; font-weight: 800; color: #ffffff !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin-bottom: 0.25rem;">Classroom Fee Dashboard</h2>
-            <p class="text-muted">Select a class to view detailed student fees</p>
+            <h2 style="font-size: 2.25rem; font-weight: 800; color: var(--dark); margin-bottom: 0.25rem; letter-spacing: -0.02em;">Classroom Fee Dashboard</h2>
+            <p style="color: var(--gray); font-size: 1.1rem; font-weight: 500;">Select a class to view detailed student fees</p>
         </div>
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
             <a href="{% url 'fees:fee_setup_dashboard' %}" class="btn btn-gradient"><i class="fas fa-cog"></i> Fee Setup</a>
@@ -62,11 +62,11 @@
         </div>
         
         {% if classroom.division %}
-            <a href="{% url 'fees:classroom_detail_with_division' classroom.grade.id classroom.division.id %}" class="btn btn-outline-glass" style="width: 100%; text-align: center; margin: 0;">
+            <a href="{% url 'fees:classroom_detail_with_division' classroom.grade.id classroom.division.id %}" class="btn btn-gradient" style="width: 100%; text-align: center; margin: 0; padding: 0.75rem;">
                 <i class="fas fa-sign-in-alt"></i> Enter Classroom
             </a>
         {% else %}
-            <a href="{% url 'fees:classroom_detail' classroom.grade.id %}" class="btn btn-outline-glass" style="width: 100%; text-align: center; margin: 0;">
+            <a href="{% url 'fees:classroom_detail' classroom.grade.id %}" class="btn btn-gradient" style="width: 100%; text-align: center; margin: 0; padding: 0.75rem;">
                 <i class="fas fa-sign-in-alt"></i> Enter Classroom
             </a>
         {% endif %}

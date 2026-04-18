@@ -3,90 +3,116 @@
 {% block title %}Finance & Accounts Dashboard{% endblock %}
 
 {% block content %}
-<div class="row mb-5 align-items-center">
+<div class="row mb-5 align-items-end">
     <div class="col-md-7">
-        <h2 style="font-size: 2.2rem; font-weight: 800; color: #ffffff !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin-bottom: 0.25rem;">
-            <i class="fas fa-chart-line me-2"></i> Finance Dashboard
-        </h2>
-        <p style="color: rgba(255,255,255,0.85); font-size: 1.1rem; font-weight: 500;">
-            Institutional Financial Health & Transactions | {{ today|date:"D, d M Y" }}
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+            <div style="width: 48px; height: 48px; background: var(--gradient-lavender); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; box-shadow: var(--shadow-soft);">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h2 style="font-size: 2.25rem; font-weight: 800; color: var(--dark); margin: 0; letter-spacing: -0.02em;">Finance Dashboard</h2>
+        </div>
+        <p style="color: var(--gray); font-size: 1.1rem; font-weight: 500; margin-left: 3.5rem;">
+            Institutional Financial Health & Transactions | <span style="color: var(--primary); font-weight: 700;">{{ today|date:"D, d M Y" }}</span>
         </p>
     </div>
-    <div class="col-md-5 text-end">
+    <div class="col-md-5">
         <div style="display: flex; gap: 0.75rem; justify-content: flex-end; flex-wrap: wrap;">
-            <a href="{% url 'fees:departmental_dashboard' %}" class="btn btn-outline-glass">
+            <a href="{% url 'fees:fees_dashboard' %}" class="btn btn-gradient" style="padding: 0.8rem 1.6rem; order: -1;">
+                <i class="fas fa-hand-holding-dollar me-1"></i> Collect Fee
+            </a>
+            <a href="{% url 'fees:add_income' %}" class="btn btn-success" style="padding: 0.75rem 1.25rem; font-size: 0.95rem;">
+                <i class="fas fa-plus me-1"></i> Other Income
+            </a>
+            <a href="{% url 'fees:add_expense' %}" class="btn btn-danger" style="padding: 0.75rem 1.25rem; font-size: 0.95rem;">
+                <i class="fas fa-minus me-1"></i> Add Expense
+            </a>
+            <div style="width: 100%; height: 0.5rem; display: block;"></div> <!-- Spacer -->
+            <a href="{% url 'fees:departmental_dashboard' %}" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
                 <i class="fas fa-chart-pie me-1"></i> Dept. Analytics
             </a>
-            <a href="{% url 'fees:day_book' %}" class="btn btn-outline-glass">
+            <a href="{% url 'fees:day_book' %}" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
                 <i class="fas fa-book me-1"></i> Day Book
             </a>
-            <a href="{% url 'fees:ledger_book' %}" class="btn btn-outline-glass">
-                <i class="fas fa-list me-1"></i> Ledger
-            </a>
-            <a href="{% url 'fees:finance_report' %}" class="btn btn-outline-glass">
+            <a href="{% url 'fees:finance_report' %}" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
                 <i class="fas fa-file-invoice me-1"></i> Reports
-            </a>
-            <a href="{% url 'fees:add_income' %}" class="btn btn-gradient">
-                <i class="fas fa-plus me-1"></i> Add Income
-            </a>
-            <a href="{% url 'fees:add_expense' %}" class="btn btn-outline-glass border-danger text-danger">
-                <i class="fas fa-minus me-1"></i> Add Expense
             </a>
         </div>
     </div>
 </div>
 
 <!-- Key Metrics Grid -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+<div class="dashboard-grid">
     <!-- Daily Report -->
-    <div class="glass-card" style="padding: 1.5rem; border-top: 5px solid #10b981;">
-        <p style="text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem; font-weight: 700;">Today's Collection</p>
-        <h3 style="font-size: 2rem; font-weight: 800; color: #ffffff !important; margin: 0;">₹{{ daily_income|floatformat:2 }}</h3>
-        <div style="margin-top: 0.5rem; color: #a7f3d0; font-size: 0.85rem; font-weight: 600;">
-            Expense: ₹{{ daily_expense|floatformat:2 }}
+    <div class="stat-card-new">
+        <div class="icon-box" style="background: #ecfdf5; color: #10b981;">
+            <i class="fas fa-wallet"></i>
+        </div>
+        <div class="stat-info">
+            <div class="label">Today's Collection</div>
+            <div class="value">₹{{ daily_income|floatformat:2 }}</div>
+            <div style="font-size: 0.85rem; color: #10b981; font-weight: 700;">
+                <i class="fas fa-arrow-down me-1"></i> Expense: ₹{{ daily_expense|floatformat:2 }}
+            </div>
         </div>
     </div>
 
     <!-- Monthly Report -->
-    <div class="glass-card" style="padding: 1.5rem; border-top: 5px solid #6366f1;">
-        <p style="text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem; font-weight: 700;">Monthly Summary</p>
-        <h3 style="font-size: 2rem; font-weight: 800; color: #ffffff !important; margin: 0;">₹{{ monthly_income|floatformat:2 }}</h3>
-        <div style="margin-top: 0.5rem; color: #c7d2fe; font-size: 0.85rem; font-weight: 600;">
-            Net: ₹{{ monthly_income|add:monthly_expense|floatformat:2 }} <!-- simplifying subtraction in template is limited, view logic preferred but this works for summary -->
+    <div class="stat-card-new">
+        <div class="icon-box" style="background: #eef2ff; color: #6366f1;">
+            <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="stat-info">
+            <div class="label">Monthly Summary</div>
+            <div class="value">₹{{ monthly_income|floatformat:2 }}</div>
+            <div style="font-size: 0.85rem; color: #6366f1; font-weight: 700;">
+                Net: ₹{{ monthly_income|add:monthly_expense|floatformat:2 }}
+            </div>
         </div>
     </div>
 
     <!-- Yearly Report -->
-    <div class="glass-card" style="padding: 1.5rem; border-top: 5px solid #f59e0b;">
-        <p style="text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem; font-weight: 700;">Yearly Total</p>
-        <h3 style="font-size: 2rem; font-weight: 800; color: #ffffff !important; margin: 0;">₹{{ yearly_income|floatformat:2 }}</h3>
-        <p style="margin-top: 0.5rem; color: rgba(255,255,255,0.8); font-size: 0.85rem; margin-bottom: 0;">Academic Year Performance</p>
+    <div class="stat-card-new">
+        <div class="icon-box" style="background: #fffbeb; color: #f59e0b;">
+            <i class="fas fa-vault"></i>
+        </div>
+        <div class="stat-info">
+            <div class="label">Yearly Total</div>
+            <div class="value">₹{{ yearly_income|floatformat:2 }}</div>
+            <div style="font-size: 0.85rem; color: var(--gray); font-weight: 600;">Academic Year Performance</div>
+        </div>
     </div>
 
     <!-- Overall Balance -->
-    <div class="glass-card" style="padding: 1.5rem; border-top: 5px solid #ffffff; background: rgba(255,255,255,0.1);">
-        <p style="text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem; font-weight: 700;">Projected Balance</p>
-        <h3 style="font-size: 2rem; font-weight: 800; color: #ffffff !important; margin: 0;">₹{{ net_balance|floatformat:2 }}</h3>
-        <div style="margin-top: 0.5rem; color: rgba(255,255,255,0.8); font-size: 0.85rem;">Grand Total Liquidity</div>
+    <div class="stat-card-new" style="background: var(--gradient-lavender); color: white;">
+        <div class="icon-box" style="background: rgba(29, 1, 88, 0.2); color: white;">
+            <i class="fas fa-piggy-bank"></i>
+        </div>
+        <div class="stat-info">
+            <div class="label" style="color: rgba(194, 46, 46, 0.8);">Projected Balance</div>
+            <div class="value" style="color: rgb(79, 9, 9);">₹{{ net_balance|floatformat:2 }}</div>
+            <div style="font-size: 0.85rem; color: rgba(62, 1, 1, 0.9); font-weight: 600;">Grand Total Liquidity</div>
+        </div>
     </div>
 </div>
 
 <div class="row">
     <!-- Item-wise collection -->
     <div class="col-lg-5 mb-4">
-        <div class="card shadow-lg border-0" style="border-radius: 20px;">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-tags me-2 text-primary"></i> Collection by Category</h5>
+        <div class="card shadow-soft border-0" style="border-radius: 24px; background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--border);">
+            <div class="card-header bg-transparent py-4 border-0">
+                <h5 class="mb-0 fw-bold" style="color: var(--dark); font-size: 1.25rem;">
+                    <i class="fas fa-tags me-2" style="color: var(--primary);"></i> Collection by Category
+                </h5>
             </div>
-            <div class="card-body">
+            <div class="card-body px-4 pb-4">
                 {% for cat in category_collections %}
                 <div class="mb-4">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span class="fw-bold">{{ cat.name }}</span>
-                        <span class="text-primary fw-bold">₹{{ cat.total|floatformat:0 }}</span>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span style="font-weight: 600; color: var(--dark-secondary); font-size: 0.95rem;">{{ cat.name }}</span>
+                        <span style="font-weight: 800; color: var(--primary);">₹{{ cat.total|floatformat:0 }}</span>
                     </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar" role="progressbar" style="width: {% widthratio cat.total total_income 100 %}%"></div>
+                    <div class="progress" style="height: 10px; border-radius: 5px; background: rgba(0,0,0,0.05);">
+                        <div class="progress-bar" role="progressbar" style="width: {% widthratio cat.total total_income 100 %}%; background: var(--gradient-lavender); border-radius: 5px;"></div>
                     </div>
                 </div>
                 {% empty %}
@@ -98,49 +124,52 @@
 
     <!-- Day Book / Recent Transactions -->
     <div class="col-lg-7">
-        <div class="card shadow-lg border-0" style="border-radius: 20px; overflow: hidden;">
-            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-book me-2 text-success"></i> Recent Day Book</h5>
-                <button class="btn btn-sm btn-outline-primary" onclick="window.print()"><i class="fas fa-print"></i></button>
+        <div class="card shadow-soft border-0" style="border-radius: 24px; overflow: hidden; background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--border);">
+            <div class="card-header bg-transparent py-4 border-0 d-flex justify-content-between align-items-center px-4">
+                <h5 class="mb-0 fw-bold" style="color: var(--dark); font-size: 1.25rem;">
+                    <i class="fas fa-book me-2" style="color: #10b981;"></i> Recent Day Book
+                </h5>
+                <button class="btn btn-secondary btn-xs" onclick="window.print()" style="padding: 0.5rem 0.8rem !important; border-radius: 8px !important;">
+                    <i class="fas fa-print me-1"></i> Print
+                </button>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="ps-4">Date/Ref</th>
-                                <th>Category / Description</th>
-                                <th class="text-end pe-4">Amount</th>
+                        <thead>
+                            <tr style="background: rgba(0,0,0,0.02);">
+                                <th class="ps-4 border-0" style="color: var(--gray); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; padding: 1.25rem 1rem;">Date/Ref</th>
+                                <th class="border-0" style="color: var(--gray); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; padding: 1.25rem 1rem;">Category / Description</th>
+                                <th class="text-end pe-4 border-0" style="color: var(--gray); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; padding: 1.25rem 1rem;">Amount</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Simplified Day Book: Interleaving Income and Expense -->
                             {% for inc in recent_incomes %}
                             <tr>
-                                <td class="ps-4">
-                                    <div class="fw-bold text-dark">{{ inc.date|date:"d M" }}</div>
-                                    <div class="text-muted small">#{{ inc.reference_number|default:inc.id }}</div>
+                                <td class="ps-4" style="padding: 1rem;">
+                                    <div style="font-weight: 700; color: var(--dark);">{{ inc.date|date:"d M" }}</div>
+                                    <div style="color: var(--gray); font-size: 0.8rem;">#{{ inc.reference_number|default:inc.id }}</div>
                                 </td>
                                 <td>
-                                    <div class="fw-bold text-success"><i class="fas fa-plus-circle me-1 small"></i> {{ inc.category.name }}</div>
-                                    <div class="text-muted small">{{ inc.received_from|truncatechars:40 }}</div>
+                                    <div style="font-weight: 700; color: #10b981;"><i class="fas fa-plus-circle me-1 small"></i> {{ inc.category.name }}</div>
+                                    <div style="color: var(--dark-secondary); font-size: 0.85rem;">{{ inc.received_from|truncatechars:40 }}</div>
                                 </td>
-                                <td class="text-end pe-4 fw-bold text-success">
+                                <td class="text-end pe-4" style="font-weight: 800; color: #10b981; font-size: 1.1rem;">
                                     + ₹{{ inc.amount }}
                                 </td>
                             </tr>
                             {% endfor %}
                             {% for exp in recent_expenses %}
                             <tr style="background-color: rgba(239, 68, 68, 0.02);">
-                                <td class="ps-4">
-                                    <div class="fw-bold text-dark">{{ exp.date|date:"d M" }}</div>
-                                    <div class="text-muted small">#{{ exp.reference_number|default:exp.id }}</div>
+                                <td class="ps-4" style="padding: 1rem;">
+                                    <div style="font-weight: 700; color: var(--dark);">{{ exp.date|date:"d M" }}</div>
+                                    <div style="color: var(--gray); font-size: 0.8rem;">#{{ exp.reference_number|default:exp.id }}</div>
                                 </td>
                                 <td>
-                                    <div class="fw-bold text-danger"><i class="fas fa-minus-circle me-1 small"></i> {{ exp.category.name }}</div>
-                                    <div class="text-muted small">{{ exp.paid_to|truncatechars:40 }}</div>
+                                    <div style="font-weight: 700; color: #ef4444;"><i class="fas fa-minus-circle me-1 small"></i> {{ exp.category.name }}</div>
+                                    <div style="color: var(--dark-secondary); font-size: 0.85rem;">{{ exp.paid_to|truncatechars:40 }}</div>
                                 </td>
-                                <td class="text-end pe-4 fw-bold text-danger">
+                                <td class="text-end pe-4" style="font-weight: 800; color: #ef4444; font-size: 1.1rem;">
                                     - ₹{{ exp.amount }}
                                 </td>
                             </tr>

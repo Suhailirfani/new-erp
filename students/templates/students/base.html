@@ -220,6 +220,12 @@
             gap: 0.5rem;
             flex: 1;
             overflow-y: auto;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+        }
+
+        .nav-sidebar-items::-webkit-scrollbar {
+            display: none; /* Chrome, Safari and Opera */
         }
 
         .nav-item {
@@ -412,12 +418,12 @@
             box-shadow: var(--shadow-soft);
             transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
             position: relative;
+            backface-visibility: hidden;
+            transform: translateZ(0);
+            will-change: transform;
         }
         
-        .card:hover {
-            transform: translateY(-8px);
-            box-shadow: var(--shadow-float);
-        }
+        
         
         /* Glass Card Utility */
         .glass-card {
@@ -427,7 +433,8 @@
             border-radius: 28px;
             border: 1px solid var(--border);
             box-shadow: var(--shadow-soft);
-            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+            position: relative;
+            overflow: hidden;
         }
         
         .glass-card::before {
@@ -438,17 +445,16 @@
             width: 100%;
             height: 100%;
             background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            transition: left 0.5s;
+            pointer-events: none;
+            transition: left 0.7s ease;
         }
-        
-        .glass-card:hover {
-            transform: translateY(-10px) scale(1.02);
-            box-shadow: 0 30px 60px -12px rgba(102, 126, 234, 0.3);
-        }
-        
+
         .glass-card:hover::before {
             left: 100%;
         }
+        
+        
+      
         
         /* Buttons */
         .btn {
@@ -601,28 +607,6 @@
 
         /* Force high contrast for solid buttons */
         .btn-primary, .btn-success, .btn-danger, .btn-secondary, .btn-warning, .btn-info, .btn-gradient, .btn-xs.btn-primary, .btn-xs.btn-danger, .btn-xs.btn-warning {
-            color: white !important;
-        }
-
-        /* Inside glass cards, everything should be white for contrast */
-        .glass-card .btn, .glass-card .btn-outline-glass {
-            color: white !important;
-            border-color: rgba(255, 255, 255, 0.4) !important;
-        }
-        .glass-card .btn-outline-glass:hover {
-            background: rgba(255, 255, 255, 0.2) !important;
-            border-color: white !important;
-        }
-
-        /* Ensure heading contrast inside cards */
-        .glass-card h1, .glass-card h2, .glass-card h3, .glass-card h4, .glass-card p {
-            color: white !important;
-        }
-        .glass-card .text-muted {
-            color: rgba(255, 255, 255, 0.7) !important;
-        }
-        .glass-card .badge {
-            background: rgba(255, 255, 255, 0.2) !important;
             color: white !important;
         }
         
@@ -1307,6 +1291,88 @@
             }
         }
         
+        /* Dashboard Global Components */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+            width: 100%;
+        }
+
+        @media (max-width: 1400px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stat-card-new {
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            border-radius: 28px;
+            transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border);
+            backface-visibility: hidden;
+            transform: translateZ(0);
+            will-change: transform;
+        }
+
+        .stat-card-new:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: var(--shadow-float);
+        }
+
+        /* Hover Bridge Structural Fix: Prevents shivering when hovering at the bottom edge */
+        .card:hover::after, 
+        .glass-card:hover::after, 
+        .stat-card-new:hover::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: -20px;
+            z-index: -1;
+        }
+
+        .icon-box {
+            width: 64px;
+            height: 64px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+        }
+
+        .stat-info .value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--dark);
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-info .label {
+            font-size: 0.85rem;
+            color: var(--gray);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
         /* Print Styles */
         @media print {
             body {
@@ -1364,10 +1430,31 @@
 
             {% if request.user.is_superuser or request.user.profile.role in 'admin,accountant,ntstaff' %}
             <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">Operations</div>
-            <a href="{% url 'students:enquiry_list' %}" class="nav-item">
-                <i class="fa-solid fa-user-plus"></i>
-                <span>Enquiries</span>
-            </a>
+            <div class="nav-group">
+                <a href="#" class="nav-item nav-dropdown-btn" onclick="event.preventDefault(); const content = this.nextElementSibling; const icon = this.querySelector('.arrow'); const isClosed = content.style.display === 'none' || content.style.display === ''; content.style.display = isClosed ? 'block' : 'none'; icon.style.transform = isClosed ? 'rotate(180deg)' : 'none';">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span>Enquiries</span>
+                    <i class="fa-solid fa-chevron-down arrow" style="margin-left: auto; font-size: 0.8rem; transition: transform 0.3s;"></i>
+                </a>
+                <div class="nav-group-content" style="display: none; padding-left: 1.5rem; margin-top: 0.25rem;">
+                    <a href="{% url 'students:enquiry_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                        <i class="fa-solid fa-list-ul" style="font-size: 0.9rem;"></i>
+                        <span>Admission List</span>
+                    </a>
+                    <a href="{% url 'students:enquiry_create' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                        <i class="fa-solid fa-file-signature" style="font-size: 0.9rem;"></i>
+                        <span>Admission Form</span>
+                    </a>
+                    <a href="{% url 'awaze_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                        <i class="fa-solid fa-campground" style="font-size: 0.9rem;"></i>
+                        <span>Camp Enquiries</span>
+                    </a>
+                    <a href="{% url 'awaze_register' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                        <i class="fa-solid fa-tent" style="font-size: 0.9rem;"></i>
+                        <span>Camp Form</span>
+                    </a>
+                </div>
+            </div>
             <a href="{% url 'fees:finance_dashboard' %}" class="nav-item">
                 <i class="fa-solid fa-wallet"></i>
                 <span>Finance</span>
@@ -1519,6 +1606,16 @@
             if (item.getAttribute('href') === currentPath) {
                 navItems.forEach(nav => nav.classList.remove('active'));
                 item.classList.add('active');
+                
+                // If it's inside a dropdown, open it
+                const groupContent = item.closest('.nav-group-content');
+                if (groupContent) {
+                    groupContent.style.display = 'block';
+                    const parentBtn = groupContent.previousElementSibling;
+                    if (parentBtn && parentBtn.querySelector('.arrow')) {
+                        parentBtn.querySelector('.arrow').style.transform = 'rotate(180deg)';
+                    }
+                }
             }
         });
     </script>

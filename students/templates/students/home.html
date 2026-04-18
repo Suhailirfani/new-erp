@@ -5,66 +5,7 @@
 
 {% block content %}
 <style>
-    /* Dashboard Specific Styles */
-    .dashboard-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1.5rem;
-        margin-bottom: 2.5rem;
-        width: 100%;
-    }
-
-    @media (max-width: 1200px) {
-        .dashboard-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-
-    @media (max-width: 768px) {
-        .dashboard-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    .stat-card-new {
-        padding: 2rem;
-        display: flex;
-        align-items: center;
-        gap: 1.5rem;
-        border-radius: 28px;
-        transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
-    }
-
-    .stat-card-new:hover {
-        transform: translateY(-8px) scale(1.02);
-    }
-
-    .icon-box {
-        width: 64px;
-        height: 64px;
-        border-radius: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-    }
-
-    .stat-info .value {
-        font-size: 1.75rem;
-        font-weight: 800;
-        color: var(--dark);
-        line-height: 1;
-        margin-bottom: 0.25rem;
-    }
-
-    .stat-info .label {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: var(--gray);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
+    /* Home Specific Adjustments */
 
     /* Circular Progress */
     .progress-ring {
@@ -119,6 +60,9 @@
         font-weight: 600;
         transition: all 0.3s ease;
         box-shadow: var(--shadow-soft);
+        backface-visibility: hidden;
+        transform: translateZ(0);
+        will-change: transform;
     }
 
     .quick-action-btn:hover {
@@ -126,6 +70,17 @@
         color: white;
         transform: translateY(-4px);
         box-shadow: var(--shadow-float);
+    }
+
+    /* Hover Bridge for Quick Actions */
+    .quick-action-btn:hover::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: -15px;
+        z-index: -1;
     }
 
     .quick-action-btn i {
