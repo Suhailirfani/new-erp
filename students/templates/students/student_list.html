@@ -231,13 +231,8 @@
                 success: function(response) {
                     $('#studentTableBody').html(response);
                     
-                    // Update the student count based on the number of rows returned
-                    var rowCount = $('#studentTableBody tr').length;
-                    
-                    // If the only row is the "No students found" message, count is 0
-                    if (rowCount === 1 && $('#studentTableBody tr td').text().trim() === 'No students found.') {
-                        rowCount = 0;
-                    }
+                    // Update the student count based on the number of student rows returned
+                    var rowCount = $('#studentTableBody tr.student-row').length;
                     
                     $('#studentCountHeader').text('Students (' + rowCount + ')');
                 },

@@ -680,11 +680,12 @@
         textarea {
             width: 100%;
             padding: 1rem;
-            border: 2px solid var(--border);
+            border: 2px solid #cbd5e1;
             border-radius: 12px;
             font-size: 1rem;
             transition: all 0.3s ease;
             background: white;
+            color: var(--dark);
             font-family: inherit;
         }
         
@@ -1418,6 +1419,10 @@
                 <i class="fa-solid fa-users"></i>
                 <span>Students</span>
             </a>
+            <a href="{% url 'students:alumni_list' %}" class="nav-item">
+                <i class="fa-solid fa-user-graduate"></i>
+                <span>Alumni Registry</span>
+            </a>
             <a href="{% url 'students:attendance_list' %}" class="nav-item">
                 <i class="fa-solid fa-calendar-check"></i>
                 <span>Attendance</span>
@@ -1534,30 +1539,30 @@
         </div> <!-- End container -->
 
         <!-- Footer Section -->
-        <footer style="margin-top: auto; padding: 4rem 2rem 2rem; background: var(--bg-main); border-top: 1px solid var(--border);">
-            <div style="max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 3rem; text-align: left;">
+        <footer style="margin-top: auto; padding: 2rem 1rem 1rem; background: var(--bg-main); border-top: 1px solid var(--border);">
+            <div style="max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; text-align: left;">
                 <!-- Brand Column -->
                 <div>
-                    <h3 style="font-size: 1.5rem; font-weight: 800; color: var(--primary); margin-bottom: 1.5rem;">InstiFlow</h3>
-                    <p style="color: var(--gray); font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.8;">
+                    <h3 style="font-size: 1.5rem; font-weight: 800; color: var(--primary); margin-bottom: 0.75rem;">InstiFlow</h3>
+                    <p style="color: var(--gray); font-size: 0.95rem; margin-bottom: 0.75rem; line-height: 1.5;">
                         Advanced Institution Management System designed to empower educational excellence through innovation and seamless digital integration.
                     </p>
                 </div>
 
                 <!-- Quick Links -->
                 <div>
-                    <h4 style="font-weight: 700; color: var(--dark); margin-bottom: 1.5rem; font-size: 1.1rem;">Quick Navigation</h4>
+                    <h4 style="font-weight: 700; color: var(--dark); margin-bottom: 0.75rem; font-size: 1.1rem;">Quick Navigation</h4>
                     <ul style="list-style: none; padding: 0;">
-                        <li style="margin-bottom: 0.8rem;"><a href="/" style="color: var(--gray); text-decoration: none; font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--gray)'">Dashboard Home</a></li>
-                        <li style="margin-bottom: 0.8rem;"><a href="{% url 'students:enquiry_list' %}" style="color: var(--gray); text-decoration: none; font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--gray)'">Manage Enquiries</a></li>
-                        <li style="margin-bottom: 0.8rem;"><a href="#" style="color: var(--gray); text-decoration: none; font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--gray)'">Student Directory</a></li>
+                        <li style="margin-bottom: 0.4rem;"><a href="/" style="color: var(--gray); text-decoration: none; font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--gray)'">Dashboard Home</a></li>
+                        <li style="margin-bottom: 0.4rem;"><a href="{% url 'students:enquiry_list' %}" style="color: var(--gray); text-decoration: none; font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--gray)'">Manage Enquiries</a></li>
+                        <li style="margin-bottom: 0.4rem;"><a href="{% url 'students:student_list' %}" style="color: var(--gray); text-decoration: none; font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--gray)'">Student Directory</a></li>
                     </ul>
                 </div>
 
                 <!-- Contact Information -->
                 <div>
-                    <h4 style="font-weight: 700; color: var(--dark); margin-bottom: 1.5rem; font-size: 1.1rem;">Get In Touch</h4>
-                    <p style="color: var(--gray); font-size: 0.9rem; line-height: 1.8; margin-bottom: 1rem;">
+                    <h4 style="font-weight: 700; color: var(--dark); margin-bottom: 0.75rem; font-size: 1.1rem;">Get In Touch</h4>
+                    <p style="color: var(--gray); font-size: 0.9rem; line-height: 1.5; margin-bottom: 0.5rem;">
                         <strong>Bytola Tech Solutions</strong><br>
                         Email: <a href="mailto:bytolatechsol@gmail.com" style="color: var(--primary); text-decoration: none; font-weight: 600;">bytolatechsol@gmail.com</a><br>
                         Support: <a href="tel:9947924613" style="color: var(--primary); text-decoration: none; font-weight: 600;">+91 9947924613</a>
@@ -1565,7 +1570,7 @@
                 </div>
             </div>
 
-            <div style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid rgba(0,0,0,0.05); color: var(--gray); font-size: 0.85rem; text-align: center;">
+            <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgba(0,0,0,0.05); color: var(--gray); font-size: 0.85rem; text-align: center;">
                 &copy; 2026 MARKAZ HADIYA WOMEN'S COLLEGE. All rights reserved. | Powered by InstiFlow
             </div>
         </footer>

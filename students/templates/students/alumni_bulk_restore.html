@@ -1,0 +1,137 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Bulk Restore from Alumni - MARKAZ HADIYA{% endblock %}
+
+{% block extra_css %}
+<style>
+    .bulk-card {
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        box-shadow: var(--shadow-soft);
+        padding: 3rem;
+        max-width: 650px;
+        margin: 2rem auto;
+    }
+    
+    .bulk-header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+    }
+    
+    .bulk-header .icon-box {
+        width: 70px;
+        height: 70px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(52, 211, 153, 0.05));
+        color: #10b981;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        margin: 0 auto 1.5rem;
+    }
+    
+    .form-group label {
+        font-weight: 600;
+        color: var(--dark);
+        margin-bottom: 0.6rem;
+        font-size: 0.95rem;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 12px;
+        padding: 0.8rem 1rem;
+        border: 1px solid #e2e8f0;
+        background: rgba(255, 255, 255, 0.7);
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        background: white;
+        border-color: #10b981;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+    }
+    
+    .btn-restore {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 1rem 2rem;
+        font-weight: 600;
+        font-size: 1.05rem;
+        letter-spacing: 0.5px;
+        transition: all 0.3s;
+        width: 100%;
+        margin-top: 1.5rem;
+    }
+    
+    .btn-restore:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+        color: white;
+    }
+    
+    .info-alert {
+        background: rgba(239, 68, 68, 0.05);
+        border-left: 4px solid #ef4444;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        font-size: 0.9rem;
+        color: #b91c1c;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="bulk-card">
+        <div class="bulk-header">
+            <div class="icon-box">
+                <i class="fa-solid fa-rotate-left"></i>
+            </div>
+            <h2 class="h3 fw-bold text-dark">{{ page_title }}</h2>
+            <p class="text-muted">Undo graduation and restore a class</p>
+        </div>
+
+        <div class="info-alert">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>
+            This will fetch all current Alumni who graduated in the year below AND are enrolled in the selected grade. It will automatically delete their alumni records and <strong>reactivate</strong> them back into your main class roster.
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group mb-4">
+                <label for="grade">Original Class/Grade <span class="text-danger">*</span></label>
+                <select name="grade" id="grade" class="form-select" required>
+                    <option value="">-- Choose Class / Grade --</option>
+                    {% for grade in grades %}
+                    <option value="{{ grade.id }}">{{ grade.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group mb-4">
+                <label for="graduation_year">Graduation Year <span class="text-danger">*</span></label>
+                <input type="number" name="graduation_year" id="graduation_year" class="form-control" value="{{ current_year }}" required>
+            </div>
+
+            <button type="submit" class="btn-restore" onclick="return confirm('WARNING: Are you sure you want to mass-restore this class? This will completely undo their graduation.');">
+                <i class="fa-solid fa-rotate-left me-2"></i> Execute Bulk Restore
+            </button>
+            
+            <div class="text-center mt-4">
+                <a href="{% url 'students:alumni_list' %}" class="text-muted text-decoration-none" style="font-size: 0.95rem; font-weight: 500;">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Back to Alumni List
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

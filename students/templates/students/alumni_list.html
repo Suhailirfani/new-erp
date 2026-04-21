@@ -1,0 +1,162 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Alumni Registry - MARKAZ HADIYA{% endblock %}
+
+{% block extra_css %}
+<style>
+    .alumni-card {
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        box-shadow: var(--shadow-soft);
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+    
+    .alumni-header {
+        padding: 1.5rem;
+        background: linear-gradient(135deg, rgba(142, 68, 173, 0.1), rgba(155, 89, 182, 0.05));
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .table-wrapper {
+        padding: 1rem;
+        overflow-x: auto;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+    
+    th {
+        padding: 12px 16px;
+        color: var(--gray);
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    td {
+        padding: 16px;
+        background: white;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        font-size: 0.95rem;
+        border-radius: 0;
+    }
+    
+    td:first-child { border-left: 1px solid var(--border); border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+    td:last-child { border-right: 1px solid var(--border); border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+    
+    .search-box {
+        position: relative;
+        width: 300px;
+    }
+    
+    .search-box input {
+        width: 100%;
+        padding: 0.6rem 1rem 0.6rem 2.5rem;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        font-size: 0.9rem;
+        outline: none;
+        transition: border-color 0.3s;
+    }
+    
+    .search-box input:focus { border-color: var(--primary); }
+    .search-box i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gray);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold text-dark mb-1">Alumni Registry</h1>
+            <p class="text-muted mb-0">Manage and view all graduated students</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'students:alumni_bulk_restore' %}" class="btn text-white fw-bold" style="background: linear-gradient(135deg, #10b981, #34d399); border-radius: 12px; padding: 0.6rem 1.2rem;">
+                <i class="fa-solid fa-rotate-left me-2"></i> Bulk Restore
+            </a>
+            <a href="{% url 'students:alumni_bulk_transfer' %}" class="btn text-white fw-bold" style="background: linear-gradient(135deg, #8e44ad, #9b59b6); border-radius: 12px; padding: 0.6rem 1.2rem;">
+                <i class="fa-solid fa-bolt me-2 text-warning"></i> Bulk Transfer Class
+            </a>
+        </div>
+    </div>
+
+    <div class="alumni-card">
+        <div class="alumni-header">
+            <h5 class="mb-0 fw-bold" style="color: var(--primary);">
+                <i class="fa-solid fa-user-graduate me-2"></i> {{ alumni_records|length }} Registered Alumni
+            </h5>
+            <form method="get" class="search-box">
+                <i class="fa-solid fa-search"></i>
+                <input type="text" name="search" value="{{ search_query }}" placeholder="Search by name, ID or year...">
+            </form>
+        </div>
+        
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student Details</th>
+                        <th>Class of</th>
+                        <th>Current Status</th>
+                        <th>Company/Institution</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in alumni_records %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold" style="color: var(--dark);">{{ p.student.full_name }}</div>
+                            <div style="font-size: 0.8rem; color: var(--gray);">ID: {{ p.student.student_id }}</div>
+                        </td>
+                        <td>
+                            <span class="badge" style="background: rgba(142, 68, 173, 0.1); color: #8e44ad;">Batch {{ p.graduation_year }}</span>
+                        </td>
+                        <td>{{ p.current_status|default:"<span class='text-muted'>-</span>"|safe }}</td>
+                        <td>{{ p.company_or_institution|default:"<span class='text-muted'>-</span>"|safe }}</td>
+                        <td class="text-end">
+                            <a href="{% url 'students:alumni_update' p.id %}" class="btn btn-sm text-primary p-2">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </a>
+                            <a href="{% url 'students:alumni_delete' p.id %}" class="btn btn-sm text-danger p-2" onclick="return confirm('Are you sure you want to remove this alumni record? The student profile will remain but as inactive.');">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5">
+                            <div style="color: var(--gray);">
+                                <i class="fa-solid fa-graduation-cap fa-3x mb-3" style="opacity: 0.2;"></i>
+                                <h5>No Alumni Found</h5>
+                                <p>Transfer active students to the alumni registry when they graduate.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

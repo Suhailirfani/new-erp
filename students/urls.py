@@ -92,4 +92,12 @@ urlpatterns = [
     path('users/create/', views.user_create, name='user_create'),
     path('users/<int:pk>/update/', views.user_update, name='user_update'),
     path('users/<int:pk>/delete/', views.user_delete, name='user_delete'),
+
+    # Alumni Management
+    path('alumni/', views.alumni_list, name='alumni_list'),
+    path('alumni/bulk-transfer/', views.alumni_bulk_transfer, name='alumni_bulk_transfer'),
+    path('alumni/bulk-restore/', views.alumni_bulk_restore, name='alumni_bulk_restore'),
+    path('student/<int:student_id>/transfer-alumni/', views.transfer_to_alumni, name='transfer_to_alumni'),
+    path('alumni/<int:pk>/edit/', views.alumni_update, name='alumni_update'),
+    path('alumni/<int:pk>/delete/', views.alumni_delete, name='alumni_delete'),
 ]

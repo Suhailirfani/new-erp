@@ -72,8 +72,8 @@
             </div>
             <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
                 <div class="receipt-title">FEE RECEIPT</div>
-                <div class="text-muted">Date: {{ income.date|date:"F d, Y" }}</div>
-                <div class="text-muted">Receipt No: {{ payments.first.receipt_number|truncatechars:12 }}</div>
+                <div class="text-muted">Date: {{ receipt_date|date:"F d, Y" }}</div>
+                <div class="text-muted">Receipt No: {{ receipt_number }}</div>
             </div>
         </div>
 
@@ -86,9 +86,9 @@
             </div>
             <div class="col-sm-6 mt-4 mt-sm-0">
                 <h5 class="mb-3 text-primary border-bottom pb-2">Transaction Details</h5>
-                <div class="detail-row"><span class="detail-label">Method:</span> {{ income.get_payment_method_display }}</div>
-                {% if income.reference_number %}
-                <div class="detail-row"><span class="detail-label">Reference No:</span> {{ income.reference_number }}</div>
+                <div class="detail-row"><span class="detail-label">Method:</span> {{ receipt_method }}</div>
+                {% if receipt_ref %}
+                <div class="detail-row"><span class="detail-label">Reference No:</span> {{ receipt_ref }}</div>
                 {% endif %}
             </div>
         </div>
@@ -136,7 +136,7 @@
         <div class="row mb-4 mt-4">
             <div class="col-12 text-end">
                 <div class="text-muted mb-2">Total Amount Received</div>
-                <div class="amount-highlight">₹ {{ income.amount }}</div>
+                <div class="amount-highlight">₹ {{ receipt_total }}</div>
             </div>
         </div>
         
@@ -146,7 +146,7 @@
             </div>
             <div class="col-sm-6 text-sm-end">
                 <div class="mb-1">Collected By</div>
-                <strong>{{ income.collected_by|default:"Administrator" }}</strong>
+                <strong>{{ receipt_collector|default:"Administrator" }}</strong>
             </div>
         </div>
     </div>

@@ -1,0 +1,142 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Bulk Transfer to Alumni - MARKAZ HADIYA{% endblock %}
+
+{% block extra_css %}
+<style>
+    .bulk-card {
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        box-shadow: var(--shadow-soft);
+        padding: 3rem;
+        max-width: 650px;
+        margin: 2rem auto;
+    }
+    
+    .bulk-header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+    }
+    
+    .bulk-header .icon-box {
+        width: 70px;
+        height: 70px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, rgba(142, 68, 173, 0.1), rgba(155, 89, 182, 0.05));
+        color: #8e44ad;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        margin: 0 auto 1.5rem;
+    }
+    
+    .form-group label {
+        font-weight: 600;
+        color: var(--dark);
+        margin-bottom: 0.6rem;
+        font-size: 0.95rem;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 12px;
+        padding: 0.8rem 1rem;
+        border: 1px solid #e2e8f0;
+        background: rgba(255, 255, 255, 0.7);
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        background: white;
+        border-color: #8e44ad;
+        box-shadow: 0 0 0 4px rgba(142, 68, 173, 0.1);
+    }
+    
+    .btn-transfer {
+        background: linear-gradient(135deg, #8e44ad, #9b59b6);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 1rem 2rem;
+        font-weight: 600;
+        font-size: 1.05rem;
+        letter-spacing: 0.5px;
+        transition: all 0.3s;
+        width: 100%;
+        margin-top: 1.5rem;
+    }
+    
+    .btn-transfer:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(142, 68, 173, 0.3);
+        color: white;
+    }
+    
+    .info-alert {
+        background: rgba(59, 130, 246, 0.1);
+        border-left: 4px solid #3b82f6;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        font-size: 0.9rem;
+        color: #1e3a8a;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="bulk-card">
+        <div class="bulk-header">
+            <div class="icon-box">
+                <i class="fa-solid fa-users-viewfinder"></i>
+            </div>
+            <h2 class="h3 fw-bold text-dark">{{ page_title }}</h2>
+            <p class="text-muted">Graduate an entire class at once</p>
+        </div>
+
+        <div class="info-alert">
+            <i class="fa-solid fa-circle-info me-2"></i>
+            This will collect all <strong>active</strong> students currently enrolled in the selected grade for the active academic year ({{ active_year.name }}). They will all be transitioned to Alumni status and removed from active rosters.
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group mb-4">
+                <label for="grade">Select Class to Graduate <span class="text-danger">*</span></label>
+                <select name="grade" id="grade" class="form-select" required>
+                    <option value="">-- Choose Class / Grade --</option>
+                    {% for grade in grades %}
+                    <option value="{{ grade.id }}">{{ grade.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group mb-4">
+                <label for="graduation_year">Graduation Year <span class="text-danger">*</span></label>
+                <input type="number" name="graduation_year" id="graduation_year" class="form-control" value="{{ current_year }}" required>
+            </div>
+            
+            <div class="form-group mb-4">
+                <label for="remarks">Remarks (Optional)</label>
+                <input type="text" name="remarks" id="remarks" class="form-control" placeholder="e.g. Class of {{ current_year }} graduates" value="Class of {{ current_year }} graduates">
+            </div>
+
+            <button type="submit" class="btn-transfer" onclick="return confirm('Are you sure you want to mass transfer this entire class to the Alumni Registry? This action will set all matching active students to inactive.');">
+                <i class="fa-solid fa-bolt me-2"></i> Execute Bulk Transfer
+            </button>
+            
+            <div class="text-center mt-4">
+                <a href="{% url 'students:alumni_list' %}" class="text-muted text-decoration-none" style="font-size: 0.95rem; font-weight: 500;">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Back to Alumni List
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

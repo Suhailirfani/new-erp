@@ -8,7 +8,7 @@
                     </td>
                 </tr>
                 {% for enrollment in group.list %}
-                <tr>
+                <tr class="student-row">
                     <td>{{ enrollment.student.student_id }}</td>
                     <td>{{ enrollment.student.full_name }}</td>
                     <td>{{ enrollment.student.get_student_type_display }}</td>
@@ -29,6 +29,13 @@
                            class="btn btn-sm"
                            style="background:#27ae60; color:white; padding:4px 10px; border-radius:12px; margin-right:5px;">
                             Fees
+                        </a>
+
+                        <a href="{% url 'students:transfer_to_alumni' enrollment.student.id %}"
+                           class="btn btn-sm"
+                           style="background:#8e44ad; color:white; padding:4px 10px; border-radius:12px; margin-right:5px;"
+                           title="Transfer to Alumni">
+                            <i class="fa-solid fa-user-graduate"></i>
                         </a>
 
                         <a href="{% url 'students:student_delete' enrollment.student.id %}"

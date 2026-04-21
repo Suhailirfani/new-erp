@@ -185,21 +185,57 @@ def student_fees(request, student_id):
         if overdue_fees:
             next_due_date = overdue_fees[0].due_date
 
-    # Fetch grouped payments to act as combined receipts
-    income_ids = FeePayment.objects.filter(student_fee__student=student, income__isnull=False).values_list('income__id', flat=True).distinct()
-    incomes = Income.objects.filter(id__in=income_ids).order_by('-date')
+    # Fetch grouped payments to act as combined receipts (Using new ReceiptTransaction model)
+    from .models import ReceiptTransaction
+    receipt_txns = ReceiptTransaction.objects.filter(student=student).order_by('-date')
     
     unified_receipts = []
+    
+    # 1. Process new Unified ReceiptTransactions
+    for txn in receipt_txns:
+        payments_for_txn = txn.fee_payments.all()
+        allocated = sum(p.amount for p in payments_for_txn)
+        advance = txn.total_amount - allocated
+        
+        unified_receipts.append({
+            'is_legacy': False,
+            'transaction_id': str(txn.transaction_id),
+            'date': txn.date,
+            'amount': txn.total_amount,
+            'method': txn.get_payment_method_display(),
+            'reference': txn.reference_number,
+            'payments': payments_for_txn,
+            'advance_amount': advance
+        })
+        
+    # 2. Process legacy Income-based receipts
+    legacy_income_ids = FeePayment.objects.filter(
+        student_fee__student=student, 
+        income__isnull=False, 
+        receipt_transaction__isnull=True
+    ).values_list('income__id', flat=True).distinct()
+    
+    incomes = Income.objects.filter(id__in=legacy_income_ids).order_by('-date')
+    
     for inc in incomes:
-        payments_for_inc = inc.fee_payments.all()
+        # Only grab payments not associated with ReceiptTransaction to prevent double counting
+        payments_for_inc = inc.fee_payments.filter(receipt_transaction__isnull=True)
         allocated = sum(p.amount for p in payments_for_inc)
         advance = inc.amount - allocated
         
         unified_receipts.append({
-            'income': inc,
+            'is_legacy': True,
+            'transaction_id': str(inc.id),
+            'date': inc.date,
+            'amount': inc.amount,
+            'method': inc.get_payment_method_display(),
+            'reference': inc.reference_number,
             'payments': payments_for_inc,
             'advance_amount': advance
         })
+        
+    # Sort unified_receipts by date descending
+    unified_receipts.sort(key=lambda x: x['date'], reverse=True)
     
     context = {
         'student': student,
@@ -233,6 +269,16 @@ def collect_payment(request, student_id):
             if amount <= 0:
                 raise ValueError("Amount must be positive.")
                 
+            from .models import ReceiptTransaction
+            receipt_tx = ReceiptTransaction.objects.create(
+                student=student,
+                total_amount=amount,
+                payment_method=payment_method,
+                reference_number=reference_number,
+                collected_by=request.user.username,
+                remarks=remarks
+            )
+            
             all_pending_fees = list(pending_fees)
             selected_fees = [f for f in all_pending_fees if str(f.id) in selected_fee_ids]
             unselected_fees = [f for f in all_pending_fees if str(f.id) not in selected_fee_ids]
@@ -253,7 +299,8 @@ def collect_payment(request, student_id):
                     payment_method=payment_method,
                     reference_number=reference_number,
                     remarks=f"User-selected from total payment. " + remarks,
-                    collected_by=request.user.username
+                    collected_by=request.user.username,
+                    receipt_transaction=receipt_tx
                 )
                 payments_created.append(payment)
                 
@@ -274,7 +321,8 @@ def collect_payment(request, student_id):
                     payment_method=payment_method,
                     reference_number=reference_number,
                     remarks=f"Auto-allocated from remaining lumpsum payment. " + remarks,
-                    collected_by=request.user.username
+                    collected_by=request.user.username,
+                    receipt_transaction=receipt_tx
                 )
                 payments_created.append(payment)
                 
@@ -303,7 +351,8 @@ def collect_payment(request, student_id):
                         payment_method=payment_method,
                         reference_number=reference_number,
                         remarks=f"Auto-advance allocation from overpayment. " + remarks,
-                        collected_by=request.user.username
+                        collected_by=request.user.username,
+                        receipt_transaction=receipt_tx
                     )
                     payments_created.append(payment)
                     future_fee.amount_paid += payment.amount
@@ -382,28 +431,62 @@ def collect_payment(request, student_id):
     return render(request, 'fees/collect_payment.html', context)
 
 @role_required(['admin', 'accountant'])
-def download_receipt(request, income_id):
-    """Generate and return an itemized PDF/HTML receipt for a unified Income record."""
-    income = get_object_or_404(Income, id=income_id)
-    payments = income.fee_payments.all()
+def download_receipt(request, receipt_id):
+    """Generate and return an itemized PDF/HTML receipt for a unified transaction or legacy income record."""
+    from .models import ReceiptTransaction
+    import uuid
     
-    # We can infer the student from the first payment. All payments in an income block belong to the same student in this app's workflow.
     student = None
-    if payments.exists():
-        student = payments.first().student_fee.student
-    elif income.received_from:
-        # if no individual payments, try to find student by name for pure advance, but less robust
-        pass
-
-    allocated_amount = sum(p.amount for p in payments)
-    advance_amount = income.amount - allocated_amount
     
+    # Check if receipt_id is a UUID (meaning new ReceiptTransaction)
+    try:
+        uuid_obj = uuid.UUID(receipt_id)
+        is_uuid = True
+    except ValueError:
+        is_uuid = False
+        
+    if is_uuid:
+        txn = get_object_or_404(ReceiptTransaction, transaction_id=receipt_id)
+        payments = txn.fee_payments.all()
+        student = txn.student
+        allocated_amount = sum(p.amount for p in payments)
+        advance_amount = txn.total_amount - allocated_amount
+        receipt_obj = txn
+        receipt_number = payments.first().receipt_number if payments.exists() else txn.transaction_id
+        ctx_date = txn.date
+        ctx_total = txn.total_amount
+        ctx_method = txn.get_payment_method_display()
+        ctx_ref = txn.reference_number
+        ctx_collector = txn.collected_by
+    else:
+        # Legacy fallback
+        income = get_object_or_404(Income, id=receipt_id)
+        payments = income.fee_payments.filter(receipt_transaction__isnull=True)
+        if payments.exists():
+            student = payments.first().student_fee.student
+        allocated_amount = sum(p.amount for p in payments)
+        advance_amount = income.amount - allocated_amount
+        receipt_obj = income
+        receipt_number = payments.first().receipt_number if payments.exists() else income.id
+        ctx_date = income.date
+        ctx_total = income.amount
+        ctx_method = income.get_payment_method_display()
+        ctx_ref = income.reference_number
+        ctx_collector = income.collected_by
+        
     context = {
-        'income': income,
+        'receipt': receipt_obj,
+        'is_legacy': not is_uuid,
         'payments': payments,
         'student': student,
         'allocated_amount': allocated_amount,
         'advance_amount': advance_amount,
+        'receipt_number': str(receipt_number)[:12],
+        'receipt_date': ctx_date,
+        'receipt_total': ctx_total,
+        'receipt_method': ctx_method,
+        'receipt_ref': ctx_ref,
+        'receipt_collector': ctx_collector
     }
     return render(request, 'fees/receipt.html', context)
 
@@ -420,6 +503,16 @@ def add_income(request):
             if is_fee_collection:
                 student = form.cleaned_data.get('student')
                 amount = form.cleaned_data.get('amount')
+                
+                from .models import ReceiptTransaction
+                receipt_tx = ReceiptTransaction.objects.create(
+                    student=student,
+                    total_amount=amount,
+                    payment_method=income.payment_method,
+                    reference_number=income.reference_number,
+                    collected_by=request.user.username,
+                    remarks=income.remarks
+                )
                 
                 # Fetch selected fees from array
                 selected_fee_ids = request.POST.getlist('selected_fees')
@@ -447,7 +540,8 @@ def add_income(request):
                         payment_method=income.payment_method,
                         reference_number=income.reference_number,
                         remarks=f"User-selected from total payment. " + income.remarks,
-                        collected_by=request.user.username
+                        collected_by=request.user.username,
+                        receipt_transaction=receipt_tx
                     )
                     payments_created.append(payment)
                     
@@ -468,7 +562,8 @@ def add_income(request):
                         payment_method=income.payment_method,
                         reference_number=income.reference_number,
                         remarks=f"Auto-allocated from remaining lumpsum payment. " + income.remarks,
-                        collected_by=request.user.username
+                        collected_by=request.user.username,
+                        receipt_transaction=receipt_tx
                     )
                     payments_created.append(payment)
                     

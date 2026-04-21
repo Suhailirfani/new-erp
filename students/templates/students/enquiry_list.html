@@ -26,44 +26,13 @@
     </div>
     
     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-        <!-- Card 1: Global Interview Date -->
-        <div class="card" style="padding: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 0;">
-            <h3 style="margin-top: 0; margin-bottom: 0.5rem; font-size: 1.0em; color: #334155; display: flex; align-items: center; gap: 0.5rem;">
-                📅 Global Interview Date
-            </h3>
-            <form action="{% url 'students:enquiry_set_global_interview_date' %}" method="post" style="display: flex; gap: 0.5rem; align-items: flex-end;">
-                {% csrf_token %}
-                <input type="hidden" name="form_type" value="date_form">
-                <div style="flex-grow: 1;">
-                    <div style="font-size: 0.8em; color: #64748b; margin-bottom: 0.2rem;">
-                        <strong style="color:var(--primary-dark);">{% if global_settings.common_interview_date %}{{ global_settings.common_interview_date|date:"M d, Y h:i A" }}{% else %}Not Set{% endif %}</strong>
-                    </div>
-                    <input type="datetime-local" name="global_interview_date" class="form-control" style="font-size: 0.8em; padding: 0.3rem;" {% if global_settings.common_interview_date %}value="{{ global_settings.common_interview_date|date:'Y-m-d\TH:i' }}"{% endif %}>
-                </div>
-                <button type="submit" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.9em;">Save</button>
-            </form>
-        </div>
 
-        <!-- Card 2: WhatsApp Template -->
-        <div class="card" style="padding: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 0;">
-            <h3 style="margin-top: 0; margin-bottom: 0.5rem; font-size: 1.0em; color: #334155; display: flex; align-items: center; gap: 0.5rem;">
-                💬 WhatsApp Template
-            </h3>
-            <form action="{% url 'students:enquiry_set_global_interview_date' %}" method="post" style="display: flex; gap: 0.5rem; align-items: flex-start;">
-                {% csrf_token %}
-                <input type="hidden" name="form_type" value="whatsapp_form">
-                <div style="flex-grow: 1; min-width: 250px;">
-                    <textarea name="whatsapp_message_template" class="form-control" rows="2" style="font-size: 0.8em; padding: 0.3rem;" required>{{ global_settings.whatsapp_message_template }}</textarea>
-                    <div style="font-size: 0.7em; color: #94a3b8; margin-top: 0.2rem;">Vars: {name}, {app_no}, {status_link}</div>
-                </div>
-                <button type="submit" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.9em;">Save</button>
-            </form>
-        </div>
-        
         <div style="display: flex; gap: 0.5rem; align-items: flex-start; height: fit-content; flex-wrap: wrap;">
-            <a href="{% url 'students:enquiry_create' %}" class="btn btn-primary">+ New Enquiry</a>
-            <a href="{% url 'students:enquiry_print_list' %}" class="btn" style="background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;" target="_blank">🖨️ Print List</a>
-            <a href="https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=https://hadiyaerp2.pythonanywhere.com/enquiries/new/" class="btn" style="background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;" target="_blank" title="Download QR Code for Enquiry Form">📱 Get QR Code</a>
+            <a href="{% url 'students:enquiry_create' %}" class="btn btn-primary" style="color: white !important;">+ New Enquiry</a>
+            <a href="{% url 'students:enquiry_print_list' %}" class="btn" style="background-color: #f1f5f9; color: #e7e9ec; border: 1px solid #114e97;" target="_blank">🖨️ Print List</a>
+            <a href="https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=https://hadiyaerp2.pythonanywhere.com/enquiries/new/" class="btn" style="background-color: #f1f5f9; color: #f7f9fa; border: 1px solid #cbd5e1;" target="_blank" title="Download QR Code for Enquiry Form">📱 Get QR Code</a>
+            <button onclick="document.getElementById('dateModal').style.display='flex'" class="btn" style="background-color: #8b5cf6; color: white !important; border: none; box-shadow: 0 4px 6px rgba(139, 92, 246, 0.2);"><i class="fa-regular fa-calendar-days"></i> Set Interview Date</button>
+            <button onclick="document.getElementById('whatsappMessageModal').style.display='flex'" class="btn" style="background-color: #0ea5e9; color: white !important; border: none; box-shadow: 0 4px 6px rgba(14, 165, 233, 0.2);"><i class="fa-solid fa-pen-to-square"></i> Edit WhatsApp Message</button>
         </div>
     </div>
 </div>
@@ -266,4 +235,39 @@
         document.querySelector(`.dashboard-tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
     }
 </script>
+<!-- Message Edit Modal (WhatsApp) -->
+<div id="whatsappMessageModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1050; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 2rem; border-radius: 16px; width: 90%; max-width: 600px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+        <h3 style="margin-bottom: 1rem; color: #4338ca; font-weight: 800;"><i class="fa-brands fa-whatsapp"></i> Edit WhatsApp Message</h3>
+        <p style="margin-bottom: 1rem; font-size: 0.95rem; color: #64748b;">Use placeholders: <code>{name}</code>, <code>{app_no}</code>, and <code>{status_link}</code> which will be automatically replaced with the candidate's details.</p>
+        <form method="post" action="{% url 'students:enquiry_set_global_interview_date' %}">
+            {% csrf_token %}
+            <input type="hidden" name="form_type" value="whatsapp_form">
+            <textarea name="whatsapp_message_template" rows="10" style="width: 100%; padding: 1rem; border: 2px solid #cbd5e1; border-radius: 12px; margin-bottom: 1.5rem; font-family: inherit; font-size: 0.95rem; resize: vertical;" required>{{ global_settings.whatsapp_message_template }}</textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                <button type="button" onclick="document.getElementById('whatsappMessageModal').style.display='none'" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-success">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- Interview Date Modal -->
+<div id="dateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1050; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 2rem; border-radius: 16px; width: 90%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+        <h3 style="margin-bottom: 1rem; color: #334155; font-weight: 800;"><i class="fa-regular fa-calendar-days"></i> Set Global Interview Date</h3>
+        <p style="margin-bottom: 1.5rem; font-size: 0.95rem; color: #64748b;">
+            Current Date: <strong style="color:var(--primary-dark);">{% if global_settings.common_interview_date %}{{ global_settings.common_interview_date|date:"M d, Y h:i A" }}{% else %}Not Set{% endif %}</strong>
+        </p>
+        <form action="{% url 'students:enquiry_set_global_interview_date' %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="form_type" value="date_form">
+            <input type="datetime-local" name="global_interview_date" class="form-control" style="width: 100%; padding: 0.8rem; border: 2px solid #cbd5e1; border-radius: 12px; margin-bottom: 1.5rem; font-family: inherit; font-size: 0.95rem;" {% if global_settings.common_interview_date %}value="{{ global_settings.common_interview_date|date:'Y-m-d\TH:i' }}"{% endif %}>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                <button type="button" onclick="document.getElementById('dateModal').style.display='none'" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {% endblock %}

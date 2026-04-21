@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from .forms import CandidateForm, AwazeGCampForm
-from .models import Candidate, AwazeGCampCandidate
+from .models import Candidate, AwazeGCampCandidate, CampMessage
 
 @login_required
 def candidate_edit(request, pk):
@@ -158,7 +159,18 @@ def awaze_success(request):
 @login_required
 def awaze_list(request):
     candidates = AwazeGCampCandidate.objects.all().order_by('created_at')
-    return render(request, 'awards/awaze_candidate_list.html', {'candidates': candidates})
+    camp_msg_obj, created = CampMessage.objects.get_or_create(id=1)
+    
+    if request.method == 'POST' and 'update_message' in request.POST:
+        camp_msg_obj.message_text = request.POST.get('message_text', '')
+        camp_msg_obj.save()
+        messages.success(request, "Camp message updated successfully.")
+        return redirect('awaze_list')
+        
+    return render(request, 'awards/awaze_candidate_list.html', {
+        'candidates': candidates,
+        'camp_message': camp_msg_obj.message_text
+    })
 
 @login_required
 def awaze_print(request):

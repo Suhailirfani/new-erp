@@ -128,6 +128,32 @@ class StudentFee(models.Model):
             self.status = 'due'
         self.save()
 
+class ReceiptTransaction(models.Model):
+    """A single payment event that might cover multiple individual student fee payments"""
+    PAYMENT_METHOD_CHOICES = [
+        ('cash', 'Cash'),
+        ('bank_transfer', 'Bank Transfer'),
+        ('upi', 'UPI'),
+        ('cheque', 'Cheque'),
+        ('card', 'Card'),
+    ]
+
+    transaction_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    student = models.ForeignKey('students.Student', on_delete=models.CASCADE, related_name='receipt_transactions')
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, help_text="Total sum received from student")
+    date = models.DateField(auto_now_add=True)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='cash')
+    reference_number = models.CharField(max_length=100, blank=True)
+    collected_by = models.CharField(max_length=100)
+    remarks = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"Transaction {self.transaction_id} - {self.student} - ₹{self.total_amount}"
+
+
 class FeePayment(models.Model):
     """Payment record"""
     PAYMENT_METHOD_CHOICES = [
@@ -146,6 +172,7 @@ class FeePayment(models.Model):
     reference_number = models.CharField(max_length=100, blank=True, help_text="Transaction ID/Cheque No.")
     collected_by = models.CharField(max_length=100)
     remarks = models.TextField(blank=True)
+    receipt_transaction = models.ForeignKey(ReceiptTransaction, on_delete=models.CASCADE, related_name='fee_payments', null=True, blank=True, help_text="The unified transaction this payment belongs to")
     income = models.ForeignKey('Income', on_delete=models.CASCADE, related_name='fee_payments', null=True, blank=True, help_text="The overarching Income record this payment belongs to")
 
     class Meta:

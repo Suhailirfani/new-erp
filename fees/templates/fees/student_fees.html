@@ -189,10 +189,10 @@
                     <div class="list-group-item bg-transparent px-4 py-4" style="border-color: rgba(0,0,0,0.05);">
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div>
-                                <h4 class="mb-0 fw-bold" style="color: var(--dark); font-size: 1.4rem;">₹{{ row.income.amount }}</h4>
-                                <div style="color: var(--gray); font-size: 0.85rem; font-weight: 600; margin-top: 0.2rem;">{{ row.income.date|date:"d M, Y" }}</div>
+                                <h4 class="mb-0 fw-bold" style="color: var(--dark); font-size: 1.4rem;">₹{{ row.amount }}</h4>
+                                <div style="color: var(--gray); font-size: 0.85rem; font-weight: 600; margin-top: 0.2rem;">{{ row.date|date:"d M, Y" }}</div>
                             </div>
-                            <span style="background: #f3f4f6; color: var(--dark-secondary); padding: 0.25rem 0.75rem; border-radius: 8px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">{{ row.income.get_payment_method_display }}</span>
+                            <span style="background: #f3f4f6; color: var(--dark-secondary); padding: 0.25rem 0.75rem; border-radius: 8px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">{{ row.method }}</span>
                         </div>
                         <div class="mb-4">
                             {% for payment in row.payments %}
@@ -208,7 +208,7 @@
                                 </div>
                             {% endif %}
                         </div>
-                        <a href="{% url 'fees:download_receipt' row.income.id %}" target="_blank" class="btn btn-secondary w-100" style="padding: 0.6rem; border-radius: 12px; font-size: 0.85rem;">
+                        <a href="{% url 'fees:download_receipt' row.transaction_id %}" target="_blank" class="btn btn-secondary w-100" style="padding: 0.6rem; border-radius: 12px; font-size: 0.85rem;">
                             <i class="fas fa-print me-1"></i> Download Receipt
                         </a>
                     </div>

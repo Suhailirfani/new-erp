@@ -4,7 +4,7 @@
 {% block extra_css %}
 <style>
     /* Reset and Hide elements */
-    .navbar, .nav-sidebar, .hamburger {
+    .navbar, .nav-sidebar, .hamburger, footer, .footer-section {
         display: none !important;
     }
     
@@ -18,7 +18,7 @@
         font-family: 'Inter', sans-serif;
     }
 
-    .container {
+    .container, .container-fluid {
         padding: 0 !important;
         max-width: 100% !important;
         margin: 0 !important;
@@ -166,6 +166,7 @@
             border-radius: 20px;
             max-width: 90%;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            margin: auto; /* Ensure it centers on mobile */
         }
     }
 </style>

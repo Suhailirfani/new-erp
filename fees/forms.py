@@ -137,6 +137,8 @@ class ExpenseForm(forms.ModelForm):
                 name=new_category_name,
                 type='expense'
             )
+            cleaned_data['category'] = category
+            
         if category and not cleaned_data.get('department'):
             cleaned_data['department'] = category.department
             

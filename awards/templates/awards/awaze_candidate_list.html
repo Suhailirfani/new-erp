@@ -62,6 +62,7 @@
     <div class="button-group" style="margin-bottom: 2rem;">
         <a href="{% url 'awaze_register' %}" class="btn btn-gradient">Add New Candidate</a>
         <a href="{% url 'awaze_print' %}" target="_blank" class="btn btn-light-custom">Print Ready List</a>
+        <button onclick="document.getElementById('messageModal').style.display='flex'" class="btn btn-info"><i class="fa-solid fa-pen-to-square"></i> Edit WhatsApp Message</button>
     </div>
 
     <div class="table-wrapper">
@@ -84,7 +85,7 @@
                     <td>{{ forloop.counter }}</td>
                     <td style="display: flex; align-items: center; justify-content: space-between;">
                         <span>{{ candidate.name }}</span>
-                        <a href="https://wa.me/91{{ candidate.phone }}?text={{ 'To: '|urlencode }}{{ candidate.name|urlencode }},%0A%0Aതാഴപ്ര മർക്കസ് ഹാദിയ വിമൻസ് കോളേജ് സംഘടിപ്പിക്കുന്ന Awaze G-Camp-ലേക്ക് താങ്കൾ വിജയകരമായി രജിസ്റ്റർ ചെയ്തിരിക്കുന്നു. പുതിയ അനുഭവങ്ങളും അറിവുകളും തേടിയുള്ള ഈ മൂന്ന് ദിനങ്ങളിലേക്ക് നിങ്ങളെ ഞങ്ങൾ സ്വാഗതം ചെയ്യുന്നു.%0A%0A• ക്യാമ്പ് വിവരങ്ങൾ:%0A• തീയതി: 2026 ഏപ്രിൽ 25, 26, 27%0A• സമയം: ഏപ്രിൽ 25 ശനി രാവിലെ 9:00 AM മുതൽ ഏപ്രിൽ 27 തിങ്കൾ വൈകിട്ട് 4:00 PM വരെ.%0A• സ്ഥലം: മർക്കസ് ഹാദിയ വിമൻസ് കോളേജ്, താഴപ്ര.%0A• Location: https://maps.app.goo.gl/4w6ibRWRbbSzqCwt5%0A%0A• ഫീസ് വിവരങ്ങൾ:%0A• ക്യാമ്പ് ഫീ: 2000 രൂപ.%0A• Early Bird Offer: ഏപ്രിൽ 10-ന് മുൻപ് ഫീസ് അടക്കുന്നവർക്ക് 1600 രൂപ മാത്രം.%0A%0A• ഫീസ് അടക്കേണ്ട വിധം:%0A• 95443 41515 എന്ന നമ്പറിലേക്ക് Gpay ചെയ്ത ശേഷം സ്ക്രീൻഷോട്ട് ഇതേ നമ്പറിലേക്ക് വാട്സ്ആപ്പ് ചെയ്യുക. പണമടച്ച് സ്ക്രീൻഷോട്ട് അയക്കുന്നതോടെ നിങ്ങളുടെ സീറ്റ് കൺഫേം ആകുന്നതാണ്.%0A%0A• ശ്രദ്ധിക്കുക:%0A• ക്യാമ്പിന് വരുമ്പോൾ ആവശ്യമായ വസ്ത്രങ്ങൾ, വ്യക്തിപരമായ ആവശ്യത്തിനുള്ള സാധനങ്ങൾ എന്നിവ കരുതുക.%0A%0Aകൂടുതൽ വിവരങ്ങൾക്ക്: +91 99473 64747%0A%0Aക്യാമ്പിൽ വെച്ച് കാണാം!%0A%0Aസ്നേഹപൂർവ്വം,%0Aടീം AWAZE%0Aമർക്കസ് ഹാദിയ താഴപ്ര" target="_blank" title="Send WhatsApp Message" style="color: #25D366; font-size: 1.1em; text-decoration: none;">
+                        <a href="#" class="whatsapp-btn" data-phone="{{ candidate.phone }}" data-name="{{ candidate.name }}" onclick="sendWhatsApp(this, event)" title="Send WhatsApp Message" style="color: #25D366; font-size: 1.2em; text-decoration: none;">
                             <i class="fa-brands fa-whatsapp"></i>
                         </a>
                     </td>
@@ -109,4 +110,39 @@
         </table>
     </div>
 </div>
+
+<!-- Message Edit Modal -->
+<div id="messageModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1050; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 2rem; border-radius: 16px; width: 90%; max-width: 600px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+        <h3 style="margin-bottom: 1rem; color: #4338ca; font-weight: 800;"><i class="fa-brands fa-whatsapp"></i> Edit WhatsApp Message</h3>
+        <p style="margin-bottom: 1rem; font-size: 0.95rem; color: #64748b;">Use <code>{name}</code> where you want the candidate's name to automatically appear.</p>
+        <form method="post" action="{% url 'awaze_list' %}">
+            {% csrf_token %}
+            <input type="hidden" name="update_message" value="1">
+            <textarea name="message_text" rows="15" style="width: 100%; padding: 1rem; border: 2px solid #cbd5e1; border-radius: 12px; margin-bottom: 1.5rem; font-family: inherit; font-size: 0.95rem; resize: vertical;" required>{{ camp_message }}</textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                <button type="button" onclick="document.getElementById('messageModal').style.display='none'" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-success">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function sendWhatsApp(btn, event) {
+        event.preventDefault();
+        const phone = btn.getAttribute('data-phone');
+        const name = btn.getAttribute('data-name');
+        let rawMessage = `{{ camp_message|escapejs }}`;
+        
+        // Replace {name} with actual candidate name
+        rawMessage = rawMessage.replace(/{name}/g, name);
+        
+        // Encode for URL
+        const encodedMessage = encodeURIComponent(rawMessage);
+        
+        // Open WhatsApp
+        window.open(`https://wa.me/91${phone}?text=${encodedMessage}`, '_blank');
+    }
+</script>
 {% endblock %}

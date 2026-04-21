@@ -1,0 +1,50 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Delete Alumni Record - MARKAZ HADIYA{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5 mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-sm border-0" style="border-radius: 16px; overflow: hidden;">
+                <div class="card-header bg-danger text-white text-center py-4 border-0">
+                    <i class="fa-solid fa-triangle-exclamation mb-2" style="font-size: 2.5rem; opacity: 0.9;"></i>
+                    <h4 class="mb-0 fw-bold">Confirm Deletion</h4>
+                </div>
+                
+                <div class="card-body p-4 text-center">
+                    <p class="mb-4" style="font-size: 1.1rem; color: #4b5563;">
+                        Are you sure you want to delete the alumni record for:<br>
+                        <strong class="d-block mt-2 fs-5 text-dark">{{ alumni.student.full_name }}</strong>
+                    </p>
+                    
+                    <div class="alert alert-warning text-start mb-4" style="border-radius: 8px;">
+                        <i class="fa-solid fa-circle-info me-2"></i><strong>Note:</strong> 
+                        This action will <strong>only</strong> delete the alumni profile (graduation year, company, etc.). The student's core personal profile and past payment history will <strong>not</strong> be deleted, but they will remain inactive.
+                    </div>
+                    
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        
+                        <div class="form-check text-start mb-4 p-3" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px;">
+                            <input class="form-check-input ms-1" type="checkbox" name="reactivate" id="reactivateCheck" checked>
+                            <label class="form-check-label ms-2 fw-bold text-dark" for="reactivateCheck" style="font-size: 0.95rem;">
+                                Restore to Active Class Roster <br>
+                                <small class="text-muted fw-normal">Check this to undo graduation and return them to class.</small>
+                            </label>
+                        </div>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                            <a href="{% url 'students:alumni_list' %}" class="btn btn-light px-4 py-2 fw-medium border" style="border-radius: 12px;">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-danger px-4 py-2 fw-medium" style="border-radius: 12px;">
+                                Yes, Delete Record
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

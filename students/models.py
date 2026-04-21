@@ -125,6 +125,24 @@ class Student(models.Model):
         enrollment = self.current_enrollment
         return enrollment.division if enrollment else None
 
+class Alumni(models.Model):
+    """Stores post-graduation details for alumni students"""
+    student = models.OneToOneField(Student, on_delete=models.CASCADE, related_name='alumni_record')
+    graduation_year = models.CharField(max_length=4)
+    current_status = models.CharField(max_length=200, blank=True, help_text="e.g. Higher Studies, Employed, Searching")
+    company_or_institution = models.CharField(max_length=200, blank=True)
+    remarks = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-graduation_year', 'student__first_name']
+        verbose_name_plural = 'Alumni'
+
+    def __str__(self):
+        return f"{self.student.full_name} (Batch {self.graduation_year})"
+
+
 
 class Enrollment(models.Model):
     """Enrollment mapping a student to an AcademicYear, grade, division, and room"""

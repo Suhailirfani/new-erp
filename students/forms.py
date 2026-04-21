@@ -94,3 +94,25 @@ class UserManageForm(forms.ModelForm):
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
         }
+
+from .models import Alumni
+
+class AlumniTransferForm(forms.ModelForm):
+    class Meta:
+        model = Alumni
+        fields = ['graduation_year', 'current_status']
+        widgets = {
+            'graduation_year': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 2026'}),
+            'current_status': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Higher Studies, Employed'}),
+        }
+
+class AlumniForm(forms.ModelForm):
+    class Meta:
+        model = Alumni
+        fields = ['graduation_year', 'current_status', 'company_or_institution', 'remarks']
+        widgets = {
+            'graduation_year': forms.TextInput(attrs={'class': 'form-control'}),
+            'current_status': forms.TextInput(attrs={'class': 'form-control'}),
+            'company_or_institution': forms.TextInput(attrs={'class': 'form-control'}),
+            'remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+        }

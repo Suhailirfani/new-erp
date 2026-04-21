@@ -3940,3 +3940,214 @@ def user_delete(request, pk):
         messages.success(request, 'User deleted successfully.')
         return redirect('students:user_list')
     return render(request, 'students/user_confirm_delete.html', {'user_obj': user_obj})
+
+from .models import Alumni
+from .forms import AlumniTransferForm, AlumniForm
+
+@login_required
+@role_required(['admin', 'teacher'])
+def alumni_list(request):
+    """List all registered alumni"""
+    alumni_records = Alumni.objects.select_related('student').all()
+    
+    # Generic search
+    search_query = request.GET.get('search', '')
+    if search_query:
+        alumni_records = alumni_records.filter(
+            Q(student__first_name__icontains=search_query) |
+            Q(student__last_name__icontains=search_query) |
+            Q(student__student_id__icontains=search_query) |
+            Q(graduation_year__icontains=search_query)
+        )
+        
+    context = {
+        'alumni_records': alumni_records,
+        'search_query': search_query,
+        'page_title': 'Alumni Registry'
+    }
+    return render(request, 'students/alumni_list.html', context)
+
+@login_required
+@role_required(['admin'])
+def transfer_to_alumni(request, student_id):
+    """Transfer an active student to alumni status"""
+    student = get_object_or_404(Student, id=student_id)
+    
+    # Check if already alumni
+    if hasattr(student, 'alumni_record'):
+        messages.warning(request, f"{student.full_name} is already registered as an Alumni.")
+        return redirect('students:alumni_list')
+        
+    if request.method == 'POST':
+        form = AlumniTransferForm(request.POST)
+        if form.is_valid():
+            alumni = form.save(commit=False)
+            alumni.student = student
+            alumni.save()
+            
+            # Deactivate student immediately upon transfer
+            student.is_active = False
+            student.save()
+            
+            messages.success(request, f"Successfully transferred {student.full_name} to the Alumni Registry.")
+            return redirect('students:alumni_list')
+    else:
+        # Default graduation year to current year
+        import datetime
+        form = AlumniTransferForm(initial={'graduation_year': str(datetime.date.today().year)})
+        
+    context = {
+        'form': form,
+        'student': student,
+        'page_title': f'Transfer {student.full_name} to Alumni'
+    }
+    return render(request, 'students/alumni_form.html', context)
+
+@login_required
+@role_required(['admin'])
+def alumni_update(request, pk):
+    alumni = get_object_or_404(Alumni, pk=pk)
+    
+    if request.method == 'POST':
+        form = AlumniForm(request.POST, instance=alumni)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Alumni record for {alumni.student.full_name} updated successfully.")
+            return redirect('students:alumni_list')
+    else:
+        form = AlumniForm(instance=alumni)
+        
+    context = {
+        'form': form,
+        'alumni': alumni,
+        'is_update': True,
+        'page_title': f'Update Alumni: {alumni.student.full_name}'
+    }
+    return render(request, 'students/alumni_form.html', context)
+
+@login_required
+@role_required(['admin'])
+def alumni_delete(request, pk):
+    alumni = get_object_or_404(Alumni, pk=pk)
+    if request.method == 'POST':
+        student = alumni.student
+        reactivate = request.POST.get('reactivate') == 'on'
+        
+        alumni.delete()
+        
+        if reactivate:
+            student.is_active = True
+            student.save()
+            messages.success(request, f"Alumni record deleted and {student.full_name} has been restored to active student status.")
+        else:
+            messages.success(request, f"Alumni record for {student.full_name} deleted successfully.")
+            
+        return redirect('students:alumni_list')
+        
+    return render(request, 'students/alumni_confirm_delete.html', {'alumni': alumni})
+
+from .models import Enrollment, AcademicYear, Grade
+
+@login_required
+@role_required(['admin'])
+def alumni_bulk_transfer(request):
+    """Bulk transfer an entire class to alumni registry"""
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    grades = Grade.objects.all().order_by('name')
+    
+    if request.method == 'POST':
+        grade_id = request.POST.get('grade')
+        graduation_year = request.POST.get('graduation_year')
+        remarks = request.POST.get('remarks', f'Bulk transferred at end of {active_year.name if active_year else "term"}')
+        
+        if grade_id and graduation_year:
+            # Get all active students enrolled in this grade
+            enrollments = Enrollment.objects.filter(
+                academic_year=active_year, 
+                grade_id=grade_id,
+                student__is_active=True
+            ).select_related('student')
+            
+            transferred_count = 0
+            for enrollment in enrollments:
+                student = enrollment.student
+                # Avoid duplicates
+                if not hasattr(student, 'alumni_record'):
+                    Alumni.objects.create(
+                        student=student,
+                        graduation_year=graduation_year,
+                        remarks=remarks,
+                        current_status='Graduated (Bulk Transfer)'
+                    )
+                    student.is_active = False
+                    student.save()
+                    transferred_count += 1
+            
+            if transferred_count > 0:
+                messages.success(request, f"Successfully created alumni records for {transferred_count} students.")
+            else:
+                messages.warning(request, "No active students found in that class without an existing alumni record.")
+                
+            return redirect('students:alumni_list')
+        else:
+            messages.error(request, "Grade and Graduation Year are required for bulk transfer.")
+            
+    import datetime
+    current_year = str(datetime.date.today().year)
+    
+    context = {
+        'page_title': 'Bulk Transfer Class to Alumni',
+        'grades': grades,
+        'current_year': current_year,
+        'active_year': active_year
+    }
+    return render(request, 'students/alumni_bulk_transfer.html', context)
+
+
+@login_required
+@role_required(['admin'])
+def alumni_bulk_restore(request):
+    """Bulk restore/revert an entire class from alumni registry back to active roster"""
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    grades = Grade.objects.all().order_by('name')
+    
+    if request.method == 'POST':
+        grade_id = request.POST.get('grade')
+        graduation_year = request.POST.get('graduation_year')
+        
+        if grade_id and graduation_year:
+            # Find alumni matching this grade in the active year and the provided graduation year
+            alumni_records = Alumni.objects.filter(
+                graduation_year=graduation_year,
+                student__enrollments__academic_year=active_year,
+                student__enrollments__grade_id=grade_id
+            ).distinct()
+            
+            restored_count = 0
+            for alumni in alumni_records:
+                student = alumni.student
+                alumni.delete()
+                student.is_active = True
+                student.save()
+                restored_count += 1
+            
+            if restored_count > 0:
+                messages.success(request, f"Successfully restored {restored_count} students back to active rosters.")
+            else:
+                messages.warning(request, "No matching alumni records found to restore.")
+                
+            return redirect('students:alumni_list')
+        else:
+            messages.error(request, "Grade and Graduation Year are required for bulk restore.")
+            
+    import datetime
+    current_year = str(datetime.date.today().year)
+    
+    context = {
+        'page_title': 'Bulk Restore Class from Alumni',
+        'grades': grades,
+        'current_year': current_year,
+        'active_year': active_year
+    }
+    return render(request, 'students/alumni_bulk_restore.html', context)
+
