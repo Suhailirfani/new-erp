@@ -2912,7 +2912,6 @@ def attendance_update_tracking(request):
         Enrollment.objects
         .filter(academic_year=active_year)
         .exclude(grade__isnull=True)
-        .exclude(grade__exact='')
         .select_related('division', 'section')
         .values('section__id', 'section__name', 'grade', 'division__id', 'division__name')
         .distinct()
@@ -2996,7 +2995,7 @@ from django.contrib.auth.decorators import login_required
 
 
 @role_required(['admin', 'teacher'])
-def attendance_class_detail(request, grade, division_id):
+def attendance_class_detail(request, grade_id, division_id):
     """
     Shows a list of students for a specific grade and division,
     along with their total attendance count and percentage.
@@ -3011,12 +3010,13 @@ def attendance_class_detail(request, grade, division_id):
         return redirect('students:attendance_list')
 
     active_year = AcademicYear.objects.filter(is_active=True).first()
+    grade = get_object_or_404(Grade, id=grade_id)
     section_id = request.GET.get('section')
     
     if division:
-        enrollments = Enrollment.objects.filter(grade=grade, division=division, academic_year=active_year, student__is_active=True).select_related('student', 'section').order_by('student__first_name', 'student__last_name')
+        enrollments = Enrollment.objects.filter(grade_id=grade_id, division=division, academic_year=active_year, student__is_active=True).select_related('student', 'section').order_by('student__first_name', 'student__last_name')
     else:
-        enrollments = Enrollment.objects.filter(grade=grade, division__isnull=True, academic_year=active_year, student__is_active=True).select_related('student', 'section').order_by('student__first_name', 'student__last_name')
+        enrollments = Enrollment.objects.filter(grade_id=grade_id, division__isnull=True, academic_year=active_year, student__is_active=True).select_related('student', 'section').order_by('student__first_name', 'student__last_name')
         
     if section_id:
         enrollments = enrollments.filter(section_id=section_id)

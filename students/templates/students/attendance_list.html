@@ -282,16 +282,21 @@
 
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
     <h1 style="color: #2c3e50; margin: 0;">📊 Attendance Records</h1>
-    <a href="{% url 'students:attendance_update_tracking' %}" class="btn btn-primary" style="background: #e67e22; border: none; box-shadow: 0 4px 6px -1px rgba(230, 126, 34, 0.3);">
-        <span style="margin-right: 0.5rem;">⏱️</span> Update Tracking
-    </a>
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="{% url 'students:mark_attendance' %}" class="btn btn-primary" style="background: #27ae60; border: none; box-shadow: 0 4px 6px -1px rgba(39, 174, 96, 0.3);">
+            <span style="margin-right: 0.5rem;">✅</span> Mark Attendance
+        </a>
+        <a href="{% url 'students:attendance_update_tracking' %}" class="btn btn-primary" style="background: #e67e22; border: none; box-shadow: 0 4px 6px -1px rgba(230, 126, 34, 0.3);">
+            <span style="margin-right: 0.5rem;">⏱️</span> Update Tracking
+        </a>
+    </div>
 </div>
 
 <div class="card">
     <h2>🏫 Select Class to View Records</h2>
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
         {% for div_name, data in division_summary.items %}
-        <a href="{% url 'students:attendance_class_detail' data.grade_name data.division_id %}?section={{ data.section_id|default:'' }}&date_from={{ current_filters.date_from|default_if_none:'' }}&date_to={{ current_filters.date_to|default_if_none:'' }}" style="text-decoration: none; color: inherit;">
+        <a href="{% url 'students:attendance_class_detail' data.grade_id data.division_id %}?section={{ data.section_id|default:'' }}&date_from={{ current_filters.date_from|default_if_none:'' }}&date_to={{ current_filters.date_to|default_if_none:'' }}" style="text-decoration: none; color: inherit;">
             <div style="background: var(--light); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 10px 15px -3px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
                 
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
