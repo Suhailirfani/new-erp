@@ -120,6 +120,8 @@ class AlumniForm(forms.ModelForm):
 # --- Job Vacancy Forms ---
 from .models import JobOpening, JobApplication
 
+
+
 class JobOpeningForm(forms.ModelForm):
     class Meta:
         model = JobOpening
@@ -147,3 +149,7 @@ class JobApplicationForm(forms.ModelForm):
             'resume': forms.FileInput(attrs={'class': 'form-control'}),
             'cover_letter': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Why are you a good fit?'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['resume'].required = False

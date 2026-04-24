@@ -615,7 +615,7 @@ class JobApplication(models.Model):
     phone = models.CharField(max_length=20)
     qualification = models.CharField(max_length=200)
     experience = models.CharField(max_length=100, blank=True)
-    resume = models.FileField(upload_to='resumes/')
+    resume = models.FileField(upload_to='resumes/', null=True, blank=True)
     cover_letter = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     submitted_at = models.DateTimeField(auto_now_add=True)
