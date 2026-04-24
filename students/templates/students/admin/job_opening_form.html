@@ -1,0 +1,66 @@
+{% extends 'students/base.html' %}
+
+{% block title %}{{ title }} - HadiyAdmin{% endblock %}
+{% block page_heading %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label class="form-label">Job Title *</label>
+            {{ form.title }}
+            {% if form.title.errors %}<div style="color: var(--danger); font-size: 0.8rem;">{{ form.title.errors }}</div>{% endif %}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="form-group">
+                <label class="form-label">Role / Category</label>
+                {{ form.role }}
+                {% if form.role.errors %}<div style="color: var(--danger); font-size: 0.8rem;">{{ form.role.errors }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label class="form-label">Is Active?</label>
+                <div style="padding: 10px 0;">
+                    {{ form.is_active }} <span style="margin-left: 10px; color: var(--gray);">Visible to public</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="form-group">
+                <label class="form-label">Announced Date</label>
+                {{ form.announced_date }}
+                {% if form.announced_date.errors %}<div style="color: var(--danger); font-size: 0.8rem;">{{ form.announced_date.errors }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label class="form-label">Application Deadline</label>
+                {{ form.validity }}
+                {% if form.validity.errors %}<div style="color: var(--danger); font-size: 0.8rem;">{{ form.validity.errors }}</div>{% endif %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Eligibility Criteria</label>
+            {{ form.eligibility }}
+            {% if form.eligibility.errors %}<div style="color: var(--danger); font-size: 0.8rem;">{{ form.eligibility.errors }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Full Job Description *</label>
+            {{ form.description }}
+            {% if form.description.errors %}<div style="color: var(--danger); font-size: 0.8rem;">{{ form.description.errors }}</div>{% endif %}
+        </div>
+
+        <div class="button-group">
+            <button type="submit" class="btn btn-primary">
+                <i class="fa-solid fa-check"></i> Save Vacancy
+            </button>
+            <a href="{% url 'students:job_vacancy_list_admin' %}" class="btn btn-secondary">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

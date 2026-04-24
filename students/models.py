@@ -577,3 +577,63 @@ def create_user_profile(sender, instance, created, **kwargs):
 def save_user_profile(sender, instance, **kwargs):
     if hasattr(instance, 'profile'):
         instance.profile.save()
+
+# --- Job Vacancy System ---
+
+class JobOpening(models.Model):
+    """Model to store job vacancy announcements"""
+    title = models.CharField(max_length=200)
+    role = models.CharField(max_length=100, blank=True, help_text="e.g. Teacher, Admin, Accountant")
+    eligibility = models.TextField(blank=True, help_text="Qualification and experience requirements")
+    description = models.TextField()
+    announced_date = models.DateField(default=timezone.now)
+    validity = models.DateField(null=True, blank=True, help_text="Application deadline")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-announced_date', '-created_at']
+
+    def __str__(self):
+        return self.title
+
+class JobApplication(models.Model):
+    """Model to store applications submitted for job vacancies"""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('reviewed', 'Reviewed'),
+        ('shortlisted', 'Shortlisted'),
+        ('rejected', 'Rejected'),
+        ('hired', 'Hired'),
+    ]
+
+    job = models.ForeignKey(JobOpening, on_delete=models.CASCADE, related_name='applications')
+    application_number = models.CharField(max_length=20, unique=True, editable=False, null=True)
+    full_name = models.CharField(max_length=200)
+    email = models.EmailField()
+    phone = models.CharField(max_length=20)
+    qualification = models.CharField(max_length=200)
+    experience = models.CharField(max_length=100, blank=True)
+    resume = models.FileField(upload_to='resumes/')
+    cover_letter = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-submitted_at']
+
+    def __str__(self):
+        return f"{self.application_number or 'PENDING'} - {self.full_name}"
+
+    def save(self, *args, **kwargs):
+        if not self.application_number:
+            # Format: HR-YYMM-XX
+            today = timezone.now().date()
+            prefix = f"HR-{today.strftime('%y%m')}-"
+            
+            # Count existing applications for this month
+            count = JobApplication.objects.filter(application_number__startswith=prefix).count()
+            self.application_number = f"{prefix}{count + 1:03d}"
+            
+        super().save(*args, **kwargs)

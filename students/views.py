@@ -4151,3 +4151,85 @@ def alumni_bulk_restore(request):
     }
     return render(request, 'students/alumni_bulk_restore.html', context)
 
+
+# --- Job Vacancy Views ---
+from .models import JobOpening, JobApplication
+from .forms import JobOpeningForm, JobApplicationForm
+
+def career_page(request):
+    """Public page listing job vacancies"""
+    today = date.today()
+    job_openings = JobOpening.objects.filter(is_active=True).filter(
+        Q(validity__gte=today) | Q(validity__isnull=True)
+    )
+    return render(request, 'students/career.html', {'job_openings': job_openings})
+
+def job_apply(request, job_id):
+    """Public job application form"""
+    job = get_object_or_404(JobOpening, id=job_id, is_active=True)
+    if request.method == 'POST':
+        form = JobApplicationForm(request.POST, request.FILES)
+        if form.is_valid():
+            application = form.save(commit=False)
+            application.job = job
+            application.save()
+            return redirect('students:job_success', application_number=application.application_number)
+    else:
+        form = JobApplicationForm()
+    
+    return render(request, 'students/job_application_form.html', {'form': form, 'job': job})
+
+def job_success(request, application_number):
+    """Success page after job application"""
+    application = get_object_or_404(JobApplication, application_number=application_number)
+    return render(request, 'students/job_success.html', {'application': application})
+
+@role_required(['admin'])
+def job_vacancy_list_admin(request):
+    """Admin view to manage job vacancies"""
+    job_openings = JobOpening.objects.all()
+    return render(request, 'students/admin/job_vacancy_list.html', {'job_openings': job_openings})
+
+@role_required(['admin'])
+def job_vacancy_create(request):
+    """Admin view to create a job vacancy"""
+    if request.method == 'POST':
+        form = JobOpeningForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Job vacancy announced successfully.')
+            return redirect('students:job_vacancy_list_admin')
+    else:
+        form = JobOpeningForm()
+    return render(request, 'students/admin/job_opening_form.html', {'form': form, 'title': 'Announce New Job'})
+
+@role_required(['admin'])
+def job_vacancy_update(request, pk):
+    """Admin view to update a job vacancy"""
+    job = get_object_or_404(JobOpening, pk=pk)
+    if request.method == 'POST':
+        form = JobOpeningForm(request.POST, instance=job)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Job vacancy updated successfully.')
+            return redirect('students:job_vacancy_list_admin')
+    else:
+        form = JobOpeningForm(instance=job)
+    return render(request, 'students/admin/job_opening_form.html', {'form': form, 'title': 'Edit Job Vacancy'})
+
+@role_required(['admin'])
+def job_vacancy_delete(request, pk):
+    """Admin view to delete a job vacancy"""
+    job = get_object_or_404(JobOpening, pk=pk)
+    if request.method == 'POST':
+        job.delete()
+        messages.success(request, 'Job vacancy deleted.')
+        return redirect('students:job_vacancy_list_admin')
+    return render(request, 'students/admin/job_opening_confirm_delete.html', {'job': job})
+
+@role_required(['admin'])
+def job_application_list_admin(request):
+    """Admin view to list all job applications"""
+    applications = JobApplication.objects.all()
+    return render(request, 'students/admin/job_application_list.html', {'applications': applications})
+

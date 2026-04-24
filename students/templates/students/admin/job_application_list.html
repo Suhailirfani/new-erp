@@ -1,0 +1,60 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Job Applications - HadiyAdmin{% endblock %}
+{% block page_heading %}Job Applications{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h3 style="margin: 0; font-weight: 800;">Received Applications</h3>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Applicant Name</th>
+                    <th>Applied For</th>
+                    <th>Qualification</th>
+                    <th>Experience</th>
+                    <th>Contact</th>
+                    <th>Resume</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in applications %}
+                <tr>
+                    <td style="font-weight: 700;">{{ app.full_name }}</td>
+                    <td><span style="color: var(--primary);">{{ app.job.title }}</span></td>
+                    <td>{{ app.qualification }}</td>
+                    <td>{{ app.experience|default:"-" }}</td>
+                    <td>
+                        <div style="font-size: 0.85rem;">
+                            <i class="fa-solid fa-envelope" style="width: 15px;"></i> {{ app.email }}<br>
+                            <i class="fa-solid fa-phone" style="width: 15px;"></i> {{ app.phone }}
+                        </div>
+                    </td>
+                    <td>
+                        {% if app.resume %}
+                            <a href="{{ app.resume.url }}" class="btn btn-xs btn-info" target="_blank">
+                                <i class="fa-solid fa-file-pdf"></i> View CV
+                            </a>
+                        {% else %}
+                            <span style="color: var(--danger);">No CV</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size: 0.85rem; color: var(--gray);">{{ app.submitted_at|date:"M d, Y" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 3rem; color: var(--gray);">
+                        No applications received yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

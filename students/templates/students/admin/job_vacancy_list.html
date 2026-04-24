@@ -1,0 +1,69 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Manage Job Vacancies - HadiyAdmin{% endblock %}
+{% block page_heading %}Job Vacancy Management{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h3 style="margin: 0; font-weight: 800;">Announced Vacancies</h3>
+        <a href="{% url 'students:job_vacancy_create' %}" class="btn btn-primary">
+            <i class="fa-solid fa-plus"></i> Announce New Job
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Job Title</th>
+                    <th>Role</th>
+                    <th>Announced</th>
+                    <th>Deadline</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in job_openings %}
+                <tr>
+                    <td style="font-weight: 700; color: var(--primary);">{{ job.title }}</td>
+                    <td>{{ job.role|default:"-" }}</td>
+                    <td>{{ job.announced_date|date:"M d, Y" }}</td>
+                    <td>
+                        {% if job.validity %}
+                            {{ job.validity|date:"M d, Y" }}
+                        {% else %}
+                            <span style="color: var(--gray);">No Deadline</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if job.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-light">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="button-group" style="margin: 0;">
+                            <a href="{% url 'students:job_vacancy_update' job.pk %}" class="btn btn-xs btn-primary" title="Edit">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
+                            <a href="{% url 'students:job_vacancy_delete' job.pk %}" class="btn btn-xs btn-danger" title="Delete">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 3rem; color: var(--gray);">
+                        No job vacancies found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

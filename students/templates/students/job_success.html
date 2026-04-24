@@ -1,0 +1,149 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Submitted | MARKAZ HADIYA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6a0606;
+            --text-gold: #f1c40f;
+            --dark-bg: #1a0202;
+            --glass: rgba(255, 255, 255, 0.05);
+            --success-glow: rgba(46, 204, 113, 0.2);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--dark-bg);
+            color: white;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .success-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            padding: 60px 40px;
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .icon-box {
+            width: 100px;
+            height: 100px;
+            background: rgba(46, 204, 113, 0.1);
+            color: #2ecc71;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.5rem;
+            margin: 0 auto 30px;
+            box-shadow: 0 0 40px var(--success-glow);
+        }
+
+        h1 {
+            font-family: 'Cinzel', serif;
+            color: var(--text-gold);
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .app-number {
+            display: inline-block;
+            background: rgba(255,255,255,0.05);
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-family: 'Cinzel', serif;
+            font-size: 1.5rem;
+            color: white;
+            border: 1px dashed var(--text-gold);
+            margin: 20px 0;
+        }
+
+        .details {
+            opacity: 0.7;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 40px;
+        }
+
+        .contact-box {
+            background: rgba(106, 6, 6, 0.3);
+            border: 1px solid rgba(106, 6, 6, 0.5);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 40px;
+        }
+
+        .contact-box h4 {
+            margin: 0 0 10px;
+            color: var(--text-gold);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+
+        .contact-box p {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .btn-home {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            padding: 16px 40px;
+            border-radius: 50px;
+            font-weight: 800;
+            transition: 0.3s;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .btn-home:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            background: #a00000;
+        }
+    </style>
+</head>
+<body>
+    <div class="success-card">
+        <div class="icon-box">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <h1>Application Successful!</h1>
+        <p class="details">Thank you, <strong>{{ application.full_name }}</strong>. Your application for <strong>{{ application.job.title }}</strong> has been received successfully.</p>
+        
+        <p style="font-size: 0.8rem; color: var(--text-gold); text-transform: uppercase; margin-bottom: 5px;">Your Application Number</p>
+        <div class="app-number">{{ application.application_number }}</div>
+
+        <div class="contact-box">
+            <h4>For more details, contact:</h4>
+            <p>+91 9745370426</p>
+        </div>
+
+        <a href="{% url 'students:landing' %}" class="btn-home">Return to Home</a>
+    </div>
+</body>
+</html>

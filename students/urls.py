@@ -100,4 +100,14 @@ urlpatterns = [
     path('student/<int:student_id>/transfer-alumni/', views.transfer_to_alumni, name='transfer_to_alumni'),
     path('alumni/<int:pk>/edit/', views.alumni_update, name='alumni_update'),
     path('alumni/<int:pk>/delete/', views.alumni_delete, name='alumni_delete'),
+
+    # Job Vacancy Management
+    path('careers/', views.career_page, name='career'),
+    path('careers/apply/<int:job_id>/', views.job_apply, name='job_apply'),
+    path('careers/success/<str:application_number>/', views.job_success, name='job_success'),
+    path('dashboard/admin/vacancies/', views.job_vacancy_list_admin, name='job_vacancy_list_admin'),
+    path('dashboard/admin/vacancies/add/', views.job_vacancy_create, name='job_vacancy_create'),
+    path('dashboard/admin/vacancies/<int:pk>/edit/', views.job_vacancy_update, name='job_vacancy_update'),
+    path('dashboard/admin/vacancies/<int:pk>/delete/', views.job_vacancy_delete, name='job_vacancy_delete'),
+    path('dashboard/admin/applications/', views.job_application_list_admin, name='job_application_list_admin'),
 ]

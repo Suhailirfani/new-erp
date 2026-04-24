@@ -116,3 +116,34 @@ class AlumniForm(forms.ModelForm):
             'company_or_institution': forms.TextInput(attrs={'class': 'form-control'}),
             'remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
         }
+
+# --- Job Vacancy Forms ---
+from .models import JobOpening, JobApplication
+
+class JobOpeningForm(forms.ModelForm):
+    class Meta:
+        model = JobOpening
+        fields = ['title', 'role', 'eligibility', 'description', 'announced_date', 'validity', 'is_active']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Job Title'}),
+            'role': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Arabic Teacher'}),
+            'announced_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'validity': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'eligibility': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Qualifications...'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': 'Full Job Description...'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+class JobApplicationForm(forms.ModelForm):
+    class Meta:
+        model = JobApplication
+        fields = ['full_name', 'email', 'phone', 'qualification', 'experience', 'resume', 'cover_letter']
+        widgets = {
+            'full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Your Full Name'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email Address'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Phone Number'}),
+            'qualification': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. B.Ed, M.Sc'}),
+            'experience': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 3 Years'}),
+            'resume': forms.FileInput(attrs={'class': 'form-control'}),
+            'cover_letter': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Why are you a good fit?'}),
+        }

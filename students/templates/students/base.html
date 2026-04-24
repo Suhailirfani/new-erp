@@ -1434,6 +1434,16 @@
             {% endif %}
 
             {% if request.user.is_superuser or request.user.profile.role in 'admin,accountant,ntstaff' %}
+            <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">Human Resources</div>
+            <a href="{% url 'students:job_vacancy_list_admin' %}" class="nav-item">
+                <i class="fa-solid fa-briefcase"></i>
+                <span>Job Vacancies</span>
+            </a>
+            <a href="{% url 'students:job_application_list_admin' %}" class="nav-item">
+                <i class="fa-solid fa-file-invoice"></i>
+                <span>Applications</span>
+            </a>
+            
             <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">Operations</div>
             <div class="nav-group">
                 <a href="#" class="nav-item nav-dropdown-btn" onclick="event.preventDefault(); const content = this.nextElementSibling; const icon = this.querySelector('.arrow'); const isClosed = content.style.display === 'none' || content.style.display === ''; content.style.display = isClosed ? 'block' : 'none'; icon.style.transform = isClosed ? 'rotate(180deg)' : 'none';">

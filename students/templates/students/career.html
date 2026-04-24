@@ -1,0 +1,230 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Careers | MARKAZ HADIYA WOMEN'S COLLEGE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6a0606;
+            --accent: #a00000;
+            --text-gold: #f1c40f;
+            --dark-bg: #1a0202;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--dark-bg);
+            color: white;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(to bottom, #000, transparent);
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 3.5rem;
+            color: var(--text-gold);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .job-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 30px;
+        }
+
+        .job-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .job-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--text-gold);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+        }
+
+        .job-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--text-gold);
+            opacity: 0;
+            transition: 0.3s;
+        }
+
+        .job-card:hover::before {
+            opacity: 1;
+        }
+
+        .role-badge {
+            display: inline-block;
+            background: rgba(241, 196, 15, 0.1);
+            color: var(--text-gold);
+            padding: 6px 15px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .job-title {
+            font-size: 1.75rem;
+            font-family: 'Cinzel', serif;
+            margin-bottom: 15px;
+            color: white;
+        }
+
+        .job-detail {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 25px;
+            color: rgba(255,255,255,0.6);
+            font-size: 0.95rem;
+        }
+
+        .job-eligibility {
+            margin-bottom: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .job-eligibility h4 {
+            color: var(--text-gold);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .btn-apply {
+            margin-top: auto;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 700;
+            transition: 0.3s;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .btn-apply:hover {
+            background: var(--accent);
+            transform: scale(1.02);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 100px 20px;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--glass-border);
+            margin-bottom: 20px;
+        }
+
+        .nav-back {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.7;
+            transition: 0.3s;
+        }
+
+        .nav-back:hover {
+            opacity: 1;
+            transform: translateX(-5px);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2.5rem; }
+            .job-card { padding: 30px; }
+        }
+    </style>
+</head>
+<body>
+    <a href="{% url 'students:landing' %}" class="nav-back">
+        <i class="fas fa-arrow-left"></i> Back to Home
+    </a>
+
+    <header class="header">
+        <h1>Careers</h1>
+        <p style="opacity: 0.6; font-size: 1.2rem;">Join the legacy of excellence at Markaz Hadiya</p>
+    </header>
+
+    <div class="container">
+        {% if job_openings %}
+            <div class="job-grid">
+                {% for job in job_openings %}
+                <div class="job-card">
+                    <span class="role-badge">{{ job.role|default:"Job Vacancy" }}</span>
+                    <h2 class="job-title">{{ job.title }}</h2>
+                    
+                    <div class="job-detail">
+                        <i class="far fa-calendar-alt"></i>
+                        <span>Deadline: {{ job.validity|date:"M d, Y"|default:"Open until filled" }}</span>
+                    </div>
+
+                    <div class="job-eligibility">
+                        <h4>Eligibility</h4>
+                        <p>{{ job.eligibility|linebreaksbr }}</p>
+                    </div>
+
+                    <a href="{% url 'students:job_apply' job.id %}" class="btn-apply">Apply Now</a>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-briefcase"></i>
+                <h2>No Vacancies Currently</h2>
+                <p style="opacity: 0.6;">We don't have any open positions right now. Please check back later.</p>
+                <br>
+                <a href="{% url 'students:landing' %}" class="btn-apply" style="display: inline-block;">Return Home</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <footer style="text-align: center; padding: 40px; opacity: 0.4; font-size: 0.9rem;">
+        &copy; 2026 Markaz Hadiya Women's College. All rights reserved.
+    </footer>
+</body>
+</html>
