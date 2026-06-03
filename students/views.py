@@ -23,6 +23,35 @@ from .forms import SectionForm, AcademicYearForm, EnquiryForm, GradeForm, Divisi
 from fees.models import FeeStructure, FeeItem
 
 
+def get_holiday_dates(start_date, end_date):
+    """
+    Returns a set of date objects that are holidays (Sundays, Second Saturdays,
+    and manual holidays from the Holiday model) in the range [start_date, end_date].
+    """
+    from datetime import date, timedelta
+    from students.models import Holiday
+    
+    if not start_date or not end_date:
+        return set()
+        
+    holiday_dates = set(Holiday.objects.filter(date__gte=start_date, date__lte=end_date).values_list('date', flat=True))
+    
+    curr = start_date
+    while curr <= end_date:
+        weekday = curr.weekday()
+        if weekday == 6:  # Sunday
+            holiday_dates.add(curr)
+        elif weekday == 5:  # Saturday
+            # Second Saturday check
+            d = curr.day
+            first_weekday = date(curr.year, curr.month, 1).weekday()
+            if ((d + first_weekday) // 7 + 1) == 2:
+                holiday_dates.add(curr)
+        curr += timedelta(days=1)
+        
+    return holiday_dates
+
+
 def landing_page(request):
     """Public landing page"""
     from .models import LandingPageStats
@@ -192,8 +221,14 @@ def home(request):
                 date__year=curr_year, 
                 date__month=current_month
             )
-            monthly_total = monthly_att.count()
-            monthly_present = monthly_att.filter(status='present').count()
+            import calendar
+            m_start = date(curr_year, current_month, 1)
+            m_end = date(curr_year, current_month, calendar.monthrange(curr_year, current_month)[1])
+            m_holidays = get_holiday_dates(m_start, m_end)
+            
+            monthly_att_stats = monthly_att.exclude(date__in=m_holidays, status='absent')
+            monthly_total = monthly_att_stats.count()
+            monthly_present = monthly_att_stats.filter(status='present').count()
             
             # Yearly attendance
             if active_year:
@@ -202,11 +237,18 @@ def home(request):
                     date__gte=active_year.start_date,
                     date__lte=active_year.end_date if active_year.end_date else today
                 )
-                yearly_total = yearly_att.count()
-                yearly_present = yearly_att.filter(status='present').count()
+                y_holidays = get_holiday_dates(active_year.start_date, active_year.end_date if active_year.end_date else today)
+                
+                yearly_att_stats = yearly_att.exclude(date__in=y_holidays, status='absent')
+                yearly_total = yearly_att_stats.count()
+                yearly_present = yearly_att_stats.filter(status='present').count()
+                
+                yearly_attended = yearly_att_stats.filter(status__in=['present', 'late', 'excused']).count()
+                attendance_yearly_percentage = round((yearly_attended / yearly_total * 100), 2) if yearly_total > 0 else 0
             else:
                 yearly_total = 0
                 yearly_present = 0
+                attendance_yearly_percentage = 0
                 
             # 2. Results / Academics Data
             # All results in the active academic year
@@ -250,6 +292,7 @@ def home(request):
                 'monthly_present': monthly_present,
                 'yearly_total': yearly_total,
                 'yearly_present': yearly_present,
+                'attendance_yearly_percentage': attendance_yearly_percentage,
                 'exam_results': exam_results,
                 'hostel_status': hostel_status,
                 'fee_total_paid': fee_total_paid,
@@ -1244,9 +1287,16 @@ def attendance_list(request):
             'today_stats': None,
         }
 
+    stats_attendances = attendances
     if attendances.exists():
+        dates = list(attendances.values_list('date', flat=True))
+        if dates:
+            h_dates = get_holiday_dates(min(dates), max(dates))
+            stats_attendances = attendances.exclude(date__in=h_dates, status='absent')
+            
+    if stats_attendances.exists():
         classroom_stats = (
-            attendances
+            stats_attendances
             .values(
                 'enrollment__section__id',
                 'enrollment__section__name',
@@ -2847,12 +2897,16 @@ def attendance_analytics(request):
     if division_id:
         attendances = attendances.filter(enrollment__division_id=division_id)
 
+    # Exclude holiday absences from statistics calculations
+    h_dates = get_holiday_dates(start_date, end_date)
+    stats_attendances = attendances.exclude(date__in=h_dates, status='absent')
+
     # Calculate overall statistics
-    total_records = attendances.count()
-    present_count = attendances.filter(status='present').count()
-    absent_count = attendances.filter(status='absent').count()
-    late_count = attendances.filter(status='late').count()
-    excused_count = attendances.filter(status='excused').count()
+    total_records = stats_attendances.count()
+    present_count = stats_attendances.filter(status='present').count()
+    absent_count = stats_attendances.filter(status='absent').count()
+    late_count = stats_attendances.filter(status='late').count()
+    excused_count = stats_attendances.filter(status='excused').count()
 
     overall_percentage = round((present_count / total_records * 100), 2) if total_records > 0 else 0
     present_percentage = round((present_count / total_records * 100), 2) if total_records > 0 else 0
@@ -2864,7 +2918,7 @@ def attendance_analytics(request):
     division_stats = {}
 
     # Get distinct combinations of section, grade and division
-    grade_div_combinations = attendances.values_list(
+    grade_div_combinations = stats_attendances.values_list(
         'enrollment__section__id',
         'enrollment__section__name',
         'enrollment__grade__id',
@@ -2875,7 +2929,7 @@ def attendance_analytics(request):
 
     for sec_id, sec_name, grade_id_val, grade_name_val, div_id, div_name in grade_div_combinations:
         # Filter attendances for this specific grade + division combination
-        div_attendances = attendances.filter(
+        div_attendances = stats_attendances.filter(
             enrollment__section_id=sec_id,
             enrollment__grade_id=grade_id_val,
             enrollment__division_id=div_id
@@ -2921,7 +2975,7 @@ def attendance_analytics(request):
             enrollments = enrollments.filter(division_id=division_id)
 
         for enrollment in enrollments[:100]:  # Limit to avoid performance issues
-            student_attendances = attendances.filter(student=enrollment.student)
+            student_attendances = stats_attendances.filter(student=enrollment.student)
             total = student_attendances.count()
             present = student_attendances.filter(status='present').count()
             absent = student_attendances.filter(status='absent').count()
@@ -2955,6 +3009,10 @@ def attendance_analytics(request):
                 day_attendances = day_attendances.filter(enrollment__grade_id=grade)
             if division_id:
                 day_attendances = day_attendances.filter(enrollment__division_id=division_id)
+
+            h_dates_trend = get_holiday_dates(trend_date, trend_date)
+            if trend_date in h_dates_trend:
+                day_attendances = day_attendances.exclude(status='absent')
 
             day_total = day_attendances.count()
             day_present = day_attendances.filter(status='present').count()
@@ -3512,6 +3570,21 @@ def attendance_class_detail(request, grade_id, division_id):
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
     
+    # Pre-fetch holiday dates in range to optimize performance
+    class_attendances = Attendance.objects.filter(enrollment__grade_id=grade_id)
+    if division:
+        class_attendances = class_attendances.filter(enrollment__division=division)
+    else:
+        class_attendances = class_attendances.filter(enrollment__division__isnull=True)
+        
+    if date_from:
+        class_attendances = class_attendances.filter(date__gte=date_from)
+    if date_to:
+        class_attendances = class_attendances.filter(date__lte=date_to)
+        
+    dates = list(class_attendances.values_list('date', flat=True))
+    h_dates = get_holiday_dates(min(dates), max(dates)) if dates else set()
+    
     for enrollment in enrollments:
         attendances = Attendance.objects.filter(enrollment=enrollment)
         
@@ -3520,11 +3593,13 @@ def attendance_class_detail(request, grade_id, division_id):
         if date_to:
             attendances = attendances.filter(date__lte=date_to)
             
-        total_days = attendances.count()
-        present_count = attendances.filter(status='present').count()
-        late_count = attendances.filter(status='late').count()
-        excused_count = attendances.filter(status='excused').count()
-        absent_count = attendances.filter(status='absent').count()
+        stats_attendances = attendances.exclude(date__in=h_dates, status='absent')
+        
+        total_days = stats_attendances.count()
+        present_count = stats_attendances.filter(status='present').count()
+        late_count = stats_attendances.filter(status='late').count()
+        excused_count = stats_attendances.filter(status='excused').count()
+        absent_count = stats_attendances.filter(status='absent').count()
         
         # Calculate percentage (Present + Late + Excused are considered 'attended')
         attended_count = present_count + late_count + excused_count
@@ -3611,11 +3686,15 @@ def attendance_student_detail(request, student_id):
     if date_to:
         attendances = attendances.filter(date__lte=date_to)
 
-    total_days = attendances.count()
-    present_count = attendances.filter(status='present').count()
-    late_count = attendances.filter(status='late').count()
-    excused_count = attendances.filter(status='excused').count()
-    absent_count = attendances.filter(status='absent').count()
+    dates = list(attendances.values_list('date', flat=True))
+    h_dates = get_holiday_dates(min(dates), max(dates)) if dates else set()
+    stats_attendances = attendances.exclude(date__in=h_dates, status='absent')
+
+    total_days = stats_attendances.count()
+    present_count = stats_attendances.filter(status='present').count()
+    late_count = stats_attendances.filter(status='late').count()
+    excused_count = stats_attendances.filter(status='excused').count()
+    absent_count = stats_attendances.filter(status='absent').count()
     
     attended_count = present_count + late_count + excused_count
     percentage = 0
