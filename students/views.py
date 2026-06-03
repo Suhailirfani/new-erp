@@ -214,14 +214,23 @@ def home(request):
             today_status = student_today_att.status if student_today_att else 'not_marked'
             
             # Monthly attendance
-            current_month = today.month
-            curr_year = today.year
+            import calendar
+            try:
+                current_month = int(request.GET.get('month', today.month))
+                curr_year = int(request.GET.get('year', today.year))
+                if not (1 <= current_month <= 12):
+                    current_month = today.month
+                if not (1900 <= curr_year <= 2100):
+                    curr_year = today.year
+            except (ValueError, TypeError):
+                current_month = today.month
+                curr_year = today.year
+
             monthly_att = Attendance.objects.filter(
                 student=student, 
                 date__year=curr_year, 
                 date__month=current_month
             )
-            import calendar
             m_start = date(curr_year, current_month, 1)
             m_end = date(curr_year, current_month, calendar.monthrange(curr_year, current_month)[1])
             m_holidays = get_holiday_dates(m_start, m_end)
@@ -229,9 +238,16 @@ def home(request):
             monthly_att_stats = monthly_att.exclude(date__in=m_holidays, status='absent')
             monthly_total = monthly_att_stats.count()
             monthly_present = monthly_att_stats.filter(status='present').count()
+            monthly_attended = monthly_att_stats.filter(status__in=['present', 'late', 'excused']).count()
+            attendance_monthly_percentage = round((monthly_attended / monthly_total * 100), 2) if monthly_total > 0 else 0
+            current_month_name = date(curr_year, current_month, 1).strftime('%B %Y')
+
+            # Dropdown choices
+            months_choices = [(i, calendar.month_name[i]) for i in range(1, 13)]
+            years_choices = list(range(today.year - 2, today.year + 2))
             
             # Yearly attendance
-            if active_year:
+            if active_year and active_year.start_date:
                 yearly_att = Attendance.objects.filter(
                     student=student,
                     date__gte=active_year.start_date,
@@ -291,6 +307,12 @@ def home(request):
                 'today_status': today_status,
                 'monthly_total': monthly_total,
                 'monthly_present': monthly_present,
+                'attendance_monthly_percentage': attendance_monthly_percentage,
+                'current_month_name': current_month_name,
+                'selected_month': current_month,
+                'selected_year': curr_year,
+                'months_choices': months_choices,
+                'years_choices': years_choices,
                 'yearly_total': yearly_total,
                 'yearly_present': yearly_present,
                 'attendance_yearly_percentage': attendance_yearly_percentage,
