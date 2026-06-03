@@ -259,8 +259,9 @@ def home(request):
                     # Fetch MarkEntry where exam_type's academic year is active_year
                     exam_results = MarkEntry.objects.filter(
                         student=student, 
-                        exam_type__academic_year=active_year
-                    ).select_related('exam_type', 'subject').order_by('-exam_type__start_date', 'subject__name')
+                        enrollment__academic_year=active_year,
+                        exam_type__is_published=True
+                    ).select_related('exam_type', 'subject').order_by('-exam_date', 'subject__name')
             
             # 3. Hostel Movement Data
             hostel_status = None
