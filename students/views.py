@@ -279,6 +279,24 @@ def home(request):
                         exam_type__is_published=True
                     ).select_related('exam_type', 'subject').order_by('-exam_date', 'subject__name')
             
+            # Fetch ProgressReport objects for trend chart
+            performance_data = []
+            if active_year:
+                progress_reports = ProgressReport.objects.filter(
+                    student=student,
+                    enrollment__academic_year=active_year,
+                    exam_type__is_published=True
+                ).select_related('exam_type').order_by('generated_at')
+                
+                for rep in progress_reports:
+                    performance_data.append({
+                        'exam': rep.exam_type.name,
+                        'percentage': float(rep.overall_percentage)
+                    })
+            
+            import json
+            performance_data_json = json.dumps(performance_data)
+            
             # 3. Hostel Movement Data
             hostel_status = None
             if student.student_type == 'hostel':
@@ -317,6 +335,7 @@ def home(request):
                 'yearly_present': yearly_present,
                 'attendance_yearly_percentage': attendance_yearly_percentage,
                 'exam_results': exam_results,
+                'performance_data_json': performance_data_json,
                 'hostel_status': hostel_status,
                 'fee_total_paid': fee_total_paid,
                 'fee_total_due': fee_total_due,

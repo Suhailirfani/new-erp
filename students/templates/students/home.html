@@ -329,6 +329,46 @@
         </div>
     </div>
 
+    <!-- Academic Performance Trend Card -->
+    <div class="card" style="margin-bottom: 2rem;">
+        <h4 style="margin-top: 0; margin-bottom: 1.5rem; font-weight: 800;">Academic Performance Trend</h4>
+        
+        <div id="chart-placeholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 220px; color: var(--gray); text-align: center; gap: 0.5rem;">
+            <i class="fa-solid fa-chart-line" style="font-size: 2.5rem; opacity: 0.3;"></i>
+            <span style="font-weight: 600; font-size: 0.95rem;">Not enough progress reports generated yet to show performance trends.</span>
+        </div>
+
+        <div id="chart-container" style="display: none; position: relative; height: 220px; width: 100%; box-sizing: border-box; padding: 0.5rem 1rem 0;">
+            <svg id="performance-chart" viewBox="0 0 500 200" preserveAspectRatio="none" style="width: 100%; height: 100%; overflow: visible;">
+                <!-- Grid Lines -->
+                <line x1="0" y1="20" x2="500" y2="20" stroke="#f1f5f9" stroke-width="1.5" />
+                <line x1="0" y1="65" x2="500" y2="65" stroke="#f1f5f9" stroke-width="1.5" />
+                <line x1="0" y1="110" x2="500" y2="110" stroke="#f1f5f9" stroke-width="1.5" />
+                <line x1="0" y1="155" x2="500" y2="155" stroke="#f1f5f9" stroke-width="1.5" />
+                <line x1="0" y1="180" x2="500" y2="180" stroke="#e2e8f0" stroke-width="2" />
+                
+                <!-- SVG Area under curve -->
+                <path id="chart-area" d="" fill="url(#chart-gradient)" opacity="0.12" />
+                
+                <!-- SVG Trend Line -->
+                <path id="chart-path" d="" fill="none" stroke="var(--primary)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
+                
+                <!-- Gradients -->
+                <defs>
+                    <linearGradient id="chart-gradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="var(--primary)" />
+                        <stop offset="100%" stop-color="var(--primary)" stop-opacity="0" />
+                    </linearGradient>
+                </defs>
+            </svg>
+            
+            <!-- Labels Container -->
+            <div id="chart-labels" style="display: flex; justify-content: space-between; margin-top: 1rem; color: var(--gray); font-size: 0.8rem; font-weight: 700;">
+                <!-- Dynamically populated by JS -->
+            </div>
+        </div>
+    </div>
+
     <!-- Academics Table -->
     <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
@@ -365,6 +405,121 @@
             </table>
         </div>
     </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const rawJson = '{{ performance_data_json|escapejs }}';
+        let data = [];
+        try {
+            data = JSON.parse(rawJson || '[]');
+        } catch (e) {
+            console.error('Error parsing performance JSON data:', e);
+        }
+        const container = document.getElementById('chart-container');
+        const placeholder = document.getElementById('chart-placeholder');
+        const svg = document.getElementById('performance-chart');
+        const path = document.getElementById('chart-path');
+        const area = document.getElementById('chart-area');
+        const labelsContainer = document.getElementById('chart-labels');
+        
+        if (!data || data.length === 0) {
+            if (container) container.style.display = 'none';
+            if (placeholder) placeholder.style.display = 'flex';
+            return;
+        }
+        
+        if (placeholder) placeholder.style.display = 'none';
+        if (container) container.style.display = 'block';
+        
+        const svgWidth = 500;
+        const svgHeight = 200;
+        const paddingY = 20; // safe padding top & bottom
+        
+        let points = [];
+        labelsContainer.innerHTML = '';
+        
+        data.forEach((item, index) => {
+            // Calculate X coordinate evenly across space
+            let x = 0;
+            if (data.length > 1) {
+                x = (index / (data.length - 1)) * svgWidth;
+            } else {
+                x = svgWidth / 2; // Center single item
+            }
+            
+            // Map percentage (0-100) to Y coordinates (paddingY to svgHeight - paddingY)
+            const percent = item.percentage;
+            // 0% maps to svgHeight - paddingY (bottom), 100% maps to paddingY (top)
+            const y = svgHeight - paddingY - (percent / 100) * (svgHeight - 2 * paddingY);
+            
+            points.push({ x, y, exam: item.exam, percentage: percent });
+            
+            // Render labels
+            const labelDiv = document.createElement('div');
+            labelDiv.textContent = item.exam;
+            labelDiv.style.flex = '1';
+            labelDiv.style.fontWeight = '700';
+            if (index === 0 && data.length > 1) {
+                labelDiv.style.textAlign = 'left';
+            } else if (index === data.length - 1 && data.length > 1) {
+                labelDiv.style.textAlign = 'right';
+            } else {
+                labelDiv.style.textAlign = 'center';
+            }
+            labelsContainer.appendChild(labelDiv);
+        });
+        
+        // Construct trend line path (D attribute)
+        let pathD = '';
+        points.forEach((p, idx) => {
+            if (idx === 0) {
+                pathD += `M ${p.x} ${p.y}`;
+            } else {
+                pathD += ` L ${p.x} ${p.y}`;
+            }
+        });
+        path.setAttribute('d', pathD);
+        
+        // Construct closed filled area path
+        if (points.length > 0) {
+            let areaD = pathD;
+            if (points.length > 1) {
+                areaD += ` L ${points[points.length - 1].x} 180 L ${points[0].x} 180 Z`;
+            } else {
+                areaD = ''; // Single point has no area
+            }
+            area.setAttribute('d', areaD);
+        }
+        
+        // Add interactive hover dots with tooltips
+        points.forEach((p) => {
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', p.x);
+            circle.setAttribute('cy', p.y);
+            circle.setAttribute('r', '6');
+            circle.setAttribute('fill', 'var(--primary)');
+            circle.setAttribute('stroke', '#fff');
+            circle.setAttribute('stroke-width', '2.5');
+            circle.style.cursor = 'pointer';
+            circle.style.transition = 'r 0.2s ease';
+            
+            // Tooltip title
+            const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+            title.textContent = `${p.exam}: ${p.percentage.toFixed(1)}%`;
+            circle.appendChild(title);
+            
+            // Subtle interactive scaling
+            circle.addEventListener('mouseover', function() {
+                this.setAttribute('r', '9');
+            });
+            circle.addEventListener('mouseout', function() {
+                this.setAttribute('r', '6');
+            });
+            
+            svg.appendChild(circle);
+        });
+    });
+    </script>
     {% endif %}
 
 {% else %}
