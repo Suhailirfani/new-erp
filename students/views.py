@@ -4833,3 +4833,282 @@ def examination_dashboard(request):
     }
     return render(request, 'students/examination_dashboard.html', context)
 
+
+@role_required(['admin', 'teacher'])
+def monthly_attendance_select(request):
+    """Select Month, Year, Class, and Type for Monthly Attendance Grid"""
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    if not active_year:
+        messages.error(request, 'Please set an active academic year to mark attendance.')
+        return redirect('students:home')
+        
+    today = date.today()
+    month = int(request.GET.get('month', today.month))
+    year = int(request.GET.get('year', today.year))
+    attendance_type = request.GET.get('type', 'daily')
+    period_id = request.GET.get('period')
+    activity_id = request.GET.get('activity')
+    
+    grades = Grade.objects.all().order_by('order', 'name')
+    divisions = Division.objects.all()
+    periods = Period.objects.all()
+    activities = Activity.objects.filter(date__year=year, date__month=month) if month else Activity.objects.none()
+    
+    import calendar
+    months_list = [{'value': i, 'name': calendar.month_name[i]} for i in range(1, 13)]
+    
+    if request.GET.get('grade'):
+        grade_id = request.GET.get('grade')
+        division_id = request.GET.get('division') or '0'
+        params = [
+            f"month={month}",
+            f"year={year}",
+            f"type={attendance_type}"
+        ]
+        if period_id: params.append(f"period={period_id}")
+        if activity_id: params.append(f"activity={activity_id}")
+        
+        url = reverse('students:monthly_attendance_grid', kwargs={'grade_id': grade_id, 'division_id': division_id})
+        return redirect(f"{url}?{'&'.join(params)}")
+        
+    context = {
+        'grades': grades,
+        'divisions': divisions,
+        'periods': periods,
+        'activities': activities,
+        'selected_month': month,
+        'selected_year': year,
+        'selected_type': attendance_type,
+        'selected_period': period_id,
+        'selected_activity': activity_id,
+        'months': months_list,
+        'years': range(today.year - 5, today.year + 6),
+    }
+    return render(request, 'students/monthly_attendance_select.html', context)
+
+
+@role_required(['admin', 'teacher'])
+def monthly_attendance_grid(request, grade_id, division_id):
+    """Monthly Attendance Grid for a class"""
+    import calendar
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    if not active_year:
+        messages.error(request, 'Please set an active academic year to mark attendance.')
+        return redirect('students:home')
+
+    grade_obj = get_object_or_404(Grade, id=grade_id)
+    actual_division_id = None if division_id == 0 else division_id
+    
+    # Get enrollments for this class
+    enrollments = Enrollment.objects.filter(
+        academic_year=active_year, 
+        student__is_active=True, 
+        grade=grade_obj
+    ).select_related('student', 'division', 'section')
+    
+    if actual_division_id:
+        enrollments = enrollments.filter(division_id=actual_division_id)
+        division = get_object_or_404(Division, id=actual_division_id)
+        class_name = f"{grade_obj.name} - {division.name}"
+    else:
+        enrollments = enrollments.filter(division__isnull=True)
+        class_name = f"{grade_obj.name} - No Division"
+
+    section_name = grade_obj.section.name if grade_obj.section else "No Section"
+
+    # Month and Year parameters
+    today = date.today()
+    month = int(request.GET.get('month', today.month))
+    year = int(request.GET.get('year', today.year))
+    attendance_type = request.GET.get('type', 'daily')
+    period_id = request.GET.get('period')
+    activity_id = request.GET.get('activity')
+
+    # Get all days in the month
+    num_days = calendar.monthrange(year, month)[1]
+    
+    # Get holidays for this month
+    from students.models import Holiday
+    holidays = Holiday.objects.filter(date__year=year, date__month=month)
+    holiday_map = {h.date: h.title for h in holidays}
+    
+    periods = Period.objects.all()
+    activities = Activity.objects.filter(date__year=year, date__month=month)
+    
+    selected_period = None
+    if period_id:
+        selected_period = get_object_or_404(Period, id=period_id)
+        
+    selected_activity = None
+    if activity_id:
+        selected_activity = get_object_or_404(Activity, id=activity_id)
+
+    # Base filter for attendance query
+    attendance_filter = {
+        'enrollment__in': enrollments,
+        'date__year': year,
+        'date__month': month,
+        'attendance_type': attendance_type,
+    }
+    if attendance_type == 'period' and period_id:
+        attendance_filter['period_id'] = period_id
+    elif attendance_type == 'activity' and activity_id:
+        attendance_filter['activity_id'] = activity_id
+    else:
+        attendance_filter['period__isnull'] = True
+        attendance_filter['activity__isnull'] = True
+
+    # Get existing attendances in this month for these enrollments
+    attendances = Attendance.objects.filter(**attendance_filter)
+    
+    # Organize attendance by student_id and date
+    attendance_map = {}
+    for att in attendances:
+        if att.student_id not in attendance_map:
+            attendance_map[att.student_id] = {}
+        attendance_map[att.student_id][att.date] = att.status
+
+    # Identify which days already have some attendance marked
+    days_with_attendance = set(attendances.values_list('date', flat=True))
+
+    # Generate dates list with metadata
+    dates_meta = []
+    for d in range(1, num_days + 1):
+        curr_date = date(year, month, d)
+        weekday = curr_date.weekday()
+        
+        is_sunday = weekday == 6
+        is_second_saturday = (
+            weekday == 5 and
+            ((d + date(year, month, 1).weekday()) // 7 + 1) == 2
+        )
+        is_manual_holiday = curr_date in holiday_map
+        is_holiday = is_sunday or is_second_saturday or is_manual_holiday
+        holiday_type = (
+            holiday_map[curr_date] if is_manual_holiday
+            else 'Sunday' if is_sunday
+            else 'Second Saturday' if is_second_saturday
+            else ''
+        )
+        
+        is_future = curr_date > today
+        
+        # Pre-select "Mark Day" if it already has attendance, OR if it's today/past and NOT a holiday
+        should_mark = curr_date in days_with_attendance or (not is_future and not is_holiday)
+        
+        dates_meta.append({
+            'date': curr_date,
+            'day_num': d,
+            'day_name': curr_date.strftime('%a'),
+            'is_holiday': is_holiday,
+            'holiday_type': holiday_type,
+            'is_future': is_future,
+            'should_mark': should_mark,
+        })
+
+    if request.method == 'POST':
+        marked_by = request.user.get_full_name() or request.user.username or "Admin"
+        updated_days = 0
+        
+        for dm in dates_meta:
+            curr_date = dm['date']
+            if dm['is_future']:
+                continue
+            
+            # Check if this day is selected to be marked
+            mark_day_key = f"mark_day_{curr_date.isoformat()}"
+            should_save = mark_day_key in request.POST
+            
+            if should_save:
+                # Update or create attendance for all students for this day
+                for enrollment in enrollments:
+                    student = enrollment.student
+                    
+                    # The checkbox name for the student on this day
+                    student_att_key = f"att_{student.id}_{curr_date.isoformat()}"
+                    
+                    status = 'present' if student_att_key in request.POST else 'absent'
+                    
+                    filter_kwargs = {
+                        'student': student,
+                        'enrollment': enrollment,
+                        'date': curr_date,
+                        'attendance_type': attendance_type,
+                    }
+                    if attendance_type == 'period':
+                        filter_kwargs['period'] = selected_period
+                    elif attendance_type == 'activity':
+                        filter_kwargs['activity'] = selected_activity
+                    else:
+                        filter_kwargs['period__isnull'] = True
+                        filter_kwargs['activity__isnull'] = True
+
+                    Attendance.objects.update_or_create(
+                        defaults={
+                            'status': status,
+                            'marked_by': marked_by,
+                        },
+                        **filter_kwargs
+                    )
+                updated_days += 1
+            else:
+                # If they UNCHECKED a day that previously had attendance, we delete it
+                if curr_date in days_with_attendance:
+                    delete_filter = {
+                        'enrollment__in': enrollments,
+                        'date': curr_date,
+                        'attendance_type': attendance_type,
+                    }
+                    if attendance_type == 'period' and period_id:
+                        delete_filter['period_id'] = period_id
+                    elif attendance_type == 'activity' and activity_id:
+                        delete_filter['activity_id'] = activity_id
+                    else:
+                        delete_filter['period__isnull'] = True
+                        delete_filter['activity__isnull'] = True
+                        
+                    Attendance.objects.filter(**delete_filter).delete()
+                    updated_days += 1
+
+        messages.success(request, f'Attendance saved successfully for {updated_days} days.')
+        
+        # Redirect back to grid
+        params = [
+            f"month={month}",
+            f"year={year}",
+            f"type={attendance_type}"
+        ]
+        if period_id: params.append(f"period={period_id}")
+        if activity_id: params.append(f"activity={activity_id}")
+        
+        url = reverse('students:monthly_attendance_grid', kwargs={'grade_id': grade_id, 'division_id': division_id})
+        return redirect(f"{url}?{'&'.join(params)}")
+
+    months_list = [{'value': i, 'name': calendar.month_name[i]} for i in range(1, 13)]
+    grades = Grade.objects.all().order_by('order', 'name')
+    divisions = Division.objects.all()
+
+    context = {
+        'grade_id': int(grade_id),
+        'division_id': int(division_id),
+        'class_name': class_name,
+        'section_name': section_name,
+        'enrollments': enrollments,
+        'dates_meta': dates_meta,
+        'attendance_map': attendance_map,
+        'current_month': month,
+        'current_year': year,
+        'attendance_type': attendance_type,
+        'selected_period': period_id,
+        'selected_activity': activity_id,
+        'periods': periods,
+        'activities': activities,
+        'months': months_list,
+        'years': range(today.year - 5, today.year + 6),
+        'grades': grades,
+        'divisions': divisions,
+        'today': today,
+    }
+    return render(request, 'students/monthly_attendance_grid.html', context)
+
+

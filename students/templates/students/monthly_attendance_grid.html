@@ -1,0 +1,377 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Monthly Attendance Grid - Student Attendance System{% endblock %}
+
+{% block page_heading %}📅 Monthly Attendance Grid{% endblock %}
+
+{% block extra_css %}
+<style>
+    .grid-container {
+        width: 100%;
+        overflow-x: auto;
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+        background: white;
+    }
+
+    .grid-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 0.85rem;
+    }
+
+    .grid-table th, .grid-table td {
+        padding: 0.6rem 0.5rem;
+        border-bottom: 1px solid #e2e8f0;
+        border-right: 1px solid #e2e8f0;
+        text-align: center;
+        vertical-align: middle;
+        min-width: 50px;
+    }
+
+    .grid-table th {
+        background: #f8fafc;
+        font-weight: 700;
+        color: #475569;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-bottom: 2px solid #cbd5e1;
+    }
+
+    /* Double Header Row Styles */
+    .grid-table thead tr:first-child th {
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    /* Sticky columns for student names */
+    .sticky-col {
+        position: sticky;
+        left: 0;
+        background: white;
+        z-index: 20;
+        text-align: left !important;
+        min-width: 200px;
+        max-width: 250px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-right: 2px solid #cbd5e1 !important;
+        box-shadow: 4px 0 8px rgba(0, 0, 0, 0.03);
+    }
+
+    th.sticky-col {
+        background: #f8fafc;
+        z-index: 30;
+    }
+
+    tr:hover td.sticky-col {
+        background: #f1f5f9;
+    }
+
+    /* Holiday Highlight */
+    .holiday-col {
+        background-color: #fffbeb !important; /* warning light amber */
+    }
+
+    th.holiday-col {
+        background-color: #fef3c7 !important; /* Slightly darker warning amber */
+    }
+
+    /* Cell Checkbox Styles */
+    .cell-cb {
+        width: 1.15rem;
+        height: 1.15rem;
+        border-radius: 4px;
+        border: 1px solid #cbd5e1;
+        cursor: pointer;
+        accent-color: var(--success);
+        transition: transform 0.1s ease;
+    }
+
+    .cell-cb:hover:not(:disabled) {
+        transform: scale(1.15);
+    }
+
+    .cell-cb:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    /* Controls Panel */
+    .controls-panel {
+        background: white;
+        border-radius: 16px;
+        border: 1px solid #cbd5e1;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        align-items: flex-end;
+    }
+
+    .form-group-inline {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .form-group-inline label {
+        font-weight: 700;
+        color: #475569;
+        font-size: 0.85rem;
+    }
+
+    .form-group-inline select, .form-group-inline input {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        background: white;
+    }
+
+    .legend-container {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        margin-top: 1rem;
+        font-size: 0.8rem;
+        color: #64748b;
+        background: #f8fafc;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .legend-color {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        border: 1px solid #cbd5e1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <a href="{% url 'students:monthly_attendance_select' %}" class="btn btn-secondary" style="margin-bottom: 0.5rem; padding: 0.5rem 1rem; border-radius: 8px; background: #64748b; color: white; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-arrow-left"></i> Change Selection
+        </a>
+        <h1 style="color: #2c3e50; font-size: 1.75rem; margin: 0; font-weight: 700;">
+            📅 Monthly Attendance: {{ class_name }}
+        </h1>
+        <p style="color: #64748b; margin: 0.25rem 0 0 0; font-size: 0.9rem;">
+            Section: <strong>{{ section_name }}</strong> | Type: <strong>{{ attendance_type|title }}</strong>
+            {% if selected_period %} | Period: <strong>{{ selected_period.name }}</strong>{% endif %}
+            {% if selected_activity %} | Activity: <strong>{{ selected_activity.name }}</strong>{% endif %}
+        </p>
+    </div>
+</div>
+
+<!-- Quick Month/Year Changer Panel -->
+<div class="controls-panel">
+    <form method="get" action="" style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; width: 100%;">
+        <!-- Carry forward current filters in select fields -->
+        <input type="hidden" name="type" value="{{ attendance_type }}">
+        {% if selected_period %}<input type="hidden" name="period" value="{{ selected_period.id }}">{% endif %}
+        {% if selected_activity %}<input type="hidden" name="activity" value="{{ selected_activity.id }}">{% endif %}
+
+        <div class="form-group-inline">
+            <label for="month">Month</label>
+            <select id="month" name="month" onchange="this.form.submit()">
+                {% for m in months %}
+                <option value="{{ m.value }}" {% if m.value == current_month %}selected{% endif %}>{{ m.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group-inline">
+            <label for="year">Year</label>
+            <select id="year" name="year" onchange="this.form.submit()">
+                {% for y in years %}
+                <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group-inline">
+            <label for="grade">Grade</label>
+            <select id="grade" name="grade" onchange="this.form.submit()">
+                {% for g in grades %}
+                <option value="{{ g.id }}" {% if g.id == grade_id %}selected{% endif %}>{{ g.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group-inline">
+            <label for="division">Division</label>
+            <select id="division" name="division" onchange="this.form.submit()">
+                <option value="0" {% if division_id == 0 %}selected{% endif %}>No Division</option>
+                {% for d in divisions %}
+                <option value="{{ d.id }}" {% if d.id == division_id %}selected{% endif %}>{{ d.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="margin-left: auto;">
+            <a href="{% url 'students:attendance_list' %}" class="btn btn-secondary" style="background: #94a3b8; color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-size: 0.9rem; font-weight: 600; display: inline-block;">
+                <i class="fa-solid fa-list"></i> Attendance Home
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Legend of grid coloring -->
+<div class="legend-container">
+    <strong>Legend:</strong>
+    <div class="legend-item">
+        <div class="legend-color" style="background: white;"></div>
+        <span>School Day (Unmarked / Present/Absent check)</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background: #fef3c7;"></div>
+        <span>Holiday / Sunday / Saturday</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background: #f1f5f9; opacity: 0.5;"></div>
+        <span>Future Date (Disabled)</span>
+    </div>
+</div>
+
+<!-- Interactive Attendance Form Grid -->
+{% if enrollments %}
+<form method="post" id="attendanceGridForm" style="margin-top: 1.5rem;">
+    {% csrf_token %}
+    <div class="grid-container">
+        <table class="grid-table">
+            <thead>
+                <!-- Row 1: Weekday Short name -->
+                <tr>
+                    <th rowspan="3" class="sticky-col" style="border-right: 2px solid #cbd5e1;">Student Name</th>
+                    {% for dm in dates_meta %}
+                    <th class="{% if dm.is_holiday %}holiday-col{% endif %}" style="font-size: 0.7rem; text-transform: uppercase; color: #64748b;">
+                        {{ dm.day_name }}
+                    </th>
+                    {% endfor %}
+                </tr>
+                <!-- Row 2: Date Number -->
+                <tr>
+                    {% for dm in dates_meta %}
+                    <th class="{% if dm.is_holiday %}holiday-col{% endif %}" style="font-size: 1rem; font-weight: 800; color: #1e293b; padding: 0.2rem 0;">
+                        {{ dm.day_num }}
+                    </th>
+                    {% endfor %}
+                </tr>
+                <!-- Row 3: Save Status / Include check and Toggle check -->
+                <tr>
+                    {% for dm in dates_meta %}
+                    <th class="{% if dm.is_holiday %}holiday-col{% endif %}" style="padding: 0.4rem 0.2rem; font-size: 0.75rem; border-bottom: 2px solid #cbd5e1;">
+                        {% if dm.is_future %}
+                            <span style="font-size: 0.7rem; color: #94a3b8; font-style: italic;">Future</span>
+                        {% else %}
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                                <!-- Mark day indicator checkbox -->
+                                <label style="display: flex; align-items: center; gap: 0.15rem; cursor: pointer; font-size: 0.7rem; color: #475569; font-weight: 600;" title="Check to mark/save this day's attendance">
+                                    <input type="checkbox" name="mark_day_{{ dm.date|date:'Y-m-d' }}" id="mark_day_{{ dm.date|date:'Y-m-d' }}"
+                                           class="mark-day-cb" {% if dm.should_mark %}checked{% endif %} style="width: 0.85rem; height: 0.85rem; accent-color: var(--primary);">
+                                    Mark
+                                </label>
+                                <!-- Select all present checkbox -->
+                                <label style="display: flex; align-items: center; gap: 0.15rem; cursor: pointer; font-size: 0.7rem; color: var(--success); font-weight: 600;" title="Check/uncheck all students for this day">
+                                    <input type="checkbox" id="all_{{ dm.date|date:'Y-m-d' }}"
+                                           onchange="toggleColumn('{{ dm.date|date:'Y-m-d' }}', this)"
+                                           style="width: 0.85rem; height: 0.85rem; accent-color: var(--success);">
+                                    All
+                                </label>
+                            </div>
+                        {% endif %}
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for enrollment in enrollments %}
+                <tr>
+                    <td class="sticky-col" style="border-right: 2px solid #cbd5e1;">
+                        <span style="font-weight: 600; color: #1e293b;">{{ enrollment.student.full_name }}</span>
+                        <div style="font-size: 0.7rem; color: #64748b;">ID: {{ enrollment.student.student_id }}</div>
+                    </td>
+                    {% for dm in dates_meta %}
+                    <td class="{% if dm.is_holiday %}holiday-col{% endif %}" {% if dm.holiday_type %}title="{{ dm.holiday_type }}"{% endif %}>
+                        <input type="checkbox" name="att_{{ enrollment.student.id }}_{{ dm.date|date:'Y-m-d' }}"
+                               class="cell-cb"
+                               {% if dm.is_future %}disabled{% endif %}
+                               onchange="onStudentCheckboxChange('{{ dm.date|date:'Y-m-d' }}')"
+                               
+                               {# Check if present #}
+                               {% for stud_id, dates in attendance_map.items %}
+                                    {% if stud_id == enrollment.student.id %}
+                                        {% for date, status in dates.items %}
+                                            {% if date == dm.date %}
+                                                {% if status == 'present' %}checked{% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                               {% endfor %}
+                        >
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div style="margin-top: 2rem; display: flex; justify-content: space-between; align-items: center; background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+        <div style="color: #64748b; font-size: 0.9rem;">
+            💡 <em>Check/uncheck students and click "Save Attendance Sheet" to record changes.</em>
+        </div>
+        <button type="submit" class="btn btn-success" style="background: var(--success); color: white; padding: 0.8rem 2.5rem; border-radius: 10px; border: none; font-size: 1.05rem; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Save Attendance Sheet
+        </button>
+    </div>
+</form>
+{% else %}
+<div class="glass-card" style="background: white; border-radius: 16px; border: 1px solid #cbd5e1; padding: 3rem; text-align: center; margin-top: 1.5rem;">
+    <i class="fa-solid fa-users-slash" style="font-size: 3rem; color: #94a3b8; margin-bottom: 1rem;"></i>
+    <h3 style="color: #2c3e50; font-size: 1.25rem; font-weight: 700;">No Students Found</h3>
+    <p style="color: #64748b; margin-top: 0.5rem;">There are no active student enrollments in this class for the active academic year.</p>
+</div>
+{% endif %}
+
+<script>
+// Toggle all checkboxes in a column
+function toggleColumn(dateStr, source) {
+    const checkboxes = document.querySelectorAll(`input[name$="_${dateStr}"]`);
+    checkboxes.forEach(cb => {
+        if (!cb.disabled && cb !== source) {
+            cb.checked = source.checked;
+        }
+    });
+    
+    // Auto check the Mark checkbox for this day
+    const markDayCheckbox = document.getElementById(`mark_day_${dateStr}`);
+    if (markDayCheckbox && source.checked) {
+        markDayCheckbox.checked = true;
+    }
+}
+
+// Auto check the Mark day checkbox if any cell in that column changes
+function onStudentCheckboxChange(dateStr) {
+    const markDayCheckbox = document.getElementById(`mark_day_${dateStr}`);
+    if (markDayCheckbox) {
+        markDayCheckbox.checked = true;
+    }
+}
+</script>
+{% endblock %}

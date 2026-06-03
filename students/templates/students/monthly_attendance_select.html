@@ -1,0 +1,129 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Monthly Attendance Grid Selection - Student Attendance System{% endblock %}
+
+{% block page_heading %}📅 Monthly Attendance Selection{% endblock %}
+
+{% block content %}
+<div class="page-header" style="margin-bottom: 2rem;">
+    <h1 style="color: #2c3e50; font-size: 2rem; margin-bottom: 0.5rem; font-weight: 700;">📅 Monthly Attendance Grid</h1>
+    <p class="text-muted" style="color: #6c757d;">Select the month, year, class, and attendance type to view the monthly grid.</p>
+</div>
+
+<div class="glass-card" style="background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; padding: 2.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.05); max-width: 800px; margin: 0 auto;">
+    <form method="get" id="selectionForm" action="">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+            
+            <!-- Month Selection -->
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="month" style="font-weight: 700; color: #2c3e50; font-size: 0.95rem;">Select Month</label>
+                <select id="month" name="month" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 1rem; background-color: white;">
+                    {% for m in months %}
+                    <option value="{{ m.value }}" {% if m.value == selected_month %}selected{% endif %}>{{ m.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Year Selection -->
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="year" style="font-weight: 700; color: #2c3e50; font-size: 0.95rem;">Select Year</label>
+                <select id="year" name="year" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 1rem; background-color: white;">
+                    {% for y in years %}
+                    <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Grade Selection -->
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="grade" style="font-weight: 700; color: #2c3e50; font-size: 0.95rem;">Select Grade / Class</label>
+                <select id="grade" name="grade" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 1rem; background-color: white;">
+                    <option value="" disabled {% if not current_filters.grade %}selected{% endif %}>-- Choose Grade --</option>
+                    {% for grade in grades %}
+                    <option value="{{ grade.id }}">{{ grade.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Division Selection -->
+            <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="division" style="font-weight: 700; color: #2c3e50; font-size: 0.95rem;">Select Division</label>
+                <select id="division" name="division" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 1rem; background-color: white;">
+                    <option value="0">No Division</option>
+                    {% for div in divisions %}
+                    <option value="{{ div.id }}">{{ div.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Attendance Type Selection -->
+            <div class="form-group" style="display: grid; grid-column: 1 / -1; display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="attendanceType" style="font-weight: 700; color: #2c3e50; font-size: 0.95rem;">Attendance Type</label>
+                <select id="attendanceType" name="type" onchange="toggleTypeGroups()" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 1rem; background-color: white;">
+                    <option value="daily" {% if selected_type == 'daily' %}selected{% endif %}>Daily Attendance</option>
+                    <option value="period" {% if selected_type == 'period' %}selected{% endif %}>Period Attendance</option>
+                    <option value="activity" {% if selected_type == 'activity' %}selected{% endif %}>Activity Attendance</option>
+                </select>
+            </div>
+
+            <!-- Period Selection (Conditional) -->
+            <div class="form-group" id="periodGroup" style="display: none; grid-column: 1 / -1; flex-direction: column; gap: 0.5rem;">
+                <label for="periodSelect" style="font-weight: 700; color: #2c3e50; font-size: 0.95rem;">Select Period</label>
+                <select id="periodSelect" name="period" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 1rem; background-color: white;">
+                    <option value="">-- Choose Period --</option>
+                    {% for p in periods %}
+                    <option value="{{ p.id }}" {% if selected_period == p.id|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Activity Selection (Conditional) -->
+            <div class="form-group" id="activityGroup" style="display: none; grid-column: 1 / -1; flex-direction: column; gap: 0.5rem;">
+                <label for="activitySelect" style="font-weight: 700; color: #2c3e50; font-size: 0.95rem;">Select Activity</label>
+                <select id="activitySelect" name="activity" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 1rem; background-color: white;">
+                    <option value="">-- Choose Activity --</option>
+                    {% for act in activities %}
+                    <option value="{{ act.id }}" {% if selected_activity == act.id|stringformat:"s" %}selected{% endif %}>{{ act.name }} ({{ act.date }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+            <a href="{% url 'students:attendance_list' %}" class="btn btn-secondary" style="background: #64748b; color: white; padding: 0.8rem 2rem; border-radius: 10px; font-weight: 700; text-decoration: none; display: inline-block;">Cancel</a>
+            <button type="submit" class="btn btn-primary" style="background: var(--primary); color: white; padding: 0.8rem 2.5rem; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);">
+                ⚡ Load Attendance Grid
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleTypeGroups() {
+    const type = document.getElementById('attendanceType').value;
+    const periodGroup = document.getElementById('periodGroup');
+    const activityGroup = document.getElementById('activityGroup');
+    
+    if (type === 'period') {
+        periodGroup.style.display = 'flex';
+        activityGroup.style.display = 'none';
+        document.getElementById('periodSelect').setAttribute('required', 'required');
+        document.getElementById('activitySelect').removeAttribute('required');
+    } else if (type === 'activity') {
+        periodGroup.style.display = 'none';
+        activityGroup.style.display = 'flex';
+        document.getElementById('activitySelect').setAttribute('required', 'required');
+        document.getElementById('periodSelect').removeAttribute('required');
+    } else {
+        periodGroup.style.display = 'none';
+        activityGroup.style.display = 'none';
+        document.getElementById('periodSelect').removeAttribute('required');
+        document.getElementById('activitySelect').removeAttribute('required');
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', toggleTypeGroups);
+</script>
+{% endblock %}
