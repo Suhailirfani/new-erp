@@ -4,29 +4,7 @@
 
 {% block extra_css %}
 <style>
-    @media (max-width: 768px) {
-        h1 { font-size: 1.4rem; margin-bottom: 0.75rem; }
-        .button-group { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-        .button-group .btn { flex: 1 1 auto; min-width: 140px; font-size: 0.82rem; padding: 0.5rem 0.75rem; text-align: center; }
-        .filter-form .form-row { flex-direction: column; }
-        .filter-form .form-group { min-width: 100% !important; }
-        .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        table { min-width: 600px; }
-        table th, table td { white-space: nowrap; font-size: 0.82rem; padding: 6px 8px; }
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<h1>Student List</h1>
-
-<div class="button-group" style="margin-bottom: 1rem;">
-    <a href="{% url 'students:student_create' %}" class="btn btn-success">Add Single Student</a>
-    <a href="{% url 'students:student_bulk_import' %}" class="btn" style="background-color: #27ae60;">Bulk Import from Excel</a>
-    <a href="{% url 'students:student_upgrade' %}" class="btn" style="background-color: #9b59b6;">Upgrade Students</a>
-</div>
-
-<style>
+    /* Filter form layout */
     .filter-form {
         background: white;
         padding: 1rem;
@@ -68,7 +46,8 @@
     .filter-form small {
         display: none !important; /* Hide the generic small text to save space */
     }
-    
+
+    /* Print styles */
     @media print {
         @page {
             size: A4 portrait;
@@ -130,7 +109,135 @@
             display: block !important;
         }
     }
+
+    /* Mobile Responsive Card styles */
+    @media (max-width: 768px) {
+        h1 { font-size: 1.4rem; margin-bottom: 0.75rem; }
+        
+        .button-group { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 0.5rem; 
+        }
+        
+        .button-group .btn { 
+            flex: 1 1 auto; 
+            min-width: 140px; 
+            font-size: 0.82rem; 
+            padding: 0.5rem 0.75rem; 
+            text-align: center; 
+            margin: 0 !important;
+        }
+        
+        .filter-form {
+            padding: 1rem;
+            border-radius: 12px;
+        }
+
+        .filter-form .form-row { 
+            flex-direction: column; 
+            gap: 0.75rem;
+        }
+        
+        .filter-form .form-group { 
+            min-width: 100% !important; 
+            margin-bottom: 0;
+        }
+
+        .filter-form input, .filter-form select {
+            padding: 0.65rem;
+            font-size: 0.9rem;
+            border-radius: 8px;
+        }
+
+        /* Convert table layout to card list layout on mobile */
+        .card {
+            background: transparent !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            border: none !important;
+        }
+
+        .table-wrapper {
+            margin: 0 !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            border: none !important;
+            overflow-x: visible !important;
+        }
+
+        table {
+            min-width: 100% !important;
+            background: transparent !important;
+            border: none !important;
+        }
+
+        table thead {
+            display: none !important;
+        }
+
+        table tbody {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+            background: transparent !important;
+        }
+
+        /* Class header row as a sticky section block */
+        table tbody tr.table-secondary.class-group-row {
+            display: block !important;
+            margin-top: 0.5rem;
+            margin-bottom: 0.25rem;
+            border-radius: 10px;
+            background: #ede9fe !important; /* Soft lavender accent to match theme */
+            padding: 0.6rem 1rem;
+            border: 1px solid #ddd6fe !important;
+        }
+
+        table tbody tr.table-secondary.class-group-row td {
+            display: block !important;
+            padding: 0 !important;
+            background: transparent !important;
+            border: none !important;
+            font-weight: 700 !important;
+        }
+
+        /* Show mobile rows, hide desktop rows */
+        .student-desktop-row {
+            display: none !important;
+        }
+
+        .student-mobile-row {
+            display: block !important;
+            border: none !important;
+            padding: 0 !important;
+            background: transparent !important;
+        }
+
+        .student-mobile-row td {
+            display: block !important;
+            padding: 0 !important;
+            border: none !important;
+            background: transparent !important;
+        }
+    }
+
+    @media (min-width: 769px) {
+        .student-mobile-row {
+            display: none !important;
+        }
+    }
 </style>
+{% endblock %}
+
+{% block content %}
+<h1>Student List</h1>
+
+<div class="button-group" style="margin-bottom: 1rem;">
+    <a href="{% url 'students:student_create' %}" class="btn btn-success">Add Single Student</a>
+    <a href="{% url 'students:student_bulk_import' %}" class="btn" style="background-color: #27ae60;">Bulk Import from Excel</a>
+    <a href="{% url 'students:student_upgrade' %}" class="btn" style="background-color: #9b59b6;">Upgrade Students</a>
+</div>
 
 <div class="filter-form">
     <form method="get">
@@ -187,10 +294,12 @@
                 </select>
             </div>
         </div>
-        <button type="submit" class="btn">Filter</button>
-        <button type="submit" name="export" value="excel" class="btn" style="background-color: #2980b9; color: white;">Export to Excel</button>
-        <button type="button" class="btn" style="background-color: #34495e; color: white;" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
-        <a href="{% url 'students:student_list' %}" class="btn btn-danger">Clear</a>
+        <div class="filter-actions" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;">
+            <button type="submit" class="btn" style="flex: 1; margin: 0; min-width: 100px;">Filter</button>
+            <button type="submit" name="export" value="excel" class="btn" style="background-color: #2980b9; color: white; flex: 1; margin: 0; min-width: 120px;">Export to Excel</button>
+            <button type="button" class="btn" style="background-color: #34495e; color: white; flex: 1; margin: 0; min-width: 80px;" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+            <a href="{% url 'students:student_list' %}" class="btn btn-danger" style="flex: 1; margin: 0; min-width: 80px; text-align: center; text-decoration: none;">Clear</a>
+        </div>
     </form>
 </div>
 
