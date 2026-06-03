@@ -2573,7 +2573,8 @@ def progress_report(request):
     )
 
     if is_student:
-        reports = reports.filter(exam_type__is_published=True)
+        reports = reports.filter(student=request.user.profile.student_record, exam_type__is_published=True)
+        student_id = None
 
 
     if student_id:

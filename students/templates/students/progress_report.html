@@ -5,11 +5,12 @@
 {% block content %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
     <h1>Progress Reports</h1>
-    <a href="{% url 'students:examination_dashboard' %}" class="btn btn-secondary">
+    <a href="{% if request.user.profile.role == 'student' %}{% url 'students:home' %}{% else %}{% url 'students:examination_dashboard' %}{% endif %}" class="btn btn-secondary">
         <i class="fa-solid fa-arrow-left"></i> Dashboard
     </a>
 </div>
 
+{% if request.user.profile.role != 'student' %}
 <div class="filter-form">
     <form method="get">
         <div class="form-row">
@@ -134,74 +135,87 @@
     </form>
 </div>
 <a href="{% url 'students:bulk_progress_report_pdf' %}"
-   class="btn btn-success">
+   class="btn btn-success" style="margin-bottom: 2rem;">
    ⬇ Download All Progress Reports (PDF)
 </a>
+{% endif %}
 
 
 <div class="card">
-    <h2>Generated Reports ({{ reports.count }})</h2>
+    <h2>{% if request.user.profile.role == 'student' %}My Progress Reports{% else %}Generated Reports ({{ reports.count }}){% endif %}</h2>
     <div class="table-wrapper">
+        {% if request.user.profile.role != 'student' %}
         <div class="form-group">
-    <label>Quick Search</label>
-    <input type="text"
-           id="liveSearch"
-           placeholder="Type student ID or name…"
-           style="width:100%; padding:8px;">
-    </div>
+            <label>Quick Search</label>
+            <input type="text"
+                   id="liveSearch"
+                   placeholder="Type student ID or name…"
+                   style="width:100%; padding:8px;">
+        </div>
+        {% endif %}
 
-    <table>
-        <thead>
-            <tr>
-                <th>Student</th>
-                <th>Exam Type</th>
-                <th>Academic Year</th>
-                <th>Total Marks</th>
-                <th>Percentage</th>
-                <th>Grade</th>
-                <th>Rank</th>
-                <th>Generated At</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for report in reports %}
-            <tr>
-                <td>{{ report.student.full_name }} ({{ report.student.student_id }})</td>
-                <td>{{ report.exam_type.name }}</td>
-                <td>{% if report.enrollment %}{{ report.enrollment.academic_year.name }}{% else %}{{ report.academic_year|default:"-" }}{% endif %}</td>
-                <td>{{ report.total_marks_obtained }}/{{ report.total_max_marks }}</td>
-                <td><strong>{{ report.overall_percentage|floatformat:2 }}%</strong></td>
-                <td><strong>{{ report.overall_grade }}</strong></td>
-                <td>{{ report.rank|default:"-" }}</td>
-                <td>{{ report.generated_at|date:"Y-m-d H:i" }}</td>
-                <td><a href="{% url 'students:progress_report_detail' report.pk %}" class="btn">View Details</a></td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="9" style="text-align: center;">No progress reports found.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        <table>
+            <thead>
+                <tr>
+                    {% if request.user.profile.role != 'student' %}
+                    <th>Student</th>
+                    {% endif %}
+                    <th>Exam Type</th>
+                    <th>Academic Year</th>
+                    <th>Total Marks</th>
+                    <th>Percentage</th>
+                    <th>Grade</th>
+                    <th>Rank</th>
+                    <th>Generated At</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in reports %}
+                <tr>
+                    {% if request.user.profile.role != 'student' %}
+                    <td>{{ report.student.full_name }} ({{ report.student.student_id }})</td>
+                    {% endif %}
+                    <td>{{ report.exam_type.name }}</td>
+                    <td>{% if report.enrollment %}{{ report.enrollment.academic_year.name }}{% else %}{{ report.academic_year|default:"-" }}{% endif %}</td>
+                    <td>{{ report.total_marks_obtained }}/{{ report.total_max_marks }}</td>
+                    <td><strong>{{ report.overall_percentage|floatformat:2 }}%</strong></td>
+                    <td><strong>{{ report.overall_grade }}</strong></td>
+                    <td>{{ report.rank|default:"-" }}</td>
+                    <td>{{ report.generated_at|date:"Y-m-d H:i" }}</td>
+                    <td><a href="{% url 'students:progress_report_detail' report.pk %}" class="btn">View Details</a></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{% if request.user.profile.role == 'student' %}8{% else %}9{% endif %}" style="text-align: center;">No progress reports found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 
 <script>
-document.getElementById('selectAll').addEventListener('change', function() {
-    const checkboxes = document.querySelectorAll('input[name="students"]');
-    checkboxes.forEach(cb => cb.checked = this.checked);
-});
-
-document.getElementById('liveSearch').addEventListener('keyup', function () {
-    let value = this.value.toLowerCase();
-    let rows = document.querySelectorAll("table tbody tr");
-
-    rows.forEach(row => {
-        let text = row.innerText.toLowerCase();
-        row.style.display = text.includes(value) ? "" : "none";
+const selectAllEl = document.getElementById('selectAll');
+if (selectAllEl) {
+    selectAllEl.addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('input[name="students"]');
+        checkboxes.forEach(cb => cb.checked = this.checked);
     });
-});
+}
+
+const liveSearchEl = document.getElementById('liveSearch');
+if (liveSearchEl) {
+    liveSearchEl.addEventListener('keyup', function () {
+        let value = this.value.toLowerCase();
+        let rows = document.querySelectorAll("table tbody tr");
+
+        rows.forEach(row => {
+            let text = row.innerText.toLowerCase();
+            row.style.display = text.includes(value) ? "" : "none";
+        });
+    });
+}
 </script>
 
 {% endblock %}
