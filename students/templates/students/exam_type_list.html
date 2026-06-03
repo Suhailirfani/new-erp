@@ -3,10 +3,14 @@
 {% block title %}Exam Types - Student Attendance System{% endblock %}
 
 {% block content %}
-<h1>Exam Types</h1>
-
-<div style="margin-bottom: 1rem;">
-    <a href="{% url 'students:exam_type_create' %}" class="btn btn-success">Add New Exam Type</a>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <h1>Exam Types</h1>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="{% url 'students:examination_dashboard' %}" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Dashboard
+        </a>
+        <a href="{% url 'students:exam_type_create' %}" class="btn btn-success">Add New Exam Type</a>
+    </div>
 </div>
 
 <div class="card">
@@ -16,16 +20,28 @@
         <div style="background: var(--light); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 10px 15px -3px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
                 <h3 style="margin: 0; color: var(--primary-dark); font-size: 1.25rem;">{{ exam_type.name }}</h3>
-                <span class="badge" style="font-size: 0.8rem; background: rgba(100, 116, 139, 0.1); color: var(--dark); border: 1px solid rgba(100, 116, 139, 0.2);">Order: {{ exam_type.order }}</span>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem;">
+                    <span class="badge" style="font-size: 0.8rem; background: rgba(100, 116, 139, 0.1); color: var(--dark); border: 1px solid rgba(100, 116, 139, 0.2); margin: 0;">Order: {{ exam_type.order }}</span>
+                    {% if exam_type.is_published %}
+                        <span class="badge" style="font-size: 0.75rem; background: rgba(46, 204, 113, 0.15); color: #27ae60; border: 1px solid rgba(46, 204, 113, 0.3); margin: 0; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: bold;">Published</span>
+                    {% else %}
+                        <span class="badge" style="font-size: 0.75rem; background: rgba(120, 120, 120, 0.1); color: #7f8c8d; border: 1px solid rgba(120, 120, 120, 0.2); margin: 0; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: bold;">Draft</span>
+                    {% endif %}
+                </div>
             </div>
             
             <p style="color: var(--gray); font-size: 0.95rem; flex-grow: 1; margin-bottom: 1.5rem; line-height: 1.5;">
                 {{ exam_type.description|default:"No description provided." }}
             </p>
             
-            <div style="display: flex; gap: 0.5rem; margin-top: auto;">
-                <a href="{% url 'students:exam_type_update' exam_type.pk %}" class="btn" style="padding: 0.5rem 1rem; font-size: 0.9rem; flex: 1; text-align: center; margin: 0;">Edit</a>
-                <a href="{% url 'students:exam_type_delete' exam_type.pk %}" class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.9rem; flex: 1; text-align: center; margin: 0;">Delete</a>
+            <div style="display: flex; gap: 0.5rem; margin-top: auto; flex-wrap: wrap;">
+                <a href="{% url 'students:exam_type_update' exam_type.pk %}" class="btn" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; flex: 1; text-align: center; margin: 0; min-width: 60px;">Edit</a>
+                {% if exam_type.is_published %}
+                    <a href="{% url 'students:exam_type_toggle_publish' exam_type.pk %}" class="btn btn-warning" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; flex: 1.5; text-align: center; margin: 0; min-width: 90px; background-color: #f39c12; color: white;">Unpublish</a>
+                {% else %}
+                    <a href="{% url 'students:exam_type_toggle_publish' exam_type.pk %}" class="btn btn-success" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; flex: 1.5; text-align: center; margin: 0; min-width: 90px; background-color: #2ecc71; color: white;">Publish</a>
+                {% endif %}
+                <a href="{% url 'students:exam_type_delete' exam_type.pk %}" class="btn btn-danger" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; flex: 1; text-align: center; margin: 0; min-width: 60px;">Delete</a>
             </div>
         </div>
         {% empty %}

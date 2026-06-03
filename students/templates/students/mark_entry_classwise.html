@@ -1,38 +1,139 @@
 {% extends 'students/base.html' %}
 
+{% block title %}Class-wise Mark Sheets & Rankings - HadiyAdmin{% endblock %}
+{% block page_heading %}Class-wise Mark List{% endblock %}
+
 {% block content %}
+<style>
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.25rem;
+        align-items: flex-end;
+    }
+    
+    .loading-spinner {
+        display: none;
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+    
+    .loading-spinner i {
+        font-size: 3rem;
+        color: var(--primary);
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 5rem 2rem;
+        background: var(--glass-bg);
+        border: 1px dashed var(--gray);
+        border-radius: 24px;
+        color: var(--gray);
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.5;
+    }
 
-<h2>Class-wise Mark List</h2>
-<a href="{% url 'students:performance_analysis' %}">Performance </a>
+    .empty-state h3 {
+        font-weight: 700;
+        color: var(--dark-secondary);
+        margin-bottom: 0.5rem;
+    }
+</style>
 
-<div class="card p-3 mb-3">
-    <select id="exam_type">
-        <option value="">Exam Type</option>
-        {% for e in exam_types %}
-            <option value="{{ e.id }}">{{ e.name }}</option>
-        {% endfor %}
-    </select>
-    <select id="section">
-        <option value="">Section</option>
-        {% for s in sections %}
-            <option value="{{ s.id }}">{{ s.name }}</option>
-        {% endfor %}
-    </select>
-
-    <input type="text" id="grade" placeholder="Class / Grade">
-
-    <select id="division">
-        <option value="">Division</option>
-        {% for d in divisions %}
-            <option value="{{ d.id }}">{{ d.name }}</option>
-        {% endfor %}
-    </select>
-
-    <button onclick="loadMarks()">Filter</button>
+<!-- Header Action Row -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <p style="color: var(--gray); font-size: 1rem;">Filter, inspect, print, and track ranking lists for each academic class.</p>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="{% url 'students:examination_dashboard' %}" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Dashboard
+        </a>
+        <a href="{% url 'students:performance_analysis' %}" class="btn btn-info">
+            <i class="fa-solid fa-chart-line"></i> Analytics
+        </a>
+    </div>
 </div>
 
+<!-- Premium Filter Glass Card -->
+<div class="card glass-card p-4 mb-4">
+    <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--dark); margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+        <i class="fa-solid fa-sliders" style="color: var(--primary);"></i> Filter Criteria
+    </h3>
+    <div class="filter-grid">
+        <div class="form-group mb-0">
+            <label class="form-label" for="exam_type">Exam Type</label>
+            <select id="exam_type">
+                <option value="">Select Exam</option>
+                {% for e in exam_types %}
+                    <option value="{{ e.id }}">{{ e.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group mb-0">
+            <label class="form-label" for="section">Section</label>
+            <select id="section">
+                <option value="">Select Section</option>
+                {% for s in sections %}
+                    <option value="{{ s.id }}">{{ s.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group mb-0">
+            <label class="form-label" for="grade">Class / Grade</label>
+            <select id="grade">
+                <option value="">Select Class</option>
+                {% for g in grades %}
+                    <option value="{{ g.id }}">{{ g.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group mb-0">
+            <label class="form-label" for="division">Division</label>
+            <select id="division">
+                <option value="">Select Division</option>
+                {% for d in divisions %}
+                    <option value="{{ d.id }}">{{ d.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+            <button onclick="clearFilters()" class="btn btn-secondary" style="flex: 1; padding: 0.875rem 1.25rem;">Clear</button>
+            <button onclick="loadMarks()" class="btn btn-primary" style="flex: 1; padding: 0.875rem 1.25rem;">
+                <i class="fa-solid fa-magnifying-glass"></i> Find
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Spinner overlay -->
+<div class="loading-spinner" id="spinner">
+    <i class="fa-solid fa-circle-notch"></i>
+    <p style="margin-top: 1rem; color: var(--gray); font-weight: 600;">Fetching and compiling marksheets...</p>
+</div>
+
+<!-- Results Area -->
 <div id="mark-results">
-    <p class="text-muted">Select filters to view results.</p>
+    <div class="empty-state">
+        <i class="fa-solid fa-list-ol"></i>
+        <h3>No Marks Displayed</h3>
+        <p>Please select an Exam Type and optional filters above to generate class tables.</p>
+    </div>
 </div>
 
 <script>
@@ -40,6 +141,8 @@
     const sectionEl = document.getElementById('section');
     const gradeEl = document.getElementById('grade');
     const divisionEl = document.getElementById('division');
+    const resultsEl = document.getElementById('mark-results');
+    const spinnerEl = document.getElementById('spinner');
 
     function loadMarks() {
         const exam = examEl.value;
@@ -47,19 +150,60 @@
         const grade = gradeEl.value;
         const division = divisionEl.value;
 
+        if (!exam) {
+            resultsEl.innerHTML = `
+                <div class="empty-state">
+                    <i class="fa-solid fa-circle-info" style="color: var(--warning);"></i>
+                    <h3>Exam Type Required</h3>
+                    <p>Please select at least an Exam Type to load class-wise reports.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Show spinner, hide results
+        spinnerEl.style.display = 'block';
+        resultsEl.style.display = 'none';
+
         fetch(`/marks/list/data/?exam_type=${exam}&section=${section}&grade=${grade}&division=${division}`)
             .then(res => res.json())
             .then(data => {
-                document.getElementById('mark-results').innerHTML = data.html;
+                spinnerEl.style.display = 'none';
+                resultsEl.style.display = 'block';
+                resultsEl.innerHTML = data.html;
+            })
+            .catch(err => {
+                spinnerEl.style.display = 'none';
+                resultsEl.style.display = 'block';
+                resultsEl.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fa-solid fa-triangle-exclamation" style="color: var(--danger);"></i>
+                        <h3>Compilation Error</h3>
+                        <p>An error occurred while compiling marks. Please check filters and try again.</p>
+                    </div>
+                `;
             });
     }
 
-    // auto load on change
+    function clearFilters() {
+        examEl.value = '';
+        sectionEl.value = '';
+        gradeEl.value = '';
+        divisionEl.value = '';
+        resultsEl.innerHTML = `
+            <div class="empty-state">
+                <i class="fa-solid fa-list-ol"></i>
+                <h3>No Marks Displayed</h3>
+                <p>Please select an Exam Type and optional filters above to generate class tables.</p>
+            </div>
+        `;
+    }
+
+    // Auto-load on selection change
     examEl.addEventListener('change', loadMarks);
     sectionEl.addEventListener('change', loadMarks);
-    gradeEl.addEventListener('input', loadMarks);
+    gradeEl.addEventListener('change', loadMarks);
     divisionEl.addEventListener('change', loadMarks);
-    </script>
-
+</script>
 
 {% endblock %}

@@ -4,10 +4,13 @@
 {% block title %}Mark Entry - Step 2 - Student Attendance System{% endblock %}
 
 {% block content %}
-<div class="header-container" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+<div class="header-container" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
     <h1>Mark Entry - Step 2: Select Class</h1>
-    <div>
-        <a href="{% url 'students:mark_entry' %}" class="btn" style="background-color: #6c757d;">&larr; Back to Exam Types</a>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="{% url 'students:examination_dashboard' %}" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Dashboard
+        </a>
+        <a href="{% url 'students:mark_entry' %}" class="btn" style="background-color: #6c757d;">&larr; Back</a>
         <a href="{% url 'students:mark_entry_list' %}" class="btn">View Existing Marks</a>
     </div>
 </div>
@@ -27,11 +30,11 @@
         <div class="card" style="flex: 1 1 250px; padding: 1.5rem; text-align: center; border-top: 4px solid #e67e22; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;" 
              onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.1)'"
              onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 5px rgba(0,0,0,0.05)'"
-             onclick="window.location.href='{{ mark_entry_url }}?grade={{ cls.grade|urlencode }}{% if cls.division_id %}&amp;division_id={{ cls.division_id }}{% endif %}'">
+             onclick="window.location.href='{{ mark_entry_url }}?grade_id={{ cls.grade_id }}{% if cls.division_id %}&amp;division_id={{ cls.division_id }}{% endif %}'">
             
             <div style="font-size: 2.5rem; margin-bottom: 1rem;">👨‍🎓</div>
             <h2 style="margin-top: 0; color: #2c3e50; font-size: 1.8rem; margin-bottom: 0.5rem;">
-                {{ cls.grade }}
+                {{ cls.grade_name }}
                 {% if cls.division_name %}
                 <br><span style="font-size: 1.2rem; color: #7f8c8d;">{{ cls.division_name }}</span>
                 {% endif %}

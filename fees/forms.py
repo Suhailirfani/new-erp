@@ -157,13 +157,15 @@ class FeeCategoryForm(forms.ModelForm):
 class FeeItemForm(forms.ModelForm):
     class Meta:
         model = FeeItem
-        fields = ['category', 'name', 'default_amount', 'is_monthly', 'is_refundable', 'description', 'target_student_type', 'department', 'applicable_grades', 'applicable_divisions']
+        fields = ['category', 'name', 'fee_type', 'default_amount', 'is_monthly', 'is_refundable', 'description', 'target_student_type', 'department', 'applicable_to_subsequent_years', 'applicable_grades', 'applicable_divisions']
         widgets = {
             'category': forms.Select(attrs={'class': 'form-select'}),
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Uniform Fee, Monthly Tuition'}),
+            'fee_type': forms.Select(attrs={'class': 'form-select'}),
             'default_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'is_refundable': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_monthly': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'applicable_to_subsequent_years': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'department': forms.Select(attrs={'class': 'form-select'}),
             'target_student_type': forms.Select(attrs={'class': 'form-select'}),

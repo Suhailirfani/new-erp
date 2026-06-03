@@ -63,7 +63,7 @@
                                         <span class="input-group-text">₹</span>
                                         <input type="number" 
                                                name="fee_{{ c.grade.id }}_{% if c.division %}{{ c.division.id }}{% else %}none{% endif %}" 
-                                               value="{{ c.current_amount|floatformat:2 }}" 
+                                               value="{% if c.current_amount %}{{ c.current_amount|floatformat:2 }}{% endif %}" 
                                                class="form-control" 
                                                step="0.01" 
                                                min="0"

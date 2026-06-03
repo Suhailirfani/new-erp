@@ -20,16 +20,115 @@ from .models import (
     Grade, Section
 )
 from .forms import SectionForm, AcademicYearForm, EnquiryForm, GradeForm, DivisionForm, SubjectForm
+from fees.models import FeeStructure, FeeItem
 
 
 def landing_page(request):
     """Public landing page"""
+    from .models import LandingPageStats
+    from django.db.models import F
+    
+    # Increment visitor count
+    stats, created = LandingPageStats.objects.get_or_create(pk=1)
+    if not created:
+        LandingPageStats.objects.filter(pk=1).update(visit_count=F('visit_count') + 1)
+    else:
+        stats.visit_count = 1
+        stats.save()
+        
     return render(request, 'students/landing.html')
+
+
+def after_10(request):
+    """Public career guide page for students after 10th grade"""
+    return render(request, 'students/after_10.html')
+
 
 
 def about_us(request):
     """Public About Us page"""
     return render(request, 'students/about_us.html')
+
+
+def courses_and_fees(request):
+    """Public page to view course details and link to calculators"""
+    divisions = Division.objects.all().order_by('name')
+    context = {
+        'divisions': divisions,
+        'page_title': 'Courses',
+    }
+    return render(request, 'students/courses_and_fees.html', context)
+
+def course_fee_calculator(request, course_id):
+    """Public page to calculate itemized fees for a specific course"""
+    selected_division = get_object_or_404(Division, id=course_id)
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    admission_type = request.GET.get('admission_type', 'day_scholar')
+    
+    fee_breakdown = []
+    unified_fees = []
+    seen_items = set()
+    
+    # Get relevant grades to find general structures if needed
+    relevant_grades = Grade.objects.filter(
+        enrollments__division=selected_division
+    ).distinct()
+    
+    if not relevant_grades.exists():
+        relevant_grades = Grade.objects.all().order_by('order')[:3]
+
+    # Fetch applicable fee items (Logic B Base)
+    fee_items = FeeItem.objects.filter(
+        Q(applicable_divisions=selected_division) | Q(applicable_divisions__isnull=True)
+    ).distinct().select_related('category')
+
+    # Fetch overriding structures (Logic A Override)
+    structures = FeeStructure.objects.filter(
+        academic_year=active_year,
+        fee_item__in=fee_items
+    ).filter(
+        Q(division=selected_division) | 
+        Q(division__isnull=True, grade__in=relevant_grades)
+    ).select_related('fee_item')
+
+    # Map structures by fee_item to easily override amounts
+    structure_map = {}
+    for fs in structures:
+        # Prefer division-specific over general grade-level structure
+        if fs.division == selected_division:
+            structure_map[fs.fee_item.id] = fs
+        elif fs.fee_item.id not in structure_map:
+            structure_map[fs.fee_item.id] = fs
+
+    for item in fee_items:
+        if item.target_student_type != 'all' and item.target_student_type != admission_type:
+            continue
+            
+        fee_key = item.name.lower().strip()
+        if fee_key not in seen_items:
+            seen_items.add(fee_key)
+            frequency = "One Time" if item.fee_type == 'admission' else ("/ month" if item.is_monthly else "/ year")
+            
+            # Use structure amount if available, else default
+            amount = structure_map[item.id].amount if item.id in structure_map else item.default_amount
+            
+            unified_fees.append({
+                'name': item.name,
+                'amount': amount,
+                'category': item.category.name if item.category else 'General',
+                'frequency': frequency
+            })
+        
+    fee_breakdown = sorted(unified_fees, key=lambda x: x['name'])
+    
+    context = {
+        'selected_division': selected_division,
+        'fee_breakdown': fee_breakdown,
+        'admission_type': admission_type,
+        'page_title': f'Fee Calculator - {selected_division.name}',
+        'active_year': active_year,
+    }
+    return render(request, 'students/course_fee_calculator.html', context)
 
 
 def home(request):
@@ -44,6 +143,8 @@ def home(request):
             profile, created = UserProfile.objects.get_or_create(user=request.user)
             
         today = date.today()
+        active_year = AcademicYear.objects.filter(is_active=True).first()
+        context['active_year'] = active_year
         
         # Only calculate administrative statistics if the user is not a student
         if profile.role != 'student':
@@ -59,6 +160,11 @@ def home(request):
     
             # Pending hostel movements (not returned)
             pending_movements = HostelMovement.objects.filter(is_returned=False).count()
+            
+            # Landing page visitor count
+            from .models import LandingPageStats
+            stats, _ = LandingPageStats.objects.get_or_create(pk=1)
+            visitor_count = stats.visit_count
     
             context.update({
                 'total_students': total_students,
@@ -67,12 +173,12 @@ def home(request):
                 'today_present': today_present,
                 'today_absent': today_absent,
                 'pending_movements': pending_movements,
+                'visitor_count': visitor_count,
             })
             
         elif profile.role == 'student' and profile.student_record:
             # Student-only Portal Data
             student = profile.student_record
-            active_year = AcademicYear.objects.filter(is_active=True).first()
             
             # 1. Attendance Data
             student_today_att = Attendance.objects.filter(student=student, date=today).first()
@@ -166,7 +272,13 @@ def student_create(request):
         grade_id = request.POST.get('grade')
         division_id = request.POST.get('division') or None
         room_id = request.POST.get('room') or None
+        
         section_id = request.POST.get('section') or None
+        if grade_id:
+            grade_obj = Grade.objects.filter(id=grade_id).first()
+            if grade_obj and grade_obj.section:
+                section_id = grade_obj.section.id
+
         student_type = request.POST.get('student_type', 'day_scholar')
         email = request.POST.get('email', '')
         phone = request.POST.get('phone', '')
@@ -277,9 +389,10 @@ def student_bulk_import(request):
                 messages.error(request, f'Missing required columns: {", ".join(missing_columns)}')
                 return redirect('students:student_bulk_import')
 
-            # Get divisions and rooms for lookup
+            # Get divisions, rooms, and grades for lookup
             divisions = {div.name.lower(): div for div in Division.objects.all()}
             rooms = {room.room_number.lower(): room for room in Room.objects.all()}
+            grades = {g.name.lower(): g for g in Grade.objects.all()}
 
             success_count = 0
             error_count = 0
@@ -302,6 +415,13 @@ def student_bulk_import(request):
                     # Validate grade is not empty
                     if not grade or grade == 'nan':
                         errors.append(f"Row {index + 2}: Grade cannot be empty")
+                        error_count += 1
+                        continue
+
+                    # Get grade object
+                    grade_obj = grades.get(grade.lower())
+                    if not grade_obj:
+                        errors.append(f"Row {index + 2}: Grade '{grade}' does not exist")
                         error_count += 1
                         continue
 
@@ -1417,6 +1537,7 @@ def exam_type_create(request):
         subject_type = request.POST.get('subject_type', 'all')
         section_id = request.POST.get('section')
         order = request.POST.get('order', 0)
+        is_published = request.POST.get('is_published') == 'on'
 
         if not name:
             messages.error(request, 'Exam type name is required.')
@@ -1442,6 +1563,7 @@ def exam_type_create(request):
             subject_type=subject_type,
             section=section,
             order=order,
+            is_published=is_published,
         )
         messages.success(request, f'Exam type "{exam_type.name}" created successfully!')
         return redirect('students:exam_type_list')
@@ -1466,6 +1588,7 @@ def exam_type_update(request, pk):
         subject_type = request.POST.get('subject_type', 'all')
         section_id = request.POST.get('section')
         order = request.POST.get('order', 0)
+        is_published = request.POST.get('is_published') == 'on'
 
         if not name:
             messages.error(request, 'Exam type name is required.')
@@ -1490,6 +1613,7 @@ def exam_type_update(request, pk):
         exam_type.subject_type = subject_type
         exam_type.section = section
         exam_type.order = order
+        exam_type.is_published = is_published
         exam_type.save()
 
         messages.success(request, f'Exam type "{exam_type.name}" updated successfully!')
@@ -1519,6 +1643,17 @@ def exam_type_delete(request, pk):
         'exam_type': exam_type,
     }
     return render(request, 'students/exam_type_delete.html', context)
+
+
+@role_required(['admin', 'teacher'])
+def exam_type_toggle_publish(request, pk):
+    """Toggle publication status of an exam"""
+    exam_type = get_object_or_404(ExamType, pk=pk)
+    exam_type.is_published = not exam_type.is_published
+    exam_type.save()
+    status = "published" if exam_type.is_published else "unpublished"
+    messages.success(request, f'Exam "{exam_type.name}" is now {status}.')
+    return redirect('students:exam_type_list')
 
 
 @role_required(['admin', 'teacher'])
@@ -1635,7 +1770,19 @@ def mark_entry_step3(request, exam_type_id):
         # If no division, only show common/Hadiya subjects or subjects with no division
         subjects_query = subjects_query.filter(division__isnull=True)
         
-    subjects = list(subjects_query.order_by('subject_type', 'name'))
+    all_class_subjects = list(subjects_query.order_by('subject_type', 'name'))
+    subjects = all_class_subjects
+
+    selected_subject_id = request.GET.get('subject_id')
+    selected_subject = None
+    if selected_subject_id and selected_subject_id != 'all':
+        try:
+            selected_subject_id_int = int(selected_subject_id)
+            selected_subject = next((s for s in all_class_subjects if s.id == selected_subject_id_int), None)
+            if selected_subject:
+                subjects = [selected_subject]
+        except (ValueError, TypeError):
+            pass
     
     if request.method == 'POST':
         exam_date = request.POST.get('exam_date')
@@ -1650,7 +1797,7 @@ def mark_entry_step3(request, exam_type_id):
                 input_name = f'marks_{student.id}_{subject.id}'
                 marks_str = request.POST.get(input_name)
                 
-                if marks_str and marks_str.strip():
+                if marks_str is not None and marks_str.strip() != '':
                     try:
                         marks_obtained = float(marks_str)
                         
@@ -1681,12 +1828,22 @@ def mark_entry_step3(request, exam_type_id):
                         success_count += 1
                     except ValueError:
                         pass # Ignore invalid inputs
+                else:
+                    # If field is empty and we are doing subject-wise entry, delete existing mark entry if it exists
+                    if selected_subject:
+                        MarkEntry.objects.filter(
+                            student=student,
+                            exam_type=exam_type,
+                            subject=subject
+                        ).delete()
                         
         messages.success(request, f'Successfully saved {success_count} mark entries.')
         # Redirect back to the same page to show updated data
         redirect_url = f"{reverse('students:mark_entry_step3', args=[exam_type.id])}?grade_id={grade_id}" # Use grade_id
         if division_id:
             redirect_url += f"&division_id={division_id}"
+        if selected_subject_id:
+            redirect_url += f"&subject_id={selected_subject_id}"
         return redirect(redirect_url)
 
     # Get existing marks to populate the form
@@ -1712,9 +1869,321 @@ def mark_entry_step3(request, exam_type_id):
         'division_name': division_name,
         'students': students,
         'subjects': subjects,
+        'all_class_subjects': all_class_subjects,
+        'selected_subject': selected_subject,
         'existing_marks': existing_marks,
     }
     return render(request, 'students/mark_entry_step3.html', context)
+
+
+@role_required(['admin', 'teacher'])
+def mark_bulk_import_template(request, exam_type_id):
+    """Download an Excel template for bulk mark entry prefilled with students and subjects"""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill
+    from openpyxl.utils import get_column_letter
+    from django.http import HttpResponse
+    
+    exam_type = get_object_or_404(ExamType, id=exam_type_id)
+    grade_id = request.GET.get('grade_id')
+    division_id = request.GET.get('division_id')
+    subject_id = request.GET.get('subject_id')
+    
+    if not grade_id:
+        messages.error(request, 'Grade is required.')
+        return redirect('students:mark_entry_step2', exam_type_id=exam_type.id)
+        
+    grade_obj = get_object_or_404(Grade, id=grade_id)
+    division_obj = None
+    division_name = "None"
+    division_id_str = "none"
+    if division_id and division_id != 'None':
+        division_obj = get_object_or_404(Division, id=division_id)
+        division_name = division_obj.name
+        division_id_str = str(division_obj.id)
+        
+    # Get students for this class via Enrollment
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    enrollments_query = Enrollment.objects.filter(academic_year=active_year, student__is_active=True, grade=grade_obj).select_related('student')
+    if exam_type.section:
+        enrollments_query = enrollments_query.filter(section=exam_type.section)
+        
+    if division_obj:
+        enrollments_query = enrollments_query.filter(division=division_obj)
+    else:
+        enrollments_query = enrollments_query.filter(division__isnull=True)
+        
+    enrollments = list(enrollments_query.order_by('student__last_name', 'student__first_name'))
+    
+    # Get subjects for this class
+    subjects_query = Subject.objects.filter(is_active=True, grade=grade_obj)
+    if exam_type.subject_type != 'all':
+        subjects_query = subjects_query.filter(subject_type=exam_type.subject_type)
+        
+    if division_obj:
+        if exam_type.subject_type == 'hadiya':
+            subjects_query = subjects_query.filter(division__isnull=True)
+        elif exam_type.subject_type == 'division':
+            subjects_query = subjects_query.filter(division=division_obj)
+        else:
+            subjects_query = subjects_query.filter(
+                Q(division=division_obj) | Q(subject_type='hadiya', division__isnull=True)
+            )
+    else:
+        subjects_query = subjects_query.filter(division__isnull=True)
+        
+    subjects = list(subjects_query.order_by('subject_type', 'name'))
+    
+    # Optional subject wise filter
+    selected_subject = None
+    if subject_id and subject_id != 'all':
+        try:
+            subject_id_int = int(subject_id)
+            selected_subject = next((s for s in subjects if s.id == subject_id_int), None)
+            if selected_subject:
+                subjects = [selected_subject]
+        except (ValueError, TypeError):
+            pass
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Marks Entry"
+    
+    # Write metadata
+    ws.cell(row=1, column=1, value=f"Exam: {exam_type.name} (ID: {exam_type.id})")
+    ws.cell(row=2, column=1, value=f"Grade: {grade_obj.name} (ID: {grade_obj.id})")
+    ws.cell(row=3, column=1, value=f"Division: {division_name} (ID: {division_id_str})")
+    
+    # Style metadata
+    meta_font = Font(name="Arial", size=10, italic=True, color="555555")
+    for r in range(1, 4):
+        ws.cell(row=r, column=1).font = meta_font
+        
+    # Write headers
+    headers = ["Register Number", "Student Name"]
+    for sub in subjects:
+        headers.append(f"{sub.name} (Max: {sub.max_marks}) (ID: {sub.id})")
+        
+    # Style headers row
+    header_fill = PatternFill(start_color="2C3E50", end_color="2C3E50", fill_type="solid")
+    header_font = Font(name="Arial", size=11, bold=True, color="FFFFFF")
+    
+    for col_idx, header in enumerate(headers, start=1):
+        cell = ws.cell(row=5, column=col_idx, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        
+    # Prepopulate student list
+    data_font = Font(name="Arial", size=11)
+    for row_idx, enrollment in enumerate(enrollments, start=6):
+        student = enrollment.student
+        ws.cell(row=row_idx, column=1, value=student.student_id).font = data_font
+        ws.cell(row=row_idx, column=2, value=student.full_name).font = data_font
+        
+        # Load existing marks
+        for col_idx, sub in enumerate(subjects, start=3):
+            # check if mark entry exists
+            mark_entry = MarkEntry.objects.filter(student=student, exam_type=exam_type, subject=sub).first()
+            if mark_entry:
+                ws.cell(row=row_idx, column=col_idx, value=float(mark_entry.marks_obtained)).font = data_font
+            else:
+                ws.cell(row=row_idx, column=col_idx).font = data_font
+
+    # Adjust widths
+    ws.column_dimensions['A'].width = 18
+    ws.column_dimensions['B'].width = 25
+    for col_idx in range(3, len(headers) + 1):
+        col_letter = get_column_letter(col_idx)
+        ws.column_dimensions[col_letter].width = 22
+        
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    filename = f"marks_template_{exam_type.name.replace(' ', '_')}_{grade_obj.name.replace(' ', '_')}"
+    if division_obj:
+        filename += f"_{division_obj.name.replace(' ', '_')}"
+    if selected_subject:
+        filename += f"_{selected_subject.name.replace(' ', '_')}"
+    filename += ".xlsx"
+    
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
+
+
+@role_required(['admin', 'teacher'])
+def mark_bulk_import(request, exam_type_id):
+    """Import marks from Excel template"""
+    import openpyxl
+    import re
+    from django.core.exceptions import ValidationError
+    
+    exam_type = get_object_or_404(ExamType, id=exam_type_id)
+    grade_id = request.GET.get('grade_id')
+    division_id = request.GET.get('division_id')
+    subject_id = request.GET.get('subject_id')
+    
+    if not grade_id:
+        messages.error(request, 'Grade is required.')
+        return redirect('students:mark_entry_step1')
+        
+    grade_obj = get_object_or_404(Grade, id=grade_id)
+    division_obj = None
+    if division_id and division_id != 'None':
+        division_obj = get_object_or_404(Division, id=division_id)
+        
+    if request.method == 'POST':
+        if 'excel_file' not in request.FILES:
+            messages.error(request, 'Please select an Excel file.')
+            redirect_url = f"{reverse('students:mark_entry_step3', args=[exam_type.id])}?grade_id={grade_id}"
+            if division_id:
+                redirect_url += f"&division_id={division_id}"
+            return redirect(redirect_url)
+            
+        excel_file = request.FILES['excel_file']
+        
+        try:
+            wb = openpyxl.load_workbook(excel_file, data_only=True)
+            ws = wb.active
+            
+            # 1. Parse and Validate Metadata
+            exam_meta = str(ws.cell(row=1, column=1).value or '')
+            grade_meta = str(ws.cell(row=2, column=1).value or '')
+            div_meta = str(ws.cell(row=3, column=1).value or '')
+            
+            # Extract IDs from metadata
+            exam_id_match = re.search(r'\(ID:\s*(\d+)\)', exam_meta)
+            grade_id_match = re.search(r'\(ID:\s*(\d+)\)', grade_meta)
+            div_id_match = re.search(r'\(ID:\s*([a-zA-Z0-9_]+)\)', div_meta)
+            
+            if not exam_id_match or not grade_id_match or not div_id_match:
+                messages.error(request, 'Invalid template format. Metadata rows 1-3 are missing or corrupted.')
+                raise ValidationError('Metadata parsing failed')
+                
+            parsed_exam_id = int(exam_id_match.group(1))
+            parsed_grade_id = int(grade_id_match.group(1))
+            parsed_div_id_str = div_id_match.group(1)
+            
+            if parsed_exam_id != exam_type.id:
+                messages.error(request, f'Template exam ID ({parsed_exam_id}) does not match current exam ({exam_type.name}).')
+                raise ValidationError('Exam mismatch')
+                
+            if parsed_grade_id != grade_obj.id:
+                messages.error(request, f'Template grade ID ({parsed_grade_id}) does not match selected grade ({grade_obj.name}).')
+                raise ValidationError('Grade mismatch')
+                
+            # Check division
+            if division_obj and str(division_obj.id) != parsed_div_id_str:
+                messages.error(request, f'Template division ID ({parsed_div_id_str}) does not match selected division ({division_obj.name}).')
+                raise ValidationError('Division mismatch')
+            elif not division_obj and parsed_div_id_str != 'none':
+                messages.error(request, f'Template division mismatch. Expected no division but found ID: {parsed_div_id_str}.')
+                raise ValidationError('Division mismatch')
+                
+            # 2. Parse Headers to find subjects
+            headers = []
+            col = 1
+            while True:
+                val = ws.cell(row=5, column=col).value
+                if val is None:
+                    break
+                headers.append((col, str(val).strip()))
+                col += 1
+                
+            if len(headers) < 2 or headers[0][1] != 'Register Number' or headers[1][1] != 'Student Name':
+                messages.error(request, 'Template header format mismatch. First columns must be "Register Number" and "Student Name".')
+                raise ValidationError('Header mismatch')
+                
+            subject_cols = []
+            for col_idx, header_text in headers[2:]:
+                sub_id_match = re.search(r'\(ID:\s*(\d+)\)', header_text)
+                if sub_id_match:
+                    sub_id = int(sub_id_match.group(1))
+                    try:
+                        subject = Subject.objects.get(id=sub_id, grade=grade_obj)
+                        subject_cols.append((col_idx, subject))
+                    except Subject.DoesNotExist:
+                        pass # Ignore or warning
+                        
+            if not subject_cols:
+                messages.error(request, 'No valid subjects found in Excel template columns.')
+                raise ValidationError('No subjects')
+                
+            # 3. Process Student Rows
+            active_year = AcademicYear.objects.filter(is_active=True).first()
+            success_count = 0
+            row_idx = 6
+            while True:
+                student_id = ws.cell(row=row_idx, column=1).value
+                if student_id is None:
+                    break
+                student_id = str(student_id).strip()
+                if not student_id:
+                    row_idx += 1
+                    continue
+                    
+                # Verify student and enrollment
+                try:
+                    student = Student.objects.get(student_id=student_id, is_active=True)
+                    enrollment = Enrollment.objects.filter(
+                        student=student, 
+                        academic_year=active_year, 
+                        grade=grade_obj
+                    ).first()
+                    
+                    if not enrollment:
+                        # Skip or report error
+                        row_idx += 1
+                        continue
+                        
+                    # Import marks for this student
+                    for col_idx, subject in subject_cols:
+                        mark_val = ws.cell(row=row_idx, column=col_idx).value
+                        
+                        if mark_val is not None and str(mark_val).strip() != '':
+                            try:
+                                marks_obtained = float(mark_val)
+                                max_marks = float(subject.max_marks)
+                                
+                                MarkEntry.objects.update_or_create(
+                                    student=student,
+                                    exam_type=exam_type,
+                                    subject=subject,
+                                    defaults={
+                                        'enrollment': enrollment,
+                                        'marks_obtained': marks_obtained,
+                                        'max_marks': max_marks,
+                                        'entered_by': request.user.username,
+                                    }
+                                )
+                                success_count += 1
+                            except ValueError:
+                                pass # Skip invalid numeric marks
+                        else:
+                            # If we are doing single subject entry (subject_id query parameter set)
+                            # and the mark is empty, delete the existing mark entry
+                            if subject_id and subject_id != 'all':
+                                MarkEntry.objects.filter(
+                                    student=student,
+                                    exam_type=exam_type,
+                                    subject=subject
+                                ).delete()
+                                
+                except Student.DoesNotExist:
+                    pass # Skip invalid students
+                    
+                row_idx += 1
+                
+            messages.success(request, f'Excel upload processed successfully. Saved/updated {success_count} mark entries.')
+            
+        except Exception as e:
+            if not messages.get_messages(request):
+                messages.error(request, f'Error reading or importing Excel file: {str(e)}')
+                
+    redirect_url = f"{reverse('students:mark_entry_step3', args=[exam_type.id])}?grade_id={grade_id}"
+    if division_id:
+        redirect_url += f"&division_id={division_id}"
+    if subject_id:
+        redirect_url += f"&subject_id={subject_id}"
+    return redirect(redirect_url)
 
 
 from collections import defaultdict
@@ -2030,6 +2499,9 @@ def progress_report(request):
         'student', 'exam_type', 'enrollment__grade' # Select grade
     )
 
+    if is_student:
+        reports = reports.filter(exam_type__is_published=True)
+
 
     if student_id:
         reports = reports.filter(student__student_id__icontains=student_id)
@@ -2078,6 +2550,9 @@ def progress_report_detail(request, pk):
     
     # Data isolation for students
     if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
+        if not report.exam_type.is_published:
+            messages.error(request, "Results for this exam have not been published yet.")
+            return redirect('students:home')
         if not request.user.profile.student_record or request.user.profile.student_record != report.student:
             messages.error(request, "You do not have permission to view other students' progress reports.")
             return redirect('students:home')
@@ -2156,7 +2631,13 @@ def student_edit(request, pk):
         grade_id = request.POST.get('grade')
         division_id = request.POST.get('division') or None
         room_id = request.POST.get('room') or None
+        
         section_id = request.POST.get('section') or None
+        if grade_id:
+            grade_obj = Grade.objects.filter(id=grade_id).first()
+            if grade_obj and grade_obj.section:
+                section_id = grade_obj.section.id
+
         student_type = request.POST.get('student_type', 'day_scholar')
         email = request.POST.get('email', '')
         phone = request.POST.get('phone', '')
@@ -4232,4 +4713,123 @@ def job_application_list_admin(request):
     """Admin view to list all job applications"""
     applications = JobApplication.objects.all()
     return render(request, 'students/admin/job_application_list.html', {'applications': applications})
+
+
+def student_results_public_lookup(request):
+    """Public portal to search and view exam results by student register number"""
+    from django.contrib import messages
+    from django.db.models import Sum, Q
+    
+    # Get all published exams
+    published_exams = ExamType.objects.filter(is_published=True).order_by('order', 'name')
+    
+    student_id = request.GET.get('student_id', '').strip()
+    selected_exam_id = request.GET.get('exam_type_id', '').strip()
+    
+    student = None
+    enrollment = None
+    results_by_exam = {}
+    
+    if student_id:
+        try:
+            student = Student.objects.get(student_id__iexact=student_id, is_active=True)
+            
+            # Find student enrollment (prefer active academic year)
+            active_year = AcademicYear.objects.filter(is_active=True).first()
+            if active_year:
+                enrollment = Enrollment.objects.filter(student=student, academic_year=active_year).select_related('grade', 'division', 'section').first()
+            
+            if not enrollment:
+                enrollment = Enrollment.objects.filter(student=student).select_related('grade', 'division', 'section').order_by('-academic_year__start_date').first()
+                
+            # Filter published exams by student's section if exam is section-specific
+            exams_to_query = published_exams
+            if enrollment and enrollment.section:
+                exams_to_query = exams_to_query.filter(Q(section=enrollment.section) | Q(section__isnull=True))
+                
+            if selected_exam_id:
+                try:
+                    selected_exam_id_int = int(selected_exam_id)
+                    exams_to_query = exams_to_query.filter(id=selected_exam_id_int)
+                except ValueError:
+                    pass
+                    
+            for exam in exams_to_query:
+                # Fetch mark entries
+                mark_entries = MarkEntry.objects.filter(
+                    student=student,
+                    exam_type=exam
+                ).select_related('subject').order_by('subject__subject_type', 'subject__name')
+                
+                if mark_entries.exists():
+                    total_obtained = sum(entry.marks_obtained for entry in mark_entries)
+                    total_max = sum(entry.max_marks for entry in mark_entries)
+                    overall_percentage = (total_obtained / total_max * 100) if total_max > 0 else 0
+                    
+                    # Calculate overall grade letter
+                    pct = float(overall_percentage)
+                    if pct >= 90:
+                        overall_grade = 'A+'
+                    elif pct >= 80:
+                        overall_grade = 'A'
+                    elif pct >= 70:
+                        overall_grade = 'B+'
+                    elif pct >= 60:
+                        overall_grade = 'B'
+                    elif pct >= 50:
+                        overall_grade = 'C+'
+                    elif pct >= 40:
+                        overall_grade = 'C'
+                    else:
+                        overall_grade = 'F'
+                        
+                    # Split into Hadiya and Division subjects
+                    hadiya_marks = [e for e in mark_entries if e.subject.subject_type == 'hadiya']
+                    division_marks = [e for e in mark_entries if e.subject.subject_type == 'division']
+                    
+                    results_by_exam[exam] = {
+                        'mark_entries': mark_entries,
+                        'hadiya_marks': hadiya_marks,
+                        'division_marks': division_marks,
+                        'total_obtained': total_obtained,
+                        'total_max': total_max,
+                        'percentage': overall_percentage,
+                        'overall_grade': overall_grade,
+                    }
+                    
+            if not results_by_exam and selected_exam_id:
+                messages.warning(request, f"No results found for student '{student_id}' in the selected exam.")
+            elif not results_by_exam:
+                messages.warning(request, f"No published exam results found for student '{student_id}'.")
+                
+        except Student.DoesNotExist:
+            messages.error(request, f"Invalid Register Number: '{student_id}' not found.")
+            
+    context = {
+        'published_exams': published_exams,
+        'student_id': student_id,
+        'selected_exam_id': selected_exam_id,
+        'student': student,
+        'enrollment': enrollment,
+        'results_by_exam': results_by_exam,
+    }
+    return render(request, 'students/results_lookup.html', context)
+
+
+@role_required(['admin', 'teacher', 'accountant'])
+def examination_dashboard(request):
+    total_exams = ExamType.objects.count()
+    published_exams = ExamType.objects.filter(is_published=True).count()
+    draft_exams = total_exams - published_exams
+    total_subjects = Subject.objects.count()
+    total_mark_entries = MarkEntry.objects.count()
+    
+    context = {
+        'total_exams': total_exams,
+        'published_exams': published_exams,
+        'draft_exams': draft_exams,
+        'total_subjects': total_subjects,
+        'total_mark_entries': total_mark_entries,
+    }
+    return render(request, 'students/examination_dashboard.html', context)
 

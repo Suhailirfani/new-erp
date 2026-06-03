@@ -1,83 +1,157 @@
 {% if class_tables %}
 
 {% for table in class_tables %}
-<button onclick="window.print()" style="float:right;">
-    Print / PDF
-</button>
+<div class="card mb-5 glass-card p-4">
+    <!-- Card Header with Badges and Print Option -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h4 style="font-size: 1.25rem; font-weight: 800; color: var(--dark-secondary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-chalkboard-user" style="color: var(--primary);"></i> Class Sheet: {{ table.grade }} - {{ table.division }}
+            </h4>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <span class="badge bg-light" style="font-size: 0.75rem; font-weight: 700; color: var(--dark-secondary);">Section: {{ table.section|default:"-" }}</span>
+                <span class="badge bg-success" style="font-size: 0.75rem; font-weight: 700;">Exam: {{ table.exam_type }}</span>
+            </div>
+        </div>
+        
+        <button onclick="window.print()" class="btn btn-secondary no-print">
+            <i class="fa-solid fa-print"></i> Print / Export PDF
+        </button>
+    </div>
 
-<div class="card mb-4">
-    <h4>
-        SECTION: {{ table.section|default:"-" }} |
-        CLASS: {{ table.grade }} |
-        DIVISION: {{ table.division }} |
-        EXAM: {{ table.exam_type }}
-    </h4>
+    <!-- Scrollable Table Wrapper -->
+    <div class="table-wrapper">
+        <table class="table-custom" style="width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: 16px; overflow: hidden; border: 1px solid var(--border);">
+            <thead>
+                <tr style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white;">
+                    <th rowspan="2" style="vertical-align: middle; text-align: left; padding: 1.25rem; font-weight: 700; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; border-bottom: none;">Student</th>
+                    {% for s in table.subjects %}
+                        <th colspan="2" style="text-align: center; border-bottom: 1px solid rgba(255,255,255,0.2); font-size: 0.85rem; padding: 0.75rem 1.25rem; font-weight: 700;">{{ s }}</th>
+                    {% endfor %}
+                    <th rowspan="2" style="vertical-align: middle; text-align: center; padding: 1.25rem; font-weight: 700; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; border-bottom: none;">Total</th>
+                    <th rowspan="2" style="vertical-align: middle; text-align: center; padding: 1.25rem; font-weight: 700; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; border-bottom: none;">Rank</th>
+                </tr>
+                <tr style="background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%); color: rgba(255,255,255,0.95);">
+                    {% for s in table.subjects %}
+                        <th style="font-size: 0.7rem; text-align: center; padding: 0.5rem; text-transform: uppercase; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1);">Marks</th>
+                        <th style="font-size: 0.7rem; text-align: center; padding: 0.5rem; text-transform: uppercase; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1); border-right: 1px solid rgba(255,255,255,0.1);">Grade</th>
+                    {% endfor %}
+                </tr>
+            </thead>
 
-    <table border="1" width="100%" cellpadding="6">
-        <thead>
-            <tr>
-                <th>Student</th>
-                {% for s in table.subjects %}
-                    <th>{{ s }}</th><th>Grade</th>
-                {% endfor %}
-                <th>Total</th>
-                <th>Rank</th>
-
-            </tr>
-        </thead>
-
-        <tbody>
-        {% for st in table.students %}
-            <tr>
-                <td>{{ st.name }}</td>
-                {% for m in st.marks %}
-                    <td style="{% if m.is_fail %}color:red; font-weight:bold;{% endif %}">
-                        {{ m.marks }}
+            <tbody>
+            {% for st in table.students %}
+                <tr style="transition: all 0.2s ease;">
+                    <td style="font-weight: 700; color: var(--dark-secondary); padding: 1rem 1.25rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">{{ st.name }}</td>
+                    {% for m in st.marks %}
+                        <td style="text-align: center; padding: 1rem; border-bottom: 1px solid #e2e8f0; {% if m.is_fail %}background-color: rgba(239, 68, 68, 0.04); color: #ef4444; font-weight: bold;{% endif %}">
+                            {{ m.marks }}
+                        </td>
+                        <td style="text-align: center; padding: 1rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; {% if m.is_fail %}background-color: rgba(239, 68, 68, 0.04);{% endif %}">
+                            <span class="badge {% if m.is_fail %}bg-danger{% else %}bg-success{% endif %}" style="font-size: 0.75rem; font-weight: 700; padding: 0.35rem 0.65rem; border-radius: 6px;">
+                                {{ m.grade }}
+                            </span>
+                        </td>
+                    {% endfor %}
+                    <td style="text-align: center; font-weight: 800; color: var(--primary); padding: 1rem; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; background: rgba(99, 102, 241, 0.02);">{{ st.total }}</td>
+                    <td style="text-align: center; padding: 1rem; border-bottom: 1px solid #e2e8f0;">
+                        {% if st.rank == 1 %}
+                            <span class="badge" style="background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%); color: #000; font-weight: 800; box-shadow: 0 4px 8px rgba(255, 215, 0, 0.3); font-size: 0.75rem; border-radius: 6px; padding: 0.35rem 0.65rem;">
+                                <i class="fa-solid fa-trophy"></i> 1st
+                            </span>
+                        {% elif st.rank == 2 %}
+                            <span class="badge" style="background: linear-gradient(135deg, #c0c0c0 0%, #a9a9a9 100%); color: #333; font-weight: 800; box-shadow: 0 4px 8px rgba(192, 192, 192, 0.3); font-size: 0.75rem; border-radius: 6px; padding: 0.35rem 0.65rem;">
+                                <i class="fa-solid fa-medal"></i> 2nd
+                            </span>
+                        {% elif st.rank == 3 %}
+                            <span class="badge" style="background: linear-gradient(135deg, #cd7f32 0%, #b87333 100%); color: #fff; font-weight: 800; box-shadow: 0 4px 8px rgba(205, 127, 50, 0.3); font-size: 0.75rem; border-radius: 6px; padding: 0.35rem 0.65rem;">
+                                <i class="fa-solid fa-award"></i> 3rd
+                            </span>
+                        {% else %}
+                            <span class="badge bg-light text-dark" style="font-weight: 700; font-size: 0.75rem; border-radius: 6px; padding: 0.35rem 0.65rem;">
+                                Rank {{ st.rank }}
+                            </span>
+                        {% endif %}
                     </td>
-                    <td style="{% if m.is_fail %}color:red; font-weight:bold;{% endif %}">
-                        {{ m.grade }}
-                    </td>
-
-                {% endfor %}
-                <td><b>{{ st.total }}</b></td>
-                <td>{{ st.rank }}</td>
-            </tr>
-
-
-        {% endfor %}
-        <tr style="font-weight:bold; background:#f8f9fa">
-                <td>Average</td>
-
+                </tr>
+            {% endfor %}
+            <tr style="font-weight: bold; background: #f8fafc; border-top: 2px solid #cbd5e1;">
+                <td style="font-weight: 800; padding: 1.25rem; border-right: 1px solid #cbd5e1;">Class Average</td>
                 {% for avg in table.subject_averages %}
-                    <td>{{ avg }}</td>
-                    <td>-</td>
+                    <td style="text-align: center; color: var(--dark-secondary); padding: 1.25rem;">{{ avg }}</td>
+                    <td style="text-align: center; color: var(--gray); padding: 1.25rem; border-right: 1px solid #cbd5e1;">-</td>
                 {% endfor %}
-
-                <td>-</td>
-                <td>-</td>
+                <td style="text-align: center; color: var(--gray); padding: 1.25rem; border-right: 1px solid #cbd5e1;">-</td>
+                <td style="text-align: center; color: var(--gray); padding: 1.25rem;">-</td>
             </tr>
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    </div>
 </div>
-
 {% endfor %}
 
 {% else %}
-<p>No records found.</p>
+<div class="empty-state">
+    <i class="fa-solid fa-circle-question"></i>
+    <h3>No Records Found</h3>
+    <p>No matching grades or enrollment records were found for the selected filter combination.</p>
+</div>
 {% endif %}
+
 <style>
+    .no-print {
+        display: inline-block;
+    }
     @media print {
-        body * {
-            visibility: hidden;
+        .no-print, .navbar, .sidebar, footer, .btn, .page-header {
+            display: none !important;
         }
-        #mark-results, #mark-results * {
-            visibility: visible;
+        body {
+            background: white !important;
+            padding: 0 !important;
+            margin: 0 !important;
         }
-        #mark-results {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
+        .main-workspace {
+            margin-left: 0 !important;
+            width: 100% !important;
+            padding: 0 !important;
+        }
+        .container {
+            max-width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .card.glass-card {
+            background: white !important;
+            border: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .table-wrapper {
+            overflow-x: visible !important;
+        }
+        table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+        th, td {
+            border: 1px solid #000 !important;
+            padding: 6px !important;
+            font-size: 10px !important;
+        }
+        tr style {
+            background: none !important;
+            color: black !important;
+        }
+        thead tr {
+            background: none !important;
+            color: black !important;
+        }
+        thead tr th {
+            color: black !important;
+            border: 1px solid #000 !important;
         }
     }
-    </style>
+</style>

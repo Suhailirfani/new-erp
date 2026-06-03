@@ -4,10 +4,13 @@
 {% block title %}Mark Entry - Step 3 - Student Attendance System{% endblock %}
 
 {% block content %}
-<div class="header-container" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+<div class="header-container" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
     <h1>Mark Entry - Step 3: Enter Marks</h1>
-    <div>
-        <a href="{% url 'students:mark_entry_step2' exam_type.id %}" class="btn" style="background-color: #6c757d;">&larr; Back to Classes</a>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="{% url 'students:examination_dashboard' %}" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Dashboard
+        </a>
+        <a href="{% url 'students:mark_entry_step2' exam_type.id %}" class="btn" style="background-color: #6c757d;">&larr; Back</a>
         <a href="{% url 'students:mark_entry_list' %}" class="btn">View Existing Marks</a>
     </div>
 </div>
@@ -27,6 +30,41 @@
             </span>
         </div>
     </div>
+</div>
+
+<div class="card" style="margin-bottom: 1.5rem; background-color: #f8f9fa; padding: 1rem; border-radius: 8px; border: 1px solid #dee2e6; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <label for="subject_filter" style="font-weight: bold; color: #2c3e50; margin: 0;">Entry Option:</label>
+        <select id="subject_filter" onchange="filterSubject(this.value)" style="padding: 0.5rem; border-radius: 4px; border: 1px solid #ccc; min-width: 220px; font-size: 0.95rem;">
+            <option value="all" {% if not selected_subject %}selected{% endif %}>All Subjects (Grid Entry)</option>
+            {% for sub in all_class_subjects %}
+            <option value="{{ sub.id }}" {% if selected_subject.id == sub.id %}selected{% endif %}>
+                {{ sub.name }} {% if sub.subject_type == 'hadiya' %}(Hadiya){% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <a href="{% url 'students:mark_bulk_import_template' exam_type.id %}?grade_id={{ grade_id }}{% if division_id %}&amp;division_id={{ division_id }}{% endif %}{% if selected_subject %}&amp;subject_id={{ selected_subject.id }}{% endif %}" class="btn" style="background-color: #34495e; color: white; display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.9rem; padding: 0.5rem 1rem; text-decoration: none; border-radius: 4px; font-weight: 500;">
+            📥 Download Template
+        </a>
+        <button type="button" onclick="document.getElementById('excel_upload_modal').style.display='flex'" class="btn btn-warning" style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.9rem; padding: 0.5rem 1rem; margin: 0; border-radius: 4px; font-weight: 500;">
+            📤 Upload Excel Marks
+        </button>
+    </div>
+    
+    <script>
+        function filterSubject(subjectId) {
+            let url = new URL(window.location.href);
+            if (subjectId === 'all') {
+                url.searchParams.delete('subject_id');
+            } else {
+                url.searchParams.set('subject_id', subjectId);
+            }
+            window.location.href = url.toString();
+        }
+    </script>
 </div>
 
 <div class="card">
@@ -185,4 +223,25 @@
         }
     });
 </script>
+
+<!-- Excel Upload Modal -->
+<div id="excel_upload_modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+    <div class="card" style="width: 500px; max-width: 90%; background: white; padding: 2rem; border-radius: 12px; position: relative; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);">
+        <h3 style="margin-top: 0; margin-bottom: 0.5rem; color: #2c3e50; font-size: 1.5rem; font-weight: bold;">Upload Completed Marklist Excel</h3>
+        <p style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 1.5rem;">Upload the filled Excel template. Ensure student IDs and subject names have not been modified.</p>
+        
+        <form method="post" action="{% url 'students:mark_bulk_import' exam_type.id %}?grade_id={{ grade_id }}{% if division_id %}&amp;division_id={{ division_id }}{% endif %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="font-weight: bold; display: block; margin-bottom: 0.5rem; color: #34495e;">Choose Excel File (.xlsx)</label>
+                <input type="file" name="excel_file" accept=".xlsx" required style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 2rem;">
+                <button type="button" onclick="document.getElementById('excel_upload_modal').style.display='none'" class="btn" style="background-color: #6c757d; color: white; border: none; margin: 0; padding: 0.6rem 1.2rem; border-radius: 4px; font-weight: bold; cursor: pointer;">Cancel</button>
+                <button type="submit" class="btn btn-success" style="margin: 0; padding: 0.6rem 1.2rem; border-radius: 4px; font-weight: bold; cursor: pointer;">Import Marks</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

@@ -1,0 +1,129 @@
+{% extends 'students/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media (max-width: 768px) {
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { min-width: 500px; }
+        table th, table td { white-space: nowrap; font-size: 0.82rem; padding: 6px 8px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+        <form method="post" action="" novalidate>
+            {% csrf_token %}
+            
+            <div class="card shadow-sm border-0 mt-4 mb-4">
+                <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                    <h4 class="mb-0">{{ page_title }}</h4>
+                </div>
+                <div class="card-body p-4">
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger rounded-3">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% for field in form %}
+                    <div class="mb-4">
+                        <label for="{{ field.id_for_label }}" class="form-label fw-bold">{{ field.label }} {% if field.field.required %}<span class="text-danger">*</span>{% endif %}</label>
+                        {% if field.field.widget.input_type == 'checkbox' %}
+                        <div class="form-check form-switch fs-5">
+                            {{ field }}
+                            <label class="form-check-label ms-2 fs-6 text-muted" for="{{ field.id_for_label }}">Check to enable this option.</label>
+                        </div>
+                        {% else %}
+                        {{ field }}
+                        {% endif %}
+                        
+                        {% if field.help_text %}
+                        <div class="form-text text-muted small">{{ field.help_text|safe }}</div>
+                        {% endif %}
+                        
+                        {% if field.errors %}
+                        <div class="invalid-feedback d-block fw-bold">
+                            {{ field.errors|striptags }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Fee Structure by Class {% if active_year %}({{ active_year.name }}){% endif %}</h5>
+                    <p class="text-muted small mb-0 mt-1">Set the specific amount for this fee across different classes. Leave blank to skip.</p>
+                </div>
+                <div class="card-body p-0">
+                    {% if not active_year %}
+                    <div class="p-4 text-center text-muted">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-2 text-warning"></i>
+                        <p>No active academic year found. Fee structures cannot be mapped until an academic year is active.</p>
+                    </div>
+                    {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 250px;">Section / Grade</th>
+                                    <th>Division</th>
+                                    <th style="width: 250px;">Fee Amount (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for section_name, classrooms in sections.items %}
+                                    <tr class="table-secondary">
+                                        <td colspan="3">
+                                            <strong class="text-uppercase"><i class="fas fa-layer-group me-2"></i> {{ section_name }}</strong>
+                                        </td>
+                                    </tr>
+                                    {% for c in classrooms %}
+                                    <tr>
+                                        <td class="ps-4">
+                                            <span class="fw-bold">{{ c.grade.name }}</span>
+                                        </td>
+                                        <td>
+                                            {% if c.division %}
+                                                <span class="badge bg-light text-dark border">{{ c.division.name }}</span>
+                                            {% else %}
+                                                <span class="text-muted small">Standard</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="input-group">
+                                                <span class="input-group-text">₹</span>
+                                                <input type="number" 
+                                                       name="fee_{{ c.grade.id }}_{% if c.division %}{{ c.division.id }}{% else %}none{% endif %}" 
+                                                       value="{% if c.current_amount %}{{ c.current_amount|floatformat:2 }}{% endif %}" 
+                                                       class="form-control" 
+                                                       step="0.01" 
+                                                       min="0"
+                                                       placeholder="0.00">
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <a href="{% url 'fees:fee_setup_dashboard' %}" class="btn btn-light"><i class="fas fa-times me-1"></i> Cancel</a>
+                    <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save me-1"></i> {% if is_edit %}Update Fee Settings{% else %}Create Fee{% endif %}</button>
+                </div>
+            </div>
+            
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -24,10 +24,10 @@
                     {% for field in form %}
                     <div class="mb-4">
                         <label for="{{ field.id_for_label }}" class="form-label fw-bold">{{ field.label }} {% if field.field.required %}<span class="text-danger">*</span>{% endif %}</label>
-                        {% if field.name == 'is_refundable' %}
+                        {% if field.field.widget.input_type == 'checkbox' %}
                         <div class="form-check form-switch fs-5">
                             {{ field }}
-                            <label class="form-check-label ms-2 fs-6 text-muted" for="{{ field.id_for_label }}">Check if this amount is refundable.</label>
+                            <label class="form-check-label ms-2 fs-6 text-muted" for="{{ field.id_for_label }}">Check to enable this option.</label>
                         </div>
                         {% else %}
                         {{ field }}

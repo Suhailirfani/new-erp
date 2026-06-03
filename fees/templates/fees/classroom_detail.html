@@ -24,7 +24,13 @@
     <div class="card mb-4 shadow-sm">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Students in {{ class_name }}</h5>
-            <div style="display: flex; gap: 0.5rem;">
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button type="button" class="btn btn-outline-info btn-sm" onclick="selectNewAdmissions()">
+                    <i class="fas fa-check-double"></i> Select New Admissions
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('arrearsModal').style.display='flex'">
+                    <i class="fas fa-history"></i> Add Past Year Arrears
+                </button>
                 <button type="submit" class="btn btn-warning btn-sm" formaction="{% url 'fees:assign_bulk_admission_fees' %}" onclick="return confirm('Assign admission fees to selected students?');">
                     <i class="fas fa-plus-circle"></i> Assign Admission Fee
                 </button>
@@ -43,6 +49,7 @@
                             </th>
                             <th>Student ID</th>
                             <th>Name</th>
+                            <th>New?</th>
                             <th>Type</th>
                             <th>Total Due (₹)</th>
                             <th>Action</th>
@@ -52,10 +59,17 @@
                         {% for item in student_data %}
                         <tr>
                             <td>
-                                <input type="checkbox" name="student_ids" value="{{ item.student.id }}" class="student-checkbox">
+                                <input type="checkbox" name="student_ids" value="{{ item.student.id }}" class="student-checkbox" data-is-new="{{ item.is_new_admission|yesno:'true,false' }}">
                             </td>
                             <td>{{ item.student.student_id }}</td>
                             <td>{{ item.student.full_name }}</td>
+                            <td>
+                                {% if item.is_new_admission %}
+                                    <span class="badge bg-success">Yes</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
                             <td>{{ item.student.get_student_type_display }}</td>
                             <td>
                                 {% if item.total_due > 0 %}
@@ -87,5 +101,68 @@ function toggleAll(source) {
         checkboxes[i].checked = source.checked;
     }
 }
+
+function selectNewAdmissions() {
+    checkboxes = document.getElementsByClassName('student-checkbox');
+    for(var i=0, n=checkboxes.length;i<n;i++) {
+        if(checkboxes[i].getAttribute('data-is-new') === 'true') {
+            checkboxes[i].checked = true;
+        } else {
+            checkboxes[i].checked = false;
+        }
+    }
+}
 </script>
+
+<!-- Custom Arrears Modal -->
+<div id="arrearsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+    <div style="background: white; border-radius: 12px; width: 90%; max-width: 500px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden;">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #64748b 0%, #475569 100%); color: white; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+            <h5 style="margin: 0; font-size: 1.15rem; font-weight: 600;">Add Past Year Arrears</h5>
+            <button type="button" onclick="document.getElementById('arrearsModal').style.display='none'" style="background: transparent; border: none; color: white; font-size: 1.5rem; cursor: pointer; line-height: 1;">&times;</button>
+        </div>
+        
+        <!-- Form wraps scrollable body and fixed footer -->
+        <form method="POST" action="{% url 'fees:add_arrears' %}" style="display: flex; flex-direction: column; min-height: 0;">
+            {% csrf_token %}
+            <!-- Scrollable Body -->
+            <div style="padding: 1.25rem 1.5rem; overflow-y: auto; flex-grow: 1;">
+                <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1.25rem;">This will add a custom fee explicitly marked as "Last Year Pending" for the selected student.</p>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.35rem;">Select Student</label>
+                    <select name="student_id" style="width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit;" required>
+                        <option value="">-- Choose Student --</option>
+                        {% for item in student_data %}
+                        <option value="{{ item.student.id }}">{{ item.student.student_id }} - {{ item.student.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.35rem;">Select Fee Item</label>
+                    <select name="fee_item_id" style="width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit;" required>
+                        <option value="">-- Choose Fee Item --</option>
+                        {% for item in fee_items %}
+                        <option value="{{ item.id }}">{{ item.name }} ({{ item.category.name }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.35rem;">Pending Amount (₹)</label>
+                    <input type="number" step="0.01" name="amount" style="width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit;" required placeholder="e.g., 5000">
+                </div>
+                <div style="margin-bottom: 0.5rem;">
+                    <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.35rem;">Remarks</label>
+                    <input type="text" name="remarks" style="width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-family: inherit;" value="Last Year Pending" readonly>
+                </div>
+            </div>
+            
+            <!-- Fixed Footer -->
+            <div style="padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 1rem; flex-shrink: 0;">
+                <button type="button" onclick="document.getElementById('arrearsModal').style.display='none'" class="btn btn-outline-secondary" style="margin: 0; padding: 0.5rem 1rem; border-color: #94a3b8; color: #475569;">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="margin: 0; padding: 0.5rem 1rem;">Add Arrears</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

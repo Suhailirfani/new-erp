@@ -3,7 +3,12 @@
 {% block title %}Progress Reports - Student Attendance System{% endblock %}
 
 {% block content %}
-<h1>Progress Reports</h1>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <h1>Progress Reports</h1>
+    <a href="{% url 'students:examination_dashboard' %}" class="btn btn-secondary">
+        <i class="fa-solid fa-arrow-left"></i> Dashboard
+    </a>
+</div>
 
 <div class="filter-form">
     <form method="get">

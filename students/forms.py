@@ -2,6 +2,13 @@ from django import forms
 from .models import AcademicYear, Subject, Section, Grade, Division
 
 class SectionForm(forms.ModelForm):
+    grades = forms.ModelMultipleChoiceField(
+        queryset=Grade.objects.all(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+        help_text="Select grades/classes to associate with this section."
+    )
+
     class Meta:
         model = Section
         fields = ['name', 'description', 'order']
@@ -10,6 +17,22 @@ class SectionForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'order': forms.NumberInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['grades'].initial = self.instance.grades.all()
+
+    def save(self, commit=True):
+        instance = super().save(commit=commit)
+        if commit:
+            selected_grades = self.cleaned_data.get('grades', [])
+            # Reset old grades belonging to this section
+            Grade.objects.filter(section=instance).update(section=None)
+            # Set the new ones
+            if selected_grades:
+                Grade.objects.filter(pk__in=[g.pk for g in selected_grades]).update(section=instance)
+        return instance
 
 class AcademicYearForm(forms.ModelForm):
     class Meta:

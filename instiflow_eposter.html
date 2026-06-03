@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InstiFlow - E-Poster</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-dark: #3730a3;
+            --secondary: #0ea5e9;
+            --accent: #ec4899;
+            --accent-light: #f472b6;
+            --dark: #0f172a;
+            --dark-light: #1e293b;
+            --dark-lighter: #334155;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --gradient: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            --gradient-accent: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+            --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+            --shadow-glow: 0 0 20px rgba(79, 70, 229, 0.4);
+            --glass: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark);
+            color: var(--text-light);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(79, 70, 229, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(236, 72, 153, 0.15) 0%, transparent 50%);
+        }
+
+        .action-bar {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 1rem;
+            z-index: 100;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .btn-accent {
+            background: var(--gradient-accent);
+            color: white;
+            box-shadow: 0 0 20px rgba(236, 72, 153, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+
+        /* Poster Container - A4 Portrait Aspect Ratio */
+        .poster {
+            width: 794px; /* A4 Width at 96 PPI */
+            height: 1123px; /* A4 Height at 96 PPI */
+            background: var(--dark-light);
+            position: relative;
+            overflow: hidden;
+            border-radius: 24px; /* Removed during print/download */
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--glass-border);
+        }
+
+        .poster-bg {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                url('data:image/svg+xml;utf8,<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg"><circle cx="2" cy="2" r="1" fill="rgba(255,255,255,0.03)"/></svg>'),
+                radial-gradient(circle at 0% 0%, rgba(79, 70, 229, 0.2) 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(236, 72, 153, 0.15) 0%, transparent 40%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .poster-content {
+            position: relative;
+            z-index: 1;
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            letter-spacing: -0.5px;
+        }
+
+        .logo i {
+            color: var(--accent);
+            filter: drop-shadow(0 0 8px rgba(236, 72, 153, 0.6));
+        }
+
+        .tagline {
+            font-weight: 600;
+            color: var(--primary-light);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.85rem;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 90%;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+
+        .hero-image-container {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 1rem 0 3rem 0;
+            position: relative;
+        }
+
+        .hero-image {
+            width: 100%;
+            max-height: 320px;
+            object-fit: cover;
+            border-radius: 16px;
+            box-shadow: var(--shadow), 0 0 40px rgba(79, 70, 229, 0.3);
+            border: 2px solid rgba(255,255,255,0.05);
+        }
+
+        .glow-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(236,72,153,0.1) 0%, transparent 70%);
+            z-index: -1;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+            margin-bottom: 3rem;
+        }
+
+        .feature-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            padding: 1.25rem;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-item::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 2px;
+            background: var(--gradient);
+            opacity: 0.5;
+        }
+
+        .f-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(79, 70, 229, 0.2);
+            color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .feature-item:nth-child(even) .f-icon {
+            background: rgba(236, 72, 153, 0.2);
+            color: var(--accent-light);
+        }
+        
+        .feature-item:nth-child(even)::before {
+            background: var(--gradient-accent);
+        }
+
+        .feature-item h3 {
+            font-size: 1.1rem;
+            color: white;
+            font-weight: 600;
+        }
+
+        .feature-item p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .cta-box {
+            background: var(--gradient);
+            border-radius: 20px;
+            padding: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-glow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-box::after {
+            content: '';
+            position: absolute;
+            top: -50%; right: -10%;
+            width: 50%; height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
+            transform: rotate(-45deg);
+        }
+
+        .cta-text h2 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .cta-text p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .contact-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            text-align: right;
+            z-index: 1;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        /* --- Print/Download Styles --- */
+        @media print {
+            @page { size: A4 portrait; margin: 0; }
+            body { 
+                background: var(--dark-light) !important;
+                padding: 0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .action-bar { display: none !important; }
+            .poster {
+                width: 100% !important;
+                height: 100vh !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+        }
+        
+        .hide-for-capture { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="action-bar no-print">
+        <button class="btn btn-primary" onclick="window.print()">
+            <i class="fa-solid fa-file-pdf"></i> Download PDF
+        </button>
+        <button class="btn btn-accent" id="download-jpeg-btn">
+            <i class="fa-solid fa-image"></i> Download Image (JPEG)
+        </button>
+    </div>
+
+    <!-- The actual Poster Area -->
+    <div class="poster" id="poster-container">
+        <div class="poster-bg"></div>
+        <div class="poster-content">
+            
+            <header>
+                <div class="logo">
+                    <i class="fa-solid fa-layer-group"></i> InstiFlow
+                </div>
+                <div class="tagline">Cloud ERP Solution</div>
+            </header>
+
+            <h1 class="hero-title">The Future of <br>Institution Management.</h1>
+            <p class="hero-subtitle">InstiFlow is a comprehensive, cloud-native ERP designed specifically for modern educational institutions. Say goodbye to scattered spreadsheets.</p>
+
+            <div class="hero-image-container">
+                <div class="glow-ring"></div>
+                <img src="file:///C:/Users/LATITUDE/.gemini/antigravity/brain/35654992-32dc-49cb-9a73-cee7f0d0cfd6/instiflow_hero_1777398385683.png" alt="InstiFlow Dashboard" class="hero-image">
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-item">
+                    <div class="f-icon"><i class="fa-solid fa-user-graduate"></i></div>
+                    <h3>Smart Admissions</h3>
+                    <p>End-to-end digital enrollment tracking & CRM.</p>
+                </div>
+                <div class="feature-item">
+                    <div class="f-icon"><i class="fa-solid fa-wallet"></i></div>
+                    <h3>Finance & Fees</h3>
+                    <p>Automated fee collection, tracking, and deep reporting.</p>
+                </div>
+                <div class="feature-item">
+                    <div class="f-icon"><i class="fa-solid fa-building-user"></i></div>
+                    <h3>Hostel Manager</h3>
+                    <p>Room allocations, attendance, and mess management.</p>
+                </div>
+                <div class="feature-item">
+                    <div class="f-icon"><i class="fa-solid fa-users-gear"></i></div>
+                    <h3>HR & Payroll</h3>
+                    <p>Manage staff attendance, salaries, and performance.</p>
+                </div>
+                <div class="feature-item">
+                    <div class="f-icon"><i class="fa-solid fa-file-signature"></i></div>
+                    <h3>Examinations</h3>
+                    <p>Grade processing, automated report cards, and analytics.</p>
+                </div>
+                <div class="feature-item">
+                    <div class="f-icon"><i class="fa-solid fa-network-wired"></i></div>
+                    <h3>Alumni Network</h3>
+                    <p>Stay connected with graduates and track success metrics.</p>
+                </div>
+            </div>
+
+            <div class="cta-box">
+                <div class="cta-text">
+                    <h2>Ready for the Digital Shift?</h2>
+                    <p>Join top institutions adopting InstiFlow today.</p>
+                </div>
+                <div class="contact-info">
+                    <div class="contact-item"><i class="fa-solid fa-envelope"></i> contact@instiflow.com</div>
+                    <div class="contact-item"><i class="fa-solid fa-globe"></i> www.instiflow.com</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- html2canvas Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        document.getElementById('download-jpeg-btn').addEventListener('click', function() {
+            const poster = document.getElementById('poster-container');
+            const originalBorderRadius = poster.style.borderRadius;
+            const originalBoxShadow = poster.style.boxShadow;
+            
+            // Temporarily remove rounded corners and shadow for a clean image edge
+            poster.style.borderRadius = '0';
+            poster.style.boxShadow = 'none';
+
+            // Use html2canvas to capture the element
+            html2canvas(poster, {
+                scale: 2, // High quality 2x resolution
+                useCORS: true,
+                backgroundColor: '#1e293b' // Match var(--dark-light)
+            }).then(canvas => {
+                // Restore original styles
+                poster.style.borderRadius = originalBorderRadius;
+                poster.style.boxShadow = originalBoxShadow;
+
+                // Create a temporary link to download the image
+                const link = document.createElement('a');
+                link.download = 'InstiFlow_E-Poster.jpeg';
+                // Convert to JPEG with 0.9 quality
+                link.href = canvas.toDataURL('image/jpeg', 0.9);
+                link.click();
+            }).catch(err => {
+                console.error("Error capturing poster:", err);
+                alert("Sorry, there was an error generating the image. Please try downloading as a PDF instead.");
+                
+                // Ensure styles are restored on error
+                poster.style.borderRadius = originalBorderRadius;
+                poster.style.boxShadow = originalBoxShadow;
+            });
+        });
+    </script>
+</body>
+</html>

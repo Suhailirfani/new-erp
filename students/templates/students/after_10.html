@@ -1,0 +1,642 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Career Guide Flipbook | Markaz Hadiya Women's College</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Manjari:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-maroon: #6a0606;
+            --accent-gold: #b8860b;
+            --page-bg: #fff;
+            --book-height: 82vh;
+            --book-width: 700px;
+        }
+
+        body {
+            font-family: 'Manjari', 'Inter', sans-serif;
+            background: #f4f7f6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .cinzel { font-family: 'Cinzel', serif; }
+
+        .book-container {
+            position: relative;
+            width: var(--book-width);
+            height: var(--book-height);
+            transition: transform 0.6s cubic-bezier(0.645, 0.045, 0.355, 1);
+            perspective: 3000px;
+        }
+
+        .book {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+        }
+
+        .page {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            transform-origin: left;
+            transform-style: preserve-3d;
+            transition: transform 1.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+            cursor: pointer;
+        }
+
+        .page-front, .page-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            backface-visibility: hidden;
+            padding: 10mm;
+            box-sizing: border-box;
+            background: var(--page-bg);
+            border: 1px solid rgba(0,0,0,0.08);
+            box-shadow: inset 5px 0 25px rgba(0,0,0,0.03);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page-front::-webkit-scrollbar, .page-back::-webkit-scrollbar { width: 4px; }
+        .page-front::-webkit-scrollbar-thumb, .page-back::-webkit-scrollbar-thumb { background: rgba(106, 6, 6, 0.15); border-radius: 10px; }
+
+        .page-back { transform: rotateY(180deg); background: #fdfdfd; }
+        .page.flipped { transform: rotateY(-180deg); }
+
+        .cover {
+            background: #fff;
+            color: var(--primary-maroon);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border-radius: 0 15px 15px 0;
+            box-shadow: 20px 0 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            border-left: 10px solid var(--primary-maroon);
+        }
+
+        .cover-back { background: var(--primary-maroon); border-radius: 15px 0 0 15px; border-right: 10px solid var(--accent-gold); }
+
+        .nav-controls { margin-top: 15px; display: flex; gap: 15px; z-index: 100; margin-bottom: 10px; }
+
+        .btn-nav {
+            background: white;
+            border: 2px solid var(--primary-maroon);
+            color: var(--primary-maroon);
+            padding: 10px 25px;
+            border-radius: 50px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+            font-size: 0.95rem;
+        }
+
+        .btn-nav:hover:not(:disabled) { background: var(--primary-maroon); color: white; transform: translateY(-2px); }
+        .btn-nav:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .home-btn {
+            background: transparent;
+            color: var(--primary-maroon) !important;
+            border: 2px solid var(--primary-maroon);
+            padding: 10px 18px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+        }
+        .home-btn:hover { background: var(--primary-maroon); color: white !important; }
+
+        .section-title {
+            color: var(--primary-maroon);
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            border-bottom: 4px solid var(--accent-gold);
+            padding-bottom: 12px;
+            line-height: 1.5;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .section-title i { color: var(--accent-gold); font-size: 1.3rem; }
+
+        .content-text { color: #1a202c; line-height: 2; font-size: 1.1rem; }
+        .content-text p { margin-bottom: 1.5rem; }
+
+        .sub-heading {
+            font-weight: 800;
+            color: var(--primary-maroon);
+            display: block;
+            margin-top: 35px;
+            margin-bottom: 15px;
+            font-size: 1.25rem;
+        }
+
+        .highlight-box {
+            background: linear-gradient(to right, rgba(106, 6, 6, 0.05), transparent);
+            border-left: 6px solid var(--primary-maroon);
+            padding: 25px;
+            border-radius: 4px 15px 15px 4px;
+            margin: 30px 0;
+            font-style: italic;
+            color: #2d3748;
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: 1rem; margin: 25px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        th, td { border: 1px solid #edf2f7; padding: 15px; text-align: left; vertical-align: top; }
+        th { background: #f8fafc; color: var(--primary-maroon); font-weight: 800; }
+
+        .visual-img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            border-radius: 20px;
+            margin: 25px 0;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+        }
+
+        .page-number {
+            position: absolute;
+            bottom: 25px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #cbd5e0;
+            left: 0;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            :root { --book-width: 95vw; --book-height: 75vh; }
+            .page-front, .page-back { padding: 40px 25px; }
+            .content-text { font-size: 0.95rem; line-height: 1.8; }
+            .section-title { font-size: 1.2rem; }
+            .nav-controls { margin-top: 10px; }
+            .fixed.top-6 { top: 15px; left: 15px; gap: 8px; }
+            .home-btn { padding: 8px 12px; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="fixed top-6 left-6 z-[200]">
+        <a href="{% url 'students:landing' %}" class="home-btn"><i class="fa-solid fa-house mr-2"></i> Home</a>
+    </div>
+
+    <div class="book-container" id="bookContainer">
+        <div class="book">
+            <!-- Page 1: Cover -->
+            <div class="page" id="p1" style="z-index: 30;">
+                <div class="page-front cover relative">
+                    <div class="relative z-10 p-8 pt-20 flex flex-col items-center">
+                        <div class="flex items-center gap-6 mb-12">
+                            <img src="{% static 'img/M_LOGO.png' %}" alt="Logo" class="w-16 drop-shadow-md grayscale">
+                            <div class="text-left">
+                                <h2 class="cinzel text-3xl tracking-[0.1em] text-maroon-900 font-bold leading-tight">MARKAZ HADIYA</h2>
+                                <h3 class="cinzel text-lg tracking-[0.1em] text-maroon-800 opacity-80">WOMEN'S COLLEGE</h3>
+                            </div>
+                        </div>
+                        <h1 class="text-5xl font-extrabold mb-8 px-8 leading-tight text-maroon-900 text-center">10-ാം ക്ലാസിന് ശേഷം <br><span class="text-accent-gold text-6xl">എന്ത്?</span></h1>
+                        <p class="text-sm opacity-60 uppercase tracking-[0.4em] font-bold text-maroon-900 text-center">Career Guidance Handbook</p>
+                        <div class="mt-24 text-sm opacity-40 animate-bounce text-maroon-900 font-bold text-center">Slide or Click to Begin <i class="fa-solid fa-arrow-right ml-2"></i></div>
+                    </div>
+                </div>
+                <div class="page-back">
+                    <h2 class="section-title"><i class="fa-solid fa-flag-checkered"></i> ഘട്ടം 1: വിജയത്തിന്റെ ഒന്നാം പടി</h2>
+                    <div class="content-text">
+                        <p class="font-bold text-maroon-900 text-xl mb-6">1.1 പ്രിയ കൂട്ടുകാരെ, അഭിനന്ദനങ്ങൾ!</p>
+                        <p>പത്താം ക്ലാസ് (SSLC/CBSE/ICSE) എന്ന നിങ്ങളുടെ ജീവിതത്തിലെ ആദ്യത്തെ വലിയ കടമ്പ നിങ്ങൾ വിജയകരമായി പൂർത്തിയാക്കിയിരിക്കുകയാണ്. കുട്ടിക്കാലത്തുനിന്ന് സ്വന്തം ഭാവിയെക്കുറിച്ച് ചിന്തിച്ചുതുടങ്ങുന്ന കൗമാരപ്രായത്തിലേക്കുള്ള നിങ്ങളുടെ ഔദ്യോഗികമായ ചുവടുവെപ്പാണിത്. ഈ വിജയത്തിന് പിന്നിൽ നിങ്ങളുടെ കഠിനാധ്വാനവും, മാതാപിതാക്കളുടെ പ്രാർത്ഥനയും, അധ്യാപകരുടെ പിന്തുണയുമുണ്ട്. ഈ വിജയനിമിഷത്തിൽ നിങ്ങൾ ഓരോരുത്തരും വലിയ അഭിനന്ദനം അർഹിക്കുന്നു.</p>
+                        <p>എന്നാൽ, ഈ വിജയം ഒരു ലക്ഷ്യസ്ഥാനമല്ല; മറിച്ച്, നിങ്ങളുടെ യഥാർത്ഥ സ്വപ്നങ്ങളിലേക്കുള്ള കവാടം മാത്രമാണ്. പത്താം ക്ലാസ് പരീക്ഷാഫലം വന്നതിനുശേഷമുള്ള ഈ ദിവസങ്ങൾ നിങ്ങളുടെ ജീവിതത്തിലെ ഏറ്റവും നിർണ്ണായകമായ സമയമാണ്. ഇനി നമ്മൾ മുന്നോട്ട് വെക്കുന്ന ഓരോ ചുവടും നമ്മുടെ ജീവിതത്തിന്റെ ദിശ നിർണ്ണയിക്കുന്നവയാണ്.</p>
+                    </div>
+                    <div class="page-number">1</div>
+                </div>
+            </div>
+
+            <!-- Page 2: Importance & Myth -->
+            <div class="page" id="p2" style="z-index: 29;">
+                <div class="page-front">
+                    <div class="content-text">
+                        <span class="sub-heading mt-0">1.2 പത്താം ക്ലാസിന് ശേഷമുള്ള കാലഘട്ടം പ്രധാനമാകുന്നത് എന്തുകൊണ്ട്?</span>
+                        <p>പത്താം ക്ലാസ് വരെ നിങ്ങൾ എല്ലാവരും ഒരേ विषयोंങ്ങളാണ് പഠിച്ചിരുന്നത്. എന്നാൽ ഇവിടെനിന്ന് അങ്ങോട്ട് അങ്ങനെയല്ല. നിങ്ങളുടെ അഭിരുചിക്കും താല്പര്യങ്ങൾക്കും അനുസരിച്ച് വ്യത്യസ്തമായ വഴികൾ (Streams) തിരഞ്ഞെടുക്കാനുള്ള സ്വാതന്ത്ര്യം ആദ്യമായി നിങ്ങൾക്ക് ലഭിക്കുന്നത് ഈ ഘട്ടത്തിലാണ്. നമ്മുടെ ചിന്താശേഷിയും, വ്യക്തിത്വവും, കമ്മ്യൂണിക്കേഷൻ സ്കില്ലുകളും ഏറ്റവും കൂടുതൽ വികസിക്കുന്ന കൗമാരപ്രായത്തിലൂടെയാണ് നിങ്ങൾ കടന്നുപോകുന്നത്. അതുകൊണ്ടുതന്നെ ഈ സമയത്ത് എടുക്കുന്ന ഓരോ തീരുമാനവും വലിയ ഗൗരവമുള്ളതാണ്.</p>
+                        
+                        <span class="sub-heading">1.3 'മികച്ച കോഴ്സ്' എന്ന തെറ്റായ ധാരണ (The Myth of a Perfect Course)</span>
+                        <p>നമ്മുടെ സമൂഹത്തിൽ നിലനിൽക്കുന്ന വലിയൊരു തെറ്റിദ്ധാരണയുണ്ട്—"മാർക്ക് കൂടുതലുണ്ടെങ്കിൽ സയൻസ് എടുക്കണം, മാർക്ക് കുറവാണെങ്കിൽ കൊമേഴ്സ് എടുക്കണം, അതിലും കുറവാണെങ്കിൽ ഹ്യുമാനിറ്റീസ് എടുക്കണം". ഈ ചിന്താഗതി പൂർണ്ണമായും തെറ്റാണ്!</p>
+                    </div>
+                    <div class="page-number">2</div>
+                </div>
+                <div class="page-back">
+                    <div class="content-text">
+                        <p>യാഥാർത്ഥ്യം എന്തെന്നാൽ, ലോകത്ത് ഒന്നിനും കൊള്ളാത്ത ഒരു കോഴ്സുമില്ല, അതുപോലെ എല്ലാവർക്കും അനുയോജ്യമായ ഒരു ഒറ്റപ്പെട്ട കോഴ്സുമില്ല. സയൻസ് പഠിച്ചതുകൊണ്ട് മാത്രം ഒരാൾ വിജയിക്കണമെന്നില്ല. ഹ്യുമാനിറ്റീസോ ഡിപ്ലോമയോ എടുത്ത് കഠിനാധ്വാനം ചെയ്താൽ ലോകത്തിന്റെ നെറുകയിൽ എത്തിയ വലിയൊരു വിഭാഗം ആളുകൾ നമുക്ക് ചുറ്റുമുണ്ട്.</p>
+                        <div class="highlight-box">
+                            നിങ്ങളുടെ മാർക്ക് എത്രയെന്നതല്ല, നിങ്ങളുടെ ഉള്ളിലെ കഴിവ് (Aptitude) എന്താണ് എന്നതിലാണ് കാര്യം. മാർക്ക് കുറഞ്ഞതുകൊണ്ട് മാത്രം നിങ്ങളുടെ കഴിവ് കുറവാണെന്ന് അർത്ഥമില്ല. നിങ്ങൾക്ക് അനുയോജ്യമായ മേഖല ഏതാണെന്ന് കണ്ടെത്തുകയാണ് വിജയത്തിലേക്കുള്ള ആദ്യപടി.
+                        </div>
+                    </div>
+                    <div class="page-number">3</div>
+                </div>
+            </div>
+
+            <!-- Page 3: How to Use -->
+            <div class="page" id="p3" style="z-index: 28;">
+                <div class="page-front">
+                    <div class="content-text">
+                        <span class="sub-heading mt-0">1.4 ഈ ഗൈഡ് നിങ്ങൾ എങ്ങനെ ഉപയോഗിക്കണം?</span>
+                        <p>പത്താം ക്ലാസ് കഴിഞ്ഞ് നിൽക്കുന്ന വിദ്യാർത്ഥികൾക്കും അവരുടെ രക്ഷിതാക്കൾക്കും കൃത്യമായ ഒരു ദിശാബോധം നൽകാനാണ് ഈ ഹാൻഡ്‌ബുക്ക് തയ്യാറാക്കിയിരിക്കുന്നത്.</p>
+                        <ul class="mt-6 space-y-4">
+                            <li>• <strong>വിദ്യാർത്ഥികൾ ചെയ്യേണ്ടത്:</strong> മനസ്സ് തുറന്നു വെക്കുക. എനിക്ക് എന്ത് ചെയ്യാൻ സാധിക്കും എന്ന് സ്വയം ചിന്തിക്കുക.</li>
+                            <li>• <strong>രക്ഷിതാക്കൾ ചെയ്യേണ്ടത്:</strong> നിങ്ങളുടെ കുട്ടികളുടെ മേൽ നിങ്ങളുടെ പഴയകാല ആഗ്രഹങ്ങൾ അടിച്ചേൽപ്പിക്കരുത്. പകരം ഈ ഗൈഡ് അവർക്കൊപ്പം ഇരുന്നു വായിക്കുകയും അവരെ സ്വയം തീരുമാനമെടുക്കാൻ സഹായിക്കുകയും ചെയ്യുക.</li>
+                        </ul>
+                    </div>
+                    <div class="page-number">4</div>
+                </div>
+                <div class="page-back">
+                    <div class="content-text h-full flex flex-col justify-center">
+                        <div class="bg-maroon-50 p-10 rounded-3xl border-l-8 border-maroon-900 shadow-sm">
+                            <p class="italic text-lg text-maroon-900 leading-relaxed">"ഒരു മരത്തിന്റെ ശാഖകൾ പല ദിശയിലേക്ക് വളരുന്നതുപോലെയാണ് പത്താം ക്ലാസിന് ശേഷമുള്ള ജീവിതം. ഏത് ദിശ തിരഞ്ഞെടുത്താലും അവിടെ മികച്ച രീതിയിൽ തളിർക്കാനും പൂക്കാനും നിങ്ങൾക്ക് സാധിക്കണം."</p>
+                        </div>
+                    </div>
+                    <div class="page-number">5</div>
+                </div>
+            </div>
+
+            <!-- Page 4: Phase 2 Aptitude -->
+            <div class="page" id="p4" style="z-index: 27;">
+                <div class="page-front">
+                    <h2 class="section-title"><i class="fa-solid fa-brain"></i> ഘട്ടം 2: അഭിരുചി കണ്ടെത്താം</h2>
+                    <div class="content-text">
+                        <span class="sub-heading mt-0">2.1 താല്പര്യവും അഭിരുചിയും</span>
+                        <p><strong>താല്പര്യം (Interest):</strong> നിങ്ങൾക്ക് ഒരു കാര്യത്തോടുള്ള ഇഷ്ടം അല്ലെങ്കിൽ ആകർഷണം. ഉദാഹരണത്തിന്, സിനിമ കാണാൻ ഇഷ്ടമുള്ള കുട്ടിക്ക് സിനിമയോട് 'താല്പര്യം' ഉണ്ടെന്ന് പറയാം.</p>
+                        <p><strong>അഭിരുചി (Aptitude):</strong> ഒരു കാര്യം കൃത്യമായി ചെയ്യാനും വേഗത്തിൽ പഠിച്ചെടുക്കാനുമുള്ള നിങ്ങളുടെ തലച്ചോറിന്റെ നൈസർഗികമായ കഴിവിനെയാണ് അഭിരുചി എന്ന് പറയുന്നത്.</p>
+                        <div class="bg-blue-50 p-6 rounded-2xl mt-6 italic text-sm">"ക്രിക്കറ്റ് കാണുന്നത് താല്പര്യവും, നന്നായി കളിക്കാൻ കഴിയുന്നത് അഭിരുചിയുമാണ്."</div>
+                    </div>
+                    <div class="page-number">6</div>
+                </div>
+                <div class="page-back">
+                    <div class="content-text">
+                        <span class="sub-heading mt-0">2.2 എട്ട് തരം ബുദ്ധിശക്തികൾ (Multiple Intelligences)</span>
+                        <p class="text-sm">ഓരോ മനുഷ്യനും വ്യത്യസ്ത രീതിയിലുള്ള ബുദ്ധിശക്തിയാണ് ഉള്ളത്. ഇതിൽ ഏതാണ് നിങ്ങൾക്കുള്ളതെന്ന് കണ്ടെത്തുക:</p>
+                        <table class="text-[11px] mt-6">
+                            <tr><th>ബുദ്ധിശക്തിയുടെ തരം</th><th>പ്രത്യേകതകൾ</th></tr>
+                            <tr><td>1. ലോജിക്കൽ</td><td>കണക്കുകൾ, കോഡിങ്, യുക്തിപരമായ കാര്യങ്ങൾ.</td></tr>
+                            <tr><td>2. വെർബൽ</td><td>വായന, എഴുത്ത്, പ്രസംഗം, പുതിയ ഭാഷകൾ.</td></tr>
+                            <tr><td>3. വിഷ്വൽ</td><td>ചിത്രരചന, ഡിസൈൻ, ഭൂപടങ്ങൾ.</td></tr>
+                            <tr><td>4. ബോഡിലി</td><td>കായികം, നൃത്തം, കായികമായ പ്രയത്നം.</td></tr>
+                            <tr><td>5. മ്യൂസിക്കൽ</td><td>പാട്ടുകൾ, സംഗീതോപകരണങ്ങൾ, താളം.</td></tr>
+                        </table>
+                    </div>
+                    <div class="page-number">7</div>
+                </div>
+            </div>
+
+            <!-- Page 5: 8 Intelligences Cont. -->
+            <div class="page" id="p5" style="z-index: 26;">
+                <div class="page-front">
+                    <div class="content-text">
+                        <table class="text-[11px]">
+                            <tr><th>ബുദ്ധിശക്തിയുടെ തരം</th><th>പ്രത്യേകതകൾ</th></tr>
+                            <tr><td>6. ഇന്റർപേഴ്സണൽ</td><td>മറ്റുള്ളവരുടെ വികാരങ്ങൾ മനസ്സിലാക്കാനും നയിക്കാനും.</td></tr>
+                            <tr><td>7. ഇൻട്രാപേഴ്സണൽ</td><td>സ്വന്തം ലക്ഷ്യങ്ങളെയും വികാരങ്ങളെയും തിരിച്ചറിയൽ.</td></tr>
+                            <tr><td>8. നാച്ചുറലിസ്റ്റിക്</td><td>പ്രകൃതി, ചെടികൾ, മൃഗങ്ങൾ എന്നിവയോടുള്ള അറിവ്.</td></tr>
+                        </table>
+                        <p class="mt-10 italic">വിദ്യാർത്ഥികൾക്ക് സ്വയം വിലയിരുത്താൻ 5 ചോദ്യങ്ങൾ ഡയറിയിൽ എഴുതി നോക്കുക. (എന്താണ് എന്റെ ഹോബി? കൂട്ടുകാർ എന്നെ എന്തിനാണ് അഭിനന്ദിക്കുന്നത്? ഇന്റർനെറ്റിൽ ഞാൻ എന്ത് തിരയുന്നു?)</p>
+                    </div>
+                    <div class="page-number">8</div>
+                </div>
+                <div class="page-back">
+                    <h2 class="section-title"><i class="fa-solid fa-compass"></i> ഘട്ടം 3: കോഴ്സ് തിരഞ്ഞെടുക്കുമ്പോൾ</h2>
+                    <div class="content-text">
+                        <span class="sub-heading mt-0">3.1 ഒഴിവാക്കേണ്ട 4 തെറ്റുകൾ</span>
+                        <ul class="space-y-4 mt-6 text-sm">
+                            <li>• <strong>കൂട്ടുകാരുടെ ഒഴുക്ക്:</strong> മറ്റുള്ളവരെ അനുകരിക്കാതെ സ്വന്തം വഴി കണ്ടെത്തുക.</li>
+                            <li>• <strong>മാതാപിതാക്കളുടെ സമ്മർദ്ദം:</strong> കുട്ടിയുടെ അഭിരുചിക്ക് മുൻഗണന നൽകുക.</li>
+                            <li>• <strong>ട്രെൻഡുകളുടെ പിന്നാലെ:</strong> ഭാവിയെക്കുറിച്ച് ദീർഘവീക്ഷണം വേണം.</li>
+                            <li>• <strong>അപകർഷതാബോധം:</strong> ഒരു സ്ട്രീമും മറ്റൊന്നിനേക്കാൾ മോശമല്ല.</li>
+                        </ul>
+                    </div>
+                    <div class="page-number">9</div>
+                </div>
+            </div>
+
+            <!-- Page 6: Phase 4 Science -->
+            <div class="page" id="p6" style="z-index: 25;">
+                <div class="page-front">
+                    <h2 class="section-title"><i class="fa-solid fa-microscope"></i> ഘട്ടം 4: പ്ലസ് ടു സ്ട്രീമുകൾ</h2>
+                    <div class="content-text">
+                        <img src="{% static 'img/career/science.png' %}" alt="Science" class="visual-img">
+                        <span class="sub-heading mt-0">4.1 സയൻസ് സ്ട്രീം (Science Stream)</span>
+                        <p>പലർക്കും PCMB, PCMC എന്നിവയെക്കുറിച്ച് മാത്രമേ ധാരണയുള്ളൂ. എന്നാൽ കേരളത്തിൽ മികച്ച മറ്റ് കോമ്പിനേഷനുകളുണ്ട്:</p>
+                    </div>
+                    <div class="page-number">10</div>
+                </div>
+                <div class="page-back">
+                    <div class="content-text">
+                        <ul class="space-y-4 text-sm">
+                            <li><strong>1. PCBP (Psychology):</strong> മാത്‌സ് ബുദ്ധിമുട്ടുള്ള, മെഡിക്കൽ ലക്ഷ്യമുള്ളവർക്ക്.</li>
+                            <li><strong>2. PCMG (Geology):</strong> ഭൂഗർഭശാസ്ത്രം, മൈനിംഗ് മേഖലകൾക്ക്.</li>
+                            <li><strong>3. PCMS (Statistics):</strong> ഡാറ്റാ അനലിറ്റിക്സ്, ഇൻഷുറൻസ് മേഖലകൾക്ക്.</li>
+                            <li><strong>4. PCBH (Home Science):</strong> ന്യൂട്രീഷൻ, ഫുഡ് സയൻസ് മേഖലകൾക്ക്.</li>
+                        </ul>
+                        <div class="highlight-box text-sm">സയൻസ് എടുക്കുന്നവർക്ക് കഠിനാധ്വാനം അത്യാവശ്യമാണ്. NEET/JEE എൻട്രൻസുകൾക്ക് പ്ലസ് വൺ മുതൽക്കേ തയ്യാറെടുക്കണം.</div>
+                    </div>
+                    <div class="page-number">11</div>
+                </div>
+            </div>
+
+            <!-- Page 7: Science Higher Ed Table -->
+            <div class="page" id="p7" style="z-index: 24;">
+                <div class="page-front">
+                    <div class="content-text">
+                        <span class="sub-heading mt-0">സയൻസ്: ഉപരിപഠനം</span>
+                        <table class="text-[11px]">
+                            <tr><th>മേഖല</th><th>കോഴ്സുകൾ</th><th>എൻട്രൻസ്</th></tr>
+                            <tr><td>മെഡിക്കൽ</td><td>MBBS, BDS, BAMS, BHMS, BVSc</td><td>NEET</td></tr>
+                            <tr><td>പാരാമെഡിക്കൽ</td><td>B.Sc Nursing, BPT, Pharm.D, MLT</td><td>മെറിറ്റ്</td></tr>
+                            <tr><td>എഞ്ചിനീയറിംഗ്</td><td>B.Tech (CS, AI, Mechanical, Civil)</td><td>KEAM, JEE</td></tr>
+                            <tr><td>പ്യുവർ സയൻസ്</td><td>B.Sc, BS-MS (Research)</td><td>CUET, IAT</td></tr>
+                        </table>
+                    </div>
+                    <div class="page-number">12</div>
+                </div>
+                <div class="page-back">
+                    <h2 class="section-title"><i class="fa-solid fa-chart-line"></i> 4.2 കൊമേഴ്സ് സ്ട്രീം</h2>
+                    <div class="content-text">
+                        <img src="{% static 'img/career/commerce.png' %}" alt="Commerce" class="visual-img">
+                        <p>ബിസിനസ്സ് മാനേജ്‌മെന്റ്, അക്കൗണ്ടിംഗ്, നിക്ഷേപങ്ങൾ എന്നിവയോട് താല്പര്യമുള്ളവർക്ക്. CA, CMA, CS എന്നിവയ്ക്ക് മികച്ച അടിത്തറ.</p>
+                        <span class="sub-heading">പ്രധാന കോമ്പിനേഷനുകൾ:</span>
+                        <p class="text-sm">• കൊമേഴ്സ് വിത്ത് മാത്‌സ് / കമ്പ്യൂട്ടർ ആപ്ലിക്കേഷൻ / സ്റ്റാറ്റിസ്റ്റിക്സ്.</p>
+                    </div>
+                    <div class="page-number">13</div>
+                </div>
+            </div>
+
+            <!-- Page 8: Commerce Careers -->
+            <div class="page" id="p8" style="z-index: 23;">
+                <div class="page-front">
+                    <div class="content-text">
+                        <span class="sub-heading mt-0">കൊമേഴ്സ്: ഉപരിപഠനം</span>
+                        <ul class="space-y-4 text-sm">
+                            <li>• <strong>CA (Chartered Accountancy):</strong> ഏറ്റവും മികച്ച പ്രൊഫഷണൽ കോഴ്സ്.</li>
+                            <li>• <strong>CMA / CS / ACCA:</strong> അന്താരാഷ്ട്ര അംഗീകാരമുള്ള ഫിനാൻസ് കോഴ്സുകൾ.</li>
+                            <li>• <strong>B.Com / BBA / BMS:</strong> മാർക്കറ്റിംഗ്, HR മേഖലകൾക്ക്.</li>
+                            <li>• <strong>ആക്ചുറിയൽ സയൻസ്:</strong> ഇൻഷുറൻസ് മേഖലയിലെ ഉയർന്ന ശമ്പളമുള്ള ജോലി.</li>
+                        </ul>
+                    </div>
+                    <div class="page-number">14</div>
+                </div>
+                <div class="page-back">
+                    <h2 class="section-title"><i class="fa-solid fa-landmark"></i> 4.3 ഹ്യുമാനിറ്റീസ്</h2>
+                    <div class="content-text">
+                        <img src="{% static 'img/career/humanities.png' %}" alt="Humanities" class="visual-img">
+                        <p>ചരിത്രം, രാഷ്ട്രീയം, സംസ്കാരം. സിവിൽ സർവീസ് (IAS/IPS) ലക്ഷ്യം വെക്കുന്നവർക്ക് ഏറ്റവും മികച്ച അടിത്തറ.</p>
+                        <span class="sub-heading">പ്രധാന विषयोंങ്ങൾ:</span>
+                        <p class="text-sm">History, Economics, Political Science, Sociology, Psychology, Geography, Law, Media.</p>
+                    </div>
+                    <div class="page-number">15</div>
+                </div>
+            </div>
+
+            <!-- Page 9: Humanities Careers -->
+            <div class="page" id="p9" style="z-index: 22;">
+                <div class="page-front">
+                    <div class="content-text">
+                        <span class="sub-heading mt-0">ഹ്യുമാനിറ്റീസ്: കരിയർ</span>
+                        <ul class="space-y-4 text-sm">
+                            <li>• <strong>നിയമപഠനം (BA LLB):</strong> CLAT, KLEE പരീക്ഷകൾ വഴി.</li>
+                            <li>• <strong>മീഡിയ & ജേണലിസം:</strong> പത്രപ്രവർത്തനം, ആങ്കറിംഗ്.</li>
+                            <li>• <strong>സൈക്കോളജി & സോഷ്യൽ വർക്ക്:</strong> ക്ലിനിക്കൽ സൈക്കോളജി, MSW.</li>
+                            <li>• <strong>ഡിസൈൻ (NIFT, NID):</strong> ഫാഷൻ/ഇന്റീരിയർ ഡിസൈനിങ്.</li>
+                        </ul>
+                    </div>
+                    <div class="page-number">16</div>
+                </div>
+                <div class="page-back">
+                    <h2 class="section-title"><i class="fa-solid fa-school-open"></i> 4.4 സ്കോൾ-കേരള</h2>
+                    <div class="content-text">
+                        <p>റെഗുലർ സ്കൂളിൽ പോകാൻ കഴിയാത്തവർക്ക് സ്കോൾ-കേരള സുവർണ്ണാവസരമാണ്. ഇതിലെ സർട്ടിഫിക്കറ്റ് റെഗുലർ കോഴ്സിന് നൂറു ശതമാനം തുല്യമാണ്.</p>
+                        <ul class="mt-6 space-y-4 text-sm">
+                            <li>• <strong>NEET/KEAM എഴുതാം:</strong> സയൻസ് പഠിച്ചിറങ്ങുന്നവർക്ക് എൻട്രൻസ് എഴുതാൻ തടസ്സമില്ല.</li>
+                            <li>• <strong>സർക്കാർ ജോലി:</strong> PSC, UPSC, ബാങ്ക് പരീക്ഷകൾക്ക് ഈ സർട്ടിഫിക്കറ്റ് യോഗ്യമാണ്.</li>
+                        </ul>
+                    </div>
+                    <div class="page-number">17</div>
+                </div>
+            </div>
+
+            <!-- Page 10: Phase 5 Vocational Intro -->
+            <div class="page" id="p10" style="z-index: 21;">
+                <div class="page-front">
+                    <h2 class="section-title"><i class="fa-solid fa-gears"></i> ഘട്ടം 5: തൊഴിലധിഷ്ഠിത കോഴ്സുകൾ</h2>
+                    <div class="content-text">
+                        <img src="{% static 'img/career/vocational.png' %}" alt="Vocational" class="visual-img">
+                        <span class="sub-heading mt-0">5.1 പോളിടെക്നിക് ഡിപ്ലോമ</span>
+                        <p>3 വർഷത്തെ കോഴ്സ്. പ്രായോഗിക അറിവ്. മെക്കാനിക്കൽ, സിവിൽ, ഇലക്ട്രിക്കൽ, കമ്പ്യൂട്ടർ എഞ്ചിനീയറിംഗ് ബ്രാഞ്ചുകൾ ലഭ്യമാണ്. ബി.ടെക് രണ്ടാം വർഷത്തിലേക്ക് നേരിട്ട് പ്രവേശനം (LET) നേടാം.</p>
+                    </div>
+                    <div class="page-number">18</div>
+                </div>
+                <div class="page-back">
+                    <div class="content-text">
+                        <span class="sub-heading mt-0"><i class="fa-solid fa-tools"></i> 5.2 ഐ.ടി.ഐ കോഴ്സുകൾ (ITI)</span>
+                        <p>തൊഴിൽ നൈപുണ്യത്തിന് (Skills) പ്രാധാന്യം നൽകുന്നു. ഇലക്ട്രീഷ്യൻ, ഫിറ്റർ, മെക്കാനിക് തുടങ്ങിയ ട്രേഡുകൾ. റെയിൽവേ, KSEB, ISRO ജോലികൾക്ക് വഴിതുറക്കുന്നു. വിദേശത്ത് വലിയ ഡിമാൻഡ്.</p>
+                        <span class="sub-heading">5.3 VHSE</span>
+                        <p class="text-sm">പ്ലസ് ടുവിനൊപ്പം തൊഴിൽ പരിശീലനം (Paramedical, Technical, Agri). NSQF സർട്ടിഫിക്കറ്റ് ലഭിക്കുന്നു.</p>
+                    </div>
+                    <div class="page-number">19</div>
+                </div>
+            </div>
+
+            <!-- Page 11: Phase 6 New Age Careers -->
+            <div class="page" id="p11" style="z-index: 20;">
+                <div class="page-front">
+                    <h2 class="section-title"><i class="fa-solid fa-robot"></i> ഘട്ടം 6: പുതിയ കാലത്തെ തൊഴിലുകൾ</h2>
+                    <div class="content-text">
+                        <img src="{% static 'img/career/new_age.png' %}" alt="New Age" class="visual-img">
+                        <span class="sub-heading mt-0">ഭാവിയിലെ കരിയർ തരംഗങ്ങൾ:</span>
+                        <ul class="space-y-4 mt-6 text-sm">
+                            <li>• <strong>AI & ഡാറ്റ സയൻസ്:</strong> പൈത്തൺ പ്രോഗ്രാമിംഗ്, അനാലിസിസ്.</li>
+                            <li>• <strong>ഡിജിറ്റൽ മാർക്കറ്റിംഗ്:</strong> കണ്ടന്റ് ക്രിയേഷൻ, സ്ട്രാറ്റജി.</li>
+                            <li>• <strong>UI/UX & ഡിസൈൻ:</strong> വെബ്/മൊബൈൽ ആപ്പുകൾ ഡിസൈൻ ചെയ്യൽ.</li>
+                        </ul>
+                    </div>
+                    <div class="page-number">20</div>
+                </div>
+                <div class="page-back">
+                    <div class="content-text">
+                        <span class="sub-heading mt-0">അത്യന്താപേക്ഷിതമായ സ്കില്ലുകൾ:</span>
+                        <ul class="space-y-4 text-sm">
+                            <li>1. <strong>കമ്മ്യൂണിക്കേഷൻ & സ്പോക്കൺ ഇംഗ്ലീഷ്:</strong> ആശയവിനിമയ ശേഷി.</li>
+                            <li>2. <strong>ഡിജിറ്റൽ സാക്ഷരത:</strong> കമ്പ്യൂട്ടർ, MS Office, Research.</li>
+                            <li>3. <strong>ക്риട്ടിക്കൽ തിങ്കിംഗ്:</strong> പ്രശ്നപരിഹാര ശേഷി.</li>
+                        </ul>
+                        <div class="bg-black text-white p-6 rounded-2xl mt-10 text-center italic text-sm shadow-xl">
+                            "വിജയിക്കുന്നത് ഏറ്റവും കൂടുതൽ മാർക്കുള്ളവരല്ല, മറിച്ച് മാറ്റങ്ങളോട് പൊരുത്തപ്പെടാൻ തയ്യാറുള്ളവരാണ്."
+                        </div>
+                    </div>
+                    <div class="page-number">21</div>
+                </div>
+            </div>
+
+            <!-- Page 12: Phase 7 Final Checklist -->
+            <div class="page" id="p12" style="z-index: 19;">
+                <div class="page-front">
+                    <h2 class="section-title"><i class="fa-solid fa-list-check"></i> ഘട്ടം 7: അന്തിമ ചെക്ക്‌ലിസ്റ്റ്</h2>
+                    <div class="content-text space-y-4 mt-6">
+                        <label class="flex items-start p-4 bg-gray-50 rounded-xl text-sm border border-gray-100"><input type="checkbox" class="mt-1 mr-3 h-5 w-5"><span>അഭിരുചിക്ക് അനുയോജ്യമാണോ?</span></label>
+                        <label class="flex items-start p-4 bg-gray-50 rounded-xl text-sm border border-gray-100"><input type="checkbox" class="mt-1 mr-3 h-5 w-5"><span>ഈ കോഴ്സിന്റെ സിലബസ് അന്വേഷിച്ചോ?</span></label>
+                        <label class="flex items-start p-4 bg-gray-50 rounded-xl text-sm border border-gray-100"><input type="checkbox" class="mt-1 mr-3 h-5 w-5"><span>സ്ഥാപനത്തിന് സർക്കാർ അംഗീകാരമുണ്ടോ?</span></label>
+                    </div>
+                    <div class="page-number">22</div>
+                </div>
+                <div class="page-back">
+                    <div class="content-text">
+                        <label class="flex items-start p-4 bg-gray-50 rounded-xl text-sm border border-gray-100"><input type="checkbox" class="mt-1 mr-3 h-5 w-5"><span>സ്വയം എടുത്ത തീരുമാനമാണോ?</span></label>
+                        <span class="sub-heading mt-10">ഹെൽപ്പ്ലൈനുകൾ:</span>
+                        <p class="text-[12px]">CG&AC (Career Cell), polyadmission.org, scolekerala.org, ITI അഡ്മിഷൻ പോർട്ടൽ.</p>
+                    </div>
+                    <div class="page-number">23</div>
+                </div>
+            </div>
+
+            <!-- Page 13: Message to Students / Parents -->
+            <div class="page" id="p13" style="z-index: 18;">
+                <div class="page-front">
+                    <h2 class="section-title">വിദ്യാർത്ഥികളോട്...</h2>
+                    <div class="content-text leading-relaxed">നിങ്ങൾ തിരഞ്ഞെടുക്കുന്ന വഴി ഏതുമാകട്ടെ—അതിൽ നൂറു ശതമാനം ആത്മാർത്ഥതയോടെ ശ്രദ്ധ കേന്ദ്രീകരിക്കുക. പത്താം ക്ലാസിലെ മാർക്ക് നിങ്ങളുടെ കരിയറിലെ ഒരു ചെറിയ സൂചന മാത്രമാണ്, അന്തിമ വിധിയല്ല. നിങ്ങളുടെ സ്വപ്നങ്ങൾക്ക് ചിറകുമുളയ്ക്കട്ടെ!</div>
+                    <div class="page-number">24</div>
+                </div>
+                <div class="page-back">
+                    <h2 class="section-title">മാതാപിതാക്കളോട്...</h2>
+                    <div class="content-text leading-relaxed">നിങ്ങളുടെ കുട്ടിയുടെ ജീവിതത്തിലെ ഏറ്റവും നിർണ്ണായകമായ പ്രായമാണിത്. അവരെ മറ്റുള്ളവരുമായി താരതമ്യം ചെയ്ത് മാനസികമായി തളർത്തരുത്. അവർക്ക് ഇഷ്ടമുള്ള മേഖല കണ്ടെത്തി അതിൽ പ്രോത്സാഹനം നൽകുക.</div>
+                    <div class="page-number">25</div>
+                </div>
+            </div>
+
+            <!-- Final Quote -->
+            <div class="page" id="p14" style="z-index: 17;">
+                <div class="page-front bg-maroon-50 flex items-center justify-center text-center p-12">
+                    <p class="text-2xl font-extrabold text-maroon-900 leading-relaxed">"ശരിയായ തീരുമാനവും കഠിനാധ്വാനവും ഒത്തുചേരുമ്പോഴാണ് വിജയം ജനിക്കുന്നത്. നിങ്ങളുടെ ഭാവി നിങ്ങളുടെ കൈകളിലാണ്!"</p>
+                    <div class="page-number">26</div>
+                </div>
+                <div class="page-back"></div>
+            </div>
+
+            <!-- Final Cover Page -->
+            <div class="page" id="p15" style="z-index: 1;">
+                <div class="page-front cover cover-back">
+                    <img src="{% static 'img/M_LOGO.png' %}" alt="Logo" class="w-24 opacity-30 mb-8 grayscale">
+                    <h2 class="cinzel text-xl tracking-[0.3em] text-yellow-500/80 mb-2 font-bold">MARKAZ HADIYA</h2>
+                    <h3 class="cinzel text-sm tracking-[0.1em] mb-12 text-white/40">WOMEN'S COLLEGE</h3>
+                    <div class="text-[10px] text-white/30 uppercase tracking-[0.5em] font-bold">Career Guidance Cell | 2026</div>
+                </div>
+                <div class="page-back bg-gray-50"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="nav-controls">
+        <button class="btn-nav" id="prevBtn" onclick="prevPage()"><i class="fa-solid fa-chevron-left mr-2"></i> Previous</button>
+        <button class="btn-nav" id="nextBtn" onclick="nextPage()">Next <i class="fa-solid fa-chevron-right ml-2"></i></button>
+    </div>
+
+    <script>
+        let currentLoc = 1;
+        let numOfPapers = 15;
+        let maxLoc = numOfPapers + 1;
+
+        const book = document.querySelector("#bookContainer");
+        const nextBtn = document.querySelector("#nextBtn");
+        const prevBtn = document.querySelector("#prevBtn");
+
+        const papers = [];
+        for(let i=1; i<=numOfPapers; i++) {
+            const p = document.querySelector(`#p${i}`);
+            if(p) papers.push(p);
+        }
+
+        function isMobile() { return window.innerWidth <= 768; }
+
+        function openBook() { 
+            if (!isMobile()) book.style.transform = "translateX(50%)"; 
+            else book.style.transform = "translateX(0%)"; 
+        }
+        
+        function closeBook(isAtBeginning) {
+            if (isAtBeginning) book.style.transform = "translateX(0%)";
+            else {
+                if (!isMobile()) book.style.transform = "translateX(100%)";
+                else book.style.transform = "translateX(0%)";
+            }
+        }
+
+        function updateControls() {
+            prevBtn.disabled = currentLoc === 1;
+            nextBtn.disabled = currentLoc === maxLoc;
+        }
+
+        function nextPage() {
+            if(currentLoc < maxLoc) {
+                const paperIndex = currentLoc - 1;
+                const paper = papers[paperIndex];
+                if(paper) {
+                    if(currentLoc === 1) openBook();
+                    paper.classList.add("flipped");
+                    paper.style.zIndex = currentLoc;
+                    if(currentLoc === numOfPapers) closeBook(false);
+                    currentLoc++;
+                    updateControls();
+                }
+            }
+        }
+
+        function prevPage() {
+            if(currentLoc > 1) {
+                const paperIndex = currentLoc - 2;
+                const paper = papers[paperIndex];
+                if(paper) {
+                    if(currentLoc === 2) closeBook(true);
+                    if(currentLoc === maxLoc) openBook();
+                    paper.classList.remove("flipped");
+                    paper.style.zIndex = numOfPapers - paperIndex + 1;
+                    currentLoc--;
+                    updateControls();
+                }
+            }
+        }
+
+        document.addEventListener("keydown", (e) => {
+            if(e.key === "ArrowRight") nextPage();
+            if(e.key === "ArrowLeft") prevPage();
+        });
+
+        let touchstartX = 0;
+        let touchendX = 0;
+        document.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; });
+        document.addEventListener('touchend', e => { touchendX = e.changedTouches[0].screenX; if (touchendX < touchstartX - 50) nextPage(); if (touchendX > touchstartX + 50) prevPage(); });
+
+        window.addEventListener('resize', () => { if (currentLoc > 1 && currentLoc < maxLoc) openBook(); else if (currentLoc === 1) closeBook(true); else closeBook(false); });
+        updateControls();
+    </script>
+</body>
+</html>

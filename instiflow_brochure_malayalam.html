@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ഇൻസ്റ്റിഫ്ലോ - നൂതന സ്ഥാപന മാനേജ്മെന്റ് സിസ്റ്റം</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Manjari:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #3730a3;
+            --secondary: #ec4899;
+            --accent: #8b5cf6;
+            --dark: #0f172a;
+            --dark-lighter: #1e293b;
+            --light: #f8fafc;
+            --text-gray: #64748b;
+            --gradient: linear-gradient(135deg, #4f46e5 0%, #ec4899 100%);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Manjari', 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at top right, rgba(139, 92, 246, 0.1), transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(79, 70, 229, 0.1), transparent 40%);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* --- Header & Hero --- */
+        header {
+            padding: 2rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 900;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            padding: 4rem 0;
+            min-height: 80vh;
+        }
+
+        .hero-content h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+        }
+
+        .hero-content h1 span {
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-content p {
+            font-size: 1.15rem;
+            color: var(--text-gray);
+            margin-bottom: 2.5rem;
+            max-width: 90%;
+            line-height: 1.8;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 1rem 2.5rem;
+            background: var(--gradient);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 25px rgba(79, 70, 229, 0.4);
+        }
+
+        .hero-image {
+            position: relative;
+            border-radius: 30px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transform: perspective(1000px) rotateY(-10deg) rotateX(5deg);
+            transition: transform 0.5s;
+        }
+        
+        .hero-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* --- Stats Section --- */
+        .stats-section {
+            background: white;
+            padding: 3rem 0;
+            border-top: 1px solid rgba(0,0,0,0.05);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            text-align: center;
+        }
+
+        .stat-item h3 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .stat-item p {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-gray);
+        }
+
+        /* --- Features Section --- */
+        .features {
+            padding: 6rem 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-header h2 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .section-header p {
+            color: var(--text-gray);
+            font-size: 1.15rem;
+            max-width: 650px;
+            margin: 0 auto;
+            line-height: 1.8;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2.5rem;
+        }
+
+        .feature-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            padding: 2.5rem;
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(236, 72, 153, 0.1));
+            color: var(--primary);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card p {
+            color: var(--text-gray);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        /* --- Middle Banner --- */
+        .middle-banner {
+            margin: 4rem 0;
+            background: var(--dark-lighter);
+            border-radius: 30px;
+            padding: 0;
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            color: white;
+        }
+
+        .banner-text {
+            padding: 4rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .banner-text h2 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            line-height: 1.4;
+        }
+
+        .banner-text p {
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 2rem;
+            line-height: 1.7;
+        }
+
+        .banner-text ul {
+            font-size: 1.1rem;
+        }
+
+        .banner-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* --- Benefits / Why Us --- */
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin-bottom: 6rem;
+        }
+
+        .benefit-item {
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-start;
+        }
+
+        .benefit-item .icon {
+            font-size: 2rem;
+            color: var(--secondary);
+            background: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            flex-shrink: 0;
+        }
+
+        .benefit-content h4 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+
+        .benefit-content p {
+            color: var(--text-gray);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        /* --- Call to Action --- */
+        .cta-section {
+            text-align: center;
+            background: var(--gradient);
+            padding: 5rem 2rem;
+            border-radius: 30px;
+            color: white;
+            margin-bottom: 4rem;
+            box-shadow: 0 20px 40px rgba(79, 70, 229, 0.4);
+        }
+
+        .cta-section h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+
+        .cta-section p {
+            font-size: 1.25rem;
+            margin-bottom: 2.5rem;
+            opacity: 0.9;
+        }
+
+        .btn-light {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .btn-light:hover {
+            box-shadow: 0 15px 25px rgba(0,0,0,0.2);
+            transform: translateY(-3px);
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: var(--text-gray);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            font-size: 0.9rem;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Utility */
+        .print-only { display: none; }
+        
+        /* --- Print Styles (Hardcoded Landscape) --- */
+        @media print {
+            @page { size: 297mm 210mm; margin: 10mm 15mm; } 
+            body { 
+                background: white !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                font-size: 13px; 
+            }
+            .no-print, .btn { display: none !important; }
+            .print-only { display: block !important; text-align: center; margin-bottom: 2rem; }
+            
+            section, .feature-card, .benefit-item, .middle-banner, .cta-section, .hero, footer {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            
+            /* Hero + Stats on Page 1 */
+            .hero { padding: 0.5rem 0; min-height: auto; gap: 1.5rem; align-items: center; }
+            .hero-content h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+            .hero-content p { font-size: 1.1rem; margin-bottom: 1rem; }
+            .hero-image { transform: none !important; border-radius: 16px; width: 100%; box-shadow: none !important; }
+            .hero-image img { width: 100%; max-height: 300px; object-fit: cover; border-radius: 16px; }
+            .stats-section { padding: 1.5rem 0; margin-bottom: 0; }
+            
+            /* Features on Page 2 */
+            .features { break-before: always; page-break-before: always; padding: 1.5rem 0; }
+            .section-header { margin-bottom: 1.5rem; }
+            .section-header h2 { font-size: 2rem; margin-bottom: 0.5rem; }
+            .features-grid { gap: 1rem; }
+            .feature-card { padding: 1rem; }
+            .feature-icon { margin-bottom: 0.5rem; width: 40px; height: 40px; font-size: 1rem; }
+            .feature-card h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+            .feature-card p { font-size: 0.95rem; }
+            
+            .middle-banner { margin: 1.5rem 0; break-before: always; page-break-before: always; }
+            
+            /* Force CTA to the last page */
+            .cta-section { 
+                page-break-before: always; 
+                break-before: always; 
+                margin-top: 1rem !important; 
+                padding: 2rem !important; 
+            }
+            
+            .page-break { display: none; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="logo">
+                <i class="fa-solid fa-layer-group"></i> InstiFlow
+            </div>
+            <div class="no-print">
+                <a href="mailto:contact@instiflow.com" class="btn">ബന്ധപ്പെടുക</a>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-content">
+                <h1>നിങ്ങളുടെ വിദ്യാഭ്യാസ സ്ഥാപനത്തെ ഇനി <span>കൂടുതൽ സ്മാർട്ടാക്കാം!</span></h1>
+                <p>അഡ്മിഷൻ മുതൽ അലുമിനി വരെ എല്ലാം ഒരൊറ്റ പ്ലാറ്റ്‌ഫോമിൽ. പഴയ ബുക്കുകളും കണക്കുകളും മാറ്റി വെച്ച്, നിങ്ങളുടെ സ്ഥാപനത്തിന്റെ എല്ലാ പ്രവർത്തനങ്ങളും ലളിതവും ഡിജിറ്റലുമാക്കി മാറ്റാൻ ഇൻസ്റ്റിഫ്ലോ നിങ്ങളെ സഹായിക്കുന്നു.</p>
+                <div class="no-print">
+                    <button class="btn" onclick="window.print()">
+                        <i class="fa-solid fa-file-pdf"></i> ബ്രോഷർ ഡൗൺലോഡ് ചെയ്യുക (PDF)
+                    </button>
+                </div>
+                <div class="print-only">
+                    <p><strong>നിങ്ങളുടെ സ്ഥാപനത്തിനനുയോജ്യമായ ഒരു ഡെമോയ്ക്കായി ഞങ്ങളെ ബന്ധപ്പെടുക.</strong></p>
+                </div>
+            </div>
+            <div class="hero-image">
+                <img src="file:///C:/Users/LATITUDE/.gemini/antigravity/brain/35654992-32dc-49cb-9a73-cee7f0d0cfd6/instiflow_hero_1777398385683.png" alt="InstiFlow Premium Dashboard">
+            </div>
+        </section>
+    </div>
+
+    <!-- Stats -->
+    <section class="stats-section">
+        <div class="container stats-grid">
+            <div class="stat-item">
+                <h3>100%</h3>
+                <p>ക്ലൗഡ് അധിഷ്ഠിതം</p>
+            </div>
+            <div class="stat-item">
+                <h3>8+</h3>
+                <p>പ്രധാന മൊഡ്യൂളുകൾ</p>
+            </div>
+            <div class="stat-item">
+                <h3 style="font-size: 2rem; margin-top: 0.5rem; margin-bottom: 0.5rem;">എളുപ്പം</h3>
+                <p>ലളിതമായ ഉപയോഗം</p>
+            </div>
+            <div class="stat-item">
+                <h3>24/7</h3>
+                <p>ഡാറ്റ ആക്സസ്</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="container">
+        <!-- Features -->
+        <section class="features">
+            <div class="section-header">
+                <h2>എല്ലാം വിരൽത്തുമ്പിൽ, ഒരൊറ്റ പ്ലാറ്റ്‌ഫോമിൽ</h2>
+                <p>നിങ്ങളുടെ എല്ലാ ഭരണപരമായ കാര്യങ്ങളും വളരെ മനോഹരമായി രൂപകൽപ്പന ചെയ്ത ഒരൊറ്റ പ്ലാറ്റ്‌ഫോമിൽ ഇൻസ്റ്റിഫ്ലോ ബന്ധിപ്പിക്കുന്നു.</p>
+            </div>
+
+            <div class="features-grid">
+                <!-- Feature 1 -->
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-user-graduate"></i></div>
+                    <h3>അക്കാദമിക്സും വിദ്യാർത്ഥികളും</h3>
+                    <p>അഡ്മിഷൻ എൻക്വയറി മുതൽ ദൈനംദിന ഹാജർ, സെക്ഷൻ അസൈൻമെന്റുകൾ, പ്രോഗ്രസ് റിപ്പോർട്ടിംഗ് വരെ വിദ്യാർത്ഥികളുടെ പൂർണ്ണവിവരങ്ങൾ കൈകാര്യം ചെയ്യുക.</p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-wallet"></i></div>
+                    <h3>സാമ്പത്തിക മാനേജ്മെന്റ്</h3>
+                    <p>തത്സമയ ഫീസ് ട്രാക്കിംഗ്, കസ്റ്റം ഫീസ് സ്ട്രക്ച്ചറുകൾ, ഓട്ടോമാറ്റിക് രസീത്, കൂടാതെ സമഗ്രമായ ഫിനാൻഷ്യൽ ഡാഷ്‌ബോർഡുകൾ.</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-building-user"></i></div>
+                    <h3>ഹോസ്റ്റൽ മാനേജ്മെന്റ്</h3>
+                    <p>റൂം അലോക്കേഷൻ, വിദ്യാർത്ഥികളുടെ യാത്രകൾ, ചെക്ക്-ഇൻ, ചെക്ക്-ഔട്ട്, ഹോസ്റ്റൽ ഫീസ് കളക്ഷൻ എന്നിവ കൃത്യമായി നിരീക്ഷിക്കുക.</p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-briefcase"></i></div>
+                    <h3>HR & കരിയർ പോർട്ടൽ</h3>
+                    <p>ജോബ് പോർട്ടൽ ഉൾപ്പെടുത്തിയിരിക്കുന്നു. ഒഴിവുകൾ പ്രസിദ്ധീകരിക്കുക, അപേക്ഷകൾ സ്വീകരിക്കുക, അപേക്ഷകരുടെ നില കാര്യക്ഷമമായി ട്രാക്ക് ചെയ്യുക.</p>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-file-pen"></i></div>
+                    <h3>പരീക്ഷകളും മാർക്കുകളും</h3>
+                    <p>പരീക്ഷാ രീതികൾ ക്രമീകരിക്കുക, സുരക്ഷിതമായി മാർക്കുകൾ രേഖപ്പെടുത്തുക, വിശദമായ പ്രോഗ്രസ് റിപ്പോർട്ടുകൾ സ്വയമേവ തയ്യാറാക്കുക.</p>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-network-wired"></i></div>
+                    <h3>അലുമിനി നെറ്റ്‌വർക്ക്</h3>
+                    <p>പഠിച്ചിറങ്ങിയവരുമായി എക്കാലവും ബന്ധം നിലനിർത്തുക. പൂർവ്വവിദ്യാർത്ഥികളെ സ്വയമേവ അലുമിനി രജിസ്ട്രിയിലേക്ക് മാറ്റുന്നു.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Page Break for Print -->
+        <div class="page-break"></div>
+
+        <!-- Middle Banner -->
+        <section class="middle-banner">
+            <div class="banner-text">
+                <h2>സാങ്കേതികവിദ്യയുടെ കരുത്തോടെ, നിങ്ങളുടെ സ്ഥാപനം ഒരുപടി മുന്നിൽ!</h2>
+                <p>ഡിജിറ്റൽ മാറ്റം അനിവാര്യമായ ഈ കാലത്ത്, നിങ്ങളുടെ ഭരണപരമായ കാര്യങ്ങൾ തലവേദനയില്ലാതെ നടത്താൻ ഇൻസ്റ്റിഫ്ലോ സഹായിക്കുന്നു. ഉപയോഗിക്കാൻ ഏറ്റവും എളുപ്പമുള്ളതും അതിമനോഹരവുമായ ഡിസൈൻ.</p>
+                <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.75rem;">
+                    <li><i class="fa-solid fa-check text-accent" style="color: #ec4899; margin-right: 10px;"></i> ഏത് ഉപകരണത്തിലും ഉപയോഗിക്കാം</li>
+                    <li><i class="fa-solid fa-check text-accent" style="color: #ec4899; margin-right: 10px;"></i> വിപുലമായ ആക്സസ് കൺട്രോൾ</li>
+                    <li><i class="fa-solid fa-check text-accent" style="color: #ec4899; margin-right: 10px;"></i> എളുപ്പത്തിൽ ബൾക്ക് ഡാറ്റ ഇമ്പോർട്ട്</li>
+                </ul>
+            </div>
+            <div class="banner-image">
+                <img src="file:///C:/Users/LATITUDE/.gemini/antigravity/brain/35654992-32dc-49cb-9a73-cee7f0d0cfd6/instiflow_dashboard_mockup_1777398412882.png" alt="InstiFlow Analytics">
+            </div>
+        </section>
+
+        <!-- Why Choose Us -->
+        <section class="benefits">
+            <div class="section-header" style="text-align: left; margin-bottom: 3rem;">
+                <h2>എന്തുകൊണ്ട് ഇൻസ്റ്റിഫ്ലോ തന്നെ തിരഞ്ഞെടുക്കണം?</h2>
+            </div>
+            
+            <div class="benefits-grid">
+                <div class="benefit-item">
+                    <div class="icon"><i class="fa-solid fa-bolt"></i></div>
+                    <div class="benefit-content">
+                        <h4>സമയനഷ്ടമില്ലാതെ, അതിവേഗ പ്രവർത്തനം</h4>
+                        <p>ആധുനിക വെബ് ഫ്രെയിംവർക്കുകളിൽ (Django/Python) നിർമ്മിച്ചിരിക്കുന്നതിനാൽ മികച്ച വേഗതയും കൂടുതൽ കാര്യക്ഷമതയും ഉറപ്പാക്കുന്നു.</p>
+                    </div>
+                </div>
+                <div class="benefit-item">
+                    <div class="icon"><i class="fa-solid fa-shield-halved"></i></div>
+                    <div class="benefit-content">
+                        <h4>നൂറുശതമാനം സുരക്ഷിതമായ ഡാറ്റാബേസ്</h4>
+                        <p>റോൾ അടിസ്ഥാനമാക്കിയുള്ള ആക്സസ് കൺട്രോൾ (Admin, Teacher, Accountant, Student) ഉപയോഗിച്ച് നിങ്ങളുടെ സ്ഥാപനത്തിന്റെ ഡാറ്റ സുരക്ഷിതമായി സംരക്ഷിക്കപ്പെടുന്നു.</p>
+                    </div>
+                </div>
+                <div class="benefit-item">
+                    <div class="icon"><i class="fa-solid fa-chart-pie"></i></div>
+                    <div class="benefit-content">
+                        <h4>വികസനത്തിന് കുതിപ്പേകാൻ കൃത്യമായ ഡാറ്റ</h4>
+                        <p>ഹാജർ, സാമ്പത്തികം, മറ്റ് വിവരങ്ങൾ എന്നിവ തത്സമയം അറിയാൻ ഡാഷ്‌ബോർഡ് അനലിറ്റിക്‌സ് സഹായിക്കുന്നു.</p>
+                    </div>
+                </div>
+                <div class="benefit-item">
+                    <div class="icon"><i class="fa-solid fa-handshake-angle"></i></div>
+                    <div class="benefit-content">
+                        <h4>നിങ്ങൾക്ക് എപ്പോഴും സഹായത്തിനായി ഞങ്ങളുണ്ട്</h4>
+                        <p>ഞങ്ങൾ മികച്ച പരിശീലനവും, ഡാറ്റാ മൈഗ്രേഷൻ സഹായവും, നിരന്തരമായ സാങ്കേതിക പിന്തുണയും നൽകുന്നു.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="cta-section">
+            <h2>കേരളത്തിലെ മികച്ച സ്ഥാപനങ്ങളോടൊപ്പം നിങ്ങളും ഡിജിറ്റൽ മാറ്റത്തിന് തയ്യാറാണോ?</h2>
+            <a href="mailto:contact@instiflow.com" class="btn btn-light no-print">ഒരു ഡെമോ ബുക്ക് ചെയ്യുക</a>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <p>&copy; 2026 InstiFlow ERP Solutions. All rights reserved.</p>
+        </footer>
+    </div>
+</body>
+</html>

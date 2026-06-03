@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}MARKAZ HADIYA WOMEN'S COLLEGE{% endblock %}</title>
-    {% load static %}
-    <link rel="icon" type="image/png" href="{% static 'img/M_LOGO.png' %}">
-    <link rel="shortcut icon" type="image/png" href="{% static 'img/M_LOGO.png' %}">
-    <link rel="apple-touch-icon" type="image/png" href="{% static 'img/M_LOGO.png' %}">
+    <title>New Enquiry - Student Attendance System</title>
+    
+    <link rel="icon" type="image/png" href="/static/img/M_LOGO.png">
+    <link rel="shortcut icon" type="image/png" href="/static/img/M_LOGO.png">
+    <link rel="apple-touch-icon" type="image/png" href="/static/img/M_LOGO.png">
     
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -50,6 +50,8 @@
             color: var(--dark);
             min-height: 100vh;
             line-height: 1.6;
+            display: flex; /* Sidebar and Main Layout */
+            flex-direction: row;
             position: relative;
             overflow-x: hidden;
             letter-spacing: -0.01em;
@@ -62,7 +64,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: url("{% static 'img/edu_texture.png' %}") repeat;
+            background: url("/static/img/edu_texture.png") repeat;
             opacity: 0.03; /* Ultra faint watermark */
             z-index: -1;
             pointer-events: none;
@@ -86,7 +88,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: url("{% static 'img/edu_texture.png' %}") repeat;
+            background: url("/static/img/edu_texture.png") repeat;
             opacity: 0.02;
             z-index: -1;
             pointer-events: none;
@@ -180,6 +182,7 @@
         }
 
         .main-workspace {
+            flex: 1;
             margin-left: 280px; /* Sidebar width */
             padding: 0;
             min-height: 100vh;
@@ -423,35 +426,6 @@
         
         
         /* Glass Card Utility */
-        .table-wrapper {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-        }
-        
-        .table-wrapper::-webkit-scrollbar {
-            height: 8px;
-        }
-        .table-wrapper::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 4px;
-        }
-        .table-wrapper::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-        .table-wrapper::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-        
-        .table-wrapper table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 800px;
-        }
-
         .glass-card {
             background: var(--glass-bg);
             backdrop-filter: var(--glass-blur);
@@ -1419,7 +1393,27 @@
             }
         }
     </style>
-    {% block extra_css %}{% endblock %}
+    
+<style>
+    /* Hide navigation for public page */
+    .navbar, .nav-sidebar, .hamburger, .page-header { display: none !important; }
+    
+    /* Center the form nicely */
+    .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding-top: 2rem !important;
+        padding-bottom: 2rem !important;
+    }
+    .card {
+        width: 100%;
+        max-width: 600px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+    }
+</style>
+
 </head>
 <body>
     <!-- Mobile Navigation Overlay -->
@@ -1433,128 +1427,26 @@
         </div>
         
         <div class="nav-sidebar-items">
-            <a href="{% url 'students:home' %}" class="nav-item active">
+            <a href="/home/" class="nav-item active">
                 <i class="fa-solid fa-house"></i>
 
                 <span>Dashboard</span>
             </a>
             
-            {% if request.user.is_superuser or request.user.profile.role in 'admin,teacher,accountant' %}
-            <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">Academics</div>
-            <a href="{% url 'students:student_list' %}" class="nav-item">
-                <i class="fa-solid fa-users"></i>
-                <span>Students</span>
-            </a>
-            <a href="{% url 'students:alumni_list' %}" class="nav-item">
-                <i class="fa-solid fa-user-graduate"></i>
-                <span>Alumni Registry</span>
-            </a>
-            <a href="{% url 'students:attendance_list' %}" class="nav-item">
-                <i class="fa-solid fa-calendar-check"></i>
-                <span>Attendance</span>
-            </a>
-            <a href="{% url 'students:examination_dashboard' %}" class="nav-item">
-                <i class="fa-solid fa-graduation-cap"></i>
-                <span>Examination</span>
-            </a>
-            {% endif %}
-
-            {% if request.user.is_superuser or request.user.profile.role in 'admin,accountant,ntstaff' %}
-            <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">Human Resources</div>
-            <a href="{% url 'students:job_vacancy_list_admin' %}" class="nav-item">
-                <i class="fa-solid fa-briefcase"></i>
-                <span>Job Vacancies</span>
-            </a>
-            <a href="{% url 'students:job_application_list_admin' %}" class="nav-item">
-                <i class="fa-solid fa-file-invoice"></i>
-                <span>Applications</span>
-            </a>
             
-            <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">Operations</div>
-            <div class="nav-group">
-                <a href="#" class="nav-item nav-dropdown-btn" onclick="event.preventDefault(); const content = this.nextElementSibling; const icon = this.querySelector('.arrow'); const isClosed = content.style.display === 'none' || content.style.display === ''; content.style.display = isClosed ? 'block' : 'none'; icon.style.transform = isClosed ? 'rotate(180deg)' : 'none';">
-                    <i class="fa-solid fa-user-plus"></i>
-                    <span>Enquiries</span>
-                    <i class="fa-solid fa-chevron-down arrow" style="margin-left: auto; font-size: 0.8rem; transition: transform 0.3s;"></i>
-                </a>
-                <div class="nav-group-content" style="display: none; padding-left: 1.5rem; margin-top: 0.25rem;">
-                    <a href="{% url 'students:enquiry_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
-                        <i class="fa-solid fa-list-ul" style="font-size: 0.9rem;"></i>
-                        <span>Admission List</span>
-                    </a>
-                    <a href="{% url 'students:enquiry_create' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
-                        <i class="fa-solid fa-file-signature" style="font-size: 0.9rem;"></i>
-                        <span>Admission Form</span>
-                    </a>
-                    <a href="{% url 'awaze_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
-                        <i class="fa-solid fa-campground" style="font-size: 0.9rem;"></i>
-                        <span>Camp Enquiries</span>
-                    </a>
-                    <a href="{% url 'awaze_register' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
-                        <i class="fa-solid fa-tent" style="font-size: 0.9rem;"></i>
-                        <span>Camp Form</span>
-                    </a>
-                </div>
-            </div>
-            <a href="{% url 'fees:finance_dashboard' %}" class="nav-item">
-                <i class="fa-solid fa-wallet"></i>
-                <span>Finance</span>
-            </a>
-            <a href="{% url 'students:hostel_movement_list' %}" class="nav-item">
-                <i class="fa-solid fa-bed"></i>
-                <span>Hostel</span>
-            </a>
-            {% endif %}
 
-            {% if request.user.is_superuser or request.user.profile.role == 'admin' %}
-            <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">System</div>
-            <div class="nav-group">
-                <a href="#" class="nav-item nav-dropdown-btn" onclick="event.preventDefault(); const content = this.nextElementSibling; const icon = this.querySelector('.arrow'); const isClosed = content.style.display === 'none' || content.style.display === ''; content.style.display = isClosed ? 'block' : 'none'; icon.style.transform = isClosed ? 'rotate(180deg)' : 'none';">
-                    <i class="fa-solid fa-gears"></i>
-                    <span>Settings</span>
-                    <i class="fa-solid fa-chevron-down arrow" style="margin-left: auto; font-size: 0.8rem; transition: transform 0.3s;"></i>
-                </a>
-                <div class="nav-group-content" style="display: none; padding-left: 1.5rem; margin-top: 0.25rem;">
-                    <a href="{% url 'students:academic_year_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
-                        <i class="fa-solid fa-calendar-days" style="font-size: 0.9rem;"></i>
-                        <span>Academic Years</span>
-                    </a>
-                    <a href="{% url 'students:grade_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
-                        <i class="fa-solid fa-graduation-cap" style="font-size: 0.9rem;"></i>
-                        <span>Grades / Classes</span>
-                    </a>
-                    <a href="{% url 'students:division_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
-                        <i class="fa-solid fa-cubes" style="font-size: 0.9rem;"></i>
-                        <span>Divisions</span>
-                    </a>
-                    <a href="{% url 'students:section_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
-                        <i class="fa-solid fa-puzzle-piece" style="font-size: 0.9rem;"></i>
-                        <span>Sections</span>
-                    </a>
-                    <a href="{% url 'students:subject_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
-                        <i class="fa-solid fa-book" style="font-size: 0.9rem;"></i>
-                        <span>Subjects</span>
-                    </a>
-                </div>
-            </div>
-            {% endif %}
+            
+
+            
         </div>
 
         <div style="margin-top: auto; padding-top: 2rem;">
-            {% if user.is_authenticated %}
-            <form action="{% url 'logout' %}" method="post">
-                {% csrf_token %}
-                <button type="submit" class="nav-item" style="width: 100%; border: none; background: none; cursor: pointer; color: #ef4444; text-align: left;">
-                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                    <span>Log Out</span>
-                </button>
-            </form>
-            {% else %}
-            <a href="{% url 'login' %}" class="nav-item">
+            
+            <a href="/login/" class="nav-item">
                 <i class="fa-solid fa-sign-in-alt"></i>
                 <span>Log In</span>
             </a>
-            {% endif %}
+            
         </div>
     </aside>
 
@@ -1565,38 +1457,137 @@
                     <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">
                         <i class="fa-solid fa-bars-staggered"></i>
                     </button>
-                    <div class="page-title">{% block page_heading %}{% endblock %}</div>
+                    <div class="page-title"></div>
                 </div>
                 
                 <div style="display: flex; align-items: center; gap: 1.5rem;">
                     <div class="user-meta">
-                        <div style="font-weight: 700; font-size: 0.9rem; color: var(--dark);">{{ request.user.first_name|default:request.user.username }}</div>
-                        <div style="font-size: 0.75rem; color: var(--gray);">{{ request.user.profile.get_role_display|default:"Administrator" }}</div>
+                        <div style="font-weight: 700; font-size: 0.9rem; color: var(--dark);"></div>
+                        <div style="font-size: 0.75rem; color: var(--gray);">Administrator</div>
                     </div>
                     <div class="user-avatar" style="width: 42px; height: 42px; border-radius: 14px; background: var(--gradient-lavender); display: flex; align-items: center; justify-content: center; color: var(--primary); font-weight: 800; border: 1px solid var(--border); box-shadow: var(--shadow-soft);">
-                        {{ request.user.username|first|upper }}
+                        
                     </div>
                 </div>
             </div>
         </nav>
 
         <div class="container">
-            {% if messages %}
-            <div class="messages">
-                {% for message in messages %}
-                <div class="message {{ message.tags }}">
-                    {% if message.tags == 'success' %}
-                    <i class="fa-solid fa-circle-check"></i>
-                    {% elif message.tags == 'error' %}
-                    <i class="fa-solid fa-circle-exclamation"></i>
-                    {% endif %}
-                    {{ message }}
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
+            
 
-            {% block content %}{% endblock %}
+            
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <h2 style="margin-bottom: 0.5rem;">New Student Enquiry</h2>
+    <p style="color: #666; margin-bottom: 2rem;">Register a new prospective student enquiry and their desired course.</p>
+    
+    <form method="post">
+        <input type="hidden" name="csrfmiddlewaretoken" value="yFiOOIwxYiSKW71IZCxBtd3OSqwlidHa9qPLPhPmjAtHHzy0aSuTwIJsVTxPnghT">
+        
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Full Name *</label>
+            <input type="text" name="name" class="form-control" placeholder="Full Name" maxlength="100" required id="id_name">
+            
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Phone Number *</label>
+            <input type="text" name="phone" class="form-control" placeholder="Phone Number" maxlength="15" required id="id_phone">
+            
+        </div>
+
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Section *</label>
+            <select name="section" class="form-control" required id="id_section">
+  <option value="" selected>---------</option>
+
+  <option value="4">PRE SCHOOL</option>
+
+  <option value="1">Higher Secondary</option>
+
+  <option value="2">Degree</option>
+
+  <option value="3">Diploma</option>
+
+</select>
+            
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Desired Course *</label>
+            <select name="course" id="id_course" class="form-control" required>
+                <option value="" selected>---------</option>
+            </select>
+            
+        </div>
+
+        <div class="form-group" style="margin-bottom: 2rem;">
+            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">District *</label>
+            <input type="text" name="district" class="form-control" placeholder="District" maxlength="100" required id="id_district">
+            
+        </div>
+
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">Submit Enquiry</button>
+            <a href="/enquiries/" class="btn" style="background-color: #f8f9fa; color: #333; border: 1px solid #ddd; flex: 1; text-align: center;">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<!-- Pass data to JS securely and linter-friendly -->
+<script id="divisions-data" type="application/json">
+    [{"id": 4, "name": "B A ENGLISH", "section_id": 2}, {"id": 6, "name": "B A SOCIOLOGY", "section_id": 2}, {"id": 5, "name": "B COM", "section_id": 2}, {"id": 1, "name": "Commerce", "section_id": 1}, {"id": 2, "name": "Humanities", "section_id": 1}, {"id": 7, "name": "PPTTC", "section_id": 3}, {"id": 3, "name": "Science", "section_id": 1}]
+</script>
+
+<script>
+(function() {
+    'use strict';
+    document.addEventListener('DOMContentLoaded', function() {
+        const sectionSelect = document.getElementById('id_section');
+        const courseSelect = document.getElementById('id_course');
+        const divisionsElement = document.getElementById('divisions-data');
+        
+        if (!sectionSelect || !courseSelect || !divisionsElement) return;
+
+        let divisionsData = [];
+        try {
+            divisionsData = JSON.parse(divisionsElement.textContent);
+        } catch (e) {
+            console.error('Error parsing divisions data', e);
+        }
+
+        const currentCourseVal = "";
+        
+        function updateCourseOptions() {
+            const selectedSectionId = sectionSelect.value;
+            courseSelect.innerHTML = '<option value="" selected>---------</option>';
+            
+            if (selectedSectionId) {
+                const filteredDivisions = divisionsData.filter(function(d) {
+                    return d.section_id.toString() === selectedSectionId.toString();
+                });
+
+                filteredDivisions.forEach(function(div) {
+                    const option = document.createElement('option');
+                    option.value = div.id;
+                    option.textContent = div.name;
+                    if (div.id.toString() === currentCourseVal.toString()) {
+                        option.selected = true;
+                    }
+                    courseSelect.appendChild(option);
+                });
+            }
+        }
+
+        // Initialize on load
+        updateCourseOptions();
+        
+        // Update on change
+        sectionSelect.addEventListener('change', updateCourseOptions);
+    });
+})();
+</script>
+
         </div> <!-- End container -->
 
         <!-- Footer Section -->
@@ -1615,8 +1606,8 @@
                     <h4 style="font-weight: 700; color: var(--dark); margin-bottom: 0.75rem; font-size: 1.1rem;">Quick Navigation</h4>
                     <ul style="list-style: none; padding: 0;">
                         <li style="margin-bottom: 0.4rem;"><a href="/" style="color: var(--gray); text-decoration: none; font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--gray)'">Dashboard Home</a></li>
-                        <li style="margin-bottom: 0.4rem;"><a href="{% url 'students:enquiry_list' %}" style="color: var(--gray); text-decoration: none; font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--gray)'">Manage Enquiries</a></li>
-                        <li style="margin-bottom: 0.4rem;"><a href="{% url 'students:student_list' %}" style="color: var(--gray); text-decoration: none; font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--gray)'">Student Directory</a></li>
+                        <li style="margin-bottom: 0.4rem;"><a href="/enquiries/" style="color: var(--gray); text-decoration: none; font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--gray)'">Manage Enquiries</a></li>
+                        <li style="margin-bottom: 0.4rem;"><a href="/students/" style="color: var(--gray); text-decoration: none; font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--gray)'">Student Directory</a></li>
                     </ul>
                 </div>
 
@@ -1669,17 +1660,7 @@
         const currentPath = window.location.pathname;
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => {
-            const href = item.getAttribute('href');
-            let isMatch = (href && href !== '#' && currentPath === href);
-            
-            // Highlight Examination sidebar item on any examination sub-page
-            if (href && href.includes('examination/dashboard')) {
-                if (currentPath.includes('/examination/') || currentPath.includes('/marks/') || currentPath.includes('/exam-types/')) {
-                    isMatch = true;
-                }
-            }
-            
-            if (isMatch) {
+            if (item.getAttribute('href') === currentPath) {
                 navItems.forEach(nav => nav.classList.remove('active'));
                 item.classList.add('active');
                 
@@ -1696,6 +1677,6 @@
         });
     </script>
 
-    {% block extra_js %}{% endblock %}
+    
 </body>
 </html>

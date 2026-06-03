@@ -3,7 +3,12 @@
 {% block title %}Create Exam Type - Student Attendance System{% endblock %}
 
 {% block content %}
-<h1>Create Exam Type</h1>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <h1>Create Exam Type</h1>
+    <a href="{% url 'students:examination_dashboard' %}" class="btn btn-secondary">
+        <i class="fa-solid fa-arrow-left"></i> Dashboard
+    </a>
+</div>
 
 <div class="card">
     <form method="post">
@@ -53,6 +58,11 @@
             <small style="display: block; margin-top: 0.5rem; color: #666;">
                 Lower numbers appear first in lists (e.g., 1, 2, 3...)
             </small>
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <input type="checkbox" name="is_published" id="is_published" style="width: auto !important; margin: 0 !important;">
+            <label for="is_published" style="font-weight: bold; cursor: pointer; margin: 0;">Publish Results (Make visible to students/parents)</label>
         </div>
         
         <button type="submit" class="btn btn-success">Create Exam Type</button>

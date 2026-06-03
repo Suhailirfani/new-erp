@@ -1,0 +1,294 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fee Calculator - {{ selected_division.name }} | MARKAZ HADIYA</title>
+    <link rel="icon" type="image/png" href="{% static 'img/M_LOGO.png' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6a0606;
+            --accent: #a00000;
+            --text-gold: #f1c40f;
+            --glass: rgba(106, 6, 6, 0.2);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --dark-bg: #2a0404;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: white;
+            background: var(--dark-bg);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Hero Section */
+        .page-hero {
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), 
+                        url('{% static "images/college_hero_niqab_full.png" %}') center/cover no-repeat;
+            border-bottom: 2px solid var(--text-gold);
+        }
+
+        .hero-title {
+            font-family: 'Cinzel', serif;
+            font-size: clamp(1.5rem, 4vw, 2.2rem);
+            color: var(--text-gold);
+            text-shadow: 2px 2px 20px rgba(0,0,0,0.5);
+            margin-bottom: 5px;
+        }
+
+        .section {
+            padding: 10px 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Calculator Section */
+        #calculator {
+            background: rgba(255,255,255,0.03);
+            border-radius: 20px;
+            padding: 15px 25px;
+            border: 1px solid var(--glass-border);
+            margin-bottom: 20px;
+        }
+
+        .calc-form {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 15px;
+            background: var(--glass);
+            padding: 10px 20px;
+            border-radius: 15px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-grow: 1;
+        }
+
+        label {
+            font-weight: 600;
+            color: var(--text-gold);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        select {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 1rem;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--text-gold);
+        }
+
+        .btn-calculate {
+            background: #a00000;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            height: 54px;
+            white-space: nowrap;
+        }
+
+        .btn-calculate:hover {
+            background: #c00000;
+            transform: translateY(-2px);
+        }
+
+        /* Fee Results */
+        .fee-results {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .year-section {
+            background: var(--glass);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+        }
+
+        .year-header {
+            background: rgba(160, 0, 0, 0.4);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .year-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.3rem;
+            color: var(--text-gold);
+        }
+
+        .fee-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .fee-table th, .fee-table td {
+            padding: 10px 20px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .fee-table th {
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            opacity: 0.6;
+        }
+
+        .fee-item-name { font-weight: 500; }
+        .fee-amount { text-align: right; font-weight: 600; font-family: monospace; font-size: 1.1rem; color: #fff; }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            opacity: 0.6;
+            font-style: italic;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 10px;
+            color: var(--text-gold);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .back-link:hover {
+            color: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .calc-form { flex-direction: column; align-items: stretch; }
+            .section { padding: 40px 15px; }
+            #calculator { padding: 30px 20px; }
+            .year-header { flex-direction: column; align-items: flex-start; gap: 5px; }
+            .fee-table th, .fee-table td { padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="page-hero">
+        <div class="hero-content">
+            <h1 class="hero-title">{{ selected_division.name }}</h1>
+            <p style="opacity: 0.9; font-size: 0.9rem; max-width: 600px; margin: 0 auto;">
+                {% if selected_division.description %}{{ selected_division.description }}{% else %}Comprehensive professional training with experienced faculty and modern facilities.{% endif %}
+            </p>
+        </div>
+    </header>
+
+    <section class="section">
+        <a href="{% url 'students:courses_and_fees' %}" class="back-link"><i class="fas fa-arrow-left"></i> Back to Courses</a>
+        
+        <div id="calculator">
+            <h2 style="font-family: 'Playfair Display', serif; font-size: 1.2rem; margin-bottom: 10px; text-align: center; color: rgba(255,255,255,0.8);">Fee Calculator</h2>
+            
+            <form class="calc-form" method="GET" action="{% url 'students:course_fee_calculator' selected_division.id %}">
+                <div class="form-group">
+                    <label for="admission_type" style="margin-bottom: 0;">I am applying as a:</label>
+                    <select name="admission_type" id="admission_type" onchange="this.form.submit()" style="padding: 10px; border-radius: 8px;">
+                        <option value="day_scholar" {% if admission_type == 'day_scholar' %}selected{% endif %}>Day Scholar (Daily Commuter)</option>
+                        <option value="hostel" {% if admission_type == 'hostel' %}selected{% endif %}>Hostel Student (Resident)</option>
+                    </select>
+                </div>
+            </form>
+
+            <div class="fee-results">
+                {% if fee_breakdown %}
+                    <div class="year-section">
+                        <div class="year-header">
+                            <span class="year-title">Complete Fee Structure</span>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table class="fee-table">
+                                <thead>
+                                    <tr>
+                                        <th>Fee Particulars</th>
+                                        <th>Category</th>
+                                        <th style="text-align: right;">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for fee in fee_breakdown %}
+                                    <tr>
+                                        <td class="fee-item-name">{{ fee.name }}</td>
+                                        <td><span style="font-size: 0.8rem; background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 20px;">{{ fee.category }}</span></td>
+                                        <td class="fee-amount">₹{{ fee.amount }} <span style="font-size: 0.8rem; opacity: 0.7; font-family: 'Inter', sans-serif; font-weight: normal;">{{ fee.frequency }}</span></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div style="background: var(--text-gold); color: var(--primary); padding: 40px; border-radius: 20px; text-align: center; margin-top: 50px;">
+                        <h3 style="font-family: 'Cinzel', serif; font-size: 1.8rem;">Start Your Journey</h3>
+                        <p style="margin-top: 10px; font-weight: 600;">Take the first step towards your future at Markaz Hadiya.</p>
+                        <div style="margin-top: 25px;">
+                            <a href="{% url 'students:enquiry_create' %}" class="btn-calculate" style="text-decoration: none; display: inline-block; padding: 15px 40px; font-size: 1.1rem;">
+                                Apply Now <i class="fas fa-paper-plane ms-2"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                {% else %}
+                    <div class="no-results">
+                        <i class="fas fa-exclamation-circle" style="font-size: 3rem; margin-bottom: 20px; color: var(--text-gold);"></i>
+                        <p>No specific fee details found for the selected criteria in the active academic year.</p>
+                        <p>Please contact the college office for manual verification.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <footer style="padding: 50px 20px; text-align: center; border-top: 1px solid var(--glass-border); background: #070b14;">
+        <p>&copy; 2026 Markaz Hadiya Women's College, Thazhapra. All Rights Reserved.</p>
+        <div style="margin-top: 20px; font-size: 1.5rem; display: flex; justify-content: center; gap: 20px;">
+            <i class="fab fa-facebook"></i>
+            <i class="fab fa-instagram"></i>
+            <i class="fab fa-youtube"></i>
+        </div>
+    </footer>
+</body>
+</html>

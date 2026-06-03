@@ -91,6 +91,30 @@
 
 {% if user.is_authenticated %}
 
+    <!-- Academic Year Status Banner -->
+    <div class="card glass-card p-3 mb-4" style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.4) 100%); border-radius: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; border: 1px solid var(--border);">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 42px; height: 42px; border-radius: 12px; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                <i class="fa-solid fa-calendar-days"></i>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; color: var(--gray); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.2;">Current Academic Year</div>
+                <div style="font-size: 1.1rem; font-weight: 800; color: var(--dark-secondary); line-height: 1.2; margin-top: 2px;">
+                    {% if active_year %}
+                        {{ active_year.name }}
+                    {% else %}
+                        <span style="color: var(--danger);"><i class="fa-solid fa-circle-exclamation"></i> Not Set</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% if request.user.is_superuser or request.user.profile.role == 'admin' %}
+            <a href="{% url 'students:academic_year_list' %}" class="btn btn-xs btn-primary" style="margin: 0; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.8rem; width: auto;">
+                <i class="fa-solid fa-gear"></i> Manage Years
+            </a>
+        {% endif %}
+    </div>
+
     {% if request.user.profile.role != 'student' %}
     <!-- Admin/Teacher Dashboard -->
     <div class="dashboard-grid">
@@ -133,6 +157,16 @@
                 <div class="label">Present Today</div>
             </div>
         </div>
+
+        <div class="stat-card-new glass-card" style="background: linear-gradient(135deg, #fff5f5 0%, #fff0f0 100%);">
+            <div class="icon-box" style="background: #fff; color: #ff6b6b;">
+                <i class="fa-solid fa-eye"></i>
+            </div>
+            <div class="stat-info">
+                <div class="value">{{ visitor_count }}</div>
+                <div class="label">Land Page Visitors</div>
+            </div>
+        </div>
     </div>
 
     <div class="card">
@@ -160,6 +194,10 @@
                 <i class="fa-solid fa-file-pen"></i>
                 Mark Entry
             </a>
+            <a href="{% url 'students:exam_type_list' %}" class="quick-action-btn">
+                <i class="fa-solid fa-graduation-cap"></i>
+                Manage Exams
+            </a>
             <a href="{% url 'fees:finance_dashboard' %}" class="quick-action-btn">
                 <i class="fa-solid fa-chart-pie"></i>
                 Financials
@@ -172,9 +210,14 @@
     </div>
     {% else %}
     <!-- Student Portal View -->
-    <div style="text-align: center; padding: 2rem 0 4rem;">
+    <div style="text-align: center; padding: 2rem 0 3rem;">
         <h2 style="font-size: 2.5rem; font-weight: 800; color: var(--dark); margin-bottom: 0.5rem;">Hello, {{ request.user.first_name }}!</h2>
-        <p style="color: var(--gray); font-size: 1.1rem;">Welcome to your Antigravity academic dashboard.</p>
+        <p style="color: var(--gray); font-size: 1.1rem; margin-bottom: 1.5rem;">Welcome to your academic dashboard.</p>
+        {% if request.user.profile.student_record %}
+        <a href="{% url 'students:results_lookup' %}?student_id={{ request.user.profile.student_record.student_id }}" class="quick-action-btn" style="display: inline-flex; width: auto; justify-content: center; margin: 0 auto; padding: 1rem 2rem;">
+            <i class="fa-solid fa-poll-h"></i> View My Report Card
+        </a>
+        {% endif %}
     </div>
 
     <div class="dashboard-grid">

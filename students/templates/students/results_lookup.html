@@ -1,0 +1,618 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Results Portal | Markaz Hadiya Women's College</title>
+    <link rel="icon" type="image/png" href="{% static 'img/M_LOGO.png' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6a0606;
+            --primary-dark: #3a0303;
+            --accent: #d4af37; /* Gold */
+            --bg-dark: #1f0303;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-muted: #bdc3c7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #110101 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            flex-grow: 1;
+        }
+
+        /* Header styling */
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .logo-container {
+            margin-bottom: 1rem;
+        }
+
+        .logo-img {
+            height: 90px;
+            width: auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            border: 2px solid var(--accent);
+        }
+
+        .college-title {
+            font-family: 'Cinzel', serif;
+            font-size: clamp(1.4rem, 4vw, 2.2rem);
+            color: #ffffff;
+            letter-spacing: 2px;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .college-title span {
+            color: var(--accent);
+        }
+
+        .subtitle {
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            color: var(--text-muted);
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        /* Glassmorphism Cards */
+        .card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            padding: 2rem;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(212, 175, 55, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.25rem;
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Form Controls */
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .form-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .form-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+        }
+
+        select.form-input option {
+            background: var(--bg-dark);
+            color: #ffffff;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 20px rgba(106, 6, 6, 0.4);
+            border-color: rgba(212, 175, 55, 0.3);
+            background: linear-gradient(135deg, #820808 0%, var(--primary) 100%);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: #ffffff;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        /* Profile Block */
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .profile-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .profile-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .profile-val {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        /* Result Report Cards */
+        .report-section-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            color: var(--accent);
+            margin: 2rem 0 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-left: 3px solid var(--accent);
+            padding-left: 0.75rem;
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            margin-bottom: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.04);
+            color: #ffffff;
+            font-weight: 700;
+            padding: 1rem;
+            border-bottom: 2px solid var(--glass-border);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--glass-border);
+            color: #e5e7eb;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .badge-success {
+            background: rgba(46, 204, 113, 0.15);
+            color: #2ecc71;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+
+        .badge-danger {
+            background: rgba(231, 76, 60, 0.15);
+            color: #e74c3c;
+            border: 1px solid rgba(231, 76, 60, 0.3);
+        }
+
+        .badge-info {
+            background: rgba(52, 152, 219, 0.15);
+            color: #3498db;
+            border: 1px solid rgba(52, 152, 219, 0.3);
+        }
+
+        /* Total Summary Card */
+        .summary-card {
+            background: rgba(106, 6, 6, 0.15);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            text-align: center;
+        }
+
+        .summary-block {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .summary-lbl {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .summary-val {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .summary-val.gold {
+            color: var(--accent);
+            text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+        }
+
+        /* Messages */
+        .message-container {
+            margin-bottom: 2rem;
+        }
+
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+            animation: slideDown 0.4s ease-out;
+        }
+
+        .alert-error {
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .alert-warning {
+            background: rgba(241, 196, 15, 0.95);
+            color: #2c3e50;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .container {
+                padding: 0 !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+            }
+            .card {
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin-bottom: 0 !important;
+            }
+            .d-print-none {
+                display: none !important;
+            }
+            .college-title, .college-title span {
+                color: black !important;
+            }
+            .logo-img {
+                border-color: black !important;
+                box-shadow: none !important;
+            }
+            td, th {
+                color: black !important;
+                border-bottom: 1px solid #ccc !important;
+            }
+            .table-responsive {
+                border-color: #ccc !important;
+            }
+            .summary-card {
+                border: 1px solid black !important;
+                background: transparent !important;
+            }
+            .summary-val, .summary-lbl, .summary-val.gold {
+                color: black !important;
+                text-shadow: none !important;
+            }
+            .report-section-title {
+                color: black !important;
+                border-left-color: black !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <header>
+            <div class="logo-container">
+                <img src="{% static 'img/M_LOGO.png' %}" class="logo-img" onerror="this.src='https://placehold.co/100x100?text=MHWC'; this.style.background='white';">
+            </div>
+            <h1 class="college-title">MARKAZ HADIYA <span>WOMEN'S COLLEGE</span></h1>
+            <p class="subtitle">EXAMINATION RESULTS PORTAL</p>
+        </header>
+
+        {% if messages %}
+        <div class="message-container d-print-none">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Search Form Card -->
+        <div class="card d-print-none">
+            <h2 class="card-title"><i class="fas fa-search"></i> Search Exam Results</h2>
+            <form method="GET">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="student_id">Register Number *</label>
+                        <input type="text" name="student_id" id="student_id" class="form-input" placeholder="e.g. STU101" required value="{{ student_id }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="exam_type_id">Select Examination</label>
+                        <select name="exam_type_id" id="exam_type_id" class="form-input">
+                            <option value="">-- All Published Exams --</option>
+                            {% for exam in published_exams %}
+                            <option value="{{ exam.id }}" {% if selected_exam_id == exam.id|stringformat:"i" %}selected{% endif %}>{{ exam.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+                    <a href="{% url 'students:landing' %}" class="btn btn-outline" style="border-radius: 50px;"><i class="fas fa-arrow-left"></i> Home</a>
+                    <button type="submit" class="btn"><i class="fas fa-poll-h"></i> Fetch Results</button>
+                </div>
+            </form>
+        </div>
+
+        {% if student %}
+        <!-- Student Details Card -->
+        <div class="card" id="printable-area">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); padding-bottom: 1.25rem; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                <h2 style="font-family: 'Cinzel', serif; font-size: 1.5rem; color: #ffffff; margin: 0; text-transform: uppercase;">
+                    OFFICIAL REPORT CARD
+                </h2>
+                <div class="d-print-none" style="display: flex; gap: 0.5rem;">
+                    <button onclick="window.print()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.85rem;"><i class="fas fa-print"></i> Print Result</button>
+                </div>
+            </div>
+
+            <div class="profile-grid">
+                <div class="profile-item">
+                    <span class="profile-label">Student Name</span>
+                    <span class="profile-val">{{ student.full_name }}</span>
+                </div>
+                <div class="profile-item">
+                    <span class="profile-label">Register Number</span>
+                    <span class="profile-val">{{ student.student_id }}</span>
+                </div>
+                <div class="profile-item">
+                    <span class="profile-label">Grade / Class</span>
+                    <span class="profile-val">{{ enrollment.grade.name|default:"-" }}</span>
+                </div>
+                {% if enrollment.division %}
+                <div class="profile-item">
+                    <span class="profile-label">Division</span>
+                    <span class="profile-val">{{ enrollment.division.name }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if results_by_exam %}
+                {% for exam, data in results_by_exam.items %}
+                    <h3 class="report-section-title"><i class="fas fa-graduation-cap"></i> {{ exam.name }}</h3>
+                    
+                    {% if data.hadiya_marks %}
+                    <h4 style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Hadiya (Islamic) Subjects</h4>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th style="text-align: center; width: 120px;">Marks</th>
+                                    <th style="text-align: center; width: 120px;">Max Marks</th>
+                                    <th style="text-align: center; width: 120px;">Grade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in data.hadiya_marks %}
+                                <tr>
+                                    <td><strong>{{ r.subject.name }}</strong></td>
+                                    <td style="text-align: center;"><span class="badge badge-info">{{ r.marks_obtained }}</span></td>
+                                    <td style="text-align: center;">{{ r.max_marks }}</td>
+                                    <td style="text-align: center;">
+                                        <span class="badge {% if r.grade_letter == 'F' %}badge-danger{% else %}badge-success{% endif %}">
+                                            {{ r.grade_letter }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    {% if data.division_marks %}
+                    <h4 style="color: var(--text-muted); font-size: 0.9rem; margin-top: 1.5rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Division Specific Subjects</h4>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th style="text-align: center; width: 120px;">Marks</th>
+                                    <th style="text-align: center; width: 120px;">Max Marks</th>
+                                    <th style="text-align: center; width: 120px;">Grade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in data.division_marks %}
+                                <tr>
+                                    <td><strong>{{ r.subject.name }}</strong></td>
+                                    <td style="text-align: center;"><span class="badge badge-info">{{ r.marks_obtained }}</span></td>
+                                    <td style="text-align: center;">{{ r.max_marks }}</td>
+                                    <td style="text-align: center;">
+                                        <span class="badge {% if r.grade_letter == 'F' %}badge-danger{% else %}badge-success{% endif %}">
+                                            {{ r.grade_letter }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    <div class="summary-card">
+                        <div class="summary-block">
+                            <span class="summary-lbl">Aggregate Marks</span>
+                            <span class="summary-val">{{ data.total_obtained }} / {{ data.total_max }}</span>
+                        </div>
+                        <div class="summary-block">
+                            <span class="summary-lbl">Percentage</span>
+                            <span class="summary-val gold">{{ data.percentage|floatformat:2 }}%</span>
+                        </div>
+                        <div class="summary-block">
+                            <span class="summary-lbl">Overall Grade</span>
+                            <span class="summary-val">{{ data.overall_grade }}</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div style="padding: 3rem; text-align: center; color: var(--text-muted); border: 1px dashed rgba(255, 255, 255, 0.1); border-radius: 12px; margin-top: 2rem;">
+                    <i class="fas fa-info-circle" style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--accent);"></i>
+                    <p>No published exam results are currently available for this student.</p>
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Markaz Hadiya Women's College, Thazhapra. All Rights Reserved.</p>
+    </footer>
+
+</body>
+</html>

@@ -46,6 +46,26 @@ class FeeItem(models.Model):
         help_text="The department this fee belongs to (Academic vs Hostel)"
     )
 
+    FEE_TYPE_CHOICES = [
+        ('admission', 'Admission Time Fee'),
+        ('course', 'Course Fee (Yearly)'),
+        ('hostel', 'Hostel Fee (Monthly)'),
+        ('bus', 'Bus Fee (Monthly)'),
+        ('medical', 'Medical Fee (Ad-hoc)'),
+        ('caution', 'Caution Deposit (One-time)'),
+        ('other', 'Other'),
+    ]
+    fee_type = models.CharField(
+        max_length=20, 
+        choices=FEE_TYPE_CHOICES, 
+        default='course',
+        help_text="Classifies the fee for automated workflows and display logic."
+    )
+    applicable_to_subsequent_years = models.BooleanField(
+        default=False,
+        help_text="If this is an Admission Time Fee, should it also be charged in the 2nd year onwards? (e.g. Exam Fee, Program Fee)"
+    )
+
     class Meta:
         ordering = ['category', 'name']
 

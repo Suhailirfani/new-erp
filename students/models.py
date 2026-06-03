@@ -322,6 +322,7 @@ class ExamType(models.Model):
     subject_type = models.CharField(max_length=20, choices=SUBJECT_TYPE_CHOICES, default='all', help_text="Filter subjects shown during mark entry for this exam")
     section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True, related_name='exam_types')
     order = models.PositiveIntegerField(default=0, help_text="Order for display")
+    is_published = models.BooleanField(default=False, help_text="Designates whether the exam results are visible to students.")
 
     class Meta:
         ordering = ['order', 'name']
@@ -637,3 +638,14 @@ class JobApplication(models.Model):
             self.application_number = f"{prefix}{count + 1:03d}"
             
         super().save(*args, **kwargs)
+
+class LandingPageStats(models.Model):
+    """Model to store landing page statistics like visitor count"""
+    visit_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name_plural = "Landing Page Stats"
+
+    def __str__(self):
+        return f"Visitor Count: {self.visit_count}"
+
