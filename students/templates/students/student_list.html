@@ -69,6 +69,19 @@
             margin: 0 !important;
             padding: 0 !important;
         }
+        /* Force desktop table layout during print */
+        table thead {
+            display: table-header-group !important;
+        }
+        table tbody {
+            display: table-row-group !important;
+        }
+        .student-desktop-row {
+            display: table-row !important;
+        }
+        .student-mobile-row {
+            display: none !important;
+        }
         /* Hide the Actions column */
         th:last-child, td:last-child {
             display: none !important;
@@ -111,7 +124,7 @@
     }
 
     /* Mobile Responsive Card styles */
-    @media (max-width: 768px) {
+    @media screen and (max-width: 768px) {
         h1 { font-size: 1.4rem; margin-bottom: 0.75rem; }
         
         .button-group { 
@@ -222,7 +235,7 @@
         }
     }
 
-    @media (min-width: 769px) {
+    @media screen and (min-width: 769px) {
         .student-mobile-row {
             display: none !important;
         }
