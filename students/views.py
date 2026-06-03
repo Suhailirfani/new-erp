@@ -2447,7 +2447,7 @@ def mark_entry_classwise_data(request):
     return JsonResponse({'html': html})
 
 
-@role_required(['admin', 'teacher'])
+@role_required(['admin', 'teacher', 'student'])
 def progress_report(request):
     """Generate and view progress reports"""
     student_id = request.GET.get('student_id')
