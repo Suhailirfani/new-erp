@@ -6,7 +6,7 @@
 {% block content %}
 <div class="header-container" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
     <h1>Mark Entry - Step 3: Enter Marks</h1>
-    <div style="display: flex; gap: 0.5rem;">
+    <div class="button-group" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
         <a href="{% url 'students:examination_dashboard' %}" class="btn btn-secondary">
             <i class="fa-solid fa-arrow-left"></i> Dashboard
         </a>
@@ -16,7 +16,7 @@
 </div>
 
 <div class="card" style="background-color: #e7f3ff; border-left: 4px solid #2196F3; margin-bottom: 1.5rem;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div class="info-card-content">
         <div>
             <h3 style="margin-top: 0; margin-bottom: 0.5rem;">📝 Exam: {{ exam_type.name }}</h3>
             <h4 style="margin-top: 0; color: #555;">
@@ -24,16 +24,14 @@
                 {% if division_name %} - {{ division_name }}{% endif %}
             </h4>
         </div>
-        <div style="text-align: right;">
-            <span style="background-color: #d4edda; padding: 0.5rem 1rem; border-radius: 4px; font-weight: bold; color: #155724;">
+        <div class="badge-container" style="text-align: right;">
+            <span style="background-color: #d4edda; padding: 0.5rem 1rem; border-radius: 4px; font-weight: bold; color: #155724; display: inline-block;">
                 {{ students|length }} Student(s) | {{ subjects|length }} Subject(s)
             </span>
         </div>
     </div>
-</div>
-
-<div class="card" style="margin-bottom: 1.5rem; background-color: #f8f9fa; padding: 1rem; border-radius: 8px; border: 1px solid #dee2e6; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
-    <div style="display: flex; align-items: center; gap: 0.75rem;">
+</div><div class="card filter-bar" style="margin-bottom: 1.5rem; background-color: #f8f9fa; padding: 1rem; border-radius: 8px; border: 1px solid #dee2e6;">
+    <div class="select-wrapper" style="display: flex; align-items: center; gap: 0.75rem;">
         <label for="subject_filter" style="font-weight: bold; color: #2c3e50; margin: 0;">Entry Option:</label>
         <select id="subject_filter" onchange="filterSubject(this.value)" style="padding: 0.5rem; border-radius: 4px; border: 1px solid #ccc; min-width: 220px; font-size: 0.95rem;">
             <option value="all" {% if not selected_subject %}selected{% endif %}>All Subjects (Grid Entry)</option>
@@ -45,14 +43,15 @@
         </select>
     </div>
     
-    <div style="display: flex; gap: 0.5rem; align-items: center;">
-        <a href="{% url 'students:mark_bulk_import_template' exam_type.id %}?grade_id={{ grade_id }}{% if division_id %}&amp;division_id={{ division_id }}{% endif %}{% if selected_subject %}&amp;subject_id={{ selected_subject.id }}{% endif %}" class="btn" style="background-color: #34495e; color: white; display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.9rem; padding: 0.5rem 1rem; text-decoration: none; border-radius: 4px; font-weight: 500;">
+    <div class="button-group" style="display: flex; gap: 0.5rem; align-items: center;">
+        <a href="{% url 'students:mark_bulk_import_template' exam_type.id %}?grade_id={{ grade_id }}{% if division_id %}&amp;division_id={{ division_id }}{% endif %}{% if selected_subject %}&amp;subject_id={{ selected_subject.id }}{% endif %}" class="btn" style="background-color: #34495e; color: white; display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.9rem; padding: 0.5rem 1rem; text-decoration: none; border-radius: 4px; font-weight: 500; margin: 0;">
             📥 Download Template
         </a>
         <button type="button" onclick="document.getElementById('excel_upload_modal').style.display='flex'" class="btn btn-warning" style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.9rem; padding: 0.5rem 1rem; margin: 0; border-radius: 4px; font-weight: 500;">
             📤 Upload Excel Marks
         </button>
     </div>
+</div>
     
     <script>
         function filterSubject(subjectId) {
@@ -71,24 +70,44 @@
     <form method="post">
         {% csrf_token %}
         
-        <div class="form-row" style="margin-bottom: 1.5rem; background-color: #f8f9fa; padding: 1rem; border-radius: 4px; border: 1px solid #dee2e6;">
+        <div class="meta-form-row">
             <div class="form-group" style="margin-bottom: 0;">
                 <label style="font-weight: bold; margin-bottom: 0.5rem; display: block;">Exam Date</label>
-                <input type="date" name="exam_date" value="{% now 'Y-m-d' %}" style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
+                <input type="date" name="exam_date" value="{% now 'Y-m-d' %}" style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
             </div>
             <div class="form-group" style="margin-bottom: 0;">
                 <label style="font-weight: bold; margin-bottom: 0.5rem; display: block;">Entered By</label>
                 <input type="text" name="entered_by" placeholder="Your name" style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
             </div>
             <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-end;">
-                 <button type="submit" class="btn btn-success" style="padding: 0.6rem 1.5rem; font-size: 1.1rem; width: 100%;">
+                 <button type="submit" class="btn btn-success" style="padding: 0.6rem 1.5rem; font-size: 1.1rem; width: 100%; margin: 0;">
                     💾 Save All Marks
                 </button>
             </div>
         </div>
         
         {% if subjects and students %}
-        <div class="table-wrapper" style="overflow-x: auto;">
+        
+        <!-- Mobile Max Marks Editor - displayed only on mobile -->
+        <div class="mobile-max-marks-card">
+            <h3 style="font-size: 1.1rem; margin-top: 0; margin-bottom: 0.75rem; color: #2c3e50; font-weight: bold;">Subject Max Marks</h3>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                {% for subject in subjects %}
+                <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 0.5rem; border-radius: 8px; border: 1px solid #cbd5e1;">
+                    <span style="font-weight: 600; font-size: 0.85rem; color: #475569;">
+                        {{ subject.name }} {% if subject.subject_type == 'hadiya' %}(Hadiya){% endif %}
+                    </span>
+                    <div style="font-size: 0.85rem; color: #64748b; display: flex; align-items: center; gap: 0.25rem;">
+                        Max: 
+                        <input type="number" id="mob_max_marks_{{ subject.id }}" value="{{ subject.max_marks }}" step="0.01" min="1" style="width: 70px; padding: 0.3rem; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: bold; color: #1e293b;">
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 1. DESKTOP VIEW LAYOUT (TABLE) -->
+        <div class="desktop-table-wrapper table-wrapper" style="overflow-x: auto;">
             <table style="min-width: 100%; border-collapse: collapse; white-space: nowrap;">
                 <thead style="position: sticky; top: 0; z-index: 10;">
                     <tr style="background-color: #2c3e50; color: white;">
@@ -143,9 +162,65 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- 2. MOBILE VIEW LAYOUT (CARDS LIST) - NO SIDE SCROLLING -->
+        <div class="mobile-cards-wrapper">
+            {% for student in students %}
+            <div class="student-mobile-card" style="background: white; border-radius: 16px; padding: 1.25rem; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem;">
+                <!-- Header: Student Name & ID -->
+                <div style="border-bottom: 1px solid #cbd5e1; padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="min-width: 0; flex: 1;">
+                        <div style="font-weight: 700; color: #1e293b; font-size: 1.1rem; line-height: 1.2; word-wrap: break-word; overflow-wrap: break-word;">{{ student.full_name }}</div>
+                        <div style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">ID: {{ student.student_id }}</div>
+                    </div>
+                    <span style="background: #f1f5f9; color: #475569; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">
+                        #{{ forloop.counter }}
+                    </span>
+                </div>
+                
+                <!-- Subject Marks Input Fields -->
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    {% for subject in subjects %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+                        <div style="min-width: 0; flex: 1;">
+                            <span style="font-weight: 600; font-size: 0.9rem; color: #334155; word-wrap: break-word; overflow-wrap: break-word;">
+                                {{ subject.name }}
+                                {% if subject.subject_type == 'hadiya' %}<small style="color: #64748b;">(Hadiya)</small>{% endif %}
+                            </span>
+                            <span style="display: block; font-size: 0.75rem; color: #64748b; margin-top: 2px;">
+                                Max: <span id="span_max_{{ subject.id }}">{{ subject.max_marks }}</span>
+                            </span>
+                        </div>
+                        
+                        {% with student_marks=existing_marks|get_item:student.id %}
+                            {% with current_mark=student_marks|get_item:subject.id %}
+                            <input type="number" 
+                                   id="mob_marks_{{ student.id }}_{{ subject.id }}" 
+                                   value="{% if current_mark is not None %}{{ current_mark }}{% endif %}" 
+                                   step="0.01" min="0" 
+                                   placeholder="-" 
+                                   style="width: 90px; padding: 0.5rem; text-align: center; border: 1px solid #ccc; border-radius: 6px; font-size: 1.05rem; font-weight: bold;
+                                          {% if current_mark is not None %}background-color: #f0f9ff; border-color: #bce8f1;{% endif %}"
+                                   autocomplete="off">
+                            {% endwith %}
+                        {% endwith %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
         
-        <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+        <!-- Desktop Submit -->
+        <div class="desktop-submit-container" style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
             <button type="submit" class="btn btn-success" style="padding: 1rem 3rem; font-size: 1.2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                💾 Save All Marks
+            </button>
+        </div>
+
+        <!-- Mobile Submit -->
+        <div class="mobile-submit-container" style="display: none; margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-success" style="padding: 0.8rem 2.5rem; font-size: 1.1rem; width: 100%; border-radius: 8px; font-weight: bold; margin: 0; box-shadow: 0 4px 12px rgba(46, 204, 113, 0.2);">
                 💾 Save All Marks
             </button>
         </div>
@@ -184,10 +259,128 @@
     tbody td:nth-child(2), thead th:nth-child(2) {
         border-right: 2px solid #bdc3c7;
     }
+
+    /* Responsive Grid and layouts */
+    .meta-form-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+        background-color: #f8f9fa;
+        padding: 1.25rem;
+        border-radius: 12px;
+        border: 1px solid #dee2e6;
+    }
+
+    .info-card-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    /* Mobile responsiveness settings */
+    .mobile-max-marks-card {
+        display: none;
+    }
+    .mobile-cards-wrapper {
+        display: none;
+    }
+    .desktop-table-wrapper {
+        display: block;
+    }
+
+    @media (max-width: 768px) {
+        .header-container {
+            flex-direction: column;
+            align-items: stretch !important;
+            margin-bottom: 1.5rem !important;
+        }
+        .header-container h1 {
+            font-size: 1.4rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+        .header-container .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            width: 100%;
+        }
+        .header-container .button-group .btn {
+            flex: 1;
+            margin: 0 !important;
+            padding: 0.5rem 0.25rem !important;
+            font-size: 0.8rem !important;
+            text-align: center;
+        }
+
+        .info-card-content {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+            gap: 0.75rem;
+        }
+        .info-card-content .badge-container {
+            text-align: center !important;
+        }
+
+        .filter-bar {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 1rem;
+            padding: 1rem !important;
+        }
+        .filter-bar .select-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .filter-bar select {
+            width: 100% !important;
+        }
+        .filter-bar .button-group {
+            display: flex;
+            gap: 0.5rem;
+            width: 100%;
+        }
+        .filter-bar .button-group a, .filter-bar .button-group button {
+            flex: 1;
+            text-align: center;
+            justify-content: center;
+            font-size: 0.8rem !important;
+            padding: 0.5rem 0.25rem !important;
+        }
+
+        .meta-form-row {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .desktop-table-wrapper {
+            display: none;
+        }
+        .mobile-max-marks-card {
+            display: block;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #dee2e6;
+        }
+        .mobile-cards-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+    }
 </style>
 
 <script>
-    // Optional script to allow navigating the inputs with arrow keys like Excel
+    // Optional script to allow navigating the inputs with arrow keys like Excel (Desktop)
     document.addEventListener('keydown', function(e) {
         if (!e.target.matches('td input[type="number"]')) return;
         
@@ -221,6 +414,72 @@
             inputs[nextIdx].focus();
             inputs[nextIdx].select();
         }
+    });
+
+    // Real-time synchronization between Mobile inputs and Desktop hidden/visible inputs
+    document.addEventListener('DOMContentLoaded', function() {
+        // Sync student marks inputs: mobile to desktop
+        document.querySelectorAll('input[id^="mob_marks_"]').forEach(mobInput => {
+            mobInput.addEventListener('input', function() {
+                const desktopId = this.id.replace('mob_', '');
+                const desktopInput = document.getElementById(desktopId);
+                if (desktopInput) {
+                    desktopInput.value = this.value;
+                    // Trigger input event on desktop to color-code it if needed
+                    desktopInput.dispatchEvent(new Event('input'));
+                }
+            });
+        });
+
+        // Sync student marks inputs: desktop to mobile
+        document.querySelectorAll('input[id^="marks_"]').forEach(deskInput => {
+            deskInput.addEventListener('input', function() {
+                const mobId = 'mob_' + this.id;
+                const mobInput = document.getElementById(mobId);
+                if (mobInput) {
+                    mobInput.value = this.value;
+                    // Highlight backgrounds
+                    if (this.value !== '') {
+                        mobInput.style.backgroundColor = '#f0f9ff';
+                        mobInput.style.borderColor = '#bce8f1';
+                        this.style.backgroundColor = '#f0f9ff';
+                        this.style.borderColor = '#bce8f1';
+                    } else {
+                        mobInput.style.backgroundColor = '';
+                        mobInput.style.borderColor = '';
+                        this.style.backgroundColor = '';
+                        this.style.borderColor = '';
+                    }
+                }
+            });
+        });
+
+        // Sync max marks inputs: mobile to desktop
+        document.querySelectorAll('input[id^="mob_max_marks_"]').forEach(mobInput => {
+            mobInput.addEventListener('input', function() {
+                const nameAttr = this.id.replace('mob_', '');
+                const desktopInput = document.querySelector(`input[name="${nameAttr}"]`);
+                if (desktopInput) {
+                    desktopInput.value = this.value;
+                    desktopInput.dispatchEvent(new Event('input'));
+                }
+            });
+        });
+
+        // Sync max marks inputs: desktop to mobile
+        document.querySelectorAll('input[name^="max_marks_"]').forEach(deskInput => {
+            deskInput.addEventListener('input', function() {
+                const mobId = 'mob_' + this.name;
+                const mobInput = document.getElementById(mobId);
+                if (mobInput) {
+                    mobInput.value = this.value;
+                }
+                const subjectId = this.name.replace('max_marks_', '');
+                document.querySelectorAll(`#span_max_${subjectId}`).forEach(span => {
+                    span.innerText = this.value;
+                });
+            });
+        });
     });
 </script>
 
