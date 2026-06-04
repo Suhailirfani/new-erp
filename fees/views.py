@@ -2,7 +2,7 @@ from decimal import Decimal
 from django.shortcuts import render, get_object_or_404, redirect
 from students.decorators import role_required
 from django.contrib import messages
-from .models import StudentFee, FeePayment, AccountCategory, Income, Expense, FeeCategory, FeeItem, FeeStructure
+from .models import StudentFee, FeePayment, AccountCategory, Income, Expense, FeeCategory, FeeItem, FeeStructure, FeeInstallmentTemplate
 from students.models import Student, Grade, Division
 from django.db.models import Sum, Case, When, DecimalField, Q
 from .forms import IncomeForm, ExpenseForm
