@@ -307,23 +307,32 @@
         </div>
 
         <!-- Finance Frosted Card -->
+        <!-- Finance Frosted Card -->
         <div class="card" style="background: var(--gradient-lavender);">
-            <h4 style="margin-bottom: 2rem; font-weight: 700;">Financial Overview</h4>
-            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-                <div style="background: rgba(255,255,255,0.6); padding: 1.5rem; border-radius: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <h4 style="margin-bottom: 1.5rem; font-weight: 700;">Financial Overview</h4>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <div style="background: rgba(255,255,255,0.6); padding: 1rem 1.25rem; border-radius: 16px; display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <div style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">Total Paid</div>
-                        <div style="font-size: 1.5rem; font-weight: 800; color: var(--dark);">₹{{ fee_total_paid|floatformat:0 }}</div>
+                        <div style="font-size: 0.7rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em;">Total Paid</div>
+                        <div style="font-size: 1.3rem; font-weight: 800; color: var(--dark);">₹{{ fee_total_paid|floatformat:0 }}</div>
                     </div>
-                    <i class="fa-solid fa-circle-check" style="font-size: 2rem; color: var(--success); opacity: 0.5;"></i>
+                    <i class="fa-solid fa-circle-check" style="font-size: 1.5rem; color: var(--success); opacity: 0.5;"></i>
                 </div>
                 
-                <div style="background: rgba(255,255,255,0.6); padding: 1.5rem; border-radius: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="background: rgba(255,255,255,0.6); padding: 1rem 1.25rem; border-radius: 16px; display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <div style="font-size: 0.75rem; font-weight: 700; color: var(--danger); text-transform: uppercase;">Pending Dues</div>
-                        <div style="font-size: 1.5rem; font-weight: 800; color: var(--dark);">₹{{ fee_total_due|floatformat:0 }}</div>
+                        <div style="font-size: 0.7rem; font-weight: 700; color: var(--danger); text-transform: uppercase; letter-spacing: 0.05em;">Currently Due</div>
+                        <div style="font-size: 1.3rem; font-weight: 800; color: var(--dark);">₹{{ fee_currently_due|floatformat:0 }}</div>
                     </div>
-                    <i class="fa-solid fa-hourglass-half" style="font-size: 2rem; color: var(--warning); opacity: 0.5;"></i>
+                    <i class="fa-solid fa-circle-exclamation" style="font-size: 1.5rem; color: var(--danger); opacity: 0.5;"></i>
+                </div>
+
+                <div style="background: rgba(255,255,255,0.6); padding: 1rem 1.25rem; border-radius: 16px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-size: 0.7rem; font-weight: 700; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.05em;">Total Balance</div>
+                        <div style="font-size: 1.3rem; font-weight: 800; color: var(--dark);">₹{{ fee_total_balance|floatformat:0 }}</div>
+                    </div>
+                    <i class="fa-solid fa-hourglass-half" style="font-size: 1.5rem; color: var(--warning); opacity: 0.5;"></i>
                 </div>
             </div>
         </div>

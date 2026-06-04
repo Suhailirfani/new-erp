@@ -307,16 +307,18 @@ def home(request):
             # 4. Fee Data
             student_fees = []
             fee_total_paid = 0
-            fee_total_due = 0
+            fee_currently_due = 0
+            fee_total_balance = 0
             try:
                 from fees.models import StudentFee
                 fees_list = StudentFee.objects.filter(student=student)
                 for fee in fees_list:
                     student_fees.append(fee)
                     fee_total_paid += fee.amount_paid
-                    if fee.status != 'paid':
-                        # The balance is what is still due
-                        fee_total_due += fee.balance
+                    if fee.balance > 0:
+                        fee_total_balance += fee.balance
+                        if fee.due_date and fee.due_date <= today:
+                            fee_currently_due += fee.balance
             except ImportError:
                 pass # If fees module is missing or disconnected
                 
@@ -338,7 +340,8 @@ def home(request):
                 'performance_data_json': performance_data_json,
                 'hostel_status': hostel_status,
                 'fee_total_paid': fee_total_paid,
-                'fee_total_due': fee_total_due,
+                'fee_currently_due': fee_currently_due,
+                'fee_total_balance': fee_total_balance,
             })
         
     return render(request, 'students/home.html', context)

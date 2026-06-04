@@ -251,12 +251,15 @@ def student_fees(request, student_id):
     # Sort unified_receipts by date descending
     unified_receipts.sort(key=lambda x: x['date'], reverse=True)
     
+    total_balance = total_due + balance_pending
+    
     context = {
         'student': student,
         'fees': fees,
         'total_paid': total_paid,
         'total_due': total_due,
         'balance_pending': balance_pending,
+        'total_balance': total_balance,
         'next_due_date': next_due_date,
         'unified_receipts': unified_receipts,
         'page_title': f"Fees Dashboard: {student.full_name}"
