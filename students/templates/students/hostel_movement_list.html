@@ -37,9 +37,13 @@
     </div>
 </div>
 
-<div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center;">
-    <a href="{% url 'students:hostel_movement_create' %}" class="btn btn-success">+ Record New Movement</a>
-    <a href="{% url 'students:hostel_student_list' %}" class="btn" style="background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">👥 View Total Student List</a>
+<div style="margin-bottom: 2rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+    <a href="{% url 'students:hostel_movement_create' %}" class="btn btn-success" style="padding: 0.6rem 1.25rem; border-radius: 8px; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease; box-shadow: 0 4px 6px -1px rgba(34, 197, 94, 0.3);">
+        <i class="fas fa-plus-circle"></i> Record New Movement
+    </a>
+    <a href="{% url 'students:hostel_student_list' %}" class="btn" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 0.6rem 1.25rem; border-radius: 8px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3); border: none; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease;">
+        <i class="fas fa-users"></i> View Total Student List
+    </a>
 </div>
 
 <div class="filter-form card" style="margin-bottom: 2rem;">

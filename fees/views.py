@@ -67,6 +67,9 @@ def finance_dashboard(request):
 @role_required(['admin', 'accountant'])
 def fees_dashboard(request):
     """Dashboard focusing on Classroom-wise Fee Summary."""
+    from django.utils import timezone
+    today = timezone.now().date()
+    
     # Get all students with active enrollments
     active_students = Student.objects.filter(is_active=True, enrollments__academic_year__is_active=True).distinct()
     
@@ -88,24 +91,36 @@ def fees_dashboard(request):
             classroom_data[classroom_key] = {
                 'grade': grade,
                 'division': division,
-                'total_due': Decimal('0.00'),
+                'currently_due': Decimal('0.00'),
+                'total_balance': Decimal('0.00'),
                 'student_count': 0,
                 'name': f"{grade.name} - {division.name}" if grade and division else (grade.name if grade else "Unassigned")
             }
             
-        # Calculate due for this student
-        student_due = sum(f.balance for f in student.fees.all() if f.balance > 0)
-        classroom_data[classroom_key]['total_due'] += Decimal(str(student_due))
+        # Calculate currently due and total balance for this student
+        student_currently_due = Decimal('0.00')
+        student_total_balance = Decimal('0.00')
+        
+        for f in student.fees.all():
+            if f.balance > 0:
+                student_total_balance += f.balance
+                if not f.due_date or f.due_date <= today:
+                    student_currently_due += f.balance
+            
+        classroom_data[classroom_key]['currently_due'] += student_currently_due
+        classroom_data[classroom_key]['total_balance'] += student_total_balance
         classroom_data[classroom_key]['student_count'] += 1
             
     # Convert to list and sort by grade name
     classrooms = sorted(classroom_data.values(), key=lambda x: x['name'])
     
-    total_institution_due = sum(c['total_due'] for c in classrooms)
+    total_institution_currently_due = sum(c['currently_due'] for c in classrooms)
+    total_institution_total_balance = sum(c['total_balance'] for c in classrooms)
         
     context = {
         'classrooms': classrooms,
-        'total_institution_due': total_institution_due,
+        'total_institution_currently_due': total_institution_currently_due,
+        'total_institution_total_balance': total_institution_total_balance,
         'page_title': 'Fee Dashboard'
     }
     return render(request, 'fees/fees_dashboard.html', context)
@@ -113,6 +128,9 @@ def fees_dashboard(request):
 @role_required(['admin', 'accountant'])
 def classroom_detail(request, grade_id, division_id=None):
     """Detailed student fee list for a specific classroom."""
+    from django.utils import timezone
+    today = timezone.now().date()
+    
     grade = get_object_or_404(Grade, id=grade_id)
     division = None
     if division_id:
@@ -126,11 +144,21 @@ def classroom_detail(request, grade_id, division_id=None):
     ).distinct()
     
     student_data = []
+    total_class_currently_due = Decimal('0.00')
     total_class_due = Decimal('0.00')
     
     for student in students:
-        total_due = sum(f.balance for f in student.fees.all() if f.balance > 0)
-        total_class_due += Decimal(str(total_due))
+        currently_due = Decimal('0.00')
+        total_due = Decimal('0.00')
+        
+        for f in student.fees.all():
+            if f.balance > 0:
+                total_due += f.balance
+                if not f.due_date or f.due_date <= today:
+                    currently_due += f.balance
+        
+        total_class_currently_due += currently_due
+        total_class_due += total_due
         
         # Determine if this is a new admission (first enrollment ever)
         current_enrollment = student.current_enrollment
@@ -142,6 +170,7 @@ def classroom_detail(request, grade_id, division_id=None):
                 
         student_data.append({
             'student': student,
+            'currently_due': currently_due,
             'total_due': total_due,
             'is_new_admission': is_new_admission,
         })
@@ -153,6 +182,7 @@ def classroom_detail(request, grade_id, division_id=None):
         'grade': grade,
         'division': division,
         'student_data': student_data,
+        'total_class_currently_due': total_class_currently_due,
         'total_class_due': total_class_due,
         'fee_items': fee_items,
         'class_name': f"{grade.name} - {division.name}" if division else grade.name,
@@ -181,6 +211,8 @@ def student_fees(request, student_id):
     total_due = Decimal('0.00')
     balance_pending = Decimal('0.00')
     next_due_date = None
+    current_installment_due = Decimal('0.00')  # balance of only the single current installment
+    current_installment_fee = None             # the fee object for the current installment
     
     for fee in fees:
         if fee.balance > 0:
@@ -198,6 +230,14 @@ def student_fees(request, student_id):
         overdue_fees = [f for f in fees if f.balance > 0 and f.due_date and f.due_date <= today]
         if overdue_fees:
             next_due_date = overdue_fees[0].due_date
+
+    # Find the single "current" installment: the one with the EARLIEST due date <= today (first unpaid installment)
+    overdue_list = [f for f in fees if f.balance > 0 and f.due_date and f.due_date <= today]
+    overdue_count = len(overdue_list)
+    if overdue_list:
+        # Pick the one with the earliest (oldest) due date — the first installment the student needs to pay
+        current_installment_fee = min(overdue_list, key=lambda f: f.due_date)
+        current_installment_due = current_installment_fee.balance
 
     # Fetch grouped payments to act as combined receipts (Using new ReceiptTransaction model)
     from .models import ReceiptTransaction
@@ -258,6 +298,9 @@ def student_fees(request, student_id):
         'fees': fees,
         'total_paid': total_paid,
         'total_due': total_due,
+        'current_installment_due': current_installment_due,
+        'current_installment_fee': current_installment_fee,
+        'overdue_count': overdue_count,
         'balance_pending': balance_pending,
         'total_balance': total_balance,
         'next_due_date': next_due_date,
@@ -866,8 +909,8 @@ def bulk_course_fee_update(request):
                     else:
                         enrollments = Enrollment.objects.filter(academic_year=active_year, grade=classroom['grade'], division__isnull=True)
                         
-                    # We only bulk update if there are no complex installment templates for this item
-                    if not course_fee_item.installment_templates.exists():
+                    templates = course_fee_item.installment_templates.all()
+                    if not templates.exists():
                         for enrollment in enrollments:
                             student = enrollment.student
                             fee, created = StudentFee.objects.get_or_create(
@@ -878,7 +921,36 @@ def bulk_course_fee_update(request):
                             if not created and fee.total_amount != amount:
                                 fee.total_amount = amount
                                 fee.update_status()
+                    else:
+                        for enrollment in enrollments:
+                            student = enrollment.student
+                            # If student has a single unpaid lump-sum, remove it
+                            StudentFee.objects.filter(
+                                student=student,
+                                fee_item=course_fee_item,
+                                amount_paid=0
+                            ).exclude(remarks__icontains='Installment:').delete()
+                            
+                            for tmpl in templates:
+                                existing_fee = StudentFee.objects.filter(
+                                    student=student,
+                                    fee_item=course_fee_item,
+                                    remarks__icontains=tmpl.name
+                                ).first()
                                 
+                                if existing_fee:
+                                    if existing_fee.amount_paid == 0 and (existing_fee.total_amount != tmpl.amount or existing_fee.due_date != tmpl.due_date):
+                                        existing_fee.total_amount = tmpl.amount
+                                        existing_fee.due_date = tmpl.due_date
+                                        existing_fee.update_status()
+                                else:
+                                    StudentFee.objects.create(
+                                        student=student,
+                                        fee_item=course_fee_item,
+                                        total_amount=tmpl.amount,
+                                        due_date=tmpl.due_date,
+                                        remarks=f"Installment: {tmpl.name}"
+                                    )
                     updates_count += 1
                 except (ValueError, TypeError):
                     continue
@@ -932,7 +1004,34 @@ def manage_fee_installments(request, item_id):
         
         if templates_to_create:
             FeeInstallmentTemplate.objects.bulk_create(templates_to_create)
-            messages.success(request, f"Successfully set up {len(templates_to_create)} installments for {fee_item.name}.")
+            
+            # Retroactively apply installments to students who have an unpaid lump sum for this fee item
+            unpaid_single_fees = StudentFee.objects.filter(
+                fee_item=fee_item,
+                amount_paid=0
+            ).exclude(remarks__icontains='Installment:')
+            
+            students_to_update = [f.student for f in unpaid_single_fees]
+            unpaid_single_fees.delete()
+            
+            new_fees = []
+            for student in students_to_update:
+                for tmpl in templates_to_create:
+                    new_fees.append(StudentFee(
+                        student=student,
+                        fee_item=fee_item,
+                        total_amount=tmpl.amount,
+                        due_date=tmpl.due_date,
+                        remarks=f"Installment: {tmpl.name}"
+                    ))
+            
+            if new_fees:
+                StudentFee.objects.bulk_create(new_fees)
+                
+            msg = f"Successfully set up {len(templates_to_create)} installments for {fee_item.name}."
+            if students_to_update:
+                msg += f" Applied to {len(students_to_update)} students automatically."
+            messages.success(request, msg)
         else:
             messages.info(request, "No installments were created.")
             

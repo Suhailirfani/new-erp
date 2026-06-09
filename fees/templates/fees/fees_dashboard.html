@@ -29,16 +29,25 @@
 <!-- Institution-wide Summary -->
 <div class="row mb-5">
     <div class="col-12">
-        <div class="stat-card" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); padding: 1.5rem 2.5rem; text-align: left; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
-            <div>
-                <p style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem; font-weight: 600;">Overall Institution Balance Due</p>
-                <h2 style="font-size: 2.8rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 0.75rem;">
-                    <i class="fas fa-university" style="opacity: 0.5; font-size: 2rem;"></i>
-                    ₹ {{ total_institution_due|floatformat:2 }}
-                </h2>
+        <div class="stat-card" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); padding: 1.5rem 2.5rem; text-align: left; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 2rem;">
+            <div style="display: flex; gap: 3rem; flex-wrap: wrap; align-items: center;">
+                <div>
+                    <p style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.85rem; opacity: 0.9; margin-bottom: 0.5rem; font-weight: 600; color: rgba(255, 255, 255, 0.95);">Overall Institution Currently Due</p>
+                    <h2 style="font-size: 2.5rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 0.5rem; color: #ffccd5;">
+                        <i class="fas fa-exclamation-circle" style="opacity: 0.8; font-size: 1.8rem;"></i>
+                        ₹ {{ total_institution_currently_due|floatformat:2 }}
+                    </h2>
+                </div>
+                <div style="border-left: 1px solid rgba(255, 255, 255, 0.25); padding-left: 3rem;">
+                    <p style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.85rem; opacity: 0.9; margin-bottom: 0.5rem; font-weight: 600; color: rgba(255, 255, 255, 0.95);">Overall Institution Total Balance</p>
+                    <h2 style="font-size: 2.5rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 0.5rem; color: #ffffff;">
+                        <i class="fas fa-university" style="opacity: 0.8; font-size: 1.8rem;"></i>
+                        ₹ {{ total_institution_total_balance|floatformat:2 }}
+                    </h2>
+                </div>
             </div>
             <div style="background: rgba(255, 255, 255, 0.15); padding: 1rem 1.5rem; border-radius: 16px; backdrop-filter: blur(5px);">
-                <span style="font-size: 1.1rem; font-weight: 600;">{{ classrooms|length }} Active Classrooms</span>
+                <span style="font-size: 1.1rem; font-weight: 600; color: #ffffff;">{{ classrooms|length }} Active Classrooms</span>
             </div>
         </div>
     </div>
@@ -46,18 +55,26 @@
 
 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
     {% for classroom in classrooms %}
-    <div class="glass-card" style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; min-height: 200px;">
+    <div class="glass-card" style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; min-height: 220px;">
         <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
                 <h3 style="font-size: 1.4rem; font-weight: 700; color: var(--dark-secondary); margin: 0;">{{ classroom.name }}</h3>
                 <span class="badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">{{ classroom.student_count }} Students</span>
             </div>
             
-            <div style="margin-bottom: 1.5rem;">
-                <p style="font-size: 0.85rem; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Total Balance Due</p>
-                <h2 style="font-size: 2rem; font-weight: 800; color: {% if classroom.total_due > 0 %}var(--danger){% else %}var(--success){% endif %}; margin: 0;">
-                    ₹ {{ classroom.total_due|floatformat:2 }}
-                </h2>
+            <div style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                <div>
+                    <p style="font-size: 0.8rem; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.15rem; font-weight: 600;">Currently Due</p>
+                    <h3 style="font-size: 1.6rem; font-weight: 800; color: {% if classroom.currently_due > 0 %}var(--danger){% else %}var(--success){% endif %}; margin: 0;">
+                        ₹ {{ classroom.currently_due|floatformat:2 }}
+                    </h3>
+                </div>
+                <div style="border-top: 1px solid rgba(0, 0, 0, 0.08); padding-top: 0.5rem;">
+                    <p style="font-size: 0.8rem; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.15rem; font-weight: 600;">Total Balance</p>
+                    <h4 style="font-size: 1.2rem; font-weight: 700; color: var(--dark-secondary); margin: 0;">
+                        ₹ {{ classroom.total_balance|floatformat:2 }}
+                    </h4>
+                </div>
             </div>
         </div>
         

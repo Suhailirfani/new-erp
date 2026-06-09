@@ -5,17 +5,19 @@
 {% block content %}
 <div class="row mb-5 align-items-center d-print-none">
     <div class="col-md-6">
-        <h2 style="font-size: 2rem; font-weight: 800; color: #ffffff !important; margin: 0;">Day Book</h2>
-        <p class="text-white-50">Combined Transaction History</p>
+        <h2 style="font-size: 2rem; font-weight: 800; color: var(--dark) !important; margin: 0;">
+            <i class="fas fa-book me-2" style="color: var(--primary);"></i>Day Book
+        </h2>
+        <p class="text-muted">Combined Transaction History</p>
     </div>
     <div class="col-md-6 text-end">
         <form class="d-flex gap-2 justify-content-end align-items-end">
             <div>
-                <label class="text-white small fw-bold mb-1">From</label>
+                <label class="text-dark small fw-bold mb-1">From</label>
                 <input type="date" name="start_date" value="{{ start_date }}" class="form-control form-control-sm">
             </div>
             <div>
-                <label class="text-white small fw-bold mb-1">To</label>
+                <label class="text-dark small fw-bold mb-1">To</label>
                 <input type="date" name="end_date" value="{{ end_date }}" class="form-control form-control-sm">
             </div>
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter me-1"></i> Filter</button>
@@ -89,11 +91,17 @@
 
 <style>
 @media print {
-    body { background: white !important; }
-    .glass-card { border: none !important; box-shadow: none !important; }
-    .table-light { background-color: #f8f9fa !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { background: white !important; padding: 0 !important; margin: 0 !important; }
+    .sidebar, .navbar, .menu-toggle, footer, .btn, .d-print-none, form { display: none !important; }
+    .main-workspace { margin-left: 0 !important; width: 100% !important; padding: 0 !important; }
+    .glass-card, .card { border: 1px solid #ddd !important; box-shadow: none !important; break-inside: avoid; }
+    .container { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+    h2, h5 { color: black !important; }
+    .table-light { background-color: #f8f9fa !important; }
+    .text-white { color: black !important; }
     .text-success { color: #198754 !important; }
     .text-danger { color: #dc3545 !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
 </style>
 {% endblock %}

@@ -12,9 +12,15 @@
             </div>
             <p class="text-muted">Detailed fee status for all students in this classroom</p>
         </div>
-        <div class="stat-card" style="padding: 1rem 2rem; min-height: auto; box-shadow: none;">
-            <p style="margin: 0; font-size: 0.8rem; opacity: 0.8; text-transform: uppercase;">Class Total Due</p>
-            <h3 style="margin: 0; font-size: 1.5rem;">₹ {{ total_class_due|floatformat:2 }}</h3>
+        <div class="stat-card" style="padding: 1rem 1.5rem; min-height: auto; box-shadow: none; display: flex; gap: 2rem; align-items: center;">
+            <div>
+                <p style="margin: 0; font-size: 0.8rem; opacity: 0.8; text-transform: uppercase;">Class Currently Due</p>
+                <h3 style="margin: 0; font-size: 1.5rem; color: var(--danger);">₹ {{ total_class_currently_due|floatformat:2 }}</h3>
+            </div>
+            <div style="border-left: 1px solid rgba(0, 0, 0, 0.1); padding-left: 2rem;">
+                <p style="margin: 0; font-size: 0.8rem; opacity: 0.8; text-transform: uppercase;">Class Total Balance</p>
+                <h3 style="margin: 0; font-size: 1.5rem; color: var(--dark-secondary);">₹ {{ total_class_due|floatformat:2 }}</h3>
+            </div>
         </div>
     </div>
 </div>
@@ -51,7 +57,8 @@
                             <th>Name</th>
                             <th>New?</th>
                             <th>Type</th>
-                            <th>Total Due (₹)</th>
+                            <th>Currently Due (₹)</th>
+                            <th>Total Balance (₹)</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -72,8 +79,15 @@
                             </td>
                             <td>{{ item.student.get_student_type_display }}</td>
                             <td>
+                                {% if item.currently_due > 0 %}
+                                    <span class="badge bg-danger">₹{{ item.currently_due|floatformat:2 }}</span>
+                                {% else %}
+                                    <span class="badge bg-success">₹0.00</span>
+                                {% endif %}
+                            </td>
+                            <td>
                                 {% if item.total_due > 0 %}
-                                    <span class="badge bg-danger">₹{{ item.total_due }}</span>
+                                    <span class="badge bg-secondary">₹{{ item.total_due|floatformat:2 }}</span>
                                 {% else %}
                                     <span class="badge bg-success">₹0.00</span>
                                 {% endif %}
@@ -84,7 +98,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center">No students found in this class.</td>
+                            <td colspan="8" class="text-center">No students found in this class.</td>
                         </tr>
                         {% endfor %}
                     </tbody>

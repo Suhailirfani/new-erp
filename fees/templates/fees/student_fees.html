@@ -51,11 +51,20 @@
         <div class="stat-info">
             <div class="label" style="color: #ef4444;">Currently Due</div>
             <div class="value">₹{{ total_due|floatformat:2 }}</div>
-            {% if total_due > 0 %}
-                <div style="font-size: 0.85rem; color: #ef4444; font-weight: 700;">
-                    <i class="fas fa-clock me-1"></i> Requires Attention
+            {% if overdue_count > 1 %}
+                <div style="font-size: 0.82rem; color: #ef4444; font-weight: 700;">
+                    <i class="fas fa-exclamation-circle me-1"></i>
+                    {{ overdue_count }} fees overdue
                 </div>
-            {% else %}
+            {% elif current_installment_fee %}
+                <div style="font-size: 0.82rem; color: #ef4444; font-weight: 700;">
+                    <i class="fas fa-clock me-1"></i>
+                    {{ current_installment_fee.fee_item.name|default:"Fee" }}
+                    {% if current_installment_fee.due_date %}
+                        &mdash; {{ current_installment_fee.due_date|date:"d M, Y" }}
+                    {% endif %}
+                </div>
+            {% elif total_due == 0 %}
                 <div style="font-size: 0.85rem; color: #10b981; font-weight: 700;">
                     <i class="fas fa-check-circle me-1"></i> All Settled
                 </div>
@@ -88,16 +97,16 @@
     </div>
 
     <!-- Next Payment Date -->
-    <div class="stat-card-new" style="background: var(--gradient-lavender); color: white;">
-        <div class="icon-box" style="background: rgba(255,255,255,0.2); color: white;">
+    <div class="stat-card-new" style="background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); color: white; box-shadow: 0 10px 25px -5px rgba(190, 24, 93, 0.4); border: 2px solid rgba(255,255,255,0.2);">
+        <div class="icon-box" style="background: rgba(255,255,255,0.25); color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
             <i class="fas fa-calendar-day"></i>
         </div>
         <div class="stat-info">
-            <div class="label" style="color: rgba(255,255,255,0.8);">Next Payment Due</div>
-            <div class="value" style="color: white; font-size: 1.5rem;">
+            <div class="label" style="color: rgba(255,255,255,0.9); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Next Payment Due</div>
+            <div class="value" style="color: white; font-size: 1.8rem; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
                 {% if next_due_date %}{{ next_due_date|date:"d M, Y" }}{% else %}No Dues{% endif %}
             </div>
-            <div style="font-size: 0.85rem; color: rgba(255,255,255,0.9); font-weight: 600;">Scheduled Deadline</div>
+            <div style="font-size: 0.85rem; color: rgba(255,255,255,0.95); font-weight: 700; background: rgba(0,0,0,0.15); padding: 4px 8px; border-radius: 6px; display: inline-block; margin-top: 6px;">Scheduled Deadline</div>
         </div>
     </div>
 </div>
