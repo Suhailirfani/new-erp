@@ -93,6 +93,10 @@ def fees_dashboard(request):
                 'division': division,
                 'currently_due': Decimal('0.00'),
                 'total_balance': Decimal('0.00'),
+                'admission_due': Decimal('0.00'),
+                'course_due': Decimal('0.00'),
+                'hostel_due': Decimal('0.00'),
+                'bus_due': Decimal('0.00'),
                 'student_count': 0,
                 'name': f"{grade.name} - {division.name}" if grade and division else (grade.name if grade else "Unassigned")
             }
@@ -104,6 +108,18 @@ def fees_dashboard(request):
         for f in student.fees.all():
             if f.balance > 0:
                 student_total_balance += f.balance
+                
+                # Categorize dues
+                ftype = f.fee_item.fee_type if f.fee_item else 'other'
+                if ftype == 'admission':
+                    classroom_data[classroom_key]['admission_due'] += f.balance
+                elif ftype == 'course':
+                    classroom_data[classroom_key]['course_due'] += f.balance
+                elif ftype == 'hostel':
+                    classroom_data[classroom_key]['hostel_due'] += f.balance
+                elif ftype == 'bus':
+                    classroom_data[classroom_key]['bus_due'] += f.balance
+
                 if not f.due_date or f.due_date <= today:
                     student_currently_due += f.balance
             
@@ -114,11 +130,54 @@ def fees_dashboard(request):
     # Convert to list and sort by grade name
     classrooms = sorted(classroom_data.values(), key=lambda x: x['name'])
     
+    # Calculate global pseudo-groups for Hostel and Bus
+    hostel_students = [s for s in active_students if s.student_type == 'hostel']
+    bus_students = [s for s in active_students if s.uses_bus]
+    
+    pseudo_groups = []
+    
+    if hostel_students:
+        h_total = Decimal('0.00')
+        h_due = Decimal('0.00')
+        for s in hostel_students:
+            for f in s.fees.all():
+                if f.balance > 0:
+                    h_total += f.balance
+                    if not f.due_date or f.due_date <= today:
+                        h_due += f.balance
+        pseudo_groups.append({
+            'name': 'All Hostel Students',
+            'student_count': len(hostel_students),
+            'currently_due': h_due,
+            'total_balance': h_total,
+            'is_pseudo': True,
+            'filter_type': 'hostel'
+        })
+
+    if bus_students:
+        b_total = Decimal('0.00')
+        b_due = Decimal('0.00')
+        for s in bus_students:
+            for f in s.fees.all():
+                if f.balance > 0:
+                    b_total += f.balance
+                    if not f.due_date or f.due_date <= today:
+                        b_due += f.balance
+        pseudo_groups.append({
+            'name': 'All Bus Students',
+            'student_count': len(bus_students),
+            'currently_due': b_due,
+            'total_balance': b_total,
+            'is_pseudo': True,
+            'filter_type': 'bus'
+        })
+    
     total_institution_currently_due = sum(c['currently_due'] for c in classrooms)
     total_institution_total_balance = sum(c['total_balance'] for c in classrooms)
         
     context = {
         'classrooms': classrooms,
+        'pseudo_groups': pseudo_groups,
         'total_institution_currently_due': total_institution_currently_due,
         'total_institution_total_balance': total_institution_total_balance,
         'page_title': 'Fee Dashboard'
@@ -190,6 +249,54 @@ def classroom_detail(request, grade_id, division_id=None):
     }
     return render(request, 'fees/classroom_detail.html', context)
 
+@role_required(['admin', 'accountant'])
+def special_category_detail(request, filter_type):
+    """Detailed student fee list for pseudo-groups like hostel and bus."""
+    from django.utils import timezone
+    today = timezone.now().date()
+    
+    if filter_type == 'hostel':
+        students = Student.objects.filter(is_active=True, student_type='hostel', enrollments__academic_year__is_active=True).distinct()
+        class_name = "All Hostel Students"
+    elif filter_type == 'bus':
+        students = Student.objects.filter(is_active=True, uses_bus=True, enrollments__academic_year__is_active=True).distinct()
+        class_name = "All Bus Students"
+    else:
+        return redirect('fees:fees_dashboard')
+        
+    student_data = []
+    total_class_currently_due = Decimal('0.00')
+    total_class_due = Decimal('0.00')
+    
+    for student in students:
+        currently_due = Decimal('0.00')
+        total_due = Decimal('0.00')
+        
+        for f in student.fees.all():
+            if f.balance > 0:
+                total_due += f.balance
+                if not f.due_date or f.due_date <= today:
+                    currently_due += f.balance
+        
+        total_class_currently_due += currently_due
+        total_class_due += total_due
+                
+        student_data.append({
+            'student': student,
+            'currently_due': currently_due,
+            'total_due': total_due,
+            'is_new_admission': False, # Not strictly needed here
+        })
+
+    context = {
+        'student_data': student_data,
+        'total_class_currently_due': total_class_currently_due,
+        'total_class_due': total_class_due,
+        'class_name': class_name,
+        'page_title': class_name
+    }
+    return render(request, 'fees/classroom_detail.html', context)
+
 @role_required(['admin', 'accountant', 'student'])
 def student_fees(request, student_id):
     """View all fees for a specific student with dashboard summaries."""
@@ -220,7 +327,7 @@ def student_fees(request, student_id):
                 if fee.due_date and fee.due_date >= today:
                     next_due_date = fee.due_date
             
-            if fee.due_date and fee.due_date <= today:
+            if not fee.due_date or fee.due_date <= today:
                 total_due += fee.balance
             else:
                 balance_pending += fee.balance
@@ -285,7 +392,7 @@ def student_fees(request, student_id):
             'method': inc.get_payment_method_display(),
             'reference': inc.reference_number,
             'payments': payments_for_inc,
-            'advance_amount': advance
+                'advance_amount': advance
         })
         
     # Sort unified_receipts by date descending
@@ -293,9 +400,32 @@ def student_fees(request, student_id):
     
     total_balance = total_due + balance_pending
     
+    # Categorize fees for cleaner UI
+    fee_categories = {
+        'Admission Fees': [],
+        'Course Fees': [],
+        'Hostel Fees': [],
+        'Bus Fees': [],
+        'Other Fees': []
+    }
+    
+    for fee in fees:
+        ftype = fee.fee_item.fee_type if fee.fee_item else 'other'
+        if ftype == 'admission':
+            fee_categories['Admission Fees'].append(fee)
+        elif ftype == 'course':
+            fee_categories['Course Fees'].append(fee)
+        elif ftype == 'hostel':
+            fee_categories['Hostel Fees'].append(fee)
+        elif ftype == 'bus':
+            fee_categories['Bus Fees'].append(fee)
+        else:
+            fee_categories['Other Fees'].append(fee)
+    
     context = {
         'student': student,
         'fees': fees,
+        'fee_categories': {k: v for k, v in fee_categories.items() if v}, # Only non-empty categories
         'total_paid': total_paid,
         'total_due': total_due,
         'current_installment_due': current_installment_due,
@@ -1818,3 +1948,50 @@ def add_arrears(request):
             messages.error(request, 'Please fill in all required fields.')
             
     return redirect(request.META.get('HTTP_REFERER', 'fees:fees_dashboard'))
+@role_required(['admin', 'accountant'])
+def caution_deposit_list(request):
+    """View all caution deposits across the institution"""
+    deposits = CautionDeposit.objects.all().select_related('student', 'refund').order_by('-date_collected')
+    
+    context = {
+        'deposits': deposits,
+        'page_title': 'Caution Deposits'
+    }
+    return render(request, 'fees/caution_deposit_list.html', context)
+
+@role_required(['admin', 'accountant'])
+def refund_caution_deposit(request, deposit_id):
+    """Process a refund for a caution deposit"""
+    deposit = get_object_or_404(CautionDeposit, id=deposit_id)
+    
+    if deposit.is_refunded:
+        messages.warning(request, "This deposit has already been refunded.")
+        return redirect('fees:caution_deposit_list')
+        
+    if request.method == 'POST':
+        refund_amount = request.POST.get('refund_amount')
+        remarks = request.POST.get('remarks', '')
+        
+        try:
+            refund_amount = Decimal(refund_amount)
+            if refund_amount <= 0 or refund_amount > deposit.amount:
+                raise ValueError("Invalid refund amount. Must be positive and not exceed original deposit.")
+                
+            CautionDepositRefund.objects.create(
+                deposit=deposit,
+                amount_refunded=refund_amount,
+                processed_by=request.user.username,
+                remarks=remarks
+            )
+            
+            messages.success(request, f"Refund of ₹{refund_amount} processed successfully for {deposit.student.full_name}.")
+            return redirect('fees:caution_deposit_list')
+            
+        except ValueError as e:
+            messages.error(request, str(e))
+            
+    context = {
+        'deposit': deposit,
+        'page_title': 'Process Refund'
+    }
+    return render(request, 'fees/caution_deposit_refund.html', context)

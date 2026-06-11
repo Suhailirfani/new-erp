@@ -186,7 +186,7 @@ def generate_monthly_fees_for_all(billing_month):
                 created_count += 1
 
         # 2. Vehicle Fee Generation
-        if student.bus_stop and bus_item:
+        if student.uses_bus and bus_item:
             fee_record, created = StudentFee.objects.get_or_create(
                 student=student,
                 fee_item=bus_item,

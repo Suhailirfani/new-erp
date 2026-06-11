@@ -96,6 +96,7 @@ class Student(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
     advance_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    uses_bus = models.BooleanField(default=False, help_text="Designates whether the student uses institutional transport")
     bus_stop = models.ForeignKey('fees.BusStop', on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
 
     class Meta:

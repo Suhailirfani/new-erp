@@ -14,7 +14,13 @@
                 <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.25rem;">
                     <span style="background: var(--primary); color: white; padding: 0.2rem 0.75rem; border-radius: 8px; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.05em;">ID: {{ student.student_id }}</span>
                     <span style="color: var(--gray); font-weight: 600; font-size: 0.95rem;">
-                        <i class="fas fa-graduation-cap me-1"></i> Grade: <span style="color: var(--dark-secondary);">{{ student.grade|default:"Not Assigned" }}</span>
+                        <i class="fas fa-graduation-cap me-1"></i> Course: <span style="color: var(--dark-secondary);">{{ student.grade|default:"Not Assigned" }} {% if student.division %}- {{ student.division.name }}{% endif %}</span>
+                    </span>
+                    <span style="color: var(--gray); font-weight: 600; font-size: 0.95rem;">
+                        <i class="fas fa-bed me-1"></i> Hostel: <span style="color: var(--dark-secondary);">{% if student.student_type == 'hostel' %}Yes{% else %}No{% endif %}</span>
+                    </span>
+                    <span style="color: var(--gray); font-weight: 600; font-size: 0.95rem;">
+                        <i class="fas fa-bus me-1"></i> Bus: <span style="color: var(--dark-secondary);">{% if student.uses_bus %}Yes{% if student.bus_stop %} ({{ student.bus_stop.stop_name }}){% endif %}{% else %}No{% endif %}</span>
                     </span>
                 </div>
             </div>
@@ -133,49 +139,57 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for fee in fees %}
-                            <tr>
-                                <td class="ps-4" style="padding: 1.25rem 1rem;">
-                                    <div style="font-weight: 700; color: var(--dark); font-size: 1rem;">
-                                        {% if fee.fee_item %}
-                                            {{ fee.fee_item.name }}
-                                        {% elif fee.installment %}
-                                            {{ fee.installment.name }}
+                            {% for category, cat_fees in fee_categories.items %}
+                                <tr style="background: rgba(0,0,0,0.03);">
+                                    <td colspan="6" class="ps-4 fw-bold" style="color: var(--dark); padding: 0.75rem 1rem;">
+                                        {{ category }}
+                                    </td>
+                                </tr>
+                                {% for fee in cat_fees %}
+                                <tr>
+                                    <td class="ps-4" style="padding: 1.25rem 1rem;">
+                                        <div style="font-weight: 700; color: var(--dark); font-size: 1rem;">
+                                            {% if fee.fee_item %}
+                                                {{ fee.fee_item.name }}
+                                            {% elif fee.installment %}
+                                                {{ fee.installment.name }}
+                                            {% else %}
+                                                General Fee
+                                            {% endif %}
+                                        </div>
+                                        <div style="color: var(--gray); font-size: 0.8rem;">
+                                            {% if fee.billing_month %}{{ fee.billing_month|date:"F Y" }} - {% endif %}
+                                            {% if fee.remarks %}{{ fee.remarks }}{% else %}{% if fee.fee_item %}{{ fee.fee_item.category }}{% endif %}{% endif %}
+                                            {% if fee.concession_amount > 0 %}
+                                                <span style="color: #10b981; margin-left: 0.25rem; font-weight: 600;">• Concession: ₹{{ fee.concession_amount }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td style="color: var(--dark-secondary); font-weight: 600;">₹{{ fee.total_amount }}</td>
+                                    <td style="color: #10b981; font-weight: 700;">₹{{ fee.amount_paid }}</td>
+                                    <td style="font-weight: 800; color: {% if fee.balance > 0 %}#ef4444{% else %}#10b981{% endif %};">
+                                        ₹{{ fee.balance }}
+                                    </td>
+                                    <td>
+                                        <span style="{% if fee.due_date < today and fee.balance > 0 %}color: #ef4444; font-weight: 800;{% else %}color: var(--dark-secondary); font-weight: 600;{% endif %}">
+                                            {{ fee.due_date|date:"d/m/Y"|default:"-" }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if fee.status == 'paid' or fee.balance <= 0 %}
+                                            <span style="background: #d1fae5; color: #065f46; padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Completed</span>
+                                        {% elif fee.status == 'partial' %}
+                                            <span style="background: #fef3c7; color: #92400e; padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Partial</span>
                                         {% else %}
-                                            General Fee
+                                            <span style="background: #fee2e2; color: #991b1b; padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Pending</span>
                                         {% endif %}
-                                    </div>
-                                    <div style="color: var(--gray); font-size: 0.8rem;">
-                                        {% if fee.fee_item %}{{ fee.fee_item.category }}{% endif %}
-                                        {% if fee.concession_amount > 0 %}
-                                            <span style="color: #10b981; margin-left: 0.25rem; font-weight: 600;">• Concession: ₹{{ fee.concession_amount }}</span>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                                <td style="color: var(--dark-secondary); font-weight: 600;">₹{{ fee.total_amount }}</td>
-                                <td style="color: #10b981; font-weight: 700;">₹{{ fee.amount_paid }}</td>
-                                <td style="font-weight: 800; color: {% if fee.balance > 0 %}#ef4444{% else %}#10b981{% endif %};">
-                                    ₹{{ fee.balance }}
-                                </td>
-                                <td>
-                                    <span style="{% if fee.due_date < today and fee.balance > 0 %}color: #ef4444; font-weight: 800;{% else %}color: var(--dark-secondary); font-weight: 600;{% endif %}">
-                                        {{ fee.due_date|date:"d/m/Y"|default:"-" }}
-                                    </span>
-                                </td>
-                                <td class="text-center">
-                                    {% if fee.status == 'paid' or fee.balance <= 0 %}
-                                        <span style="background: #d1fae5; color: #065f46; padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Completed</span>
-                                    {% elif fee.status == 'partial' %}
-                                        <span style="background: #fef3c7; color: #92400e; padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Partial</span>
-                                    {% else %}
-                                        <span style="background: #fee2e2; color: #991b1b; padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Pending</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
+                                    </td>
+                                </tr>
+                                {% endfor %}
                             {% empty %}
-                            <tr>
-                                <td colspan="6" class="text-center py-5" style="color: var(--gray); font-style: italic;">No fees assigned to this student.</td>
-                            </tr>
+                                <tr>
+                                    <td colspan="6" class="text-center py-5" style="color: var(--gray); font-style: italic;">No fees assigned to this student.</td>
+                                </tr>
                             {% endfor %}
                         </tbody>
                     </table>

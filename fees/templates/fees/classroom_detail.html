@@ -31,6 +31,7 @@
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Students in {{ class_name }}</h5>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                {% if grade %}
                 <button type="button" class="btn btn-outline-info btn-sm" onclick="selectNewAdmissions()">
                     <i class="fas fa-check-double"></i> Select New Admissions
                 </button>
@@ -43,6 +44,7 @@
                 <button type="submit" class="btn btn-danger btn-sm" formaction="{% url 'fees:cancel_selective_admission_fees' %}" onclick="return confirm('Cancel admission fees for selected students? Only unpaid fees will be removed.');">
                     <i class="fas fa-trash-alt"></i> Cancel Admission Fee
                 </button>
+                {% endif %}
             </div>
         </div>
         <div class="card-body">

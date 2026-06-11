@@ -7,6 +7,7 @@ urlpatterns = [
     path('setup/add-arrears/', views.add_arrears, name='add_arrears'),
     path('finance-dashboard/', views.finance_dashboard, name='finance_dashboard'),
     path('fees-dashboard/', views.fees_dashboard, name='fees_dashboard'),
+    path('fees-dashboard/category/<str:filter_type>/', views.special_category_detail, name='special_category_detail'),
     path('fees-dashboard/classroom/<int:grade_id>/', views.classroom_detail, name='classroom_detail'),
     path('fees-dashboard/classroom/<int:grade_id>/<int:division_id>/', views.classroom_detail, name='classroom_detail_with_division'),
     # Redirect legacy dashboard to finance dashboard for now if needed, or just remove it
@@ -56,6 +57,9 @@ urlpatterns = [
     path('setup/structures/add/', views.fee_structure_create, name='fee_structure_create'),
     path('setup/structures/<int:pk>/edit/', views.fee_structure_update, name='fee_structure_update'),
     path('setup/structures/<int:pk>/delete/', views.fee_structure_delete, name='fee_structure_delete'),
-    path('student/<int:student_id>/add-custom-fee/', views.add_custom_fee, name='add_custom_fee'),
+    # Caution Deposits
+    path('caution-deposits/', views.caution_deposit_list, name='caution_deposit_list'),
+    path('caution-deposits/<int:deposit_id>/refund/', views.refund_caution_deposit, name='refund_caution_deposit'),
+    
     path('student/<int:student_id>/payment-history/', views.print_payment_history, name='print_payment_history'),
 ]

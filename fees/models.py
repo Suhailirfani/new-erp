@@ -1,6 +1,7 @@
 from django.db import models
 from decimal import Decimal
 import uuid
+from django.utils import timezone
 
 class FeeCategory(models.Model):
     """Categories like Admission, Course, Hostel, Transport, etc."""
@@ -306,3 +307,36 @@ class FeeInstallmentTemplate(models.Model):
 
     def __str__(self):
         return f"{self.fee_item.name} - {self.name} (₹{self.amount})"
+
+class CautionDeposit(models.Model):
+    """Tracks refundable caution deposits separately from standard income"""
+    student = models.ForeignKey('students.Student', on_delete=models.CASCADE, related_name='caution_deposits')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    date_collected = models.DateField(default=timezone.now)
+    receipt_number = models.CharField(max_length=100, blank=True)
+    is_refunded = models.BooleanField(default=False)
+    remarks = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['-date_collected']
+
+    def __str__(self):
+        return f"Caution Deposit - {self.student} - ₹{self.amount}"
+
+
+class CautionDepositRefund(models.Model):
+    """Records the refund of a caution deposit"""
+    deposit = models.OneToOneField(CautionDeposit, on_delete=models.CASCADE, related_name='refund')
+    amount_refunded = models.DecimalField(max_digits=10, decimal_places=2)
+    refund_date = models.DateField(default=timezone.now)
+    processed_by = models.CharField(max_length=100)
+    remarks = models.TextField(blank=True)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if not self.deposit.is_refunded:
+            self.deposit.is_refunded = True
+            self.deposit.save()
+
+    def __str__(self):
+        return f"Refund for {self.deposit.student} - ₹{self.amount_refunded}"

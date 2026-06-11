@@ -27,10 +27,11 @@
                     <tr>
                         <td class="small pt-2">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="selected_fees" value="{{ f.id }}" id="fee_{{ f.id }}">
+                                <input class="form-check-input fee-checkbox" type="checkbox" name="selected_fees" value="{{ f.id }}" id="fee_{{ f.id }}" data-balance="{{ f.balance }}">
                                 <label class="form-check-label cursor-pointer" for="fee_{{ f.id }}">
                                     {% if f.fee_item %}
                                         {{ f.fee_item.name }}
+                                        <span class="text-muted" style="font-size: 0.75rem;">({{ f.fee_item.category }})</span>
                                     {% elif f.installment %}
                                         {{ f.installment.name }}
                                     {% else %}
@@ -45,8 +46,12 @@
                     <tr><td colspan="2" class="text-success small pt-2">No pending fees. Any payment will be saved as Advance.</td></tr>
                     {% endfor %}
                     <tr>
-                        <th class="pt-3 border-top mt-2">Total Balance Due:</th>
-                        <td class="text-danger fw-bold fs-4 pt-3 border-top mt-2 text-end">₹{{ total_due|floatformat:2 }}</td>
+                        <th class="pt-3 border-top mt-2">Total Selected Due:</th>
+                        <td class="text-primary fw-bold fs-5 pt-3 border-top mt-2 text-end">₹<span id="selected-total">0.00</span></td>
+                    </tr>
+                    <tr>
+                        <th class="pt-2">Total Balance Due:</th>
+                        <td class="text-danger fw-bold fs-4 pt-2 text-end">₹{{ total_due|floatformat:2 }}</td>
                     </tr>
                     <tr>
                         <th class="pt-2 text-muted small mt-2">Current Advance Credit:</th>
@@ -54,7 +59,7 @@
                     </tr>
                     <tr>
                         <td colspan="2" class="text-muted small pt-2 border-top">
-                            <i class="fas fa-info-circle"></i> Check items to pay them first. Unchecked items are paid chronologically. Overpayment goes to Advance.
+                            <i class="fas fa-info-circle"></i> Check items to pay them first. The Payment Amount box will auto-update with the sum of selected fees.
                         </td>
                     </tr>
                 </table>
@@ -111,4 +116,32 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.fee-checkbox');
+    const amountInput = document.getElementById('amount');
+    const selectedTotalSpan = document.getElementById('selected-total');
+    
+    function updateSelectedTotal() {
+        let total = 0;
+        let anyChecked = false;
+        checkboxes.forEach(cb => {
+            if (cb.checked) {
+                total += parseFloat(cb.dataset.balance);
+                anyChecked = true;
+            }
+        });
+        selectedTotalSpan.textContent = total.toFixed(2);
+        if (anyChecked) {
+            amountInput.value = total.toFixed(2);
+        } else {
+            // Revert to full due if nothing checked
+            amountInput.value = "{{ total_due|floatformat:2 }}";
+        }
+    }
+    
+    checkboxes.forEach(cb => cb.addEventListener('change', updateSelectedTotal));
+});
+</script>
 {% endblock %}
