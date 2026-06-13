@@ -58,7 +58,10 @@
     <div class="glass-card" style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; min-height: 220px;">
         <div>
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-                <h3 style="font-size: 1.4rem; font-weight: 700; color: var(--dark-secondary); margin: 0;">{{ classroom.name }}</h3>
+                <div>
+                    <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--gray); font-weight: 700;">Class Room</span>
+                    <h3 style="font-size: 1.4rem; font-weight: 700; color: var(--dark-secondary); margin: 0;">{{ classroom.name }}</h3>
+                </div>
                 <span class="badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">{{ classroom.student_count }} Students</span>
             </div>
             
