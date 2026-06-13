@@ -14,6 +14,7 @@ urlpatterns = [
     path('dashboard/', views.finance_dashboard, name='dashboard'), # Keep legacy name for now to prevent breaks
     path('student/<int:student_id>/', views.student_fees, name='student_fees'),
     path('student/<int:student_id>/add-custom-fee/', views.add_custom_fee, name='add_custom_fee'),
+    path('student/fee/<int:fee_id>/delete/', views.delete_student_fee, name='delete_student_fee'),
     path('collect/<int:student_id>/', views.collect_payment, name='collect_payment'),
     # Finance & Reports
     path('finance/day-book/', views.day_book, name='day_book'),

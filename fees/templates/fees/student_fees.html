@@ -181,7 +181,15 @@
                                         {% elif fee.status == 'partial' %}
                                             <span style="background: #fef3c7; color: #92400e; padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Partial</span>
                                         {% else %}
-                                            <span style="background: #fee2e2; color: #991b1b; padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Pending</span>
+                                            <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                                <span style="background: #fee2e2; color: #991b1b; padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Pending</span>
+                                                <form action="{% url 'fees:delete_student_fee' fee.id %}" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this unpaid fee?');">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" style="padding: 0.1rem 0.3rem; border: none;" title="Delete Mistaken Fee">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
                                         {% endif %}
                                     </td>
                                 </tr>

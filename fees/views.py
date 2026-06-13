@@ -1970,6 +1970,27 @@ def add_arrears(request):
             messages.error(request, 'Please fill in all required fields.')
             
     return redirect(request.META.get('HTTP_REFERER', 'fees:fees_dashboard'))
+
+@role_required(['admin', 'accountant'])
+def delete_student_fee(request, fee_id):
+    """Deletes an assigned fee from a student ONLY if no payments have been made."""
+    from django.shortcuts import get_object_or_404, redirect
+    from django.contrib import messages
+    from .models import StudentFee
+    
+    fee = get_object_or_404(StudentFee, id=fee_id)
+    student_id = fee.student.id
+    
+    if request.method == 'POST':
+        if fee.amount_paid > 0:
+            messages.error(request, "Cannot delete a fee that has already been partially or fully paid.")
+        else:
+            fee_name = fee.fee_item.name if fee.fee_item else (fee.installment.name if hasattr(fee, 'installment') and fee.installment else fee.remarks)
+            fee.delete()
+            messages.success(request, f"Fee '{fee_name}' was successfully deleted.")
+            
+    return redirect('fees:student_fees', student_id=student_id)
+
 @role_required(['admin', 'accountant'])
 def caution_deposit_list(request):
     """View all caution deposits across the institution"""
