@@ -1134,15 +1134,37 @@ def manage_fee_installments(request, item_id):
         
         if templates_to_create:
             FeeInstallmentTemplate.objects.bulk_create(templates_to_create)
-            
             # Retroactively apply installments to students who have an unpaid lump sum for this fee item
             unpaid_single_fees = StudentFee.objects.filter(
                 fee_item=fee_item,
                 amount_paid=0
             ).exclude(remarks__icontains='Installment:')
             
-            students_to_update = [f.student for f in unpaid_single_fees]
+            students_to_update = set([f.student for f in unpaid_single_fees])
             unpaid_single_fees.delete()
+            
+            # ALSO find students who already have installments generated for this fee
+            # We will only replace them if the student hasn't paid ANY part of ANY installment yet.
+            existing_installments = StudentFee.objects.filter(
+                fee_item=fee_item,
+                remarks__icontains='Installment:'
+            )
+            
+            student_installment_groups = {}
+            for inst in existing_installments:
+                if inst.student not in student_installment_groups:
+                    student_installment_groups[inst.student] = []
+                student_installment_groups[inst.student].append(inst)
+                
+            installments_to_delete = []
+            for student, inst_list in student_installment_groups.items():
+                # If ALL installments for this fee item are completely unpaid
+                if all(inst.amount_paid == 0 for inst in inst_list):
+                    students_to_update.add(student)
+                    installments_to_delete.extend(inst_list)
+                    
+            if installments_to_delete:
+                StudentFee.objects.filter(id__in=[inst.id for inst in installments_to_delete]).delete()
             
             new_fees = []
             for student in students_to_update:
