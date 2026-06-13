@@ -200,7 +200,7 @@ def classroom_detail(request, grade_id, division_id=None):
         enrollments__academic_year__is_active=True,
         enrollments__grade=grade,
         enrollments__division=division
-    ).distinct()
+    ).distinct().order_by('student_id', 'first_name')
     
     student_data = []
     total_class_currently_due = Decimal('0.00')
