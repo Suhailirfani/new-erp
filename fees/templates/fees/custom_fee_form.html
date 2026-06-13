@@ -67,10 +67,15 @@
 
         const feeSelect = document.getElementById('feeSelect');
         const amountInput = document.getElementById('amountInput');
+        let userEditedAmount = false;
+
+        amountInput.addEventListener('input', function() {
+            userEditedAmount = true;
+        });
 
         feeSelect.addEventListener('change', function() {
             const selectedOption = feeSelect.options[feeSelect.selectedIndex];
-            if (selectedOption && selectedOption.dataset.amount) {
+            if (selectedOption && selectedOption.dataset.amount && !userEditedAmount) {
                 amountInput.value = parseFloat(selectedOption.dataset.amount).toFixed(2);
             }
         });

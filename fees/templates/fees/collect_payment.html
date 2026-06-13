@@ -122,6 +122,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const checkboxes = document.querySelectorAll('.fee-checkbox');
     const amountInput = document.getElementById('amount');
     const selectedTotalSpan = document.getElementById('selected-total');
+    let userEditedAmount = false;
+    
+    amountInput.addEventListener('input', function() {
+        userEditedAmount = true;
+    });
     
     function updateSelectedTotal() {
         let total = 0;
@@ -133,11 +138,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         selectedTotalSpan.textContent = total.toFixed(2);
-        if (anyChecked) {
-            amountInput.value = total.toFixed(2);
-        } else {
-            // Revert to full due if nothing checked
-            amountInput.value = "{{ total_due|floatformat:2 }}";
+        
+        if (!userEditedAmount) {
+            if (anyChecked) {
+                amountInput.value = total.toFixed(2);
+            } else {
+                // Revert to full due if nothing checked
+                amountInput.value = "{{ total_due|floatformat:2 }}";
+            }
         }
     }
     
