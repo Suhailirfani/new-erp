@@ -67,18 +67,9 @@
 
         const feeSelect = document.getElementById('feeSelect');
         const amountInput = document.getElementById('amountInput');
-        let userEditedAmount = false;
 
-        amountInput.addEventListener('input', function() {
-            userEditedAmount = true;
-        });
-
-        feeSelect.addEventListener('change', function() {
-            const selectedOption = feeSelect.options[feeSelect.selectedIndex];
-            if (selectedOption && selectedOption.dataset.amount && !userEditedAmount) {
-                amountInput.value = parseFloat(selectedOption.dataset.amount).toFixed(2);
-            }
-        });
+        // We removed the auto-population of amount field so the user 
+        // can type any amount without JS interfering or formatting it to .99
     });
 </script>
 {% endblock %}
