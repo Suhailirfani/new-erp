@@ -620,7 +620,7 @@ def collect_payment(request, student_id):
     }
     return render(request, 'fees/collect_payment.html', context)
 
-@role_required(['admin', 'accountant'])
+@role_required(['admin', 'accountant', 'student'])
 def download_receipt(request, receipt_id):
     """Generate and return an itemized PDF/HTML receipt for a unified transaction or legacy income record."""
     from .models import ReceiptTransaction
@@ -664,6 +664,12 @@ def download_receipt(request, receipt_id):
         ctx_ref = income.reference_number
         ctx_collector = income.collected_by
         
+    # Data isolation for student/parent role
+    if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
+        if student and (not request.user.profile.student_record or request.user.profile.student_record.id != student.id):
+            messages.error(request, "You do not have permission to view this receipt.")
+            return redirect('students:home')
+            
     context = {
         'receipt': receipt_obj,
         'is_legacy': not is_uuid,
