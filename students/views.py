@@ -555,7 +555,11 @@ def student_bulk_import(request):
 
                     # Get optional fields
                     email = str(row.get('email', '')).strip() if 'email' in df.columns and pd.notna(row.get('email')) else ''
+                    
                     phone = str(row.get('phone', '')).strip() if 'phone' in df.columns and pd.notna(row.get('phone')) else ''
+                    if phone.endswith('.0'):
+                        phone = phone[:-2]
+                        
                     address = str(row.get('address', '')).strip() if 'address' in df.columns and pd.notna(row.get('address')) else ''
 
                     # Create student
