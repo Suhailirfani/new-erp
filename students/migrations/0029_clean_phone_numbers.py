@@ -16,7 +16,7 @@ def clean_phones(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('students', '0028_merge_20260611_1907'),
+        ('students', '0028_student_uses_bus'),
     ]
 
     operations = [

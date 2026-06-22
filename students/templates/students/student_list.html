@@ -250,10 +250,11 @@
     <a href="{% url 'students:student_create' %}" class="btn btn-success">Add Single Student</a>
     <a href="{% url 'students:student_bulk_import' %}" class="btn" style="background-color: #27ae60;">Bulk Import from Excel</a>
     <a href="{% url 'students:student_upgrade' %}" class="btn" style="background-color: #9b59b6;">Upgrade Students</a>
+    <button type="submit" form="filterForm" name="export" value="excel" class="btn" style="background-color: #2980b9; color: white;"><i class="fas fa-file-excel"></i> Export to Excel</button>
 </div>
 
 <div class="filter-form">
-    <form method="get">
+    <form id="filterForm" method="get">
         <div class="form-row">
             <div class="form-group">
                 <label>Search</label>
