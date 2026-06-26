@@ -1423,6 +1423,10 @@ def fee_item_create(request):
                                     enrollments = Enrollment.objects.filter(academic_year=active_year, grade=classroom['grade'], division__isnull=True)
                                 
                                 for enrollment in enrollments:
+                                    # Target student type check
+                                    if fee_item.target_student_type != 'all' and enrollment.student.student_type != fee_item.target_student_type:
+                                        continue
+
                                     fee, created = StudentFee.objects.get_or_create(
                                         student=enrollment.student,
                                         fee_item=fee_item,
@@ -1513,6 +1517,10 @@ def fee_item_update(request, pk):
                                     enrollments = Enrollment.objects.filter(academic_year=active_year, grade=classroom['grade'], division__isnull=True)
                                 
                                 for enrollment in enrollments:
+                                    # Target student type check
+                                    if fee_item.target_student_type != 'all' and enrollment.student.student_type != fee_item.target_student_type:
+                                        continue
+
                                     fee, created = StudentFee.objects.get_or_create(
                                         student=enrollment.student,
                                         fee_item=fee_item,
