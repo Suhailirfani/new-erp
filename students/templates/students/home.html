@@ -211,7 +211,7 @@
     {% else %}
     <!-- Student Portal View -->
     <div style="text-align: center; padding: 2rem 0 2.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-        <h2 style="font-size: 2.5rem; font-weight: 800; color: var(--dark); margin-bottom: 0.5rem;">Hello, {{ request.user.first_name }}!</h2>
+        <h2 style="font-size: 2.5rem; font-weight: 800; color: var(--dark); margin-bottom: 0.5rem;">Hello, {{ student_record.full_name }}!</h2>
         <p style="color: var(--gray); font-size: 1.1rem; margin-bottom: 1.5rem;">Welcome to your academic dashboard.</p>
         
         <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; margin-bottom: 1.5rem;">
@@ -223,25 +223,16 @@
         </div>
 
         <!-- Today's Attendance Status Banner -->
-        <div style="padding: 0.75rem 1.5rem; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); font-size: 0.95rem; font-weight: 700; max-width: 100%; box-sizing: border-box; text-align: center;
-            {% if today_status == 'present' %}
-                background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #bbf7d0; color: #16a34a;
-            {% elif today_status == 'absent' %}
-                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fecaca; color: #dc2626;
-            {% elif today_status == 'late' %}
-                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1px solid #fde68a; color: #d97706;
-            {% elif today_status == 'excused' %}
-                background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #bae6fd; color: #0284c7;
-            {% else %}
-                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0; color: #64748b;
-            {% endif %}">
-            <i class="fa-solid 
-                {% if today_status == 'present' %}fa-circle-check
-                {% elif today_status == 'absent' %}fa-circle-xmark
-                {% elif today_status == 'late' %}fa-clock
-                {% elif today_status == 'excused' %}fa-circle-info
-                {% else %}fa-circle-question
-                {% endif %}" style="font-size: 1.15rem;"></i>
+        <style>
+            .att-banner { padding: 0.75rem 1.5rem; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); font-size: 0.95rem; font-weight: 700; max-width: 100%; box-sizing: border-box; text-align: center; }
+            .att-present { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #bbf7d0; color: #16a34a; }
+            .att-absent { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fecaca; color: #dc2626; }
+            .att-late { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1px solid #fde68a; color: #d97706; }
+            .att-excused { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #bae6fd; color: #0284c7; }
+            .att-none { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0; color: #64748b; }
+        </style>
+        <div class="att-banner {% if today_status == 'present' %}att-present{% elif today_status == 'absent' %}att-absent{% elif today_status == 'late' %}att-late{% elif today_status == 'excused' %}att-excused{% else %}att-none{% endif %}">
+            <i class="fa-solid {% if today_status == 'present' %}fa-circle-check{% elif today_status == 'absent' %}fa-circle-xmark{% elif today_status == 'late' %}fa-clock{% elif today_status == 'excused' %}fa-circle-info{% else %}fa-circle-question{% endif %}" style="font-size: 1.15rem;"></i>
             <span>
                 Today's Attendance: 
                 {% if today_status == 'present' %}Present
