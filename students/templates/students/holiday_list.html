@@ -1,0 +1,161 @@
+{% extends 'students/base.html' %}
+{% block title %}Manage Holidays - HadiyAdmin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .holiday-layout {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        gap: 2rem;
+        align-items: start;
+        margin-top: 1rem;
+    }
+    
+    @media (max-width: 992px) {
+        .holiday-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .optional-badge {
+        background: rgba(245, 158, 11, 0.1);
+        color: #d97706;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        border-radius: 6px;
+    }
+
+    .mandatory-badge {
+        background: rgba(239, 68, 68, 0.1);
+        color: #dc2626;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        border-radius: 6px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
+        <div>
+            <h1 class="page-title" style="font-size: 1.8rem; font-weight: 800; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">📅 System Holidays</h1>
+            <p style="color: var(--gray); font-size: 0.95rem;">Configure and view active institutional holidays (which automatically adjust attendance tracking)</p>
+        </div>
+    </div>
+
+    <!-- Alert Messages -->
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+            {% if 'success' in message.tags %}
+                <i class="fa-solid fa-circle-check"></i>
+            {% else %}
+                <i class="fa-solid fa-circle-xmark"></i>
+            {% endif %}
+            <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="holiday-layout">
+        <!-- Add Holiday Column (Only writeable for Admins) -->
+        <div class="card">
+            <h3 style="font-weight: 800; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem; color: var(--dark-secondary);">
+                <i class="fa-solid fa-calendar-plus" style="color: var(--primary);"></i> Add New Holiday
+            </h3>
+
+            {% if request.user.profile.role == 'admin' or request.user.is_superuser %}
+            <form method="POST" action="{% url 'students:holiday_list' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label class="form-label" for="id_date">Holiday Date</label>
+                    <input type="date" name="date" id="id_date" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_title">Holiday Title / Occasion</label>
+                    <input type="text" name="title" id="id_title" placeholder="e.g. Independence Day" required>
+                </div>
+
+                <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem; background: rgba(0,0,0,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); margin-bottom: 2rem;">
+                    <input type="checkbox" name="is_optional" id="id_is_optional" style="width: auto; cursor: pointer;">
+                    <label for="id_is_optional" style="font-weight: 600; font-size: 0.9rem; cursor: pointer; color: var(--dark-secondary); margin: 0;">
+                        Optional Holiday
+                    </label>
+                </div>
+
+                <button type="submit" class="btn" style="width: 100%; margin: 0;"><i class="fa-solid fa-check"></i> Save Holiday</button>
+            </form>
+            {% else %}
+            <div style="background: rgba(245, 158, 11, 0.08); padding: 1.25rem; border-radius: 16px; border: 1px solid rgba(245, 158, 11, 0.2); color: #b45309; font-size: 0.9rem; line-height: 1.5; text-align: center;">
+                <i class="fa-solid fa-lock" style="font-size: 1.5rem; margin-bottom: 0.75rem; display: block; opacity: 0.7;"></i>
+                You have <strong>View-Only</strong> access. Please contact a system administrator to register new custom holidays.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Holiday list Column -->
+        <div class="card">
+            <h3 style="font-weight: 800; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem; color: var(--dark-secondary);">
+                <i class="fa-solid fa-calendar-days" style="color: var(--primary);"></i> Registered Holidays
+            </h3>
+            
+            <div class="table-wrapper">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th style="border-radius: 16px 0 0 0;">Date</th>
+                            <th>Weekday</th>
+                            <th>Title / Occasion</th>
+                            <th>Type</th>
+                            {% if request.user.profile.role == 'admin' or request.user.is_superuser %}
+                            <th style="border-radius: 0 16px 0 0; text-align: center; width: 100px;">Actions</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for holiday in holidays %}
+                        <tr>
+                            <td><strong>{{ holiday.date|date:"d F Y" }}</strong></td>
+                            <td style="color: var(--gray); font-weight: 600;">{{ holiday.date|date:"l" }}</td>
+                            <td><strong style="color: var(--dark-secondary);">{{ holiday.title }}</strong></td>
+                            <td>
+                                {% if holiday.is_optional %}
+                                    <span class="optional-badge">Optional</span>
+                                {% else %}
+                                    <span class="mandatory-badge">Mandatory</span>
+                                {% endif %}
+                            </td>
+                            {% if request.user.profile.role == 'admin' or request.user.is_superuser %}
+                            <td style="text-align: center; vertical-align: middle;">
+                                <form method="POST" action="{% url 'students:holiday_delete' holiday.pk %}" style="margin: 0; display: inline-block;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger btn-xs" style="margin: 0; padding: 6px 10px !important;" onclick="return confirm('Are you sure you want to delete the holiday \'{{ holiday.title }}\'?');">
+                                        <i class="fa-solid fa-trash-can"></i> Delete
+                                    </button>
+                                </form>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="{% if request.user.profile.role == 'admin' or request.user.is_superuser %}5{% else %}4{% endif %}" style="text-align: center; padding: 4rem; color: var(--gray);">
+                                <i class="fa-regular fa-calendar-times" style="font-size: 3rem; opacity: 0.3; display: block; margin-bottom: 1rem;"></i>
+                                <span style="font-weight: 600; font-size: 0.95rem;">No manual holidays registered yet.</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

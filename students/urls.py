@@ -127,4 +127,8 @@ urlpatterns = [
     path('students/<int:pk>/register-face/save/', views.save_face_profile, name='save_face_profile'),
     path('attendance/face-scanner/', views.face_attendance_scanner, name='face_attendance_scanner'),
     path('attendance/face-scanner/mark-ajax/', views.mark_face_attendance_ajax, name='mark_face_attendance_ajax'),
+
+    # Holiday Management
+    path('holidays/', views.holiday_list, name='holiday_list'),
+    path('holidays/<int:pk>/delete/', views.holiday_delete, name='holiday_delete'),
 ]

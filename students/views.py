@@ -5418,4 +5418,65 @@ def mark_face_attendance_ajax(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+@role_required(['admin', 'teacher'])
+def holiday_list(request):
+    """View to list existing manual holidays and handle creation of new ones"""
+    from .models import Holiday
+    
+    if request.method == 'POST':
+        # Only admin is allowed to write changes (teacher is read-only)
+        if request.user.profile.role != 'admin' and not request.user.is_superuser:
+            messages.error(request, "Only administrators are allowed to create holidays.")
+            return redirect('students:holiday_list')
+            
+        date_str = request.POST.get('date')
+        title = request.POST.get('title', '').strip()
+        is_optional = request.POST.get('is_optional') == 'on'
+        
+        if not date_str or not title:
+            messages.error(request, "Date and title are required fields.")
+            return redirect('students:holiday_list')
+            
+        try:
+            # Check if holiday with this date already exists
+            if Holiday.objects.filter(date=date_str).exists():
+                messages.error(request, f"A holiday on {date_str} already exists.")
+            else:
+                Holiday.objects.create(
+                    date=date_str,
+                    title=title,
+                    is_optional=is_optional
+                )
+                messages.success(request, f"Holiday '{title}' added successfully!")
+        except Exception as e:
+            messages.error(request, f"Error creating holiday: {str(e)}")
+            
+        return redirect('students:holiday_list')
+        
+    # GET request
+    holidays = Holiday.objects.all().order_by('-date')
+    context = {
+        'holidays': holidays,
+    }
+    return render(request, 'students/holiday_list.html', context)
+
+
+@role_required(['admin'])
+@require_POST
+def holiday_delete(request, pk):
+    """View to delete a custom holiday"""
+    from .models import Holiday
+    holiday = get_object_or_404(Holiday, pk=pk)
+    title = holiday.title
+    date_val = holiday.date
+    try:
+        holiday.delete()
+        messages.success(request, f"Holiday '{title}' ({date_val}) deleted successfully.")
+    except Exception as e:
+        messages.error(request, f"Error deleting holiday: {str(e)}")
+        
+    return redirect('students:holiday_list')
+
+
+
 
