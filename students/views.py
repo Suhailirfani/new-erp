@@ -5241,3 +5241,181 @@ def monthly_attendance_grid(request, grade_id, division_id):
     return render(request, 'students/monthly_attendance_grid.html', context)
 
 
+# ==========================================
+# Face Recognition Attendance Views
+# ==========================================
+
+import json
+import math
+from django.views.decorators.http import require_POST
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, render, redirect
+from django.http import JsonResponse
+from django.utils import timezone
+from .models import Student, StudentFace, Attendance, Enrollment, Grade, Division, Section, AcademicYear
+
+@role_required(['admin', 'teacher', 'ntstaff'])
+def register_face(request, pk):
+    """Render face registration page for a specific student"""
+    student = get_object_or_404(Student, id=pk)
+    face_profile = getattr(student, 'face_profile', None)
+    context = {
+        'student': student,
+        'face_profile': face_profile,
+    }
+    return render(request, 'students/register_face.html', context)
+
+@role_required(['admin', 'teacher', 'ntstaff'])
+@require_POST
+def save_face_profile(request, pk):
+    """Save face embedding vector and base64 snapshot for a student"""
+    student = get_object_or_404(Student, id=pk)
+    try:
+        data = json.loads(request.body)
+        embedding = data.get('embedding')
+        photo = data.get('photo') # base64 image data string
+        
+        if not embedding or not isinstance(embedding, list) or len(embedding) != 128:
+            return JsonResponse({'success': False, 'error': 'Invalid embedding data. Must be a 128-float array.'}, status=400)
+            
+        if not photo:
+            return JsonResponse({'success': False, 'error': 'Photo snapshot is required.'}, status=400)
+            
+        # Update or create face profile
+        face_profile, created = StudentFace.objects.update_or_create(
+            student=student,
+            defaults={
+                'embedding': json.dumps(embedding),
+                'photo': photo
+            }
+        )
+        return JsonResponse({'success': True, 'message': 'Face profile saved successfully!'})
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Malformed JSON body.'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@role_required(['admin', 'teacher', 'ntstaff'])
+def face_attendance_scanner(request):
+    """Renders the webcam scanner dashboard for marking attendance by face"""
+    grades = Grade.objects.all().order_by('order', 'name')
+    divisions = Division.objects.all()
+    sections = Section.objects.all().order_by('order', 'name')
+    
+    context = {
+        'grades': grades,
+        'divisions': divisions,
+        'sections': sections,
+    }
+    return render(request, 'students/face_attendance_scanner.html', context)
+
+@role_required(['admin', 'teacher', 'ntstaff'])
+@require_POST
+def mark_face_attendance_ajax(request):
+    """Compare scanned face embedding against database and mark attendance"""
+    try:
+        data = json.loads(request.body)
+        input_emb = data.get('embedding')
+        
+        grade_id = data.get('grade_id')
+        division_id = data.get('division_id')
+        section_id = data.get('section_id')
+        
+        if not input_emb or not isinstance(input_emb, list) or len(input_emb) != 128:
+            return JsonResponse({'success': False, 'error': 'Invalid face embedding.'}, status=400)
+            
+        # Filter student faces based on grade/division/section filters to narrow down search if provided
+        face_profiles = StudentFace.objects.all().select_related('student')
+        
+        # Build candidate filter list
+        if grade_id or division_id or section_id:
+            active_year = AcademicYear.objects.filter(is_active=True).first()
+            if active_year:
+                enrollments = Enrollment.objects.filter(academic_year=active_year)
+                if grade_id:
+                    enrollments = enrollments.filter(grade_id=grade_id)
+                if division_id:
+                    enrollments = enrollments.filter(division_id=division_id)
+                if section_id:
+                    enrollments = enrollments.filter(section_id=section_id)
+                
+                candidate_student_ids = enrollments.values_list('student_id', flat=True)
+                face_profiles = face_profiles.filter(student_id__in=candidate_student_ids)
+        
+        best_match = None
+        min_distance = 0.5 # Threshold for face-api.js euclidean distance (0.6 is default, 0.5 is safe for security)
+        
+        for fp in face_profiles:
+            try:
+                db_emb = json.loads(fp.embedding)
+                # Compute Euclidean Distance
+                dist = math.sqrt(sum((a - b) ** 2 for a, b in zip(input_emb, db_emb)))
+                if dist < min_distance:
+                    min_distance = dist
+                    best_match = fp
+            except Exception:
+                continue
+                
+        if not best_match:
+            return JsonResponse({'success': False, 'error': 'Unknown face. Student not found.'}, status=200)
+            
+        student = best_match.student
+        
+        # Verify enrollment for active year
+        active_year = AcademicYear.objects.filter(is_active=True).first()
+        if not active_year:
+            return JsonResponse({'success': False, 'error': 'No active academic year is configured.'}, status=400)
+            
+        enrollment = student.enrollments.filter(academic_year=active_year).first()
+        if not enrollment:
+            return JsonResponse({'success': False, 'error': f'Student is not enrolled in the active academic year {active_year.name}.'}, status=400)
+            
+        today = timezone.now().date()
+        
+        # Check if already marked present
+        attendance_exists = Attendance.objects.filter(
+            student=student,
+            date=today,
+            attendance_type='daily'
+        ).exists()
+        
+        if attendance_exists:
+            return JsonResponse({
+                'success': True,
+                'already_marked': True,
+                'student_id': student.student_id,
+                'name': student.full_name,
+                'class': enrollment.class_name,
+                'photo': best_match.photo,
+                'message': f'{student.full_name} is already marked present today.'
+            })
+            
+        # Mark attendance
+        marked_by_user = request.user.get_full_name() or request.user.username
+        Attendance.objects.create(
+            student=student,
+            enrollment=enrollment,
+            date=today,
+            attendance_type='daily',
+            status='present',
+            marked_by=marked_by_user,
+            remarks='Marked by Face Recognition Scanner'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'already_marked': False,
+            'student_id': student.student_id,
+            'name': student.full_name,
+            'class': enrollment.class_name,
+            'photo': best_match.photo,
+            'message': f'Attendance marked for {student.full_name} successfully!'
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid request body.'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+

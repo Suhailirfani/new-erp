@@ -4,7 +4,7 @@ from .models import (
     Student, Division, Room, Period, Activity,
     Attendance, HostelMovement, ExamType, Subject,
     MarkEntry, ProgressReport, AcademicYear, Enrollment,
-    UserProfile
+    UserProfile, StudentFace
 )
 
 
@@ -254,4 +254,17 @@ class CustomUserAdmin(UserAdmin):
 
 admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
+
+
+@admin.register(StudentFace)
+class StudentFaceAdmin(admin.ModelAdmin):
+    list_display = ['student', 'face_thumbnail', 'created_at', 'updated_at']
+    search_fields = ['student__student_id', 'student__first_name', 'student__last_name']
+    readonly_fields = ['created_at', 'updated_at']
+
+    def face_thumbnail(self, obj):
+        if obj.photo:
+            return format_html('<img src="{}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover;" />', obj.photo)
+        return "No Photo"
+    face_thumbnail.short_description = 'Face Thumbnail'
 

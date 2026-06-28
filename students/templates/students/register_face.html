@@ -1,0 +1,420 @@
+{% extends 'students/base.html' %}
+{% load static %}
+
+{% block title %}Register Face Profile - {{ student.full_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .registration-card {
+        max-width: 800px;
+        margin: 2rem auto;
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        box-shadow: var(--shadow-soft);
+        padding: 2.5rem;
+    }
+    
+    .camera-wrapper {
+        position: relative;
+        width: 100%;
+        max-width: 500px;
+        aspect-ratio: 4/3;
+        margin: 2rem auto;
+        border-radius: 20px;
+        overflow: hidden;
+        background: #1e293b;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        border: 4px solid var(--border);
+        transition: border-color 0.3s;
+    }
+
+    .camera-wrapper.active {
+        border-color: var(--primary);
+    }
+
+    .camera-wrapper.success-border {
+        border-color: var(--success);
+    }
+    
+    #webcam {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: scaleX(-1); /* Mirror camera stream */
+    }
+    
+    #overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 10;
+        transform: scaleX(-1); /* Mirror overlays too */
+    }
+    
+    .status-badge-container {
+        text-align: center;
+        margin: 1rem 0;
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1.25rem;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        background: rgba(226, 232, 240, 0.8);
+        color: #475569;
+        transition: all 0.3s;
+    }
+    
+    .status-badge.loading {
+        background: rgba(239, 246, 255, 0.9);
+        color: #2563eb;
+    }
+    
+    .status-badge.ready {
+        background: rgba(240, 253, 244, 0.9);
+        color: #16a34a;
+    }
+    
+    .status-badge.success {
+        background: #16a34a;
+        color: white;
+    }
+    
+    .preview-snapshot-container {
+        display: none;
+        text-align: center;
+        margin-top: 1.5rem;
+    }
+
+    .preview-snapshot {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid var(--success);
+        box-shadow: 0 4px 15px rgba(22, 163, 74, 0.2);
+    }
+    
+    .controls {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="registration-card">
+        <div style="display: flex; align-items: center; gap: 1.5rem; border-bottom: 1px solid rgba(0,0,0,0.08); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+            <a href="{% url 'students:student_profile' student.id %}" class="btn btn-secondary btn-xs" style="margin: 0; padding: 0.5rem 1rem !important;"><i class="fa fa-arrow-left"></i> Back</a>
+            <div>
+                <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--dark);">Register Face Profile</h2>
+                <p style="color: var(--gray); font-size: 0.9rem;">Student: <strong>{{ student.full_name }}</strong> (ID: {{ student.student_id }})</p>
+            </div>
+        </div>
+
+        <div class="status-badge-container">
+            <span id="status" class="status-badge loading">
+                <i class="fa fa-spinner fa-spin"></i> Initializing Face recognition models...
+            </span>
+        </div>
+
+        <div class="camera-wrapper" id="cameraWrapper">
+            <video id="webcam" autoplay muted playsinline></video>
+            <canvas id="overlay"></canvas>
+        </div>
+
+        <div class="preview-snapshot-container" id="previewContainer">
+            <h4 style="font-weight: 700; margin-bottom: 0.5rem;">Captured Face Snapshot</h4>
+            <img id="faceSnapshot" class="preview-snapshot" src="" alt="Face Crop">
+        </div>
+
+        <div class="controls">
+            <button id="captureBtn" class="btn btn-primary" disabled><i class="fa fa-camera"></i> Capture Face Profile</button>
+            <button id="saveBtn" class="btn btn-success" style="display: none;"><i class="fa fa-save"></i> Save Profile</button>
+            <button id="retryBtn" class="btn btn-secondary" style="display: none;"><i class="fa fa-rotate-right"></i> Retry</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include Face-API.js Vladmandic bundle (includes TensorFlow.js inside) -->
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+
+<script>
+    const webcam = document.getElementById('webcam');
+    const overlay = document.getElementById('overlay');
+    const status = document.getElementById('status');
+    const captureBtn = document.getElementById('captureBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const retryBtn = document.getElementById('retryBtn');
+    const cameraWrapper = document.getElementById('cameraWrapper');
+    const previewContainer = document.getElementById('previewContainer');
+    const faceSnapshot = document.getElementById('faceSnapshot');
+
+    let localStream = null;
+    let modelsLoaded = false;
+    let faceDetectionInterval = null;
+    let lastDescriptor = null;
+    let lastFaceBase64 = null;
+
+    // Load Vladmandic face-api weights
+    const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+
+    async function loadModels() {
+        try {
+            console.log("Loading models from:", MODEL_URL);
+            await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+            await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+            await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+            
+            console.log("Models loaded successfully");
+            modelsLoaded = true;
+            status.className = 'status-badge loading';
+            status.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Initializing Camera...';
+            startWebcam();
+        } catch (err) {
+            console.error("Error loading models:", err);
+            status.className = 'status-badge';
+            status.style.background = 'rgba(254, 226, 226, 0.9)';
+            status.style.color = '#dc2626';
+            status.innerHTML = '<i class="fa fa-exclamation-triangle"></i> Failed to load AI models. Check internet connection.';
+        }
+    }
+
+    async function startWebcam() {
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 640, height: 480, facingMode: 'user' }
+            });
+            webcam.srcObject = localStream;
+            
+            webcam.addEventListener('play', () => {
+                cameraWrapper.classList.add('active');
+                status.className = 'status-badge ready';
+                status.innerHTML = '<i class="fa fa-user-circle"></i> Position your face inside the frame';
+                
+                // Set canvas dimension match
+                overlay.width = webcam.videoWidth || 640;
+                overlay.height = webcam.videoHeight || 480;
+                
+                startFaceDetection();
+            });
+        } catch (err) {
+            console.error("Error opening webcam:", err);
+            status.className = 'status-badge';
+            status.style.background = 'rgba(254, 226, 226, 0.9)';
+            status.style.color = '#dc2626';
+            status.innerHTML = '<i class="fa fa-video-slash"></i> Camera access denied or not found.';
+        }
+    }
+
+    function startFaceDetection() {
+        const displaySize = { width: overlay.width, height: overlay.height };
+        faceapi.matchDimensions(overlay, displaySize);
+
+        faceDetectionInterval = setInterval(async () => {
+            if (!modelsLoaded || webcam.paused || webcam.ended) return;
+
+            // Detect single face with landmarks & descriptor
+            const detection = await faceapi.detectSingleFace(webcam, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
+                                          .withFaceLandmarks()
+                                          .withFaceDescriptor();
+
+            const ctx = overlay.getContext('2d');
+            ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+            if (detection) {
+                // Highlight face
+                const resizedDetections = faceapi.resizeResults(detection, displaySize);
+                
+                // Draw custom bounding box
+                const box = resizedDetections.detection.box;
+                ctx.strokeStyle = '#6366f1';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(box.x, box.y, box.width, box.height);
+                
+                // Draw glowing corners
+                ctx.fillStyle = '#6366f1';
+                const cornerLen = 15;
+                // Top left
+                ctx.fillRect(box.x - 2, box.y - 2, cornerLen, 4);
+                ctx.fillRect(box.x - 2, box.y - 2, 4, cornerLen);
+                // Top right
+                ctx.fillRect(box.x + box.width - cornerLen + 2, box.y - 2, cornerLen, 4);
+                ctx.fillRect(box.x + box.width - 2, box.y - 2, 4, cornerLen);
+                // Bottom left
+                ctx.fillRect(box.x - 2, box.y + box.height - 2, cornerLen, 4);
+                ctx.fillRect(box.x - 2, box.y + box.height - cornerLen + 2, 4, cornerLen);
+                // Bottom right
+                ctx.fillRect(box.x + box.width - cornerLen + 2, box.y + box.height - 2, cornerLen, 4);
+                ctx.fillRect(box.x + box.width - 2, box.y + box.height - cornerLen + 2, 4, cornerLen);
+
+                // Enable capture button
+                captureBtn.disabled = false;
+                
+                // Storing current detection reference
+                window.currentDetection = detection;
+            } else {
+                captureBtn.disabled = true;
+            }
+        }, 300);
+    }
+
+    captureBtn.addEventListener('click', () => {
+        const detection = window.currentDetection;
+        if (!detection) return;
+
+        // Clear detection loop
+        clearInterval(faceDetectionInterval);
+        
+        // Capture snapshot from webcam
+        const box = detection.detection.box;
+        
+        // Create offscreen canvas to crop face
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = 200;
+        tempCanvas.height = 200;
+        const tempCtx = tempCanvas.getContext('2d');
+
+        // Draw cropped face from video onto canvas.
+        // We mirror the crop operation because the video is mirrored.
+        // The box coordinates from face-api correspond to normal coordinates,
+        // but since we mirror screen draw using scaleX(-1), we need to draw it correctly.
+        
+        // To keep it simple: draw the video into a 640x480 canvas, mirror it, and then crop.
+        const helperCanvas = document.createElement('canvas');
+        helperCanvas.width = webcam.videoWidth;
+        helperCanvas.height = webcam.videoHeight;
+        const helperCtx = helperCanvas.getContext('2d');
+        // Mirror draw
+        helperCtx.translate(helperCanvas.width, 0);
+        helperCtx.scale(-1, 1);
+        helperCtx.drawImage(webcam, 0, 0, helperCanvas.width, helperCanvas.height);
+
+        // Crop from the mirrored helper canvas (the box is mirrored too in display overlay, but face-api box is on raw video).
+        // Let's crop from the raw unmirrored video using standard box coords, then mirror the 200x200 canvas if needed.
+        const rawCanvas = document.createElement('canvas');
+        rawCanvas.width = box.width;
+        rawCanvas.height = box.height;
+        const rawCtx = rawCanvas.getContext('2d');
+        rawCtx.drawImage(webcam, box.x, box.y, box.width, box.height, 0, 0, box.width, box.height);
+        
+        // Now draw mirrored into tempCanvas (200x200) for standard face snapshot
+        tempCtx.translate(200, 0);
+        tempCtx.scale(-1, 1);
+        tempCtx.drawImage(rawCanvas, 0, 0, rawCanvas.width, rawCanvas.height, 0, 0, 200, 200);
+
+        lastFaceBase64 = tempCanvas.toDataURL('image/jpeg', 0.85);
+        lastDescriptor = Array.from(detection.descriptor); // Convert Float32Array to standard JS Array
+
+        // Stop video feed visually
+        webcam.pause();
+        const ctx = overlay.getContext('2d');
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+        // Show snapshot preview
+        faceSnapshot.src = lastFaceBase64;
+        previewContainer.style.display = 'block';
+        cameraWrapper.style.display = 'none';
+
+        // Adjust buttons
+        captureBtn.style.display = 'none';
+        saveBtn.style.display = 'inline-block';
+        retryBtn.style.display = 'inline-block';
+
+        status.className = 'status-badge ready';
+        status.innerHTML = '<i class="fa fa-check-circle"></i> Face captured successfully! Press Save to store.';
+    });
+
+    retryBtn.addEventListener('click', () => {
+        // Reset webcam play
+        webcam.play();
+        cameraWrapper.style.display = 'block';
+        previewContainer.style.display = 'none';
+        
+        captureBtn.style.display = 'inline-block';
+        captureBtn.disabled = true;
+        saveBtn.style.display = 'none';
+        retryBtn.style.display = 'none';
+
+        status.className = 'status-badge ready';
+        status.innerHTML = '<i class="fa fa-user-circle"></i> Position your face inside the frame';
+
+        // Restart loop
+        startFaceDetection();
+    });
+
+    saveBtn.addEventListener('click', async () => {
+        if (!lastDescriptor || !lastFaceBase64) return;
+        
+        saveBtn.disabled = true;
+        status.className = 'status-badge loading';
+        status.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving to database...';
+
+        try {
+            const response = await fetch('{% url "students:save_face_profile" student.id %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    embedding: lastDescriptor,
+                    photo: lastFaceBase64
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                status.className = 'status-badge success';
+                status.innerHTML = '<i class="fa fa-check-circle"></i> Face Profile Registered Successfully!';
+                saveBtn.style.display = 'none';
+                retryBtn.style.display = 'none';
+                cameraWrapper.style.display = 'none';
+                cameraWrapper.classList.add('success-border');
+                
+                // Alert parent page profile reload
+                setTimeout(() => {
+                    window.location.href = "{% url 'students:student_profile' student.id %}";
+                }, 2000);
+            } else {
+                throw new Error(result.error || 'Server error occurred.');
+            }
+        } catch (err) {
+            console.error("Save error:", err);
+            saveBtn.disabled = false;
+            status.className = 'status-badge';
+            status.style.background = 'rgba(254, 226, 226, 0.9)';
+            status.style.color = '#dc2626';
+            status.innerHTML = `<i class="fa fa-exclamation-circle"></i> Error: ${err.message}`;
+        }
+    });
+
+    // Cleanup video stream on exit
+    window.addEventListener('beforeunload', () => {
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+        }
+    });
+
+    // Start script loading on window load
+    window.onload = loadModels;
+</script>
+{% endblock %}

@@ -650,3 +650,19 @@ class LandingPageStats(models.Model):
     def __str__(self):
         return f"Visitor Count: {self.visit_count}"
 
+
+class StudentFace(models.Model):
+    """Stores face recognition embeddings and snapshot for students"""
+    student = models.OneToOneField(Student, on_delete=models.CASCADE, related_name='face_profile')
+    embedding = models.TextField(help_text="128-dimensional face embedding array as JSON string")
+    photo = models.TextField(blank=True, help_text="Base64 encoded cropped face snapshot image")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Student Face Profile"
+        verbose_name_plural = "Student Face Profiles"
+
+    def __str__(self):
+        return f"Face Profile - {self.student}"
+

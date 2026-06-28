@@ -121,4 +121,10 @@ urlpatterns = [
     path('dashboard/admin/vacancies/<int:pk>/edit/', views.job_vacancy_update, name='job_vacancy_update'),
     path('dashboard/admin/vacancies/<int:pk>/delete/', views.job_vacancy_delete, name='job_vacancy_delete'),
     path('dashboard/admin/applications/', views.job_application_list_admin, name='job_application_list_admin'),
+
+    # Face Attendance Management
+    path('students/<int:pk>/register-face/', views.register_face, name='register_face'),
+    path('students/<int:pk>/register-face/save/', views.save_face_profile, name='save_face_profile'),
+    path('attendance/face-scanner/', views.face_attendance_scanner, name='face_attendance_scanner'),
+    path('attendance/face-scanner/mark-ajax/', views.mark_face_attendance_ajax, name='mark_face_attendance_ajax'),
 ]

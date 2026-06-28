@@ -1,0 +1,618 @@
+{% extends 'students/base.html' %}
+{% load static %}
+
+{% block title %}Real-Time Face Attendance Scanner{% endblock %}
+
+{% block extra_css %}
+<style>
+    .scanner-grid {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: 2rem;
+        margin-top: 1rem;
+    }
+    
+    @media (max-width: 1024px) {
+        .scanner-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .scanner-view-panel {
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        padding: 2rem;
+        box-shadow: var(--shadow-soft);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .scanner-camera-container {
+        position: relative;
+        width: 100%;
+        max-width: 640px;
+        aspect-ratio: 4/3;
+        background: #0f172a;
+        border-radius: 24px;
+        overflow: hidden;
+        border: 5px solid #1e293b;
+        box-shadow: var(--shadow-float);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .scanner-camera-container.scanning {
+        border-color: var(--primary);
+        box-shadow: 0 0 25px rgba(99, 102, 241, 0.35);
+    }
+    
+    .scanner-camera-container.match-success {
+        border-color: var(--success);
+        box-shadow: 0 0 30px rgba(16, 185, 129, 0.5);
+    }
+    
+    .scanner-camera-container.match-info {
+        border-color: var(--info);
+        box-shadow: 0 0 30px rgba(14, 165, 233, 0.5);
+    }
+    
+    .scanner-camera-container.match-error {
+        border-color: var(--danger);
+        box-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
+    }
+    
+    #webcam {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: scaleX(-1);
+    }
+    
+    #overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 10;
+        transform: scaleX(-1);
+    }
+
+    /* Kiosk style scan-line effect */
+    .scan-line {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(to right, transparent, var(--primary-light), var(--primary), var(--primary-light), transparent);
+        z-index: 9;
+        opacity: 0.8;
+        box-shadow: 0 0 10px var(--primary);
+        animation: scanAnim 3s linear infinite;
+        display: none;
+    }
+
+    .scanner-camera-container.scanning .scan-line {
+        display: block;
+    }
+    
+    @keyframes scanAnim {
+        0% { top: 0%; }
+        50% { top: 100%; }
+        100% { top: 0%; }
+    }
+    
+    .kiosk-status-card {
+        width: 100%;
+        padding: 1.25rem 2rem;
+        background: #1e293b;
+        color: white;
+        border-radius: 16px;
+        margin-top: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: var(--shadow-soft);
+    }
+    
+    .kiosk-status-card span {
+        font-weight: 700;
+        font-size: 1.1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .sidebar-panel {
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        padding: 2rem;
+        box-shadow: var(--shadow-soft);
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .filter-section {
+        border-bottom: 1px solid rgba(0,0,0,0.08);
+        padding-bottom: 1.5rem;
+    }
+    
+    .filter-title {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: var(--dark);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .result-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .result-card {
+        width: 100%;
+        background: white;
+        border-radius: 24px;
+        padding: 2rem;
+        box-shadow: var(--shadow-soft);
+        border: 1px solid var(--border);
+        display: none;
+        animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes scaleUp {
+        from { transform: scale(0.85); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+    
+    .result-photo {
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin: 0 auto 1.25rem;
+        border: 4px solid var(--success);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .result-photo.info-border {
+        border-color: var(--info);
+    }
+    
+    .result-name {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: var(--dark);
+        margin-bottom: 0.25rem;
+    }
+    
+    .result-id {
+        font-size: 0.9rem;
+        color: var(--gray);
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+    }
+    
+    .result-class {
+        display: inline-block;
+        padding: 0.35rem 1rem;
+        background: var(--bg-main);
+        border-radius: 9999px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 1.25rem;
+    }
+    
+    .result-message-banner {
+        padding: 0.75rem;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+    
+    .result-message-banner.success {
+        background: rgba(240, 253, 244, 0.9);
+        color: #16a34a;
+    }
+
+    .result-message-banner.info {
+        background: rgba(240, 249, 255, 0.9);
+        color: #0369a1;
+    }
+    
+    .standby-state {
+        color: var(--gray);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .standby-state i {
+        font-size: 4rem;
+        animation: pulseScale 2s infinite ease-in-out;
+    }
+    
+    @keyframes pulseScale {
+        0%, 100% { transform: scale(1); opacity: 0.4; }
+        50% { transform: scale(1.15); opacity: 0.7; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+        <div>
+            <h1 class="page-title" style="font-size: 1.8rem; font-weight: 800; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">📸 Face Attendance Terminal</h1>
+            <p style="color: var(--gray); font-size: 0.95rem;">Stand in front of the camera to automatically register daily attendance</p>
+        </div>
+        <a href="{% url 'students:attendance_list' %}" class="btn btn-secondary"><i class="fa fa-list"></i> View Records</a>
+    </div>
+
+    <div class="scanner-grid">
+        <!-- Camera Scanner view -->
+        <div class="scanner-view-panel">
+            <div class="scanner-camera-container" id="cameraContainer">
+                <video id="webcam" autoplay muted playsinline></video>
+                <canvas id="overlay"></canvas>
+                <div class="scan-line"></div>
+            </div>
+            
+            <div class="kiosk-status-card">
+                <span id="kioskStatus">
+                    <i class="fa fa-circle-notch fa-spin text-primary"></i> Initializing Terminal...
+                </span>
+                <span id="timeDisplay" style="font-family: monospace; font-size: 1.25rem;">00:00:00</span>
+            </div>
+        </div>
+
+        <!-- Right sidebar results & options -->
+        <div class="sidebar-panel">
+            <!-- Camera Filters -->
+            <div class="filter-section">
+                <div class="filter-title"><i class="fa fa-sliders"></i> Class Filters</div>
+                
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label" style="font-size: 0.85rem;">Section</label>
+                    <select id="sectionFilter" style="padding: 0.6rem; font-size: 0.9rem;">
+                        <option value="">All Sections</option>
+                        {% for s in sections %}
+                        <option value="{{ s.id }}">{{ s.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label" style="font-size: 0.85rem;">Grade</label>
+                    <select id="gradeFilter" style="padding: 0.6rem; font-size: 0.9rem;">
+                        <option value="">All Grades</option>
+                        {% for g in grades %}
+                        <option value="{{ g.id }}">{{ g.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" style="font-size: 0.85rem;">Division</label>
+                    <select id="divisionFilter" style="padding: 0.6rem; font-size: 0.9rem;">
+                        <option value="">All Divisions</option>
+                        {% for d in divisions %}
+                        <option value="{{ d.id }}">{{ d.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Matching output window -->
+            <div class="result-section">
+                <!-- Standby visual -->
+                <div class="standby-state" id="standbyState">
+                    <i class="fa fa-id-card-o"></i>
+                    <p style="font-weight: 600;">Waiting for face...</p>
+                </div>
+
+                <!-- Match Card -->
+                <div class="result-card" id="resultCard">
+                    <img id="resultPhoto" class="result-photo" src="" alt="Student Profile">
+                    <div id="resultName" class="result-name">Suhail Shamil</div>
+                    <div id="resultId" class="result-id">ID: STD019293</div>
+                    <div id="resultClass" class="result-class">Grade 11 - Science</div>
+                    <div id="resultBanner" class="result-message-banner success">
+                        Attendance Marked Present
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include Face-API.js Vladmandic bundle -->
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+
+<script>
+    const webcam = document.getElementById('webcam');
+    const overlay = document.getElementById('overlay');
+    const cameraContainer = document.getElementById('cameraContainer');
+    const kioskStatus = document.getElementById('kioskStatus');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const standbyState = document.getElementById('standbyState');
+    
+    // Result card fields
+    const resultCard = document.getElementById('resultCard');
+    const resultPhoto = document.getElementById('resultPhoto');
+    const resultName = document.getElementById('resultName');
+    const resultId = document.getElementById('resultId');
+    const resultClass = document.getElementById('resultClass');
+    const resultBanner = document.getElementById('resultBanner');
+
+    // Filters
+    const sectionFilter = document.getElementById('sectionFilter');
+    const gradeFilter = document.getElementById('gradeFilter');
+    const divisionFilter = document.getElementById('divisionFilter');
+
+    let localStream = null;
+    let modelsLoaded = false;
+    let isProcessing = false;
+    let detectionLoop = null;
+
+    // Beep sound effects generator via Web Audio API (Native, offline compatible)
+    function playBeep(type) {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if (type === 'success') {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.3);
+            } else if (type === 'info') {
+                // Double chime beep
+                const osc1 = ctx.createOscillator();
+                const gain1 = ctx.createGain();
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(660, ctx.currentTime); 
+                gain1.gain.setValueAtTime(0.08, ctx.currentTime);
+                gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+                osc1.connect(gain1);
+                gain1.connect(ctx.destination);
+                osc1.start();
+                osc1.stop(ctx.currentTime + 0.12);
+
+                const osc2 = ctx.createOscillator();
+                const gain2 = ctx.createGain();
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(660, ctx.currentTime + 0.15); 
+                gain2.gain.setValueAtTime(0.08, ctx.currentTime + 0.15);
+                gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15 + 0.12);
+                osc2.connect(gain2);
+                gain2.connect(ctx.destination);
+                osc2.start(ctx.currentTime + 0.15);
+                osc2.stop(ctx.currentTime + 0.15 + 0.12);
+            } else if (type === 'error') {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(260, ctx.currentTime); // Low buzz
+                gain.gain.setValueAtTime(0.12, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.4);
+            }
+        } catch (e) {
+            console.error("Audio beep play error:", e);
+        }
+    }
+
+    // Time display clock
+    setInterval(() => {
+        const now = new Date();
+        timeDisplay.textContent = now.toTimeString().split(' ')[0];
+    }, 1000);
+
+    // Load Vladmandic models
+    const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+
+    async function initTerminal() {
+        try {
+            console.log("Loading face models...");
+            await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+            await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+            await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+            
+            console.log("Models loaded.");
+            modelsLoaded = true;
+            kioskStatus.innerHTML = '<i class="fa fa-spinner fa-spin text-primary"></i> Accessing Camera...';
+            startScannerCamera();
+        } catch (err) {
+            console.error("Initialization error:", err);
+            kioskStatus.innerHTML = '<i class="fa fa-exclamation-triangle text-danger"></i> AI Model Loading Failed.';
+            playBeep('error');
+        }
+    }
+
+    async function startScannerCamera() {
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 640, height: 480, facingMode: 'user' }
+            });
+            webcam.srcObject = localStream;
+            
+            webcam.addEventListener('play', () => {
+                cameraContainer.classList.add('scanning');
+                kioskStatus.innerHTML = '<i class="fa fa-check-circle text-success"></i> Terminal Active & Scanning';
+                
+                // Align size
+                overlay.width = webcam.videoWidth || 640;
+                overlay.height = webcam.videoHeight || 480;
+                
+                startScanningProcess();
+            });
+        } catch (err) {
+            console.error("Camera error:", err);
+            kioskStatus.innerHTML = '<i class="fa fa-video-slash text-danger"></i> Camera Access Denied.';
+            playBeep('error');
+        }
+    }
+
+    function startScanningProcess() {
+        const displaySize = { width: overlay.width, height: overlay.height };
+        faceapi.matchDimensions(overlay, displaySize);
+
+        detectionLoop = setInterval(async () => {
+            if (!modelsLoaded || isProcessing || webcam.paused || webcam.ended) return;
+
+            // Simple fast face detection
+            const detection = await faceapi.detectSingleFace(webcam, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
+                                          .withFaceLandmarks()
+                                          .withFaceDescriptor();
+
+            const ctx = overlay.getContext('2d');
+            ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+            if (detection) {
+                // Resize and draw face tracking border
+                const resized = faceapi.resizeResults(detection, displaySize);
+                const box = resized.detection.box;
+                
+                ctx.strokeStyle = '#6366f1';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+                // Lock processing to prevent double marks during AJAX transaction
+                isProcessing = true;
+                kioskStatus.innerHTML = '<i class="fa fa-circle-notch fa-spin text-warning"></i> Processing Face...';
+                
+                await matchFaceAndMarkAttendance(detection.descriptor);
+            }
+        }, 500);
+    }
+
+    async function matchFaceAndMarkAttendance(descriptor) {
+        try {
+            const grade_id = gradeFilter.value;
+            const division_id = divisionFilter.value;
+            const section_id = sectionFilter.value;
+
+            const response = await fetch('{% url "students:mark_face_attendance_ajax" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    embedding: Array.from(descriptor),
+                    grade_id: grade_id || null,
+                    division_id: division_id || null,
+                    section_id: section_id || null
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                // If student matched
+                standbyState.style.display = 'none';
+                resultCard.style.display = 'block';
+                
+                // Bind data
+                resultPhoto.src = result.photo || 'https://placehold.co/150x150?text=No+Photo';
+                resultName.textContent = result.name;
+                resultId.textContent = `ID: ${result.student_id}`;
+                resultClass.textContent = result.class;
+                resultBanner.textContent = result.message;
+
+                if (result.already_marked) {
+                    cameraContainer.className = 'scanner-camera-container match-info';
+                    resultPhoto.className = 'result-photo info-border';
+                    resultBanner.className = 'result-message-banner info';
+                    kioskStatus.innerHTML = `<i class="fa fa-info-circle text-info"></i> ${result.name} already marked.`;
+                    playBeep('info');
+                } else {
+                    cameraContainer.className = 'scanner-camera-container match-success';
+                    resultPhoto.className = 'result-photo';
+                    resultBanner.className = 'result-message-banner success';
+                    kioskStatus.innerHTML = `<i class="fa fa-check-circle text-success"></i> Present: ${result.name}`;
+                    playBeep('success');
+                }
+
+                // Keep displaying card for 3 seconds before resuming scanner
+                setTimeout(() => {
+                    resetKioskStandby();
+                }, 3000);
+
+            } else {
+                // If unknown face or query matches nothing
+                cameraContainer.className = 'scanner-camera-container match-error';
+                kioskStatus.innerHTML = '<i class="fa fa-times-circle text-danger"></i> Unknown face. Try again.';
+                playBeep('error');
+                
+                setTimeout(() => {
+                    resetKioskStandby();
+                }, 2000);
+            }
+        } catch (err) {
+            console.error("Scanning process network/server error:", err);
+            cameraContainer.className = 'scanner-camera-container match-error';
+            kioskStatus.innerHTML = '<i class="fa fa-exclamation-triangle text-danger"></i> Server Error.';
+            playBeep('error');
+            
+            setTimeout(() => {
+                resetKioskStandby();
+            }, 2000);
+        }
+    }
+
+    function resetKioskStandby() {
+        // Clear result UI
+        resultCard.style.display = 'none';
+        standbyState.style.display = 'flex';
+        
+        // Reset container frame borders
+        cameraContainer.className = 'scanner-camera-container scanning';
+        kioskStatus.innerHTML = '<i class="fa fa-check-circle text-success"></i> Terminal Active & Scanning';
+        
+        // Unlock processing
+        isProcessing = false;
+    }
+
+    // Cleanup webcam stream on exit
+    window.addEventListener('beforeunload', () => {
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+        }
+        if (detectionLoop) {
+            clearInterval(detectionLoop);
+        }
+    });
+
+    window.onload = initTerminal;
+</script>
+{% endblock %}
