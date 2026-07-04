@@ -2,6 +2,108 @@
 
 {% block title %}Class Attendance - {{ grade }} {{ division.name }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Cards Grid */
+    .today-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    @media (min-width: 576px) {
+        .today-cards-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    @media (min-width: 768px) {
+        .today-cards-grid {
+            grid-template-columns: repeat(6, 1fr);
+        }
+    }
+
+    @media (min-width: 992px) {
+        .today-cards-grid {
+            grid-template-columns: repeat(8, 1fr);
+        }
+    }
+
+    @media (min-width: 1200px) {
+        .today-cards-grid {
+            grid-template-columns: repeat(12, 1fr);
+        }
+    }
+
+    .today-student-card {
+        border-radius: 14px;
+        padding: 0.6rem 0.5rem;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        min-width: 0;
+        text-decoration: none;
+    }
+
+    .today-student-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Present Student Card (White) */
+    .card-status-present {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        color: #1e293b;
+    }
+
+    /* Absent Student Card (Red) */
+    .card-status-absent {
+        background: #fee2e2;
+        border-color: #fca5a5;
+        color: #991b1b;
+    }
+
+    /* Late Student Card (Yellow) */
+    .card-status-late {
+        background: #fef9c3;
+        border-color: #fde68a;
+        color: #854d0e;
+    }
+
+    /* Excused Student Card (Light Purple/Blue) */
+    .card-status-excused {
+        background: #f3e8ff;
+        border-color: #e9d5ff;
+        color: #6b21a8;
+    }
+
+    /* Not Marked Student Card (Light Gray/Neutral) */
+    .card-status-not_marked {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        color: #475569;
+    }
+
+    .today-student-card .student-name {
+        font-size: 0.85rem;
+        font-weight: 700;
+        line-height: 1.2;
+        width: 100%;
+        color: inherit;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header" style="margin-bottom: 2rem; background: #fff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
     <a href="{% url 'students:attendance_list' %}" class="btn btn-secondary" style="margin-bottom: 1rem; padding: 0.5rem 1rem; border-radius: 6px; background: #6c757d; color: white; text-decoration: none; display: inline-block;">← Back to All Classes</a>
@@ -29,8 +131,42 @@
     </form>
 </div>
 
-<div class="card" style="background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.5rem;">
-    <h2 style="margin: 0 0 1.5rem 0; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 0.5rem;">👥 Students Attendance ({{ student_stats|length }})</h2>
+<!-- Today's Attendance Cards (Shown First) -->
+<div class="card" style="background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.5rem; margin-bottom: 1.5rem;">
+    <h2 style="margin: 0 0 0.5rem 0; color: #2c3e50; display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.25rem;">
+        <i class="fa-regular fa-calendar-check" style="color: var(--primary, #6366f1);"></i>
+        Today's Attendance Status
+    </h2>
+    <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1.5rem;">
+        Current attendance status for today. Click a card to view their profile.
+    </p>
+    
+    <div class="today-cards-grid">
+        {% for stat in student_stats %}
+        <a href="{% url 'students:student_profile' stat.student.id %}" class="today-student-card card-status-{{ stat.today_status }}" title="{{ stat.student.full_name }} ({{ stat.today_status|title }})">
+            <div class="student-name">{{ stat.student.full_name }}</div>
+            <div style="font-size: 0.7rem; opacity: 0.7; font-weight: 600; margin-top: 1px;">ID: {{ stat.student.student_id }}</div>
+        </a>
+        {% empty %}
+        <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #64748b;">
+            No students found in this class.
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div style="display: flex; justify-content: center; margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 1.5rem;">
+        <button id="toggleDetailedBtn" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 2rem; border-radius: 12px; font-weight: 700; background: var(--primary, #6366f1); border: none; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2); cursor: pointer; transition: all 0.2s;">
+            <i class="fa-solid fa-chart-line"></i> View Detailed Records
+        </button>
+    </div>
+</div>
+
+<!-- Detailed Cumulative Records Section (Hidden by default) -->
+<div id="detailedRecordsSection" class="card" style="display: none; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.5rem;">
+    <h2 style="margin: 0 0 1.5rem 0; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 0.5rem; font-weight: 700; font-size: 1.25rem;">
+        <i class="fa-solid fa-list-check" style="color: #3498db;"></i>
+        Students Cumulative Attendance ({{ student_stats|length }})
+    </h2>
     
     <div class="table-wrapper" style="overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse; text-align: left;">
@@ -78,4 +214,24 @@
         </table>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleBtn = document.getElementById('toggleDetailedBtn');
+        const detailedSection = document.getElementById('detailedRecordsSection');
+        
+        toggleBtn.addEventListener('click', function() {
+            if (detailedSection.style.display === 'none') {
+                detailedSection.style.display = 'block';
+                detailedSection.scrollIntoView({ behavior: 'smooth' });
+                toggleBtn.innerHTML = '<i class="fa-solid fa-eye-slash"></i> Hide Detailed Records';
+                toggleBtn.style.background = '#64748b'; // Gray color when open
+            } else {
+                detailedSection.style.display = 'none';
+                toggleBtn.innerHTML = '<i class="fa-solid fa-chart-line"></i> View Detailed Records';
+                toggleBtn.style.background = 'var(--primary, #6366f1)';
+            }
+        });
+    });
+</script>
 {% endblock %}

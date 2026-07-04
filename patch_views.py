@@ -16,6 +16,7 @@ view_roles = {
     'mark_attendance': ["@role_required(['admin', 'teacher'])"],
     'mark_attendance_class': ["@role_required(['admin', 'teacher'])"],
     'attendance_list': ["@role_required(['admin', 'teacher'])"],
+    'today_attendance_view': ["@role_required(['admin', 'teacher'])"],
     'attendance_analytics': ["@role_required(['admin', 'teacher'])"],
     'attendance_class_detail': ["@role_required(['admin', 'teacher'])"],
     'attendance_student_detail': ["@role_required(['admin', 'teacher'])"],

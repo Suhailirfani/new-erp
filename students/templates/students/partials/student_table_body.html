@@ -1,97 +1,69 @@
 {% regroup students by class_name as grouped_students %}
             
-            {% for group in grouped_students %}
-                <tr class="table-secondary font-weight-bold class-group-row">
-                    <td colspan="5" style="background-color: #f8f9fa; color: #333; font-size: 1.1em; border-top: 2px solid #dee2e6;">
-                        <i class="fas fa-chalkboard-teacher mr-2"></i> Class: {{ group.grouper }} 
-                        <span class="badge badge-info ml-2">{{ group.list|length }} Student{% if group.list|length != 1 %}s{% endif %}</span>
-                    </td>
-                </tr>
-                {% for enrollment in group.list %}
-                <!-- 1. DESKTOP ROW -->
-                <tr class="student-row student-desktop-row">
-                    <td>{{ enrollment.student.student_id }}</td>
-                    <td>{{ enrollment.student.full_name }}</td>
-                    <td>{{ enrollment.student.get_student_type_display }}</td>
-                    <td>{{ enrollment.student.phone|default:"-" }}</td>
-                    <td style="white-space: nowrap; text-align: center;">
-                        <a href="{% url 'students:student_profile' enrollment.student.id %}"
-                           class="btn btn-sm"
-                           style="background:#3498db; color:white; padding:4px 10px; border-radius:12px; margin-right:5px;">
-                            View
-                        </a>
-                        <a href="{% url 'students:student_edit' enrollment.student.id %}"
-                           class="btn btn-sm"
-                           style="background:#f1c40f; color:black; padding:4px 10px; border-radius:12px; margin-right:5px;">
-                            Edit
-                        </a>
+{% for group in grouped_students %}
+    <div class="class-section-header">
+        <i class="fa-solid fa-chalkboard-user"></i> Class: {{ group.grouper }} 
+        <span class="badge-count">{{ group.list|length }} Student{% if group.list|length != 1 %}s{% endif %}</span>
+    </div>
+    
+    <div class="student-cards-grid">
+        {% for enrollment in group.list %}
+        <div class="student-card student-row" onclick="window.location='{% url 'students:student_profile' enrollment.student.id %}'" style="cursor: pointer;">
+            <!-- Top row: Name and Type Badge -->
+            <div class="card-header-info">
+                <div style="min-width: 0; flex: 1;">
+                    <div class="student-name">{{ enrollment.student.full_name }}</div>
+                    <div class="student-id"> {{ enrollment.student.student_id }}</div>
+                </div>
+                <span class="badge-student-type {% if enrollment.student.student_type == 'hostel' %}badge-hostel{% else %}badge-day-scholar{% endif %}" title="{% if enrollment.student.student_type == 'hostel' %}Hostel{% else %}Day Scholar{% endif %}">
+                    {% if enrollment.student.student_type == 'hostel' %}H{% else %}D{% endif %}
+                </span>
+            </div>
 
-                        <a href="{% url 'fees:student_fees' enrollment.student.id %}"
-                           class="btn btn-sm"
-                           style="background:#27ae60; color:white; padding:4px 10px; border-radius:12px; margin-right:5px;">
-                            Fees
-                        </a>
-
-                        <a href="{% url 'students:transfer_to_alumni' enrollment.student.id %}"
-                           class="btn btn-sm"
-                           style="background:#8e44ad; color:white; padding:4px 10px; border-radius:12px; margin-right:5px;"
-                           title="Transfer to Alumni">
-                            <i class="fa-solid fa-user-graduate"></i>
-                        </a>
-
-                        <a href="{% url 'students:student_delete' enrollment.student.id %}"
-                           class="btn btn-sm"
-                           style="background:#e74c3c; color:white; padding:4px 10px; border-radius:12px;"
-                           onclick="return confirm('Are you sure?');">
-                            Delete
-                        </a>
-                    </td>
-                </tr>
-
-                <!-- 2. MOBILE CARD ROW -->
-                <tr class="student-mobile-row">
-                    <td colspan="5" style="padding: 0.5rem 0; border: none;">
-                        <div class="student-mobile-card" style="background: white; border-radius: 12px; padding: 1rem; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 0.75rem;">
-                            <!-- Top row: Name & Student ID -->
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; width: 100%;">
-                                <div style="min-width: 0; flex: 1;">
-                                    <div style="font-weight: 700; color: #1e293b; font-size: 1.05rem; line-height: 1.2; word-wrap: break-word; overflow-wrap: break-word;">{{ enrollment.student.full_name }}</div>
-                                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">ID: {{ enrollment.student.student_id }}</div>
-                                </div>
-                                <!-- Type Badge -->
-                                <span class="badge {% if enrollment.student.student_type == 'hostel' %}bg-success{% else %}bg-light{% endif %}" style="flex-shrink: 0; padding: 0.35rem 0.6rem; font-size: 0.75rem; border-radius: 6px; font-weight: 600;">
-                                    {{ enrollment.student.get_student_type_display }}
-                                </span>
-                            </div>
-                            <!-- Middle row: Details (Phone) -->
-                            <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: #475569;">
-                                <i class="fa-solid fa-phone" style="color: #64748b; font-size: 0.8rem;"></i>
-                                <span>{{ enrollment.student.phone|default:"-" }}</span>
-                            </div>
-                            <!-- Bottom row: Action Buttons Grid -->
-                            <div style="display: grid; grid-template-columns: repeat(3, 1fr) auto auto; gap: 0.35rem; margin-top: 0.25rem;">
-                                <a href="{% url 'students:student_profile' enrollment.student.id %}" class="btn btn-sm" style="background:#3498db; color:white; text-align:center; padding: 6px 4px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; margin: 0;">
-                                    View
-                                </a>
-                                <a href="{% url 'students:student_edit' enrollment.student.id %}" class="btn btn-sm" style="background:#f1c40f; color:black; text-align:center; padding: 6px 4px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; margin: 0;">
-                                    Edit
-                                </a>
-                                <a href="{% url 'fees:student_fees' enrollment.student.id %}" class="btn btn-sm" style="background:#27ae60; color:white; text-align:center; padding: 6px 4px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; margin: 0;">
-                                    Fees
-                                </a>
-                                <a href="{% url 'students:transfer_to_alumni' enrollment.student.id %}" class="btn btn-sm" style="background:#8e44ad; color:white; padding: 6px 10px; border-radius: 8px; font-size: 0.8rem; margin: 0;" title="Transfer to Alumni">
-                                    <i class="fa-solid fa-user-graduate"></i>
-                                </a>
-                                <a href="{% url 'students:student_delete' enrollment.student.id %}" class="btn btn-sm" style="background:#e74c3c; color:white; padding: 6px 10px; border-radius: 8px; font-size: 0.8rem; margin: 0;" onclick="return confirm('Are you sure?');">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            {% empty %}
-            <tr>
-                <td colspan="5" style="text-align: center;">No students found.</td>
-            </tr>
-            {% endfor %}
+            <!-- Card Actions (Icons) -->
+            <div class="card-actions">
+                <a href="{% url 'students:student_profile' enrollment.student.id %}" 
+                   class="action-icon-btn" 
+                   onclick="event.stopPropagation();" 
+                   style="background-color: rgba(52, 152, 219, 0.1); color: #3498db;" 
+                   title="View Profile">
+                    <i class="fa-solid fa-eye"></i>
+                </a>
+                <a href="{% url 'students:student_edit' enrollment.student.id %}" 
+                   class="action-icon-btn" 
+                   onclick="event.stopPropagation();" 
+                   style="background-color: rgba(241, 196, 15, 0.15); color: #d4ac0d;" 
+                   title="Edit Student">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </a>
+                <a href="{% url 'fees:student_fees' enrollment.student.id %}" 
+                   class="action-icon-btn" 
+                   onclick="event.stopPropagation();" 
+                   style="background-color: rgba(39, 174, 96, 0.1); color: #27ae60;" 
+                   title="Manage Fees">
+                    <i class="fa-solid fa-indian-rupee-sign"></i>
+                </a>
+                <a href="{% url 'students:transfer_to_alumni' enrollment.student.id %}" 
+                   class="action-icon-btn" 
+                   onclick="event.stopPropagation();" 
+                   style="background-color: rgba(142, 68, 173, 0.1); color: #8e44ad;" 
+                   title="Transfer to Alumni">
+                    <i class="fa-solid fa-user-graduate"></i>
+                </a>
+                <a href="{% url 'students:student_delete' enrollment.student.id %}" 
+                   class="action-icon-btn" 
+                   onclick="event.stopPropagation(); return confirm('Are you sure you want to delete {{ enrollment.student.full_name }}?');" 
+                   style="background-color: rgba(231, 76, 60, 0.1); color: #e74c3c;" 
+                   title="Delete Student">
+                    <i class="fa-solid fa-trash-can"></i>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% empty %}
+    <div class="no-students-card">
+        <i class="fa-solid fa-user-slash" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
+        <p style="margin: 0; font-weight: 600; color: #64748b;">No students found.</p>
+    </div>
+{% endfor %}

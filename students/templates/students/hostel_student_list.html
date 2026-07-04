@@ -2,80 +2,207 @@
 
 {% block title %}Total Hostel Students - Student Attendance System{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Responsive Grid for Student Cards */
+    .student-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+        width: 100%;
+    }
+
+    @media (min-width: 576px) {
+        .student-cards-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    @media (min-width: 992px) {
+        .student-cards-grid {
+            grid-template-columns: repeat(8, 1fr);
+        }
+    }
+
+    .student-card {
+        background: white;
+        border-radius: 8px;
+        padding: 0.75rem;
+        border: 1px solid var(--border, #e2e8f0);
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.01);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 0.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .student-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 20px -8px rgba(0,0,0,0.08);
+        border-color: var(--primary, #6366f1);
+    }
+
+    .student-card .card-header-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .student-card .student-name {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--dark-secondary, #1e293b);
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .student-card .student-id {
+        font-size: 0.7rem;
+        color: var(--gray, #64748b);
+        font-weight: 600;
+        margin-top: 0.15rem;
+    }
+
+    .student-card .info-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        color: #475569;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .student-card .info-row i {
+        width: 16px;
+        color: #94a3b8;
+    }
+
+    .student-card .card-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: auto;
+        padding-top: 0.5rem;
+        border-top: 1px dashed #e2e8f0;
+    }
+
+    .action-icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .action-icon-btn:hover {
+        transform: scale(1.05);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-    <h1>Total Hostel Students</h1>
-    <a href="{% url 'students:hostel_movement_list' %}" class="btn" style="background-color: #64748b; color: white;">← Back to Dashboard</a>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <h1 style="font-weight: 800; color: var(--dark-secondary); margin: 0; font-size: 1.75rem;">Total Hostel Students</h1>
+    <a href="{% url 'students:hostel_movement_list' %}" class="btn" style="background-color: #64748b; color: white; border-radius: 8px; font-weight: 600; padding: 0.5rem 1rem;">← Back to Dashboard</a>
 </div>
 
-<div class="filter-form card" style="margin-bottom: 2rem;">
-    <form method="get" style="display: flex; gap: 1rem; align-items: flex-end;">
-        <div class="form-group" style="flex: 1; margin: 0;">
-            <label style="display: block; margin-bottom: 0.5rem; color: #475569; font-weight: 600;">Search Students</label>
-            <input type="text" name="search" value="{{ search_query }}" placeholder="Search by Student ID or Name..." style="width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+<!-- Search Form Card -->
+<div class="card" style="margin-bottom: 2rem; border-radius: 16px; background: white; border: 1px solid #e2e8f0; padding: 1.25rem !important;">
+    <form method="get" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+        <div class="form-group" style="flex: 1; min-width: 250px; margin: 0;">
+            <label style="display: block; margin-bottom: 0.5rem; color: #475569; font-weight: 700; font-size: 0.8rem; text-transform: uppercase;">Search Students</label>
+            <input type="text" name="search" value="{{ search_query }}" placeholder="Search by Student ID or Name..." style="width: 100%; padding: 0.6rem 0.8rem; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;">
         </div>
-        <button type="submit" class="btn btn-primary" style="padding: 0.6rem 1.5rem;">Search</button>
-        {% if search_query %}
-            <a href="{% url 'students:hostel_student_list' %}" class="btn" style="border: 1px solid #cbd5e1; color: #64748b;">Clear</a>
-        {% endif %}
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-primary" style="padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600;">Search</button>
+            {% if search_query %}
+                <a href="{% url 'students:hostel_student_list' %}" class="btn" style="border: 1px solid #cbd5e1; color: #64748b; padding: 0.6rem 1.25rem; border-radius: 8px; font-weight: 600;">Clear</a>
+            {% endif %}
+        </div>
     </form>
 </div>
 
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h2 style="margin: 0;">Student Register ({{ students.count }})</h2>
-        <span style="font-size: 0.9em; color: #64748b;">Click a student to view their detailed hostel profile and history.</span>
+<!-- Grid Cards Container -->
+<div class="card" style="background: transparent; box-shadow: none; border: none; padding: 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h4 style="margin: 0; font-weight: 800; color: var(--dark-secondary);">Student Register ({{ students.count }})</h4>
+        <span style="font-size: 0.85rem; color: #64748b; font-weight: 500;">Click a card to view detail page.</span>
     </div>
     
-    <div class="table-wrapper">
-        <table>
-            <thead>
-                <tr>
-                    <th>Student ID</th>
-                    <th>Name</th>
-                    <th>Grade</th>
-                    <th>Contact Phone</th>
-                    <th>Current Hostel Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for student in students %}
-                <tr class="clickable-row" onclick="window.location='{% url 'students:hostel_student_detail' student.pk %}'" style="cursor: pointer; transition: background-color 0.2s;">
-                    <td><strong>{{ student.student_id }}</strong></td>
-                    <td>{{ student.full_name }}</td>
-                    <td>{{ student.grade|default:"-" }}</td>
-                    <td>{{ student.phone|default:"-" }}</td>
-                    <td>
-                        {% if student.is_away %}
-                            <span style="background-color: #fff7ed; color: #c2410c; padding: 0.3rem 0.6rem; border-radius: 9999px; font-size: 0.85em; font-weight: 600; border: 1px solid #fed7aa;">🚶 Currently Away</span>
-                        {% else %}
-                            <span style="background-color: #f0fdf4; color: #15803d; padding: 0.3rem 0.6rem; border-radius: 9999px; font-size: 0.85em; font-weight: 600; border: 1px solid #bbf7d0;">🏠 In Hostel</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="{% url 'students:hostel_student_detail' student.pk %}" class="btn" style="background-color: #f8fafc; color: #3b82f6; border: 1px solid #bfdbfe; padding: 0.4rem 0.8rem; font-size: 0.9em;">View Profile</a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6" style="text-align: center; padding: 3rem; color: #64748b;">
-                        {% if search_query %}
-                            No hostel students found matching "{{ search_query }}".
-                        {% else %}
-                            No hostel students recorded in the system.
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="student-cards-grid">
+        {% for student in students %}
+        <div class="student-card" onclick="window.location='{% url 'students:hostel_student_detail' student.pk %}'" style="cursor: pointer;">
+            <!-- Card Header: Name and ID -->
+            <div class="card-header-info">
+                <div style="min-width: 0; flex: 1;">
+                    <div class="student-name">{{ student.full_name }}</div>
+                    <div class="student-id">ID: {{ student.student_id }}</div>
+                </div>
+            </div>
+
+            <!-- Grade Details -->
+            <div class="info-row">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <span>Class/Grade: <strong>{{ student.grade|default:"-" }}</strong></span>
+            </div>
+
+            <!-- Phone Details -->
+            {% if student.phone %}
+            <div class="info-row">
+                <i class="fa-solid fa-phone"></i>
+                <span>{{ student.phone }}</span>
+            </div>
+            {% else %}
+            <div class="info-row" style="color: #94a3b8;">
+                <i class="fa-solid fa-phone"></i>
+                <span>No phone number</span>
+            </div>
+            {% endif %}
+
+            <!-- Current Hostel Status Badge -->
+            <div class="info-row" style="margin-top: 0.25rem;">
+                {% if student.is_away %}
+                    <span style="background-color: #fff7ed; color: #c2410c; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: 1px solid #fed7aa; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-walking"></i> Currently Away
+                    </span>
+                {% else %}
+                    <span style="background-color: #f0fdf4; color: #15803d; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: 1px solid #bbf7d0; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-house"></i> In Hostel
+                    </span>
+                {% endif %}
+            </div>
+
+            <!-- Card Actions -->
+            <div class="card-actions">
+                <a href="{% url 'students:hostel_student_detail' student.pk %}" 
+                   class="action-icon-btn" 
+                   onclick="event.stopPropagation();" 
+                   style="background-color: rgba(99, 102, 241, 0.1); color: #4f46e5; text-decoration: none; padding: 0.4rem 0.8rem; font-size: 0.75rem; font-weight: 600; border-radius: 8px;" 
+                   title="View Profile">
+                    <i class="fa-solid fa-eye" style="margin-right: 4px;"></i> View Profile
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: #64748b; background: white; border-radius: 16px; border: 1px solid #e2e8f0; font-size: 0.95rem;">
+            {% if search_query %}
+                No hostel students found matching "{{ search_query }}".
+            {% else %}
+                No hostel students recorded in the system.
+            {% endif %}
+        </div>
+        {% endfor %}
     </div>
 </div>
-
-<style>
-    .clickable-row:hover {
-        background-color: #f8fafc !important;
-    }
-</style>
 {% endblock %}

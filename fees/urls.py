@@ -64,4 +64,6 @@ urlpatterns = [
     path('caution-deposits/<int:deposit_id>/refund/', views.refund_caution_deposit, name='refund_caution_deposit'),
     
     path('student/<int:student_id>/payment-history/', views.print_payment_history, name='print_payment_history'),
+    path('transaction/<str:transaction_id>/delete/', views.delete_payment_transaction, name='delete_payment_transaction'),
 ]
+

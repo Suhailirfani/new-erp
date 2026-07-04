@@ -118,7 +118,7 @@
     {% if request.user.profile.role != 'student' %}
     <!-- Admin/Teacher Dashboard -->
     <div class="dashboard-grid">
-        <div class="stat-card-new glass-card" style="background: var(--gradient-lavender);">
+        <a href="{% url 'students:student_list' %}" class="stat-card-new glass-card" style="background: var(--gradient-lavender); text-decoration: none;">
             <div class="icon-box" style="background: #fff; color: var(--primary);">
                 <i class="fa-solid fa-users"></i>
             </div>
@@ -126,9 +126,9 @@
                 <div class="value">{{ total_students }}</div>
                 <div class="label">Total Students</div>
             </div>
-        </div>
+        </a>
         
-        <div class="stat-card-new glass-card" style="background: var(--gradient-sky);">
+        <a href="{% url 'students:hostel_student_list' %}" class="stat-card-new glass-card" style="background: var(--gradient-sky); text-decoration: none;">
             <div class="icon-box" style="background: #fff; color: #0ea5e9;">
                 <i class="fa-solid fa-hotel"></i>
             </div>
@@ -136,9 +136,9 @@
                 <div class="value">{{ hostel_students }}</div>
                 <div class="label">Hostel Students</div>
             </div>
-        </div>
+        </a>
 
-        <div class="stat-card-new glass-card" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);">
+        <a href="{% url 'students:student_list' %}?student_type=day_scholar" class="stat-card-new glass-card" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); text-decoration: none;">
             <div class="icon-box" style="background: #fff; color: var(--success);">
                 <i class="fa-solid fa-sun"></i>
             </div>
@@ -146,9 +146,20 @@
                 <div class="value">{{ day_scholar_students }}</div>
                 <div class="label">Day Scholars</div>
             </div>
-        </div>
+        </a>
 
-        <div class="stat-card-new glass-card" style="background: var(--gradient-sky);">
+        {% if today_holiday %}
+        <a href="{% url 'students:today_attendance' %}" class="stat-card-new glass-card" style="background: linear-gradient(135deg, #fef9c3 0%, #fefce8 100%); text-decoration: none; border: 1px solid #fde68a;">
+            <div class="icon-box" style="background: #fff; color: #d97706;">
+                <i class="fa-solid fa-umbrella-beach"></i>
+            </div>
+            <div class="stat-info" style="min-width: 0; flex: 1;">
+                <div class="value" style="font-size: 1.1rem; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ today_holiday.title }}">{{ today_holiday.title }}</div>
+                <div class="label">Holiday Today</div>
+            </div>
+        </a>
+        {% else %}
+        <a href="{% url 'students:today_attendance' %}" class="stat-card-new glass-card" style="background: var(--gradient-sky); text-decoration: none;">
             <div class="icon-box" style="background: #fff; color: #0ea5e9;">
                 <i class="fa-solid fa-calendar-day"></i>
             </div>
@@ -156,7 +167,8 @@
                 <div class="value">{{ today_present }}</div>
                 <div class="label">Present Today</div>
             </div>
-        </div>
+        </a>
+        {% endif %}
 
         <div class="stat-card-new glass-card" style="background: linear-gradient(135deg, #fff5f5 0%, #fff0f0 100%);">
             <div class="icon-box" style="background: #fff; color: #ff6b6b;">
@@ -235,15 +247,19 @@
             .att-excused { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #bae6fd; color: #0284c7; }
             .att-none { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0; color: #64748b; }
         </style>
-        <div class="att-banner {% if today_status == 'present' %}att-present{% elif today_status == 'absent' %}att-absent{% elif today_status == 'late' %}att-late{% elif today_status == 'excused' %}att-excused{% else %}att-none{% endif %}">
-            <i class="fa-solid {% if today_status == 'present' %}fa-circle-check{% elif today_status == 'absent' %}fa-circle-xmark{% elif today_status == 'late' %}fa-clock{% elif today_status == 'excused' %}fa-circle-info{% else %}fa-circle-question{% endif %}" style="font-size: 1.15rem;"></i>
+        <div class="att-banner {% if today_holiday %}att-late{% elif today_status == 'present' %}att-present{% elif today_status == 'absent' %}att-absent{% elif today_status == 'late' %}att-late{% elif today_status == 'excused' %}att-excused{% else %}att-none{% endif %}">
+            <i class="fa-solid {% if today_holiday %}fa-umbrella-beach{% elif today_status == 'present' %}fa-circle-check{% elif today_status == 'absent' %}fa-circle-xmark{% elif today_status == 'late' %}fa-clock{% elif today_status == 'excused' %}fa-circle-info{% else %}fa-circle-question{% endif %}" style="font-size: 1.15rem;"></i>
             <span>
-                Today's Attendance: 
-                {% if today_status == 'present' %}Present
-                {% elif today_status == 'absent' %}Absent
-                {% elif today_status == 'late' %}Late
-                {% elif today_status == 'excused' %}Excused
-                {% else %}Not Marked Yet
+                {% if today_holiday %}
+                    Today is a Holiday: {{ today_holiday.title }}
+                {% else %}
+                    Today's Attendance: 
+                    {% if today_status == 'present' %}Present
+                    {% elif today_status == 'absent' %}Absent
+                    {% elif today_status == 'late' %}Late
+                    {% elif today_status == 'excused' %}Excused
+                    {% else %}Not Marked Yet
+                    {% endif %}
                 {% endif %}
             </span>
         </div>

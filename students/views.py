@@ -17,7 +17,7 @@ except ImportError:
 from .models import (
     Student, Attendance, HostelMovement, Period, Activity, Division, Room,
     ExamType, Subject, MarkEntry, ProgressReport, AcademicYear, Enrollment,
-    Grade, Section
+    Grade, Section, Holiday
 )
 from .forms import SectionForm, AcademicYearForm, EnquiryForm, GradeForm, DivisionForm, SubjectForm
 from fees.models import FeeStructure, FeeItem
@@ -172,6 +172,8 @@ def home(request):
             profile, created = UserProfile.objects.get_or_create(user=request.user)
             
         today = date.today()
+        today_holiday = Holiday.objects.filter(date=today).first()
+        context['today_holiday'] = today_holiday
         active_year = AcademicYear.objects.filter(is_active=True).first()
         context['active_year'] = active_year
         
@@ -1506,6 +1508,57 @@ def attendance_list(request):
 
     return render(request, 'students/attendance_list.html', context)
 
+@role_required(['admin', 'teacher'])
+def today_attendance_view(request):
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    if not active_year:
+        messages.error(request, 'Please set an active academic year to view attendance.')
+        return redirect('students:home')
+
+    today = date.today()
+    today_holiday = Holiday.objects.filter(date=today).first()
+    enrollments = Enrollment.objects.filter(
+        academic_year=active_year, 
+        student__is_active=True
+    ).select_related('student', 'grade', 'division', 'section').order_by(
+        'section__order', 'section__name', 'grade__order', 'grade__name', 'division__name', 'student__first_name', 'student__last_name'
+    )
+
+    attendances = Attendance.objects.filter(date=today, attendance_type='daily')
+    att_map = {att.student_id: att.status for att in attendances}
+
+    status_display_map = {
+        'present': 'Present',
+        'absent': 'Absent',
+        'late': 'Late',
+        'excused': 'Excused',
+        'not marked': 'Not Marked',
+    }
+    student_stats = []
+    for env in enrollments:
+        status = att_map.get(env.student_id, 'not marked')
+        student_stats.append({
+            'enrollment': env,
+            'student': env.student,
+            'status': status,
+            'status_display': status_display_map.get(status, 'Not Marked'),
+        })
+
+    present_count = len([s for s in student_stats if s['status'] in ('present', 'late', 'excused')])
+    absent_count = len([s for s in student_stats if s['status'] == 'absent'])
+    not_marked_count = len([s for s in student_stats if s['status'] == 'not marked'])
+
+    context = {
+        'today': today,
+        'student_stats': student_stats,
+        'present_count': present_count,
+        'absent_count': absent_count,
+        'not_marked_count': not_marked_count,
+        'total_count': len(student_stats),
+        'today_holiday': today_holiday,
+    }
+    return render(request, 'students/today_attendance.html', context)
+
 @role_required(['admin', 'ntstaff'])
 def hostel_movement_list(request):
     """List hostel movements with stats and enhanced search"""
@@ -2693,10 +2746,21 @@ def student_profile(request, pk):
     if not enrollment and student.enrollments.exists():
         enrollment = student.enrollments.order_by('-academic_year__start_date').first()
         
+    # Get today's daily attendance
+    today = date.today()
+    today_attendance = Attendance.objects.filter(student=student, date=today, attendance_type='daily').first()
+    
+    # Get progress reports
+    progress_reports = ProgressReport.objects.filter(student=student).select_related('exam_type').order_by('-generated_at')
+    if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
+        progress_reports = progress_reports.filter(exam_type__is_published=True)
+        
     context = {
         'student': student,
         'enrollment': enrollment,
         'active_year': active_year,
+        'today_attendance': today_attendance,
+        'progress_reports': progress_reports,
     }
     return render(request, 'students/student_profile.html', context)
 
@@ -3635,6 +3699,10 @@ def attendance_class_detail(request, grade_id, division_id):
     dates = list(class_attendances.values_list('date', flat=True))
     h_dates = get_holiday_dates(min(dates), max(dates)) if dates else set()
     
+    today = timezone.now().date()
+    today_attendances = Attendance.objects.filter(enrollment__in=enrollments, date=today)
+    today_status_map = {att.enrollment_id: att.status for att in today_attendances}
+    
     for enrollment in enrollments:
         attendances = Attendance.objects.filter(enrollment=enrollment)
         
@@ -3658,6 +3726,8 @@ def attendance_class_detail(request, grade_id, division_id):
         if total_days > 0:
             percentage = round((attended_count / total_days) * 100, 2)
             
+        today_status = today_status_map.get(enrollment.id, 'not_marked')
+            
         student_stats.append({
             'student': enrollment.student,
             'enrollment': enrollment,
@@ -3666,7 +3736,8 @@ def attendance_class_detail(request, grade_id, division_id):
             'late_count': late_count,
             'excused_count': excused_count,
             'absent_count': absent_count,
-            'percentage': percentage
+            'percentage': percentage,
+            'today_status': today_status
         })
 
     context = {
@@ -3791,7 +3862,7 @@ def hostel_student_list_view(request):
     """List all students registered to the hostel"""
     from django.db.models import Q
     
-    students = Student.objects.filter(student_type='hostel')
+    students = Student.objects.filter(student_type='hostel', is_active=True).exclude(alumni_record__isnull=False)
     
     search_query = request.GET.get('search', '')
     if search_query:

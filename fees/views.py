@@ -1,6 +1,7 @@
 from decimal import Decimal
 from django.shortcuts import render, get_object_or_404, redirect
 from students.decorators import role_required
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 from .models import StudentFee, FeePayment, AccountCategory, Income, Expense, FeeCategory, FeeItem, FeeStructure, FeeInstallmentTemplate
 from students.models import Student, Grade, Division
@@ -2052,3 +2053,46 @@ def refund_caution_deposit(request, deposit_id):
         'page_title': 'Process Refund'
     }
     return render(request, 'fees/caution_deposit_refund.html', context)
+
+
+@role_required(['admin', 'accountant'])
+@require_POST
+def delete_payment_transaction(request, transaction_id):
+    """Deletes a payment transaction (unified or legacy) and restores student balances."""
+    from .models import ReceiptTransaction, Income, FeePayment
+    from django.shortcuts import get_object_or_404, redirect
+    from django.contrib import messages
+    import uuid
+
+    # Try to find a ReceiptTransaction (new style)
+    try:
+        uuid.UUID(str(transaction_id))
+        txn = ReceiptTransaction.objects.filter(transaction_id=transaction_id).first()
+        if txn:
+            student_id = txn.student.id
+            txn.delete()
+            messages.success(request, "Payment transaction deleted successfully. Student balances have been updated.")
+            return redirect('fees:student_fees', student_id=student_id)
+    except ValueError:
+        pass # Not a valid UUID, fall through to legacy check
+
+    # Legacy check: try to find Income by integer primary key
+    try:
+        income_id = int(transaction_id)
+        income = Income.objects.filter(id=income_id).first()
+        if income:
+            # Find any associated student (via fee payments) to redirect back to
+            first_payment = income.fee_payments.first()
+            student_id = first_payment.student_fee.student.id if first_payment else None
+
+            income.delete()
+            messages.success(request, "Legacy payment transaction deleted successfully. Student balances have been updated.")
+            if student_id:
+                return redirect('fees:student_fees', student_id=student_id)
+            return redirect('fees:fees_dashboard')
+    except ValueError:
+        pass
+
+    messages.error(request, "Payment transaction not found.")
+    return redirect('fees:fees_dashboard')
+

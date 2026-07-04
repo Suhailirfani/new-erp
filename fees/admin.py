@@ -50,17 +50,6 @@ class FeePaymentAdmin(admin.ModelAdmin):
         return obj.student_fee.student
     student_fee_student.short_description = 'Student'
 
-    def save_model(self, request, obj, form, change):
-        super().save_model(request, obj, form, change)
-        # Update StudentFee amount_paid
-        fee = obj.student_fee
-        transactions = fee.payments.all()
-        total_paid = sum(t.amount for t in transactions)
-        # Since this is saved after, we inject this payment amount if it's new
-        if obj.pk is None or not transactions.filter(pk=obj.pk).exists():
-           total_paid += obj.amount
-        fee.amount_paid = total_paid
-        fee.update_status()
 
 from .models import AccountCategory, Income, Expense
 
