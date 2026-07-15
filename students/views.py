@@ -1824,7 +1824,7 @@ def exam_subject_maxmarks(request, exam_type_id):
     # Build subject queryset
     subjects_qs = Subject.objects.filter(is_active=True).select_related('grade', 'division', 'section')
     if exam_type.section:
-        subjects_qs = subjects_qs.filter(section=exam_type.section)
+        subjects_qs = subjects_qs.filter(Q(section=exam_type.section) | Q(grade__section=exam_type.section))
     if grade_obj:
         subjects_qs = subjects_qs.filter(grade=grade_obj)
     subjects = list(subjects_qs.order_by('grade__order', 'grade__name', 'subject_type', 'name'))
@@ -1871,7 +1871,7 @@ def exam_subject_maxmarks(request, exam_type_id):
     # All available grades (for the filter dropdown)
     grades_qs = Grade.objects.filter(subjects__is_active=True).distinct().order_by('order', 'name')
     if exam_type.section:
-        grades_qs = grades_qs.filter(subjects__section=exam_type.section)
+        grades_qs = grades_qs.filter(section=exam_type.section)
     grades = list(grades_qs)
 
     context = {
