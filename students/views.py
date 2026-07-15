@@ -1690,6 +1690,7 @@ def exam_type_create(request):
         section_id = request.POST.get('section')
         order = request.POST.get('order', 0)
         is_published = request.POST.get('is_published') == 'on'
+        subject_ids = request.POST.getlist('subjects')
 
         if not name:
             messages.error(request, 'Exam type name is required.')
@@ -1717,14 +1718,18 @@ def exam_type_create(request):
             order=order,
             is_published=is_published,
         )
+        exam_type.subjects.set(subject_ids)
+        
         messages.success(request, f'Exam type "{exam_type.name}" created successfully!')
         return redirect('students:exam_type_list')
 
     # Pass the choices to the template
     sections = Section.objects.all().order_by('order', 'name')
+    subjects = Subject.objects.filter(is_active=True).select_related('grade', 'division', 'section').order_by('grade__order', 'grade__name', 'subject_type', 'name')
     context = {
         'subject_type_choices': ExamType.SUBJECT_TYPE_CHOICES,
-        'sections': sections
+        'sections': sections,
+        'subjects': subjects,
     }
     return render(request, 'students/exam_type_create.html', context)
 
@@ -1741,6 +1746,7 @@ def exam_type_update(request, pk):
         section_id = request.POST.get('section')
         order = request.POST.get('order', 0)
         is_published = request.POST.get('is_published') == 'on'
+        subject_ids = request.POST.getlist('subjects')
 
         if not name:
             messages.error(request, 'Exam type name is required.')
@@ -1767,15 +1773,20 @@ def exam_type_update(request, pk):
         exam_type.order = order
         exam_type.is_published = is_published
         exam_type.save()
+        exam_type.subjects.set(subject_ids)
 
         messages.success(request, f'Exam type "{exam_type.name}" updated successfully!')
         return redirect('students:exam_type_list')
 
     sections = Section.objects.all().order_by('order', 'name')
+    subjects = Subject.objects.filter(is_active=True).select_related('grade', 'division', 'section').order_by('grade__order', 'grade__name', 'subject_type', 'name')
+    selected_subject_ids = set(exam_type.subjects.values_list('id', flat=True))
     context = {
         'exam_type': exam_type,
         'subject_type_choices': ExamType.SUBJECT_TYPE_CHOICES,
-        'sections': sections
+        'sections': sections,
+        'subjects': subjects,
+        'selected_subject_ids': selected_subject_ids,
     }
     return render(request, 'students/exam_type_update.html', context)
 
@@ -1825,6 +1836,8 @@ def exam_subject_maxmarks(request, exam_type_id):
     subjects_qs = Subject.objects.filter(is_active=True).select_related('grade', 'division', 'section')
     if exam_type.section:
         subjects_qs = subjects_qs.filter(Q(section=exam_type.section) | Q(grade__section=exam_type.section))
+    if exam_type.subjects.exists():
+        subjects_qs = subjects_qs.filter(id__in=exam_type.subjects.all())
     if grade_obj:
         subjects_qs = subjects_qs.filter(grade=grade_obj)
     subjects = list(subjects_qs.order_by('grade__order', 'grade__name', 'subject_type', 'name'))
@@ -1975,6 +1988,8 @@ def mark_entry_step3(request, exam_type_id):
         
     # Get subjects for this class
     subjects_query = Subject.objects.filter(is_active=True, grade=grade_obj) # Filter by Grade object
+    if exam_type.subjects.exists():
+        subjects_query = subjects_query.filter(id__in=exam_type.subjects.all())
     
     # First, filter by the exam's subject_type preference
     if exam_type.subject_type != 'all':
@@ -2157,6 +2172,8 @@ def mark_bulk_import_template(request, exam_type_id):
     
     # Get subjects for this class
     subjects_query = Subject.objects.filter(is_active=True, grade=grade_obj)
+    if exam_type.subjects.exists():
+        subjects_query = subjects_query.filter(id__in=exam_type.subjects.all())
     if exam_type.subject_type != 'all':
         subjects_query = subjects_query.filter(subject_type=exam_type.subject_type)
         

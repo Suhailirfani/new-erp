@@ -54,6 +54,64 @@
             <input type="number" name="order" value="{{ exam_type.order }}" min="0">
         </div>
         
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Allowed Subjects</label>
+            <p style="color: #666; font-size: 0.85rem; margin-top: 0; margin-bottom: 1rem;">
+                Select specific subjects allowed for this exam. If you select none, all active subjects matching the filters will be allowed.
+            </p>
+            
+            <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1.25rem; max-height: 400px; overflow-y: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dee2e6; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+                    <span style="font-weight: 600; color: #495057;">Select Subjects</span>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" onclick="selectAllSubjects(true)" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e9ecef; border: 1px solid #ced4da; border-radius: 4px; cursor: pointer;">Select All</button>
+                        <button type="button" onclick="selectAllSubjects(false)" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e9ecef; border: 1px solid #ced4da; border-radius: 4px; cursor: pointer;">Deselect All</button>
+                    </div>
+                </div>
+                
+                {% regroup subjects by grade as grade_list %}
+                {% for grade in grade_list %}
+                <div style="margin-bottom: 1rem;">
+                    <h4 style="margin: 0 0 0.5rem 0; color: #2c3e50; font-size: 0.95rem; border-bottom: 1px dashed #ced4da; padding-bottom: 0.25rem; display: flex; justify-content: space-between; align-items: center;">
+                        <span>Grade: {{ grade.grouper.name }}</span>
+                        <button type="button" onclick="toggleGradeSubjects('{{ grade.grouper.id }}', this)" data-checked="false" style="background: none; border: none; color: #007bff; font-size: 0.8rem; cursor: pointer; padding: 0;">Select Grade</button>
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.5rem; padding-left: 0.5rem;">
+                        {% for subject in grade.list %}
+                        <label style="display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.85rem; cursor: pointer; color: #495057; font-weight: normal; margin: 0;">
+                            <input type="checkbox" name="subjects" value="{{ subject.id }}" class="subject-checkbox grade-{{ grade.grouper.id }}"
+                                   {% if selected_subject_ids and subject.id in selected_subject_ids %}checked{% endif %}
+                                   style="margin-top: 0.15rem; width: auto !important;">
+                            <span>
+                                {{ subject.name }}
+                                {% if subject.division %}
+                                    <small style="color: #6c757d; display: block;">Division: {{ subject.division.name }}</small>
+                                {% elif subject.subject_type == 'hadiya' %}
+                                    <small style="color: #28a745; display: block;">Hadiya</small>
+                                {% endif %}
+                            </span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% empty %}
+                <p style="color: #999; font-style: italic; text-align: center; margin: 1rem 0;">No active subjects found.</p>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <script>
+            function selectAllSubjects(checked) {
+                document.querySelectorAll('.subject-checkbox').forEach(cb => cb.checked = checked);
+            }
+            function toggleGradeSubjects(gradeId, btn) {
+                let checked = btn.getAttribute('data-checked') === 'true';
+                document.querySelectorAll('.grade-' + gradeId).forEach(cb => cb.checked = !checked);
+                btn.setAttribute('data-checked', (!checked).toString());
+                btn.textContent = !checked ? 'Deselect Grade' : 'Select Grade';
+            }
+        </script>
+
         <div class="form-group" style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
             <input type="checkbox" name="is_published" id="is_published" {% if exam_type.is_published %}checked{% endif %} style="width: auto !important; margin: 0 !important;">
             <label for="is_published" style="font-weight: bold; cursor: pointer; margin: 0;">Publish Results (Make visible to students/parents)</label>

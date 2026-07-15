@@ -324,6 +324,7 @@ class ExamType(models.Model):
     section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True, related_name='exam_types')
     order = models.PositiveIntegerField(default=0, help_text="Order for display")
     is_published = models.BooleanField(default=False, help_text="Designates whether the exam results are visible to students.")
+    subjects = models.ManyToManyField('Subject', blank=True, related_name='exam_types', help_text="Specific subjects allowed for this exam. If none selected, all matching subjects are allowed.")
 
     class Meta:
         ordering = ['order', 'name']
