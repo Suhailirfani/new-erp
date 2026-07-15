@@ -17,7 +17,7 @@ except ImportError:
 from .models import (
     Student, Attendance, HostelMovement, Period, Activity, Division, Room,
     ExamType, Subject, MarkEntry, ProgressReport, AcademicYear, Enrollment,
-    Grade, Section, Holiday
+    Grade, Section, Holiday, ExamSubjectMaxMark
 )
 from .forms import SectionForm, AcademicYearForm, EnquiryForm, GradeForm, DivisionForm, SubjectForm
 from fees.models import FeeStructure, FeeItem
@@ -1809,6 +1809,81 @@ def exam_type_toggle_publish(request, pk):
 
 
 @role_required(['admin', 'teacher'])
+def exam_subject_maxmarks(request, exam_type_id):
+    """Manage per-exam maximum marks for each subject.
+    Displays all subjects grouped by grade; allows staff to set exam-specific max marks.
+    Falls back to Subject.max_marks if no override is saved."""
+    exam_type = get_object_or_404(ExamType, pk=exam_type_id)
+
+    # Optional grade filter
+    grade_id = request.GET.get('grade_id')
+    grade_obj = None
+    if grade_id:
+        grade_obj = Grade.objects.filter(pk=grade_id).first()
+
+    # Build subject queryset
+    subjects_qs = Subject.objects.filter(is_active=True).select_related('grade', 'division', 'section')
+    if exam_type.section:
+        subjects_qs = subjects_qs.filter(section=exam_type.section)
+    if grade_obj:
+        subjects_qs = subjects_qs.filter(grade=grade_obj)
+    subjects = list(subjects_qs.order_by('grade__order', 'grade__name', 'subject_type', 'name'))
+
+    if request.method == 'POST':
+        saved = 0
+        for subject in Subject.objects.filter(is_active=True):
+            field_name = f'max_marks_{subject.id}'
+            val_str = request.POST.get(field_name, '').strip()
+            if val_str == '':
+                # No value submitted — remove any existing override (revert to subject default)
+                ExamSubjectMaxMark.objects.filter(exam_type=exam_type, subject=subject).delete()
+            else:
+                try:
+                    val = int(float(val_str))
+                    if val > 0:
+                        ExamSubjectMaxMark.objects.update_or_create(
+                            exam_type=exam_type,
+                            subject=subject,
+                            defaults={'max_marks': val}
+                        )
+                        saved += 1
+                    else:
+                        ExamSubjectMaxMark.objects.filter(exam_type=exam_type, subject=subject).delete()
+                except (ValueError, TypeError):
+                    pass
+        messages.success(request, f'Saved max marks for {saved} subject(s) for "{exam_type.name}".')
+        redirect_url = reverse('students:exam_subject_maxmarks', args=[exam_type_id])
+        if grade_id:
+            redirect_url += f'?grade_id={grade_id}'
+        return redirect(redirect_url)
+
+    # Build existing overrides lookup: {subject_id: max_marks}
+    overrides = {
+        esm.subject_id: esm.max_marks
+        for esm in ExamSubjectMaxMark.objects.filter(exam_type=exam_type)
+    }
+
+    # Annotate subjects with their effective max marks
+    for s in subjects:
+        s.effective_max = overrides.get(s.id, s.max_marks)
+        s.has_override  = s.id in overrides
+
+    # All available grades (for the filter dropdown)
+    grades_qs = Grade.objects.filter(subjects__is_active=True).distinct().order_by('order', 'name')
+    if exam_type.section:
+        grades_qs = grades_qs.filter(subjects__section=exam_type.section)
+    grades = list(grades_qs)
+
+    context = {
+        'exam_type': exam_type,
+        'subjects': subjects,
+        'grades': grades,
+        'selected_grade': grade_obj,
+    }
+    return render(request, 'students/exam_subject_maxmarks.html', context)
+
+
+@role_required(['admin', 'teacher'])
 def mark_entry_step1(request):
     """Step 1: Select Exam Type"""
     exam_types = ExamType.objects.all().order_by('order', 'name')
@@ -1925,6 +2000,19 @@ def mark_entry_step3(request, exam_type_id):
     all_class_subjects = list(subjects_query.order_by('subject_type', 'name'))
     subjects = all_class_subjects
 
+    # ── Annotate subjects with exam-specific max marks ──────────────────────────
+    # Load ExamSubjectMaxMark overrides for this exam, for all subjects in this class
+    exam_overrides = {
+        esm.subject_id: esm.max_marks
+        for esm in ExamSubjectMaxMark.objects.filter(
+            exam_type=exam_type,
+            subject__in=all_class_subjects
+        )
+    }
+    for s in all_class_subjects:
+        s.effective_max_marks = exam_overrides.get(s.id, s.max_marks)
+    # ────────────────────────────────────────────────────────────────────────────
+
     selected_subject_id = request.GET.get('subject_id')
     selected_subject = None
     if selected_subject_id and selected_subject_id != 'all':
@@ -1953,13 +2041,13 @@ def mark_entry_step3(request, exam_type_id):
                     try:
                         marks_obtained = float(marks_str)
                         
-                        # Get max marks (check if custom max_marks was provided, else use subject default)
+                        # Get max marks: form override → exam-specific override → subject default
                         max_marks_input = f'max_marks_{subject.id}'
                         max_marks_str = request.POST.get(max_marks_input)
                         if max_marks_str and max_marks_str.strip():
                             max_marks = float(max_marks_str)
                         else:
-                            max_marks = float(subject.max_marks)
+                            max_marks = float(subject.effective_max_marks)
                             
                         # Find matching enrollment
                         enrollment = next((e for e in enrollments if e.student == student), None)

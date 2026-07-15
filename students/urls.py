@@ -31,6 +31,7 @@ urlpatterns = [
     path('exam-types/<int:pk>/update/', views.exam_type_update, name='exam_type_update'),
     path('exam-types/<int:pk>/delete/', views.exam_type_delete, name='exam_type_delete'),
     path('exam-types/<int:pk>/toggle-publish/', views.exam_type_toggle_publish, name='exam_type_toggle_publish'),
+    path('exam-types/<int:exam_type_id>/max-marks/', views.exam_subject_maxmarks, name='exam_subject_maxmarks'),
     path('marks/entry/', views.mark_entry_step1, name='mark_entry'),
     path('marks/entry/<int:exam_type_id>/', views.mark_entry_step2, name='mark_entry_step2'),
     path('marks/entry/<int:exam_type_id>/class/', views.mark_entry_step3, name='mark_entry_step3'),

@@ -360,6 +360,23 @@ class Subject(models.Model):
         return f"{self.name} - {self.grade} ({self.get_subject_type_display()})"
 
 
+class ExamSubjectMaxMark(models.Model):
+    """Defines the maximum marks for a specific subject in a specific exam type.
+    If no record exists for an exam+subject pair, Subject.max_marks is used as fallback."""
+    exam_type = models.ForeignKey(ExamType, on_delete=models.CASCADE, related_name='subject_max_marks')
+    subject   = models.ForeignKey(Subject,  on_delete=models.CASCADE, related_name='exam_max_marks')
+    max_marks = models.PositiveIntegerField(default=100, help_text="Maximum marks for this subject in this exam")
+
+    class Meta:
+        unique_together = [['exam_type', 'subject']]
+        ordering = ['exam_type', 'subject__grade', 'subject__name']
+        verbose_name = "Exam Subject Max Mark"
+        verbose_name_plural = "Exam Subject Max Marks"
+
+    def __str__(self):
+        return f"{self.exam_type.name} | {self.subject.name} → {self.max_marks}"
+
+
 class MarkEntry(models.Model):
     """Mark entry for students in exams"""
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='mark_entries')

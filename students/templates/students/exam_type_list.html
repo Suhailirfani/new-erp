@@ -35,6 +35,9 @@
             </p>
             
             <div style="display: flex; gap: 0.5rem; margin-top: auto; flex-wrap: wrap;">
+                <a href="{% url 'students:exam_subject_maxmarks' exam_type.pk %}" class="btn"
+                   style="padding: 0.5rem 0.75rem; font-size: 0.85rem; flex: 1.5; text-align: center; margin: 0; min-width: 90px; background-color: #16a085; color: white;"
+                   title="Set per-exam maximum marks for each subject">📊 Max Marks</a>
                 <a href="{% url 'students:exam_type_update' exam_type.pk %}" class="btn" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; flex: 1; text-align: center; margin: 0; min-width: 60px;">Edit</a>
                 {% if exam_type.is_published %}
                     <a href="{% url 'students:exam_type_toggle_publish' exam_type.pk %}" class="btn btn-warning" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; flex: 1.5; text-align: center; margin: 0; min-width: 90px; background-color: #f39c12; color: white;">Unpublish</a>

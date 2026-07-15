@@ -111,11 +111,125 @@
     
     /* Reduce emoji size slightly */
 
+    /* ===== PRINT BUTTON ===== */
+    .btn-print {
+        background: #27ae60;
+        color: #fff;
+        border: none;
+        padding: 0.55rem 1.2rem;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: background 0.2s;
+        text-decoration: none;
+    }
+    .btn-print:hover {
+        background: #219150;
+    }
+
+    /* ===== PRINT STYLES ===== */
+    @media print {
+        /* Hide everything that should NOT print */
+        .filter-form,
+        .no-print,
+        nav,
+        header,
+        .sidebar,
+        .btn-print,
+        .btn-secondary {
+            display: none !important;
+        }
+
+        body, html {
+            background: #fff !important;
+            color: #000 !important;
+            font-size: 10pt;
+        }
+
+        .card {
+            box-shadow: none !important;
+            border: 1px solid #ccc;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        h1 {
+            font-size: 14pt;
+            color: #000 !important;
+            margin-bottom: 0.4rem;
+        }
+
+        .card h2 {
+            font-size: 12pt;
+            color: #000 !important;
+            border-bottom: 1.5px solid #000;
+        }
+
+        table {
+            font-size: 7pt;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        thead th {
+            background: #34495e !important;
+            color: #fff !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            padding: 3px 2px;
+        }
+
+        tbody td {
+            padding: 2px 2px;
+            border: 0.5px solid #ccc;
+        }
+
+        tbody tr:hover {
+            background-color: transparent !important;
+        }
+
+        .text-muted {
+            color: #555 !important;
+            font-size: 8pt;
+        }
+
+        /* Print header with date */
+        .print-header {
+            display: block !important;
+            text-align: center;
+            font-size: 9pt;
+            color: #555;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 0.3rem;
+        }
+    }
+
+    /* Hidden on screen, visible on print */
+    .print-header {
+        display: none;
+    }
+
 </style>
 
-<h1 style="color:#2c3e50; margin-bottom:1.5rem;">
-    🚨 Attendance Update Tracking
-</h1>
+<!-- Print header (only visible when printing) -->
+<div class="print-header">
+    <strong>Attendance Update Tracking Report</strong><br>
+    Printed on: <span id="printDate"></span>
+</div>
+
+<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.8rem; margin-bottom:1rem;">
+    <h1 style="color:#2c3e50; margin:0;">
+        🚨 Attendance Update Tracking
+    </h1>
+    <button class="btn-print no-print" onclick="window.print()" title="Print this report">
+        🖨️ Print Report
+    </button>
+</div>
 
 <p class="text-muted" style="margin-bottom:1.5rem;">
     Classroom-wise monthly audit to identify skipped attendance updates.
@@ -209,8 +323,18 @@
     </p>
 </div>
 
-<a href="{% url 'students:attendance_list' %}" class="btn btn-secondary">
-    ← Back to Attendance Records
-</a>
+<div class="no-print" style="display:flex; gap:0.8rem; align-items:center; flex-wrap:wrap;">
+    <a href="{% url 'students:attendance_list' %}" class="btn btn-secondary">
+        ← Back to Attendance Records
+    </a>
+    <button class="btn-print" onclick="window.print()" title="Print this report">
+        🖨️ Print Report
+    </button>
+</div>
+
+<script>
+    // Set print date dynamically
+    document.getElementById('printDate').textContent = new Date().toLocaleString();
+</script>
 
 {% endblock %}

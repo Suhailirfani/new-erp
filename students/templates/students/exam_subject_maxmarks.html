@@ -1,0 +1,215 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Max Marks - {{ exam_type.name }}{% endblock %}
+
+{% block content %}
+<style>
+    .page-header {
+        display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 0.8rem; margin-bottom: 1.5rem;
+    }
+    .page-header h1 { margin: 0; color: #2c3e50; font-size: 1.6rem; }
+    .filter-bar {
+        background: #fff; border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        padding: 1rem 1.25rem; margin-bottom: 1.5rem;
+        display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+    }
+    .filter-bar label { font-weight: 600; color: #34495e; margin: 0; }
+    .filter-bar select {
+        padding: 0.45rem 0.75rem; border: 1px solid #ccc;
+        border-radius: 6px; font-size: 0.95rem; min-width: 180px;
+    }
+    .card {
+        background: #fff; border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        padding: 1.5rem; margin-bottom: 1.5rem;
+    }
+    .card h2 {
+        margin: 0 0 1.25rem 0; font-size: 1.25rem; color: #2c3e50;
+        border-bottom: 2px solid #3498db; padding-bottom: 0.5rem;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    thead th {
+        background: #2c3e50; color: #fff;
+        padding: 0.75rem 1rem; text-align: left; white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid #ecf0f1; transition: background 0.15s; }
+    tbody tr:hover { background: #f8f9fa; }
+    tbody td { padding: 0.6rem 1rem; vertical-align: middle; }
+    .max-marks-input {
+        width: 90px; padding: 0.4rem 0.6rem;
+        border: 2px solid #ccc; border-radius: 6px;
+        font-size: 1rem; font-weight: 600; text-align: center;
+        transition: border-color 0.2s;
+    }
+    .max-marks-input:focus { outline: none; border-color: #3498db; }
+    .max-marks-input.has-override { border-color: #27ae60; background: #f0faf3; }
+    .badge-override {
+        display: inline-block; background: #d4edda; color: #155724;
+        border: 1px solid #c3e6cb; border-radius: 4px;
+        padding: 0.15rem 0.45rem; font-size: 0.72rem; font-weight: 700;
+    }
+    .badge-default {
+        display: inline-block; background: #e2e3e5; color: #495057;
+        border: 1px solid #d6d8db; border-radius: 4px;
+        padding: 0.15rem 0.45rem; font-size: 0.72rem;
+    }
+    .info-box {
+        background: #e7f3ff; border-left: 4px solid #2196F3;
+        border-radius: 6px; padding: 0.9rem 1.1rem;
+        margin-bottom: 1.5rem; font-size: 0.9rem; color: #1a4f72;
+    }
+    .info-box strong { display: block; margin-bottom: 0.3rem; }
+    .btn-save {
+        background: #27ae60; color: #fff; border: none;
+        padding: 0.65rem 1.6rem; border-radius: 8px;
+        font-size: 1rem; font-weight: 700; cursor: pointer;
+        transition: background 0.2s;
+    }
+    .btn-save:hover { background: #219150; }
+    .empty-msg { text-align: center; padding: 2.5rem; color: #7f8c8d; font-style: italic; }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1>&#128221; Max Marks per Subject</h1>
+        <p style="margin: 0.25rem 0 0; color: #7f8c8d; font-size: 0.95rem;">
+            Exam: <strong>{{ exam_type.name }}</strong>
+        </p>
+    </div>
+    <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+        <a href="{% url 'students:exam_type_list' %}" class="btn btn-secondary">
+            &larr; Back to Exam Types
+        </a>
+        <a href="{% url 'students:mark_entry_step2' exam_type.id %}" class="btn"
+           style="background:#3498db;color:#fff;text-decoration:none;border:none;">
+            &#9999;&#65039; Enter Marks
+        </a>
+    </div>
+</div>
+
+<div class="info-box">
+    <strong>&#128161; How this works:</strong>
+    Set the maximum marks for each subject specifically for <strong>{{ exam_type.name }}</strong>.
+    Leave a field <em>blank</em> to revert to the subject's default max marks.
+    <span class="badge-override">EXAM OVERRIDE</span> = custom value saved for this exam.
+    <span class="badge-default">DEFAULT</span> = using the subject's own max marks.
+</div>
+
+<!-- Grade Filter -->
+<div class="filter-bar">
+    <label for="grade_filter">&#127891; Filter by Grade:</label>
+    <form method="get" style="display:flex; gap:0.5rem; align-items:center;">
+        <select name="grade_id" id="grade_filter" onchange="this.form.submit()">
+            <option value="">-- All Grades --</option>
+            {% for grade in grades %}
+                <option value="{{ grade.id }}"
+                    {% if selected_grade and selected_grade.id == grade.id %}selected{% endif %}>
+                    Grade {{ grade.name }}
+                </option>
+            {% endfor %}
+        </select>
+        {% if selected_grade %}
+            <a href="{% url 'students:exam_subject_maxmarks' exam_type.id %}"
+               style="font-size:0.85rem;color:#e74c3c;text-decoration:none;white-space:nowrap;">
+                &#10005; Clear
+            </a>
+        {% endif %}
+    </form>
+    <span style="margin-left:auto; font-size:0.85rem; color:#7f8c8d;">
+        {{ subjects|length }} subject(s) shown
+    </span>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="card">
+        <h2>&#128218; Subject Max Marks for &ldquo;{{ exam_type.name }}&rdquo;</h2>
+
+        {% if subjects %}
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Subject</th>
+                        <th>Grade</th>
+                        <th>Division / Type</th>
+                        <th style="text-align:center;">Subject Default</th>
+                        <th style="text-align:center;">Max Marks for {{ exam_type.name }}</th>
+                        <th style="text-align:center;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for subject in subjects %}
+                    <tr>
+                        <td style="color:#7f8c8d;">{{ forloop.counter }}</td>
+                        <td>
+                            <strong>{{ subject.name }}</strong>
+                            {% if subject.code %}<br>
+                                <small style="color:#7f8c8d;">{{ subject.code }}</small>
+                            {% endif %}
+                        </td>
+                        <td>Grade {{ subject.grade.name }}</td>
+                        <td>
+                            {% if subject.division %}
+                                {{ subject.division.name }}
+                            {% else %}
+                                <em style="color:#7f8c8d;">{{ subject.get_subject_type_display }}</em>
+                            {% endif %}
+                        </td>
+                        <td style="text-align:center; color:#7f8c8d; font-weight:600;">
+                            {{ subject.max_marks }}
+                        </td>
+                        <td style="text-align:center;">
+                            <input type="number"
+                                   name="max_marks_{{ subject.id }}"
+                                   class="max-marks-input {% if subject.has_override %}has-override{% endif %}"
+                                   value="{% if subject.has_override %}{{ subject.effective_max }}{% endif %}"
+                                   placeholder="{{ subject.max_marks }}"
+                                   min="1" step="1"
+                                   title="Leave blank to use subject default ({{ subject.max_marks }})">
+                        </td>
+                        <td style="text-align:center;">
+                            {% if subject.has_override %}
+                                <span class="badge-override">EXAM OVERRIDE</span>
+                            {% else %}
+                                <span class="badge-default">DEFAULT</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:0.75rem;margin-top:1.5rem;flex-wrap:wrap;align-items:center;">
+            <button type="button" onclick="clearAll()" class="btn btn-secondary">
+                &#128465; Clear All Overrides
+            </button>
+            <button type="submit" class="btn-save">
+                &#128190; Save Max Marks
+            </button>
+        </div>
+
+        {% else %}
+        <div class="empty-msg">
+            <p>No active subjects found{% if selected_grade %} for Grade {{ selected_grade.name }}{% endif %}.</p>
+            <a href="{% url 'students:subject_list' %}" class="btn btn-success">Manage Subjects &rarr;</a>
+        </div>
+        {% endif %}
+    </div>
+</form>
+
+<script>
+function clearAll() {
+    if (!confirm('Clear all exam-specific overrides shown here? Subjects will revert to their default max marks on save.')) return;
+    document.querySelectorAll('.max-marks-input').forEach(function(inp) {
+        inp.value = '';
+        inp.classList.remove('has-override');
+    });
+}
+</script>
+
+{% endblock %}
