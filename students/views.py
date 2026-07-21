@@ -5774,6 +5774,13 @@ def student_credentials_list(request):
     return render(request, 'students/student_credentials_list.html', context)
 
 
+def generate_random_password(length=8):
+    """Generate a clean, secure random password with letters and digits"""
+    import secrets
+    chars = "23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ"
+    return "".join(secrets.choice(chars) for _ in range(length))
+
+
 @role_required(['admin'])
 @require_POST
 def student_credential_create(request, student_id):
@@ -5786,9 +5793,13 @@ def student_credential_create(request, student_id):
 
     username = request.POST.get('username', '').strip()
     password = request.POST.get('password', '').strip()
+    password_mode = request.POST.get('password_mode', '').strip()
 
-    if not username or not password:
-        messages.error(request, "Username and Password are required.")
+    if password_mode == 'random' or not password:
+        password = generate_random_password(8)
+
+    if not username:
+        messages.error(request, "Username is required.")
         return redirect('students:student_credentials_list')
 
     if User.objects.filter(username=username).exists():
@@ -5810,7 +5821,7 @@ def student_credential_create(request, student_id):
         profile.initial_password = password
         profile.save()
 
-        messages.success(request, f"Login account created successfully for {student.full_name} (Username: {username}).")
+        messages.success(request, f"Login account created successfully for {student.full_name} (Username: {username}, Password: {password}).")
     except Exception as e:
         messages.error(request, f"Error creating credentials: {str(e)}")
 
@@ -5828,9 +5839,10 @@ def student_credential_reset_password(request, student_id):
         return redirect('students:student_credentials_list')
 
     new_password = request.POST.get('new_password', '').strip()
-    if not new_password:
-        messages.error(request, "New password cannot be empty.")
-        return redirect('students:student_credentials_list')
+    password_mode = request.POST.get('password_mode', '').strip()
+
+    if password_mode == 'random' or not new_password:
+        new_password = generate_random_password(8)
 
     user = student.user_profile.user
     user.set_password(new_password)
@@ -5840,7 +5852,7 @@ def student_credential_reset_password(request, student_id):
     profile.initial_password = new_password
     profile.save()
 
-    messages.success(request, f"Password successfully reset for {student.full_name} (Username: {user.username}).")
+    messages.success(request, f"Password successfully reset for {student.full_name} (Username: {user.username}, New Password: {new_password}).")
     return redirect('students:student_credentials_list')
 
 
@@ -5870,6 +5882,7 @@ def student_credential_bulk_create(request):
     grade_id = request.POST.get('grade', '').strip()
     division_id = request.POST.get('division', '').strip()
     default_password = request.POST.get('default_password', '').strip()
+    password_mode = request.POST.get('password_mode', 'default').strip()
 
     active_year = AcademicYear.objects.filter(is_active=True).first()
 
@@ -5890,7 +5903,11 @@ def student_credential_bulk_create(request):
 
     for student in students_qs:
         username = student.student_id.strip()
-        pwd = default_password if default_password else student.student_id.strip()
+        
+        if password_mode == 'random':
+            pwd = generate_random_password(8)
+        else:
+            pwd = default_password if default_password else student.student_id.strip()
 
         if User.objects.filter(username=username).exists():
             skipped_count += 1
@@ -5914,12 +5931,48 @@ def student_credential_bulk_create(request):
             skipped_count += 1
 
     if created_count > 0:
-        messages.success(request, f"Successfully created {created_count} student user account(s) using Student ID as username!")
+        pwd_info = "with random unique passwords" if password_mode == 'random' else "with specified default password"
+        messages.success(request, f"Successfully created {created_count} student user account(s) {pwd_info}!")
     if skipped_count > 0:
         messages.warning(request, f"Skipped {skipped_count} student(s) because username already exists or error occurred.")
     if created_count == 0 and skipped_count == 0:
         messages.info(request, "No unlinked students found matching your criteria.")
 
+    return redirect('students:student_credentials_list')
+
+
+@role_required(['admin'])
+@require_POST
+def student_credential_bulk_reset(request):
+    """Bulk reset passwords to random passwords for existing accounts"""
+    grade_id = request.POST.get('grade', '').strip()
+    division_id = request.POST.get('division', '').strip()
+
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    students_qs = Student.objects.filter(is_active=True, user_profile__isnull=False)
+
+    if grade_id:
+        students_qs = students_qs.filter(enrollments__grade_id=grade_id)
+    if division_id:
+        students_qs = students_qs.filter(enrollments__division_id=division_id)
+    if active_year and (grade_id or division_id):
+        students_qs = students_qs.filter(enrollments__academic_year=active_year)
+
+    students_qs = students_qs.distinct()
+
+    reset_count = 0
+    for student in students_qs:
+        if hasattr(student, 'user_profile') and student.user_profile and student.user_profile.user:
+            new_pwd = generate_random_password(8)
+            user = student.user_profile.user
+            user.set_password(new_pwd)
+            user.save()
+            profile = student.user_profile
+            profile.initial_password = new_pwd
+            profile.save()
+            reset_count += 1
+
+    messages.success(request, f"Successfully generated new random passwords for {reset_count} student accounts!")
     return redirect('students:student_credentials_list')
 
 
