@@ -5654,5 +5654,260 @@ def holiday_delete(request, pk):
     return redirect('students:holiday_list')
 
 
+# ==========================================
+# STUDENT CREDENTIALS MANAGEMENT (ADMIN ONLY)
+# ==========================================
+
+@role_required(['admin'])
+def student_credentials_list(request):
+    """
+    Admin-only page to view, search, filter, manage, and reset student login credentials.
+    """
+    query = request.GET.get('q', '').strip()
+    grade_id = request.GET.get('grade', '').strip()
+    division_id = request.GET.get('division', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+
+    students_qs = Student.objects.filter(is_active=True).select_related(
+        'user_profile',
+        'user_profile__user'
+    ).prefetch_related(
+        'enrollments',
+        'enrollments__grade',
+        'enrollments__division',
+        'enrollments__academic_year'
+    ).order_by('first_name', 'last_name')
+
+    # Search filter
+    if query:
+        students_qs = students_qs.filter(
+            models.Q(student_id__icontains=query) |
+            models.Q(first_name__icontains=query) |
+            models.Q(last_name__icontains=query) |
+            models.Q(user_profile__user__username__icontains=query)
+        )
+
+    # Grade & Division filters
+    if grade_id:
+        students_qs = students_qs.filter(enrollments__grade_id=grade_id)
+    if division_id:
+        students_qs = students_qs.filter(enrollments__division_id=division_id)
+
+    if active_year and (grade_id or division_id):
+        students_qs = students_qs.filter(enrollments__academic_year=active_year)
+
+    students_qs = students_qs.distinct()
+
+    all_students_list = list(students_qs)
+    total_students = len(all_students_list)
+    linked_count = sum(1 for s in all_students_list if hasattr(s, 'user_profile') and s.user_profile and s.user_profile.user)
+    unlinked_count = total_students - linked_count
+
+    # Status Filter
+    if status_filter == 'linked':
+        all_students_list = [s for s in all_students_list if hasattr(s, 'user_profile') and s.user_profile and s.user_profile.user]
+    elif status_filter == 'unlinked':
+        all_students_list = [s for s in all_students_list if not (hasattr(s, 'user_profile') and s.user_profile and s.user_profile.user)]
+    elif status_filter == 'active':
+        all_students_list = [s for s in all_students_list if hasattr(s, 'user_profile') and s.user_profile and s.user_profile.user and s.user_profile.user.is_active]
+    elif status_filter == 'inactive':
+        all_students_list = [s for s in all_students_list if hasattr(s, 'user_profile') and s.user_profile and s.user_profile.user and not s.user_profile.user.is_active]
+
+    grades = Grade.objects.all().order_by('order', 'name')
+    divisions = Division.objects.all().order_by('name')
+
+    context = {
+        'students': all_students_list,
+        'total_students': total_students,
+        'linked_count': linked_count,
+        'unlinked_count': unlinked_count,
+        'grades': grades,
+        'divisions': divisions,
+        'query': query,
+        'selected_grade': grade_id,
+        'selected_division': division_id,
+        'selected_status': status_filter,
+    }
+    return render(request, 'students/student_credentials_list.html', context)
+
+
+@role_required(['admin'])
+@require_POST
+def student_credential_create(request, student_id):
+    """Create or link user credentials for a specific student"""
+    student = get_object_or_404(Student, pk=student_id)
+    
+    if hasattr(student, 'user_profile') and student.user_profile and student.user_profile.user:
+        messages.error(request, f"Student {student.full_name} already has a linked user account.")
+        return redirect('students:student_credentials_list')
+
+    username = request.POST.get('username', '').strip()
+    password = request.POST.get('password', '').strip()
+
+    if not username or not password:
+        messages.error(request, "Username and Password are required.")
+        return redirect('students:student_credentials_list')
+
+    if User.objects.filter(username=username).exists():
+        messages.error(request, f"Username '{username}' is already taken.")
+        return redirect('students:student_credentials_list')
+
+    try:
+        user = User.objects.create_user(
+            username=username,
+            password=password,
+            first_name=student.first_name,
+            last_name=student.last_name,
+            email=student.email or ''
+        )
+        
+        profile, created = UserProfile.objects.get_or_create(user=user)
+        profile.role = 'student'
+        profile.student_record = student
+        profile.save()
+
+        messages.success(request, f"Login account created successfully for {student.full_name} (Username: {username}).")
+    except Exception as e:
+        messages.error(request, f"Error creating credentials: {str(e)}")
+
+    return redirect('students:student_credentials_list')
+
+
+@role_required(['admin'])
+@require_POST
+def student_credential_reset_password(request, student_id):
+    """Reset password for a student's linked user account"""
+    student = get_object_or_404(Student, pk=student_id)
+    
+    if not (hasattr(student, 'user_profile') and student.user_profile and student.user_profile.user):
+        messages.error(request, f"Student {student.full_name} does not have a linked user account.")
+        return redirect('students:student_credentials_list')
+
+    new_password = request.POST.get('new_password', '').strip()
+    if not new_password:
+        messages.error(request, "New password cannot be empty.")
+        return redirect('students:student_credentials_list')
+
+    user = student.user_profile.user
+    user.set_password(new_password)
+    user.save()
+
+    messages.success(request, f"Password successfully reset for {student.full_name} (Username: {user.username}).")
+    return redirect('students:student_credentials_list')
+
+
+@role_required(['admin'])
+@require_POST
+def student_credential_toggle_status(request, student_id):
+    """Toggle user active / inactive status for a student account"""
+    student = get_object_or_404(Student, pk=student_id)
+    
+    if not (hasattr(student, 'user_profile') and student.user_profile and student.user_profile.user):
+        messages.error(request, f"Student {student.full_name} does not have a linked user account.")
+        return redirect('students:student_credentials_list')
+
+    user = student.user_profile.user
+    user.is_active = not user.is_active
+    user.save()
+
+    status_str = "activated" if user.is_active else "deactivated"
+    messages.success(request, f"Account for {student.full_name} has been {status_str}.")
+    return redirect('students:student_credentials_list')
+
+
+@role_required(['admin'])
+@require_POST
+def student_credential_bulk_create(request):
+    """Bulk create credentials for unlinked students"""
+    grade_id = request.POST.get('grade', '').strip()
+    division_id = request.POST.get('division', '').strip()
+    default_password = request.POST.get('default_password', '').strip()
+
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+
+    # Query unlinked active students
+    students_qs = Student.objects.filter(is_active=True, user_profile__isnull=True)
+
+    if grade_id:
+        students_qs = students_qs.filter(enrollments__grade_id=grade_id)
+    if division_id:
+        students_qs = students_qs.filter(enrollments__division_id=division_id)
+    if active_year and (grade_id or division_id):
+        students_qs = students_qs.filter(enrollments__academic_year=active_year)
+
+    students_qs = students_qs.distinct()
+
+    created_count = 0
+    skipped_count = 0
+
+    for student in students_qs:
+        username = student.student_id.strip()
+        pwd = default_password if default_password else student.student_id.strip()
+
+        if User.objects.filter(username=username).exists():
+            skipped_count += 1
+            continue
+
+        try:
+            user = User.objects.create_user(
+                username=username,
+                password=pwd,
+                first_name=student.first_name,
+                last_name=student.last_name,
+                email=student.email or ''
+            )
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile.role = 'student'
+            profile.student_record = student
+            profile.save()
+            created_count += 1
+        except Exception:
+            skipped_count += 1
+
+    if created_count > 0:
+        messages.success(request, f"Successfully created {created_count} student user account(s) using Student ID as username!")
+    if skipped_count > 0:
+        messages.warning(request, f"Skipped {skipped_count} student(s) because username already exists or error occurred.")
+    if created_count == 0 and skipped_count == 0:
+        messages.info(request, "No unlinked students found matching your criteria.")
+
+    return redirect('students:student_credentials_list')
+
+
+@role_required(['admin'])
+def student_credentials_print(request):
+    """Printable list of student credentials"""
+    grade_id = request.GET.get('grade', '').strip()
+    division_id = request.GET.get('division', '').strip()
+
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+
+    students_qs = Student.objects.filter(is_active=True).select_related(
+        'user_profile', 'user_profile__user'
+    ).prefetch_related('enrollments', 'enrollments__grade', 'enrollments__division').order_by('first_name')
+
+    if grade_id:
+        students_qs = students_qs.filter(enrollments__grade_id=grade_id)
+    if division_id:
+        students_qs = students_qs.filter(enrollments__division_id=division_id)
+    if active_year and (grade_id or division_id):
+        students_qs = students_qs.filter(enrollments__academic_year=active_year)
+
+    students_qs = students_qs.distinct()
+
+    grade_obj = Grade.objects.filter(id=grade_id).first() if grade_id else None
+    division_obj = Division.objects.filter(id=division_id).first() if division_id else None
+
+    context = {
+        'students': students_qs,
+        'grade': grade_obj,
+        'division': division_obj,
+    }
+    return render(request, 'students/student_credentials_print.html', context)
+
+
+
 
 
