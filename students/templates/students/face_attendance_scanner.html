@@ -28,19 +28,44 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        width: 100%;
     }
     
     .scanner-camera-container {
         position: relative;
         width: 100%;
-        max-width: 640px;
-        aspect-ratio: 4/3;
+        max-width: 860px;
+        aspect-ratio: 16/9;
         background: #0f172a;
         border-radius: 24px;
         overflow: hidden;
         border: 5px solid #1e293b;
         box-shadow: var(--shadow-float);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @media (max-width: 768px) {
+        .scanner-view-panel {
+            padding: 0.65rem;
+            border-radius: 20px;
+        }
+        .scanner-camera-container {
+            max-width: 100%;
+            width: 100%;
+            height: 65vh;
+            min-height: 420px;
+            aspect-ratio: auto;
+            border-width: 3px;
+            border-radius: 18px;
+        }
+        .kiosk-status-card {
+            padding: 0.75rem 1rem !important;
+            margin-top: 0.75rem !important;
+            border-radius: 12px !important;
+        }
+        .kiosk-status-card span {
+            font-size: 0.9rem !important;
+        }
     }
     
     .scanner-camera-container.scanning {
@@ -461,7 +486,7 @@
     async function startScannerCamera() {
         try {
             localStream = await navigator.mediaDevices.getUserMedia({
-                video: { width: 640, height: 480, facingMode: 'user' }
+                video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
             });
             webcam.srcObject = localStream;
             
@@ -469,9 +494,9 @@
                 cameraContainer.classList.add('scanning');
                 kioskStatus.innerHTML = '<i class="fa fa-check-circle text-success"></i> Terminal Active & Scanning';
                 
-                // Align size
-                overlay.width = webcam.videoWidth || 640;
-                overlay.height = webcam.videoHeight || 480;
+                // Align canvas overlay with actual display dimensions
+                overlay.width = webcam.clientWidth || webcam.videoWidth || 640;
+                overlay.height = webcam.clientHeight || webcam.videoHeight || 480;
                 
                 startScanningProcess();
             });
