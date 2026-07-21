@@ -1438,6 +1438,20 @@
 
                 <span>Dashboard</span>
             </a>
+
+            {% if request.user.profile.role == 'student' %}
+            <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">My Account</div>
+            {% if request.user.profile.student_record %}
+            <a href="{% url 'students:student_profile' request.user.profile.student_record.id %}" class="nav-item">
+                <i class="fa-solid fa-id-card"></i>
+                <span>My Profile</span>
+            </a>
+            {% endif %}
+            <a href="{% url 'students:student_self_profile_update' %}" class="nav-item">
+                <i class="fa-solid fa-user-gear"></i>
+                <span>Profile & Password</span>
+            </a>
+            {% endif %}
             
             {% if request.user.is_superuser or request.user.profile.role in 'admin,teacher,accountant' %}
             <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">Academics</div>

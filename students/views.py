@@ -2930,8 +2930,39 @@ def student_edit(request, pk):
             student.phone = phone
             student.address = address
             student.save()
-            messages.success(request, f'Your profile was updated successfully!')
-            return redirect('students:home')
+
+            if request.user.email != email:
+                request.user.email = email
+                request.user.save()
+
+            # Optional password update in student edit
+            current_password = request.POST.get('current_password', '').strip()
+            new_password = request.POST.get('new_password', '').strip()
+            confirm_password = request.POST.get('confirm_password', '').strip()
+
+            if current_password or new_password or confirm_password:
+                if not current_password:
+                    messages.error(request, "Current password is required to change password.")
+                    return redirect('students:student_profile', pk=student.id)
+                if not request.user.check_password(current_password):
+                    messages.error(request, "Current password is incorrect.")
+                    return redirect('students:student_profile', pk=student.id)
+                if new_password and new_password == confirm_password:
+                    request.user.set_password(new_password)
+                    request.user.save()
+                    profile = request.user.profile
+                    profile.initial_password = new_password
+                    profile.save()
+                    from django.contrib.auth import update_session_auth_hash
+                    update_session_auth_hash(request, request.user)
+                    messages.success(request, 'Your profile and password have been updated successfully!')
+                else:
+                    messages.error(request, 'Password confirmation mismatch.')
+                    return redirect('students:student_profile', pk=student.id)
+            else:
+                messages.success(request, 'Your profile details were updated successfully!')
+            
+            return redirect('students:student_profile', pk=student.id)
         else:
             # Check duplicate student ID, but allow same ID for this student
             if Student.objects.exclude(id=student.id).filter(student_id=student_id).exists():
@@ -5932,6 +5963,94 @@ def toggle_fee_maintenance(request):
     if referer:
         return redirect(referer)
     return redirect('students:home')
+
+
+@login_required
+def student_self_profile_update(request):
+    """
+    Dedicated view for logged-in students to update their contact details and password.
+    """
+    if not hasattr(request.user, 'profile') or request.user.profile.role != 'student' or not request.user.profile.student_record:
+        messages.error(request, "This page is accessible to logged-in students only.")
+        return redirect('students:home')
+
+    student = request.user.profile.student_record
+    user = request.user
+
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip()
+        phone = request.POST.get('phone', '').strip()
+        address = request.POST.get('address', '').strip()
+
+        # Update student contact info
+        student.email = email
+        student.phone = phone
+        student.address = address
+        student.save()
+
+        # Update user email
+        if user.email != email:
+            user.email = email
+            user.save()
+
+        # Handle Password Change
+        current_password = request.POST.get('current_password', '').strip()
+        new_password = request.POST.get('new_password', '').strip()
+        confirm_password = request.POST.get('confirm_password', '').strip()
+
+        password_changed = False
+
+        if current_password or new_password or confirm_password:
+            if not current_password:
+                messages.error(request, "Current password is required to change password.")
+                return redirect('students:student_self_profile_update')
+
+            if not user.check_password(current_password):
+                messages.error(request, "Current password is incorrect.")
+                return redirect('students:student_self_profile_update')
+
+            if not new_password:
+                messages.error(request, "New password cannot be empty.")
+                return redirect('students:student_self_profile_update')
+
+            if len(new_password) < 4:
+                messages.error(request, "New password must be at least 4 characters long.")
+                return redirect('students:student_self_profile_update')
+
+            if new_password != confirm_password:
+                messages.error(request, "New password and Confirm password do not match.")
+                return redirect('students:student_self_profile_update')
+
+            # Apply new password
+            user.set_password(new_password)
+            user.save()
+
+            # Save initial_password in profile for reference
+            profile = user.profile
+            profile.initial_password = new_password
+            profile.save()
+
+            # Prevent logout session drop
+            from django.contrib.auth import update_session_auth_hash
+            update_session_auth_hash(request, user)
+            password_changed = True
+
+        if password_changed:
+            messages.success(request, "Your contact details and password have been updated successfully!")
+        else:
+            messages.success(request, "Your contact details have been updated successfully!")
+
+        return redirect('students:student_profile', pk=student.id)
+
+    enrollment = student.current_enrollment
+
+    context = {
+        'student': student,
+        'user': user,
+        'enrollment': enrollment,
+    }
+    return render(request, 'students/student_self_profile_update.html', context)
+
 
 
 

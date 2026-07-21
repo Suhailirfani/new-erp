@@ -263,6 +263,9 @@
             <a href="{% url 'students:results_lookup' %}?student_id={{ request.user.profile.student_record.student_id }}" class="quick-action-btn" style="display: inline-flex; width: auto; align-items: center; gap: 8px; padding: 0.75rem 1.5rem; font-size: 0.95rem;">
                 <i class="fa-solid fa-poll-h"></i> View My Report Card
             </a>
+            <a href="{% url 'students:student_self_profile_update' %}" class="quick-action-btn" style="display: inline-flex; width: auto; align-items: center; gap: 8px; padding: 0.75rem 1.5rem; font-size: 0.95rem; background: #fff; border: 1px solid #cbd5e1; color: #1e293b;">
+                <i class="fa-solid fa-key" style="color: var(--primary);"></i> Edit Profile & Password
+            </a>
             {% endif %}
         </div>
 

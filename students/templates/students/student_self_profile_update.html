@@ -1,0 +1,236 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Update Profile & Change Password - MARKAZ HADIYA{% endblock %}
+
+{% block content %}
+<style>
+    .profile-update-grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 1.5rem;
+        margin-top: 1rem;
+    }
+
+    @media (max-width: 992px) {
+        .profile-update-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .form-group-custom {
+        margin-bottom: 1.2rem;
+    }
+
+    .form-group-custom label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #475569;
+        margin-bottom: 0.4rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .input-custom {
+        width: 100%;
+        padding: 0.65rem 0.9rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        outline: none;
+        box-sizing: border-box;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .input-custom:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    .input-readonly {
+        background-color: #f8fafc;
+        color: #64748b;
+        cursor: not-allowed;
+    }
+
+    .pwd-field-container {
+        position: relative;
+    }
+
+    .pwd-toggle-btn {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+
+    .pwd-toggle-btn:hover { color: #475569; }
+
+    .card-section-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 1.25rem;
+        padding-bottom: 0.6rem;
+        border-bottom: 2px solid #f1f5f9;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+</style>
+
+<!-- HEADER -->
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+    <div>
+        <h1 style="color: #0f172a; margin: 0; font-size: 1.75rem; display: flex; align-items: center; gap: 0.6rem;">
+            ⚙️ Account & Profile Settings
+        </h1>
+        <p style="color: #64748b; margin: 0.25rem 0 0 0; font-size: 0.9rem;">
+            Update your personal contact information and change your account password.
+        </p>
+    </div>
+
+    <a href="{% url 'students:student_profile' student.id %}" class="btn btn-secondary" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-weight: 600; text-decoration: none;">
+        ← Back to Profile
+    </a>
+</div>
+
+<form method="post" action="{% url 'students:student_self_profile_update' %}">
+    {% csrf_token %}
+
+    <div class="profile-update-grid">
+        
+        <!-- LEFT COLUMN: ACADEMIC INFO (READ ONLY) -->
+        <div class="card" style="padding: 1.5rem; border-radius: 16px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.04); height: fit-content;">
+            <div style="text-align: center; padding-bottom: 1.25rem; border-bottom: 1px solid #f1f5f9; margin-bottom: 1.25rem;">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 800; margin: 0 auto 1rem auto; box-shadow: 0 6px 16px rgba(99, 102, 241, 0.25);">
+                    {{ student.first_name|slice:":1" }}{{ student.last_name|slice:":1" }}
+                </div>
+                <h3 style="margin: 0; font-weight: 800; color: #0f172a; font-size: 1.2rem;">{{ student.full_name }}</h3>
+                <div style="font-size: 0.85rem; color: var(--primary); font-weight: 700; margin-top: 0.25rem;">Student ID: {{ student.student_id }}</div>
+            </div>
+
+            <div class="form-group-custom">
+                <label>Login Username</label>
+                <input type="text" value="{{ user.username }}" class="input-custom input-readonly" readonly>
+            </div>
+
+            <div class="form-group-custom">
+                <label>Academic Class & Division</label>
+                <input type="text" value="{% if enrollment %}{{ enrollment.grade.name }} – {{ enrollment.division.name }}{% else %}Unenrolled{% endif %}" class="input-custom input-readonly" readonly>
+            </div>
+
+            <div class="form-group-custom">
+                <label>Student Category</label>
+                <input type="text" value="{{ student.get_student_type_display }}" class="input-custom input-readonly" readonly>
+            </div>
+
+            <p style="font-size: 0.78rem; color: #94a3b8; margin-top: 1rem; font-style: italic;">
+                Note: Academic details (ID, Name, Class) are managed by the institution administration.
+            </p>
+        </div>
+
+        <!-- RIGHT COLUMN: EDITABLE CONTACT DETAILS & PASSWORD CHANGE -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- SECTION 1: PERSONAL CONTACT INFORMATION -->
+            <div class="card" style="padding: 1.75rem; border-radius: 16px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.04);">
+                <div class="card-section-title">
+                    <i class="fa-solid fa-address-card" style="color: var(--primary);"></i>
+                    Contact Information
+                </div>
+
+                <div class="form-group-custom">
+                    <label for="id_email">Email Address</label>
+                    <input type="email" name="email" id="id_email" value="{{ student.email }}" class="input-custom" placeholder="student@example.com">
+                </div>
+
+                <div class="form-group-custom">
+                    <label for="id_phone">Phone Number</label>
+                    <input type="text" name="phone" id="id_phone" value="{{ student.phone }}" class="input-custom" placeholder="e.g. +91 9876543210">
+                </div>
+
+                <div class="form-group-custom" style="margin-bottom: 0;">
+                    <label for="id_address">Residential Address</label>
+                    <textarea name="address" id="id_address" class="input-custom" rows="3" placeholder="Enter house name, street, city...">{{ student.address }}</textarea>
+                </div>
+            </div>
+
+            <!-- SECTION 2: PASSWORD UPDATE -->
+            <div class="card" style="padding: 1.75rem; border-radius: 16px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.04);">
+                <div class="card-section-title">
+                    <i class="fa-solid fa-lock" style="color: #f59e0b;"></i>
+                    Change Password
+                </div>
+                
+                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.25rem;">
+                    Leave password fields empty if you do not wish to change your password.
+                </p>
+
+                <div class="form-group-custom">
+                    <label for="curr_pwd">Current Password</label>
+                    <div class="pwd-field-container">
+                        <input type="password" name="current_password" id="curr_pwd" class="input-custom" placeholder="Enter current password...">
+                        <button type="button" class="pwd-toggle-btn" onclick="togglePwd('curr_pwd', this)">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group-custom">
+                    <label for="new_pwd">New Password</label>
+                    <div class="pwd-field-container">
+                        <input type="password" name="new_password" id="new_pwd" class="input-custom" placeholder="Enter new password (min. 4 characters)...">
+                        <button type="button" class="pwd-toggle-btn" onclick="togglePwd('new_pwd', this)">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group-custom" style="margin-bottom: 0;">
+                    <label for="conf_pwd">Confirm New Password</label>
+                    <div class="pwd-field-container">
+                        <input type="password" name="confirm_password" id="conf_pwd" class="input-custom" placeholder="Re-type new password...">
+                        <button type="button" class="pwd-toggle-btn" onclick="togglePwd('conf_pwd', this)">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUBMIT BUTTONS -->
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <a href="{% url 'students:student_profile' student.id %}" class="btn btn-secondary" style="padding: 0.75rem 1.5rem; border-radius: 10px; text-decoration: none;">
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; padding: 0.75rem 2rem; border-radius: 10px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">
+                    💾 Save Changes & Update Profile
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+</form>
+
+<script>
+    function togglePwd(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+</script>
+{% endblock %}
