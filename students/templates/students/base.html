@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Markaz Hadiya">
     <title>{% block title %}MARKAZ HADIYA WOMEN'S COLLEGE{% endblock %}</title>
     {% load static %}
     <link rel="icon" type="image/png" href="{% static 'img/M_LOGO.png' %}">
@@ -1418,6 +1422,94 @@
                 background: white;
             }
         }
+
+        /* Mobile Native App Styling & Bottom Bar */
+        .mobile-bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 24px);
+            max-width: 480px;
+            height: 64px;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border: 1px solid rgba(226, 232, 240, 0.85);
+            border-radius: 32px;
+            box-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(0, 0, 0, 0.04);
+            z-index: 1000;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 8px;
+            box-sizing: border-box;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .mobile-nav-tab {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: #64748b;
+            font-size: 0.72rem;
+            font-weight: 600;
+            flex: 1;
+            height: 100%;
+            border-radius: 20px;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .mobile-nav-tab .mobile-nav-icon {
+            font-size: 1.25rem;
+            margin-bottom: 2px;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease;
+        }
+
+        .mobile-nav-tab:active {
+            transform: scale(0.92);
+        }
+
+        .mobile-nav-tab.active {
+            color: var(--primary);
+            font-weight: 800;
+        }
+
+        .mobile-nav-tab.active .mobile-nav-icon {
+            transform: translateY(-2px) scale(1.15);
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            .mobile-bottom-nav {
+                display: flex;
+            }
+
+            body {
+                padding-bottom: 80px !important;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .container {
+                padding-left: 0.75rem !important;
+                padding-right: 0.75rem !important;
+            }
+
+            .quick-action-btn:active, 
+            .card:active, 
+            .stat-card-new:active,
+            .btn:active {
+                transform: scale(0.97) !important;
+                transition: transform 0.1s ease !important;
+            }
+
+            input, select, textarea, button, .btn, .quick-action-btn {
+                touch-action: manipulation;
+            }
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -1721,6 +1813,42 @@
             }
         });
     </script>
+
+    {% if request.user.is_authenticated %}
+    <!-- Mobile Native App Bottom Navigation Bar -->
+    <nav class="mobile-bottom-nav">
+        <a href="{% url 'students:home' %}" class="mobile-nav-tab {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+            <div class="mobile-nav-icon"><i class="fa-solid fa-house-chimney"></i></div>
+            <span>Home</span>
+        </a>
+        
+        {% if request.user.profile.student_record %}
+        <a href="{% url 'students:results_lookup' %}?student_id={{ request.user.profile.student_record.student_id }}" class="mobile-nav-tab {% if request.resolver_match.url_name == 'results_lookup' %}active{% endif %}">
+            <div class="mobile-nav-icon"><i class="fa-solid fa-poll-h"></i></div>
+            <span>Report</span>
+        </a>
+        
+        {% if not suspend_student_fees %}
+        <a href="{% url 'fees:student_fees' request.user.profile.student_record.id %}" class="mobile-nav-tab {% if request.resolver_match.url_name == 'student_fees' %}active{% endif %}">
+            <div class="mobile-nav-icon"><i class="fa-solid fa-wallet"></i></div>
+            <span>Fees</span>
+        </a>
+        {% endif %}
+        {% endif %}
+
+        {% if request.user.profile.role == 'student' %}
+        <a href="{% url 'students:student_self_profile_update' %}" class="mobile-nav-tab {% if request.resolver_match.url_name == 'student_self_profile_update' or request.resolver_match.url_name == 'student_profile' %}active{% endif %}">
+            <div class="mobile-nav-icon"><i class="fa-solid fa-user-gear"></i></div>
+            <span>Profile</span>
+        </a>
+        {% else %}
+        <a href="{% url 'students:student_list' %}" class="mobile-nav-tab {% if request.resolver_match.url_name == 'student_list' %}active{% endif %}">
+            <div class="mobile-nav-icon"><i class="fa-solid fa-users"></i></div>
+            <span>Students</span>
+        </a>
+        {% endif %}
+    </nav>
+    {% endif %}
 
     {% block extra_js %}{% endblock %}
 </body>
