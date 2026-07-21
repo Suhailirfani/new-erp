@@ -5774,8 +5774,8 @@ def student_credentials_list(request):
     return render(request, 'students/student_credentials_list.html', context)
 
 
-def generate_random_password(length=8):
-    """Generate a clean, secure random password with letters and digits"""
+def generate_random_password(length=5):
+    """Generate a clean 5-character simple random password"""
     import secrets
     chars = "23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ"
     return "".join(secrets.choice(chars) for _ in range(length))
@@ -5796,7 +5796,7 @@ def student_credential_create(request, student_id):
     password_mode = request.POST.get('password_mode', '').strip()
 
     if password_mode == 'random' or not password:
-        password = generate_random_password(8)
+        password = generate_random_password(5)
 
     if not username:
         messages.error(request, "Username is required.")
@@ -5842,7 +5842,7 @@ def student_credential_reset_password(request, student_id):
     password_mode = request.POST.get('password_mode', '').strip()
 
     if password_mode == 'random' or not new_password:
-        new_password = generate_random_password(8)
+        new_password = generate_random_password(5)
 
     user = student.user_profile.user
     user.set_password(new_password)
@@ -5905,7 +5905,7 @@ def student_credential_bulk_create(request):
         username = student.student_id.strip()
         
         if password_mode == 'random':
-            pwd = generate_random_password(8)
+            pwd = generate_random_password(5)
         else:
             pwd = default_password if default_password else student.student_id.strip()
 
@@ -5931,7 +5931,7 @@ def student_credential_bulk_create(request):
             skipped_count += 1
 
     if created_count > 0:
-        pwd_info = "with random unique passwords" if password_mode == 'random' else "with specified default password"
+        pwd_info = "with 5-character simple random passwords" if password_mode == 'random' else "with specified default password"
         messages.success(request, f"Successfully created {created_count} student user account(s) {pwd_info}!")
     if skipped_count > 0:
         messages.warning(request, f"Skipped {skipped_count} student(s) because username already exists or error occurred.")
@@ -5944,7 +5944,7 @@ def student_credential_bulk_create(request):
 @role_required(['admin'])
 @require_POST
 def student_credential_bulk_reset(request):
-    """Bulk reset passwords to random passwords for existing accounts"""
+    """Bulk reset passwords to random 5-character passwords for existing accounts"""
     grade_id = request.POST.get('grade', '').strip()
     division_id = request.POST.get('division', '').strip()
 
@@ -5963,7 +5963,7 @@ def student_credential_bulk_reset(request):
     reset_count = 0
     for student in students_qs:
         if hasattr(student, 'user_profile') and student.user_profile and student.user_profile.user:
-            new_pwd = generate_random_password(8)
+            new_pwd = generate_random_password(5)
             user = student.user_profile.user
             user.set_password(new_pwd)
             user.save()
@@ -5972,7 +5972,7 @@ def student_credential_bulk_reset(request):
             profile.save()
             reset_count += 1
 
-    messages.success(request, f"Successfully generated new random passwords for {reset_count} student accounts!")
+    messages.success(request, f"Successfully generated new 5-character random passwords for {reset_count} student accounts!")
     return redirect('students:student_credentials_list')
 
 
