@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from .decorators import role_required, student_own_data_required
 from django.urls import reverse
 from django.contrib import messages
+from django.db import models
 from django.db.models import Q, Count
 from django.utils import timezone
 from django.http import JsonResponse
@@ -220,7 +221,7 @@ def home(request):
             student = profile.student_record
             st_grade = student.grade
             if st_grade:
-                today_holiday = Holiday.objects.filter(date=today).filter(models.Q(grades__isnull=True) | models.Q(grades=st_grade)).first()
+                today_holiday = Holiday.objects.filter(date=today).filter(Q(grades__isnull=True) | Q(grades=st_grade)).first()
             else:
                 today_holiday = Holiday.objects.filter(date=today).filter(grades__isnull=True).first()
             context['today_holiday'] = today_holiday
@@ -1568,7 +1569,7 @@ def today_attendance_view(request):
         raw_status = att_map.get(env.student_id, 'not_marked')
         status = raw_status.replace(' ', '_')
         env_grade = env.grade
-        student_holiday = Holiday.objects.filter(date=today).filter(models.Q(grades__isnull=True) | models.Q(grades=env_grade)).first() if env_grade else Holiday.objects.filter(date=today, grades__isnull=True).first()
+        student_holiday = Holiday.objects.filter(date=today).filter(Q(grades__isnull=True) | Q(grades=env_grade)).first() if env_grade else Holiday.objects.filter(date=today, grades__isnull=True).first()
 
         status_disp = status_display_map.get(status, status_display_map.get(raw_status, 'Not Marked'))
         if student_holiday and raw_status == 'not_marked':
@@ -3790,7 +3791,7 @@ def attendance_update_tracking(request):
             weekday = current_date.weekday()
             grade_val = cd['grade']
             manual_holiday = Holiday.objects.filter(date=current_date).filter(
-                models.Q(grades__isnull=True) | models.Q(grades=grade_val) | models.Q(grades__name=grade_val)
+                Q(grades__isnull=True) | Q(grades=grade_val) | Q(grades__name=grade_val)
             ).first()
 
             is_manual_holiday = manual_holiday is not None
@@ -5382,7 +5383,7 @@ def monthly_attendance_grid(request, grade_id, division_id):
     from students.models import Holiday
     holidays = Holiday.objects.filter(date__year=year, date__month=month)
     if grade_obj:
-        holidays = holidays.filter(models.Q(grades__isnull=True) | models.Q(grades=grade_obj)).distinct()
+        holidays = holidays.filter(Q(grades__isnull=True) | Q(grades=grade_obj)).distinct()
     holiday_map = {h.date: h.title for h in holidays}
     
     periods = Period.objects.all()
