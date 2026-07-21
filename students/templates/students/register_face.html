@@ -159,10 +159,16 @@
             <img id="faceSnapshot" class="preview-snapshot" src="" alt="Face Crop">
         </div>
 
-        <div class="controls">
-            <button id="captureBtn" class="btn btn-primary" disabled><i class="fa fa-camera"></i> Capture Face Profile</button>
+        <div class="controls" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; margin-top: 1.5rem;">
+            <button id="captureBtn" class="btn btn-primary" disabled><i class="fa fa-camera"></i> Capture Live Face</button>
+            
+            <label id="uploadLabel" class="btn" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; cursor: pointer; margin: 0; display: inline-flex; align-items: center; gap: 0.5rem;">
+                <i class="fa fa-upload"></i> Upload Photo
+                <input type="file" id="uploadInput" accept="image/*" style="display: none;">
+            </label>
+            
             <button id="saveBtn" class="btn btn-success" style="display: none;"><i class="fa fa-save"></i> Save Profile</button>
-            <button id="retryBtn" class="btn btn-secondary" style="display: none;"><i class="fa fa-rotate-right"></i> Retry</button>
+            <button id="retryBtn" class="btn btn-secondary" style="display: none;"><i class="fa fa-rotate-right"></i> Retry / Reset</button>
         </div>
     </div>
 </div>
@@ -358,18 +364,105 @@
         status.innerHTML = '<i class="fa fa-check-circle"></i> Face captured successfully! Press Save to store.';
     });
 
+    const uploadInput = document.getElementById('uploadInput');
+    const uploadLabel = document.getElementById('uploadLabel');
+
+    // Handle Upload Image File Selection
+    uploadInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!modelsLoaded) {
+            alert("AI Models are still loading. Please wait a moment.");
+            return;
+        }
+
+        status.className = 'status-badge loading';
+        status.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing uploaded photo...';
+
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = async () => {
+                try {
+                    // Detect face in uploaded photo
+                    const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.4 }))
+                                                  .withFaceLandmarks()
+                                                  .withFaceDescriptor();
+
+                    if (detection) {
+                        const box = detection.detection.box;
+
+                        // Create 200x200 canvas crop
+                        const cropCanvas = document.createElement('canvas');
+                        cropCanvas.width = 200;
+                        cropCanvas.height = 200;
+                        const cropCtx = cropCanvas.getContext('2d');
+
+                        // Safe crop parameters
+                        const sx = Math.max(0, box.x);
+                        const sy = Math.max(0, box.y);
+                        const sw = Math.min(img.width - sx, box.width);
+                        const sh = Math.min(img.height - sy, box.height);
+
+                        cropCtx.drawImage(img, sx, sy, sw, sh, 0, 0, 200, 200);
+
+                        lastFaceBase64 = cropCanvas.toDataURL('image/jpeg', 0.85);
+                        lastDescriptor = Array.from(detection.descriptor);
+
+                        // Pause webcam and clear interval
+                        if (webcam && !webcam.paused) webcam.pause();
+                        if (faceDetectionInterval) clearInterval(faceDetectionInterval);
+
+                        cameraWrapper.style.display = 'none';
+                        faceSnapshot.src = lastFaceBase64;
+                        previewContainer.style.display = 'block';
+
+                        captureBtn.style.display = 'none';
+                        uploadLabel.style.display = 'none';
+                        saveBtn.style.display = 'inline-block';
+                        retryBtn.style.display = 'inline-block';
+
+                        status.className = 'status-badge ready';
+                        status.style.background = '#dcfce7';
+                        status.style.color = '#15803d';
+                        status.innerHTML = '<i class="fa fa-check-circle"></i> Face detected from photo! Press Save Profile to store.';
+                    } else {
+                        status.className = 'status-badge';
+                        status.style.background = 'rgba(254, 226, 226, 0.9)';
+                        status.style.color = '#dc2626';
+                        status.innerHTML = '<i class="fa fa-exclamation-triangle"></i> No face detected in photo. Please upload a clear headshot photo.';
+                    }
+                } catch (err) {
+                    console.error("Upload face processing error:", err);
+                    status.className = 'status-badge';
+                    status.style.background = 'rgba(254, 226, 226, 0.9)';
+                    status.style.color = '#dc2626';
+                    status.innerHTML = '<i class="fa fa-exclamation-triangle"></i> Error processing image. Try another photo.';
+                }
+            };
+            img.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
     retryBtn.addEventListener('click', () => {
         // Reset webcam play
+        uploadInput.value = '';
         webcam.play();
         cameraWrapper.style.display = 'block';
         previewContainer.style.display = 'none';
         
         captureBtn.style.display = 'inline-block';
+        uploadLabel.style.display = 'inline-flex';
         captureBtn.disabled = true;
         saveBtn.style.display = 'none';
         retryBtn.style.display = 'none';
 
         status.className = 'status-badge ready';
+        status.style.background = '';
+        status.style.color = '';
         status.innerHTML = '<i class="fa fa-user-circle"></i> Position your face inside the frame';
 
         // Restart loop
