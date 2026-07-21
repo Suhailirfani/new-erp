@@ -501,6 +501,7 @@ class GlobalSettings(models.Model):
         default="We have received your application. Your application number is {app_no}. You can check your application status directly by clicking this link: {status_link}",
         help_text="Available placeholders: {name}, {app_no}, {status_link}"
     )
+    suspend_student_fees = models.BooleanField(default=False, help_text="Suspend student portal fee section for maintenance")
 
     def save(self, *args, **kwargs):
         self.pk = 1 # Ensure only one instance exists

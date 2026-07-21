@@ -301,8 +301,13 @@ def special_category_detail(request, filter_type):
 @role_required(['admin', 'accountant', 'student'])
 def student_fees(request, student_id):
     """View all fees for a specific student with dashboard summaries."""
-    # Data isolation for students
+    # Data isolation for students & Maintenance Check
     if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
+        from students.models import GlobalSettings
+        if GlobalSettings.load().suspend_student_fees:
+            return render(request, 'fees/student_fees_maintenance.html', {
+                'student': request.user.profile.student_record
+            })
         if not request.user.profile.student_record or request.user.profile.student_record.id != int(student_id):
             messages.error(request, "You do not have permission to view other students' fee details.")
             return redirect('students:home')

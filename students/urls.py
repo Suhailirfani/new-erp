@@ -113,6 +113,7 @@ urlpatterns = [
     path('credentials/students/toggle-status/<int:student_id>/', views.student_credential_toggle_status, name='student_credential_toggle_status'),
     path('credentials/students/bulk-create/', views.student_credential_bulk_create, name='student_credential_bulk_create'),
     path('credentials/students/print/', views.student_credentials_print, name='student_credentials_print'),
+    path('settings/toggle-fee-maintenance/', views.toggle_fee_maintenance, name='toggle_fee_maintenance'),
 
     # Alumni Management
     path('alumni/', views.alumni_list, name='alumni_list'),

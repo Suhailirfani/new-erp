@@ -1,0 +1,33 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Fee Portal Maintenance - MARKAZ HADIYA{% endblock %}
+
+{% block content %}
+<div style="min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem;">
+    <div style="max-width: 520px; width: 100%; background: #ffffff; border-radius: 24px; padding: 2.5rem 2rem; text-align: center; box-shadow: 0 20px 45px rgba(0, 0, 0, 0.08); border: 2px dashed #f43f5e;">
+        
+        <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); color: #e11d48; display: flex; align-items: center; justify-content: center; font-size: 2.25rem; margin: 0 auto 1.5rem auto; box-shadow: 0 8px 20px rgba(244, 63, 94, 0.2);">
+            <i class="fa-solid fa-screwdriver-wrench"></i>
+        </div>
+
+        <h2 style="font-size: 1.6rem; font-weight: 900; color: #881337; margin-bottom: 0.75rem;">
+            🚧 Fee Portal Under Maintenance
+        </h2>
+
+        <p style="font-size: 0.95rem; color: #9f1239; line-height: 1.6; margin-bottom: 1.75rem;">
+            The student fee section has been temporarily suspended for scheduled maintenance by the administration. Fee records and payment gateways will be back online shortly.
+        </p>
+
+        <div style="background: #fff1f2; border-radius: 12px; padding: 1rem; margin-bottom: 2rem; border: 1px solid #fecdd3;">
+            <div style="font-size: 0.8rem; font-weight: 700; color: #be123c; text-transform: uppercase; letter-spacing: 0.05em;">Need Urgent Assistance?</div>
+            <div style="font-size: 0.88rem; color: #4c0519; margin-top: 0.25rem;">
+                Please contact the college accounts section or class coordinator.
+            </div>
+        </div>
+
+        <a href="{% url 'students:home' %}" class="btn btn-primary" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border: none; padding: 0.75rem 1.75rem; border-radius: 12px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-house"></i> Return to Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}

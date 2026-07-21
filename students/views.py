@@ -176,6 +176,8 @@ def home(request):
         context['today_holiday'] = today_holiday
         active_year = AcademicYear.objects.filter(is_active=True).first()
         context['active_year'] = active_year
+        from .models import GlobalSettings
+        context['suspend_student_fees'] = GlobalSettings.load().suspend_student_fees
         
         # Only calculate administrative statistics if the user is not a student
         if profile.role != 'student':
@@ -5912,6 +5914,25 @@ def student_credentials_print(request):
         'division': division_obj,
     }
     return render(request, 'students/student_credentials_print.html', context)
+
+
+@role_required(['admin'])
+@require_POST
+def toggle_fee_maintenance(request):
+    """Toggle fee section maintenance suspension for student portal"""
+    from .models import GlobalSettings
+    settings = GlobalSettings.load()
+    settings.suspend_student_fees = not settings.suspend_student_fees
+    settings.save()
+    
+    status_str = "SUSPENDED FOR MAINTENANCE" if settings.suspend_student_fees else "ACTIVE (Normal Mode)"
+    messages.success(request, f"Student Fee Portal status updated to: {status_str}")
+    
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        return redirect(referer)
+    return redirect('students:home')
+
 
 
 
