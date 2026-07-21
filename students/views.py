@@ -5766,6 +5766,7 @@ def student_credential_create(request, student_id):
         profile, created = UserProfile.objects.get_or_create(user=user)
         profile.role = 'student'
         profile.student_record = student
+        profile.initial_password = password
         profile.save()
 
         messages.success(request, f"Login account created successfully for {student.full_name} (Username: {username}).")
@@ -5793,6 +5794,10 @@ def student_credential_reset_password(request, student_id):
     user = student.user_profile.user
     user.set_password(new_password)
     user.save()
+
+    profile = student.user_profile
+    profile.initial_password = new_password
+    profile.save()
 
     messages.success(request, f"Password successfully reset for {student.full_name} (Username: {user.username}).")
     return redirect('students:student_credentials_list')
@@ -5861,6 +5866,7 @@ def student_credential_bulk_create(request):
             profile, _ = UserProfile.objects.get_or_create(user=user)
             profile.role = 'student'
             profile.student_record = student
+            profile.initial_password = pwd
             profile.save()
             created_count += 1
         except Exception:

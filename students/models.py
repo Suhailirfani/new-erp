@@ -584,6 +584,7 @@ class UserProfile(models.Model):
     
     # Only populated if role == 'student'
     student_record = models.OneToOneField('Student', on_delete=models.SET_NULL, null=True, blank=True, related_name='user_profile')
+    initial_password = models.CharField(max_length=128, blank=True, null=True, help_text="Stored password for reference by Admin")
 
     def __str__(self):
         return f"{self.user.username} - {self.get_role_display()}"
