@@ -49,11 +49,12 @@ class AcademicYearForm(forms.ModelForm):
 class GradeForm(forms.ModelForm):
     class Meta:
         model = Grade
-        fields = ['name', 'section', 'order']
+        fields = ['name', 'section', 'order', 'session_start_date']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'section': forms.Select(attrs={'class': 'form-control'}),
             'order': forms.NumberInput(attrs={'class': 'form-control'}),
+            'session_start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         }
 
 class DivisionForm(forms.ModelForm):

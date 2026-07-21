@@ -98,7 +98,27 @@
         <a href="{% url 'students:home' %}" class="btn btn-secondary" style="margin-bottom: 1rem; padding: 0.5rem 1rem; border-radius: 6px; background: #6c757d; color: white; text-decoration: none; display: inline-block;">← Back to Dashboard</a>
     {% endif %}
     <h1 style="color: #1a202c; font-size: 2rem; margin-bottom: 0.5rem; font-weight: 700;">👤 {{ student.full_name }}</h1>
-    <p class="text-muted" style="color: #4a5568;">Attendance history for ID: {{ student.student_id }} {% if enrollment %}| {{ enrollment.grade }} - {{ enrollment.division.name|default:'No Division' }}{% endif %}</p>
+    <p class="text-muted" style="color: #4a5568;">Attendance history for ID: {{ student.student_id }}
+        {% if enrollment %}| <strong>{{ enrollment.grade }}</strong>{% if enrollment.division %} - {{ enrollment.division.name }}{% endif %}{% endif %}
+        {% if selected_year %} &nbsp;·&nbsp; <span style="background: #e0e7ff; color: #3730a3; padding: 0.15rem 0.5rem; border-radius: 6px; font-size: 0.85rem; font-weight: 700;">{{ selected_year.name }}</span>{% endif %}
+    </p>
+
+    {% if all_years|length > 1 %}
+    <div style="margin-top: 1.25rem;">
+        <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">📚 View Year / Class</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            {% for ay, enr in all_years %}
+            <a href="?selected_year={{ ay.id }}"
+               style="padding: 0.45rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 700; text-decoration: none; border: 2px solid {% if selected_year.id == ay.id %}#4f46e5{% else %}#cbd5e1{% endif %}; background: {% if selected_year.id == ay.id %}#4f46e5{% else %}#f8fafc{% endif %}; color: {% if selected_year.id == ay.id %}#fff{% else %}#475569{% endif %}; transition: all 0.15s;">
+                {{ ay.name }}
+                {% if enr.grade %}<span style="opacity: 0.8; font-weight: 500;"> · {{ enr.grade.name }}{% if enr.division %} {{ enr.division.name }}{% endif %}</span>{% endif %}
+                {% if ay.is_active %}<span style="font-size: 0.7rem; opacity: 0.85;"> ✦</span>{% endif %}
+            </a>
+            {% endfor %}
+        </div>
+        <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.4rem;">✦ = Current Active Year</div>
+    </div>
+    {% endif %}
 </div>
 
 <div class="stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
@@ -126,6 +146,7 @@
         <form method="get" style="display: flex; gap: 1rem; align-items: flex-end;">
             <input type="hidden" name="date_from" value="{{ current_filters.date_from|default:'' }}">
             <input type="hidden" name="date_to" value="{{ current_filters.date_to|default:'' }}">
+            <input type="hidden" name="selected_year" value="{{ selected_year.id|default:'' }}">
             
             <div class="form-group" style="margin-bottom: 0; flex-grow: 1;">
                 <input type="date" name="check_date" value="{{ current_filters.check_date|default:'' }}" required style="width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 6px;">
@@ -150,6 +171,7 @@
         <h3 style="color: #2c3e50; margin-top: 0; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem;">📅 Filter Range</h3>
         <form method="get" style="display: flex; gap: 1rem; align-items: flex-end;">
             <input type="hidden" name="check_date" value="{{ current_filters.check_date|default:'' }}">
+            <input type="hidden" name="selected_year" value="{{ selected_year.id|default:'' }}">
             
             <div class="form-group" style="margin-bottom: 0; flex: 1;">
                 <label style="display: block; font-size: 0.8rem; font-weight: bold; margin-bottom: 0.2rem; color: #7f8c8d;">From</label>

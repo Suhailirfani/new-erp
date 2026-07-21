@@ -23,18 +23,24 @@ from .forms import SectionForm, AcademicYearForm, EnquiryForm, GradeForm, Divisi
 from fees.models import FeeStructure, FeeItem
 
 
-def get_holiday_dates(start_date, end_date):
+def get_holiday_dates(start_date, end_date, grade=None):
     """
     Returns a set of date objects that are holidays (Sundays, Second Saturdays,
     and manual holidays from the Holiday model) in the range [start_date, end_date].
+    If grade is provided, only includes holidays that apply to that grade (or all grades).
     """
     from datetime import date, timedelta
     from students.models import Holiday
+    from django.db.models import Q
     
     if not start_date or not end_date:
         return set()
         
-    holiday_dates = set(Holiday.objects.filter(date__gte=start_date, date__lte=end_date).values_list('date', flat=True))
+    holidays_qs = Holiday.objects.filter(date__gte=start_date, date__lte=end_date)
+    if grade:
+        holidays_qs = holidays_qs.filter(Q(grades__isnull=True) | Q(grades=grade)).distinct()
+        
+    holiday_dates = set(holidays_qs.values_list('date', flat=True))
     
     curr = start_date
     while curr <= end_date:
@@ -212,10 +218,27 @@ def home(request):
         elif profile.role == 'student' and profile.student_record:
             # Student-only Portal Data
             student = profile.student_record
+            st_grade = student.grade
+            if st_grade:
+                today_holiday = Holiday.objects.filter(date=today).filter(models.Q(grades__isnull=True) | models.Q(grades=st_grade)).first()
+            else:
+                today_holiday = Holiday.objects.filter(date=today).filter(grades__isnull=True).first()
+            context['today_holiday'] = today_holiday
             
             # 1. Attendance Data
             student_today_att = Attendance.objects.filter(student=student, date=today).first()
             today_status = student_today_att.status if student_today_att else 'not_marked'
+
+            # Determine effective session start date for this student's class
+            enrollment = student.enrollments.filter(academic_year=context.get('active_year')).first()
+            grade_obj = enrollment.grade if enrollment else st_grade
+            if grade_obj and grade_obj.session_start_date:
+                session_start = grade_obj.session_start_date
+            elif context.get('active_year') and context['active_year'].start_date:
+                session_start = context['active_year'].start_date
+            else:
+                session_start = None
+            context['session_start'] = session_start
             
             # Monthly attendance
             import calendar
@@ -250,14 +273,15 @@ def home(request):
             months_choices = [(i, calendar.month_name[i]) for i in range(1, 13)]
             years_choices = list(range(today.year - 2, today.year + 2))
             
-            # Yearly attendance
-            if active_year and active_year.start_date:
+            # Yearly attendance - always from session start
+            if session_start:
                 yearly_att = Attendance.objects.filter(
                     student=student,
-                    date__gte=active_year.start_date,
-                    date__lte=active_year.end_date if active_year.end_date else today
+                    date__gte=session_start,
+                    date__lte=active_year.end_date if active_year and active_year.end_date else today
                 )
-                y_holidays = get_holiday_dates(active_year.start_date, active_year.end_date if active_year.end_date else today)
+                y_end = active_year.end_date if active_year and active_year.end_date else today
+                y_holidays = get_holiday_dates(session_start, y_end)
                 
                 yearly_att_stats = yearly_att.exclude(date__in=y_holidays, status='absent')
                 yearly_total = yearly_att_stats.count()
@@ -1526,9 +1550,7 @@ def today_attendance_view(request):
     enrollments = Enrollment.objects.filter(
         academic_year=active_year, 
         student__is_active=True
-    ).select_related('student', 'grade', 'division', 'section').order_by(
-        'section__order', 'section__name', 'grade__order', 'grade__name', 'division__name', 'student__first_name', 'student__last_name'
-    )
+    ).select_related('student', 'grade', 'division', 'section')
 
     attendances = Attendance.objects.filter(date=today, attendance_type='daily')
     att_map = {att.student_id: att.status for att in attendances}
@@ -1538,28 +1560,68 @@ def today_attendance_view(request):
         'absent': 'Absent',
         'late': 'Late',
         'excused': 'Excused',
+        'not_marked': 'Not Marked',
         'not marked': 'Not Marked',
     }
     student_stats = []
     for env in enrollments:
-        status = att_map.get(env.student_id, 'not marked')
+        raw_status = att_map.get(env.student_id, 'not_marked')
+        status = raw_status.replace(' ', '_')
+        env_grade = env.grade
+        student_holiday = Holiday.objects.filter(date=today).filter(models.Q(grades__isnull=True) | models.Q(grades=env_grade)).first() if env_grade else Holiday.objects.filter(date=today, grades__isnull=True).first()
+
+        status_disp = status_display_map.get(status, status_display_map.get(raw_status, 'Not Marked'))
+        if student_holiday and raw_status == 'not_marked':
+            status = 'holiday'
+            status_disp = f"Holiday ({student_holiday.title})"
+
         student_stats.append({
             'enrollment': env,
             'student': env.student,
             'status': status,
-            'status_display': status_display_map.get(status, 'Not Marked'),
+            'status_display': status_disp,
         })
 
-    present_count = len([s for s in student_stats if s['status'] in ('present', 'late', 'excused')])
+    # Custom Sorting: First 11, then 12, then Degree, then others
+    def get_today_attendance_sort_key(stat):
+        env = stat['enrollment']
+        g_name = (env.grade.name.upper() if env.grade else '').strip()
+        sec_name = (env.section.name.upper() if env.section else (env.grade.section.name.upper() if env.grade and env.grade.section else '')).strip()
+
+        if '11' in g_name:
+            cat = 1
+        elif '12' in g_name:
+            cat = 2
+        elif 'DEGREE' in sec_name or 'YEAR' in g_name or 'DEGREE' in g_name:
+            cat = 3
+        else:
+            cat = 4
+
+        g_order = getattr(env.grade, 'order', 999) if env.grade else 999
+        d_name = env.division.name if env.division else 'ZZZ'
+        s_first = env.student.first_name if env.student else ''
+        s_last = env.student.last_name if env.student else ''
+
+        return (cat, g_order, g_name, d_name, s_first, s_last)
+
+    student_stats.sort(key=get_today_attendance_sort_key)
+
+    present_count = len([s for s in student_stats if s['status'] == 'present'])
     absent_count = len([s for s in student_stats if s['status'] == 'absent'])
-    not_marked_count = len([s for s in student_stats if s['status'] == 'not marked'])
+    late_count = len([s for s in student_stats if s['status'] == 'late'])
+    excused_count = len([s for s in student_stats if s['status'] == 'excused'])
+    not_marked_count = len([s for s in student_stats if s['status'] == 'not_marked'])
+    total_present_all = present_count + late_count + excused_count
 
     context = {
         'today': today,
         'student_stats': student_stats,
         'present_count': present_count,
         'absent_count': absent_count,
+        'late_count': late_count,
+        'excused_count': excused_count,
         'not_marked_count': not_marked_count,
+        'total_present_all': total_present_all,
         'total_count': len(student_stats),
         'today_holiday': today_holiday,
     }
@@ -3726,7 +3788,10 @@ def attendance_update_tracking(request):
         for d in month_days:
             current_date = date(year, month, d)
             weekday = current_date.weekday()
-            manual_holiday = Holiday.objects.filter(date=current_date).first()
+            grade_val = cd['grade']
+            manual_holiday = Holiday.objects.filter(date=current_date).filter(
+                models.Q(grades__isnull=True) | models.Q(grades=grade_val) | models.Q(grades__name=grade_val)
+            ).first()
 
             is_manual_holiday = manual_holiday is not None
             holiday_title = manual_holiday.title if manual_holiday else ''
@@ -3820,11 +3885,17 @@ def attendance_class_detail(request, grade_id, division_id):
         enrollments = enrollments.filter(section__isnull=True)
         section = None
     
+    # Use grade session_start_date to limit attendance to class start date
+    grade_session_start = grade.session_start_date if grade and grade.session_start_date else (active_year.start_date if active_year else None)
+
     # Calculate attendance stats for each student
     student_stats = []
     
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
+
+    # If no manual date_from, use session start date
+    effective_date_from = date_from or (grade_session_start.isoformat() if grade_session_start else None)
     
     # Pre-fetch holiday dates in range to optimize performance
     class_attendances = Attendance.objects.filter(enrollment__grade_id=grade_id)
@@ -3833,8 +3904,8 @@ def attendance_class_detail(request, grade_id, division_id):
     else:
         class_attendances = class_attendances.filter(enrollment__division__isnull=True)
         
-    if date_from:
-        class_attendances = class_attendances.filter(date__gte=date_from)
+    if effective_date_from:
+        class_attendances = class_attendances.filter(date__gte=effective_date_from)
     if date_to:
         class_attendances = class_attendances.filter(date__lte=date_to)
         
@@ -3848,8 +3919,8 @@ def attendance_class_detail(request, grade_id, division_id):
     for enrollment in enrollments:
         attendances = Attendance.objects.filter(enrollment=enrollment)
         
-        if date_from:
-            attendances = attendances.filter(date__gte=date_from)
+        if effective_date_from:
+            attendances = attendances.filter(date__gte=effective_date_from)
         if date_to:
             attendances = attendances.filter(date__lte=date_to)
             
@@ -3885,12 +3956,13 @@ def attendance_class_detail(request, grade_id, division_id):
     context = {
         'grade': grade,
         'division': division,
-        'section': section,
-        'section_id': section_id,
         'student_stats': student_stats,
+        'section': section,
+        'active_year': active_year,
+        'session_start': grade_session_start,
         'current_filters': {
-            'date_from': date_from,
-            'date_to': date_to
+            'date_from': date_from or '',
+            'date_to': date_to or '',
         }
     }
     return render(request, 'students/attendance_class_detail.html', context)
@@ -3900,7 +3972,7 @@ def attendance_class_detail(request, grade_id, division_id):
 def attendance_student_detail(request, student_id):
     """
     Shows detailed attendance history for a single student.
-    Includes monthly breakdown and date-specific checker.
+    Includes academic year switcher, monthly breakdown and date-specific checker.
     """
     # Data isolation for students
     if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
@@ -3914,10 +3986,40 @@ def attendance_student_detail(request, student_id):
         messages.error(request, "Student not found.")
         return redirect('students:attendance_list')
 
-    active_year = AcademicYear.objects.filter(is_active=True).first()
-    enrollment = Enrollment.objects.filter(student=student, academic_year=active_year).first()
+    # All academic years this student was enrolled in, ordered newest first
+    all_enrollments = student.enrollments.select_related('academic_year', 'grade', 'division').order_by('-academic_year__start_date')
+    all_years = [(e.academic_year, e) for e in all_enrollments]
 
+    # Determine selected year from GET param or default to active year
+    selected_year_id = request.GET.get('selected_year')
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+
+    if selected_year_id:
+        try:
+            selected_year_id = int(selected_year_id)
+            enrollment = next((e for (ay, e) in all_years if ay.id == selected_year_id), None)
+            selected_year = enrollment.academic_year if enrollment else active_year
+        except (ValueError, TypeError):
+            enrollment = Enrollment.objects.filter(student=student, academic_year=active_year).first()
+            selected_year = active_year
+    else:
+        selected_year = active_year
+        enrollment = Enrollment.objects.filter(student=student, academic_year=active_year).first()
+
+    # Use grade's session_start_date if set (limits attendance display to class start)
+    grade_obj = enrollment.grade if enrollment else None
+    session_start = None
+    if grade_obj and grade_obj.session_start_date:
+        session_start = grade_obj.session_start_date
+    elif selected_year and selected_year.start_date:
+        session_start = selected_year.start_date
+
+    # Filter attendance to the selected year's date range
     attendances = Attendance.objects.filter(student=student).order_by('-date')
+    if session_start:
+        attendances = attendances.filter(date__gte=session_start)
+    if selected_year and selected_year.end_date:
+        attendances = attendances.filter(date__lte=selected_year.end_date)
     
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
@@ -3967,6 +4069,8 @@ def attendance_student_detail(request, student_id):
     context = {
         'student': student,
         'enrollment': enrollment,
+        'all_years': all_years,
+        'selected_year': selected_year,
         'attendances': attendances,
         'total_days': total_days,
         'present_count': present_count,
@@ -3975,6 +4079,7 @@ def attendance_student_detail(request, student_id):
         'absent_count': absent_count,
         'percentage': percentage,
         'check_result': check_result,
+        'session_start': session_start,
         'current_filters': {
             'date_from': date_from,
             'date_to': date_to,
@@ -5276,6 +5381,8 @@ def monthly_attendance_grid(request, grade_id, division_id):
     # Get holidays for this month
     from students.models import Holiday
     holidays = Holiday.objects.filter(date__year=year, date__month=month)
+    if grade_obj:
+        holidays = holidays.filter(models.Q(grades__isnull=True) | models.Q(grades=grade_obj)).distinct()
     holiday_map = {h.date: h.title for h in holidays}
     
     periods = Period.objects.all()
@@ -5637,8 +5744,10 @@ def mark_face_attendance_ajax(request):
 
 @role_required(['admin', 'teacher'])
 def holiday_list(request):
-    """View to list existing manual holidays and handle creation of new ones"""
-    from .models import Holiday
+    """View to list existing manual holidays and handle creation of new ones with class applicability and date range support"""
+    from .models import Holiday, Grade
+    from datetime import date, timedelta
+    from django.db.models import Q
     
     if request.method == 'POST':
         # Only admin is allowed to write changes (teacher is read-only)
@@ -5647,33 +5756,58 @@ def holiday_list(request):
             return redirect('students:holiday_list')
             
         date_str = request.POST.get('date')
+        end_date_str = request.POST.get('end_date')
         title = request.POST.get('title', '').strip()
         is_optional = request.POST.get('is_optional') == 'on'
+        selected_grade_ids = request.POST.getlist('grades')
         
         if not date_str or not title:
-            messages.error(request, "Date and title are required fields.")
+            messages.error(request, "Start date and title are required fields.")
             return redirect('students:holiday_list')
             
         try:
-            # Check if holiday with this date already exists
-            if Holiday.objects.filter(date=date_str).exists():
-                messages.error(request, f"A holiday on {date_str} already exists.")
-            else:
-                Holiday.objects.create(
-                    date=date_str,
-                    title=title,
-                    is_optional=is_optional
+            start_d = date.fromisoformat(date_str)
+            end_d = date.fromisoformat(end_date_str) if end_date_str else start_d
+
+            if end_d < start_d:
+                messages.error(request, "End date cannot be earlier than start date.")
+                return redirect('students:holiday_list')
+
+            curr = start_d
+            saved_count = 0
+            while curr <= end_d:
+                holiday_obj, created = Holiday.objects.get_or_create(
+                    date=curr,
+                    defaults={'title': title, 'is_optional': is_optional}
                 )
-                messages.success(request, f"Holiday '{title}' added successfully!")
+                if not created:
+                    holiday_obj.title = title
+                    holiday_obj.is_optional = is_optional
+                    holiday_obj.save()
+
+                if selected_grade_ids:
+                    holiday_obj.grades.set(selected_grade_ids)
+                else:
+                    holiday_obj.grades.clear()
+
+                saved_count += 1
+                curr += timedelta(days=1)
+
+            if saved_count == 1:
+                messages.success(request, f"Holiday '{title}' saved successfully!")
+            else:
+                messages.success(request, f"Holiday '{title}' saved for {saved_count} days ({start_d.strftime('%b %d')} - {end_d.strftime('%b %d, %Y')})!")
         except Exception as e:
             messages.error(request, f"Error creating holiday: {str(e)}")
             
         return redirect('students:holiday_list')
         
     # GET request
-    holidays = Holiday.objects.all().order_by('-date')
+    holidays = Holiday.objects.all().prefetch_related('grades').order_by('-date')
+    grades = Grade.objects.all().order_by('order', 'name')
     context = {
         'holidays': holidays,
+        'grades': grades,
     }
     return render(request, 'students/holiday_list.html', context)
 
@@ -5745,6 +5879,18 @@ def student_credentials_list(request):
     total_students = len(all_students_list)
     linked_count = sum(1 for s in all_students_list if hasattr(s, 'user_profile') and s.user_profile and s.user_profile.user)
     unlinked_count = total_students - linked_count
+
+    # Sort students by Class (Grade) & Division first
+    def get_sort_key(s):
+        enrollment = s.current_enrollment
+        if enrollment and enrollment.grade:
+            g_order = getattr(enrollment.grade, 'order', 999) or 999
+            g_name = enrollment.grade.name
+            d_name = enrollment.division.name if enrollment.division else "No Division"
+            return (g_order, g_name, d_name, s.first_name, s.last_name)
+        return (9999, "ZZZ", "ZZZ", s.first_name, s.last_name)
+
+    all_students_list.sort(key=get_sort_key)
 
     # Status Filter
     if status_filter == 'linked':
@@ -5997,11 +6143,23 @@ def student_credentials_print(request):
 
     students_qs = students_qs.distinct()
 
+    all_students_list = list(students_qs)
+    def get_sort_key(s):
+        enrollment = s.current_enrollment
+        if enrollment and enrollment.grade:
+            g_order = getattr(enrollment.grade, 'order', 999) or 999
+            g_name = enrollment.grade.name
+            d_name = enrollment.division.name if enrollment.division else "No Division"
+            return (g_order, g_name, d_name, s.first_name, s.last_name)
+        return (9999, "ZZZ", "ZZZ", s.first_name, s.last_name)
+
+    all_students_list.sort(key=get_sort_key)
+
     grade_obj = Grade.objects.filter(id=grade_id).first() if grade_id else None
     division_obj = Division.objects.filter(id=division_id).first() if division_id else None
 
     context = {
-        'students': students_qs,
+        'students': all_students_list,
         'grade': grade_obj,
         'division': division_obj,
     }

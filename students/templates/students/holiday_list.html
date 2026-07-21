@@ -75,16 +75,39 @@
             <form method="POST" action="{% url 'students:holiday_list' %}">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label class="form-label" for="id_date">Holiday Date</label>
+                    <label class="form-label" for="id_date">Start Date</label>
                     <input type="date" name="date" id="id_date" required>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="id_title">Holiday Title / Occasion</label>
-                    <input type="text" name="title" id="id_title" placeholder="e.g. Independence Day" required>
+                    <label class="form-label" for="id_end_date">End Date <span style="font-weight: normal; color: var(--gray); font-size: 0.8rem;">(Optional for Date Range)</span></label>
+                    <input type="date" name="end_date" id="id_end_date">
+                    <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">Leave blank for single day. E.g. June 01 to June 14 for multi-day non-working period.</div>
                 </div>
 
-                <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem; background: rgba(0,0,0,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); margin-bottom: 2rem;">
+                <div class="form-group">
+                    <label class="form-label">Applicable Classes / Grades</label>
+                    <div style="max-height: 140px; overflow-y: auto; border: 1px solid var(--border, #cbd5e1); border-radius: 10px; padding: 0.5rem 0.75rem; background: #fff;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 700; color: var(--primary); border-bottom: 1px solid #f1f5f9; padding-bottom: 0.35rem; margin-bottom: 0.35rem; cursor: pointer;">
+                            <input type="checkbox" id="selectAllGradesCheck" style="width: auto; cursor: pointer;" onchange="document.querySelectorAll('.grade-chk').forEach(c => c.checked = this.checked)">
+                            All Classes / Grades
+                        </label>
+                        {% for g in grades %}
+                        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; padding: 0.2rem 0; cursor: pointer; color: #334155;">
+                            <input type="checkbox" name="grades" value="{{ g.id }}" class="grade-chk" style="width: auto; cursor: pointer;">
+                            {{ g.name }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <div style="font-size: 0.75rem; color: #64748b; margin-top: 3px;">Leave all unchecked to apply to <strong>ALL Classes</strong>. Select specific class (e.g. 11) for class-specific holidays.</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_title">Holiday Title / Occasion</label>
+                    <input type="text" name="title" id="id_title" placeholder="e.g. Session Start Gap / Summer Break" required>
+                </div>
+
+                <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem; background: rgba(0,0,0,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); margin-bottom: 1.5rem;">
                     <input type="checkbox" name="is_optional" id="id_is_optional" style="width: auto; cursor: pointer;">
                     <label for="id_is_optional" style="font-weight: 600; font-size: 0.9rem; cursor: pointer; color: var(--dark-secondary); margin: 0;">
                         Optional Holiday
@@ -114,6 +137,7 @@
                             <th style="border-radius: 16px 0 0 0;">Date</th>
                             <th>Weekday</th>
                             <th>Title / Occasion</th>
+                            <th>Applicable Classes</th>
                             <th>Type</th>
                             {% if request.user.profile.role == 'admin' or request.user.is_superuser %}
                             <th style="border-radius: 0 16px 0 0; text-align: center; width: 100px;">Actions</th>
@@ -126,6 +150,15 @@
                             <td><strong>{{ holiday.date|date:"d F Y" }}</strong></td>
                             <td style="color: var(--gray); font-weight: 600;">{{ holiday.date|date:"l" }}</td>
                             <td><strong style="color: var(--dark-secondary);">{{ holiday.title }}</strong></td>
+                            <td>
+                                {% if holiday.grades.all %}
+                                    {% for g in holiday.grades.all %}
+                                        <span style="background: #e0e7ff; color: #3730a3; padding: 0.15rem 0.45rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; display: inline-block; margin: 1px;">{{ g.name }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span style="background: #f1f5f9; color: #475569; padding: 0.15rem 0.45rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">All Classes</span>
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if holiday.is_optional %}
                                     <span class="optional-badge">Optional</span>
@@ -146,7 +179,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="{% if request.user.profile.role == 'admin' or request.user.is_superuser %}5{% else %}4{% endif %}" style="text-align: center; padding: 4rem; color: var(--gray);">
+                            <td colspan="{% if request.user.profile.role == 'admin' or request.user.is_superuser %}6{% else %}5{% endif %}" style="text-align: center; padding: 4rem; color: var(--gray);">
                                 <i class="fa-regular fa-calendar-times" style="font-size: 3rem; opacity: 0.3; display: block; margin-bottom: 1rem;"></i>
                                 <span style="font-weight: 600; font-size: 0.95rem;">No manual holidays registered yet.</span>
                             </td>

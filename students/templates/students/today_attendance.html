@@ -156,39 +156,51 @@
         box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22), 0 4px 8px rgba(0, 0, 0, 0.18);
     }
 
-    /* Present Student Card (White) */
+    /* Present Student Card (Green) */
     .card-status-present {
-        background: #ffffff;
-        border-color: #cbd5e1;
-        color: #1e293b;
+        background: #dcfce7 !important;
+        border: 1px solid #86efac !important;
+        color: #15803d !important;
+        box-shadow: 0 4px 8px rgba(34, 197, 94, 0.12);
     }
 
     /* Absent Student Card (Red) */
     .card-status-absent {
-        background: #fee2e2;
-        border-color: #fca5a5;
-        color: #991b1b;
+        background: #fee2e2 !important;
+        border: 1px solid #fca5a5 !important;
+        color: #991b1b !important;
+        box-shadow: 0 4px 8px rgba(239, 68, 68, 0.12);
     }
 
     /* Late Student Card (Yellow) */
     .card-status-late {
-        background: #fef9c3;
-        border-color: #fde68a;
-        color: #854d0e;
+        background: #fef9c3 !important;
+        border: 1px solid #fde68a !important;
+        color: #854d0e !important;
+        box-shadow: 0 4px 8px rgba(234, 179, 8, 0.12);
     }
 
-    /* Excused Student Card (Light Purple/Blue) */
+    /* Excused Student Card (Blue) */
     .card-status-excused {
-        background: #f3e8ff;
-        border-color: #e9d5ff;
-        color: #6b21a8;
+        background: #dbeafe !important;
+        border: 1px solid #93c5fd !important;
+        color: #1e40af !important;
+        box-shadow: 0 4px 8px rgba(59, 130, 246, 0.12);
     }
 
-    /* Not Marked Student Card (Light Gray/Neutral) */
-    .card-status-not_marked {
-        background: #f8fafc;
-        border-color: #cbd5e1;
-        color: #475569;
+    /* Not Marked Student Card (Blurred / Muted) */
+    .card-status-not_marked, .card-status-not-marked {
+        background: #f1f5f9 !important;
+        border: 1px dashed #cbd5e1 !important;
+        color: #64748b !important;
+        opacity: 0.55;
+        filter: blur(0.5px);
+        backdrop-filter: blur(4px);
+    }
+
+    .card-status-not_marked:hover, .card-status-not-marked:hover {
+        opacity: 1;
+        filter: none;
     }
 
     .today-student-card .student-name {
@@ -231,8 +243,8 @@
             <i class="fa-solid fa-circle-check"></i>
         </div>
         <div class="stat-text">
-            <div class="value">{{ present_count }}</div>
-            <div class="label">Present Today</div>
+            <div class="value">{{ total_present_all }}</div>
+            <div class="label">Present / Attended</div>
         </div>
     </div>
     {% endif %}
@@ -260,12 +272,24 @@
 
 <!-- Filter Toolbar -->
 <div class="filter-toolbar">
-    <div class="filter-btn-group">
-        <button class="filter-btn active" id="btnShowAll">
-            <i class="fa-solid fa-users"></i> Show All ({{ total_count }})
+    <div class="filter-btn-group" style="flex-wrap: wrap; gap: 0.4rem;">
+        <button class="filter-btn active" data-filter="all">
+            <i class="fa-solid fa-users"></i> All ({{ total_count }})
         </button>
-        <button class="filter-btn" id="btnOnlyAbsent" style="color: #e74c3c;">
-            <i class="fa-solid fa-user-xmark"></i> Only Absent ({{ absent_count }})
+        <button class="filter-btn" data-filter="present" style="color: #15803d;">
+            <i class="fa-solid fa-circle-check"></i> Present ({{ present_count }})
+        </button>
+        <button class="filter-btn" data-filter="absent" style="color: #ef4444;">
+            <i class="fa-solid fa-circle-xmark"></i> Absent ({{ absent_count }})
+        </button>
+        <button class="filter-btn" data-filter="late" style="color: #d97706;">
+            <i class="fa-solid fa-clock"></i> Late ({{ late_count }})
+        </button>
+        <button class="filter-btn" data-filter="excused" style="color: #1e40af;">
+            <i class="fa-solid fa-user-shield"></i> Excused ({{ excused_count }})
+        </button>
+        <button class="filter-btn" data-filter="not_marked" style="color: #64748b;">
+            <i class="fa-solid fa-circle-minus"></i> Not Marked ({{ not_marked_count }})
         </button>
     </div>
     
@@ -291,7 +315,7 @@
         
         <div class="today-cards-grid">
             {% for stat in group.list %}
-            <a href="{% url 'students:student_profile' stat.student.id %}" class="today-student-card card-status-{{ stat.status }} student-card-item" data-status="{{ stat.status }}" data-name="{{ stat.student.full_name|lower }}" data-id="{{ stat.student.student_id|lower }}" style="text-decoration: none; color: inherit;">
+            <a href="{% url 'students:student_profile' stat.student.id %}" class="today-student-card card-status-{{ stat.status }} student-card-item" data-status="{{ stat.status }}" data-name="{{ stat.student.full_name|lower }}" data-id="{{ stat.student.student_id|lower }}" style="text-decoration: none;">
                 <div class="student-name" title="{{ stat.student.full_name }}">{{ stat.student.full_name }}</div>
                 <div style="font-size: 0.7rem; opacity: 0.7; font-weight: 600; margin-top: 1px;">ID: {{ stat.student.student_id }}</div>
             </a>
@@ -315,7 +339,7 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     $(document).ready(function() {
-        var currentFilter = 'all'; // 'all' or 'absent'
+        var currentFilter = 'all';
 
         function applyFilters() {
             var searchQuery = $('#todaySearchInput').val().toLowerCase().trim();
@@ -331,7 +355,7 @@
                     var name = card.data('name');
                     var studentId = card.data('id');
 
-                    var matchesFilter = (currentFilter === 'all' || status === 'absent');
+                    var matchesFilter = (currentFilter === 'all' || status === currentFilter);
                     var matchesSearch = (searchQuery === '' || name.includes(searchQuery) || studentId.includes(searchQuery));
 
                     if (matchesFilter && matchesSearch) {
@@ -357,17 +381,10 @@
             }
         }
 
-        $('#btnShowAll').click(function() {
+        $('.filter-btn').click(function() {
             $('.filter-btn').removeClass('active');
             $(this).addClass('active');
-            currentFilter = 'all';
-            applyFilters();
-        });
-
-        $('#btnOnlyAbsent').click(function() {
-            $('.filter-btn').removeClass('active');
-            $(this).addClass('active');
-            currentFilter = 'absent';
+            currentFilter = $(this).data('filter') || 'all';
             applyFilters();
         });
 

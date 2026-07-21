@@ -257,73 +257,45 @@
     <style>
         .hero-att-card {
             width: 100%;
-            max-width: 780px;
-            margin: 0 auto 1.5rem auto;
-            border-radius: 24px;
-            padding: 2rem 1.75rem;
-            text-align: center;
+            max-width: 440px;
+            margin: 0.5rem auto 1.25rem auto;
+            border-radius: 18px;
+            padding: 0.85rem 1.25rem;
+            text-align: left;
             position: relative;
-            overflow: hidden;
-            box-shadow: 0 15px 35px -5px rgba(0,0,0,0.12);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+            transition: all 0.2s ease;
         }
         @media (max-width: 600px) {
             .hero-att-card {
-                padding: 1.5rem 1.1rem !important;
-                border-radius: 20px !important;
-            }
-            .hero-att-card .hero-flex {
-                flex-direction: column !important;
-                text-align: center !important;
-                gap: 0.85rem !important;
-            }
-            .hero-att-card .hero-title {
-                font-size: 1.5rem !important;
-                text-align: center !important;
-            }
-            .hero-att-card .hero-subtext {
-                text-align: center !important;
-                font-size: 0.9rem !important;
+                padding: 0.75rem 1rem !important;
+                border-radius: 16px !important;
             }
         }
     </style>
 
     <div style="text-align: center; padding: 1rem 0 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-        <h2 style="font-size: 2.2rem; font-weight: 800; color: var(--dark); margin-bottom: 0.3rem;">Hello, {{ student_record.full_name }}!</h2>
-        <p style="color: var(--gray); font-size: 1rem; margin-bottom: 1.25rem;">Welcome to your academic portal.</p>
+        <h2 style="font-size: 2rem; font-weight: 800; color: var(--dark); margin-bottom: 0.2rem;">Hello, {{ student_record.full_name }}!</h2>
+        <p style="color: var(--gray); font-size: 0.95rem; margin-bottom: 0.75rem;">Welcome to your academic portal.</p>
         
-        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-bottom: 1.5rem; width: 100%; max-width: 500px;">
-            {% if request.user.profile.student_record %}
-            <a href="{% url 'students:results_lookup' %}?student_id={{ request.user.profile.student_record.student_id }}" class="quick-action-btn" style="display: inline-flex; flex: 1; min-width: 170px; justify-content: center; align-items: center; gap: 8px; padding: 0.75rem 1.25rem; font-size: 0.9rem;">
-                <i class="fa-solid fa-poll-h"></i> Report Card
-            </a>
-            <a href="{% url 'students:student_self_profile_update' %}" class="quick-action-btn" style="display: inline-flex; flex: 1; min-width: 170px; justify-content: center; align-items: center; gap: 8px; padding: 0.75rem 1.25rem; font-size: 0.9rem; background: #fff; border: 1px solid #cbd5e1; color: #1e293b;">
-                <i class="fa-solid fa-key" style="color: var(--primary);"></i> Edit Profile
-            </a>
-            {% endif %}
-        </div>
-
-        <!-- TODAY'S ATTENDANCE HERO CARD (MOBILE ULTRA RESPONSIVE) -->
+        <!-- TODAY'S ATTENDANCE STATUS CARD (COMPACT ~25% SIZE - PLACED ABOVE BUTTONS) -->
         <div class="hero-att-card" style="
             {% if today_holiday %}
-                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fde68a 100%); border: 2px solid #f59e0b; color: #78350f;
+                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1.5px solid #f59e0b; color: #78350f;
             {% elif today_status == 'present' %}
-                background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%); border: 2px solid #10b981; color: #14532d;
+                background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #10b981; color: #14532d;
             {% elif today_status == 'absent' %}
-                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 50%, #fecaca 100%); border: 2px solid #ef4444; color: #7f1d1d;
+                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1.5px solid #ef4444; color: #7f1d1d;
             {% elif today_status == 'late' %}
-                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fde68a 100%); border: 2px solid #f59e0b; color: #78350f;
+                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1.5px solid #f59e0b; color: #78350f;
             {% elif today_status == 'excused' %}
-                background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #bae6fd 100%); border: 2px solid #0ea5e9; color: #0c4a6e;
+                background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #0ea5e9; color: #0c4a6e;
             {% else %}
-                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%); border: 2px solid #94a3b8; color: #334155;
+                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1.5px solid #cbd5e1; color: #334155;
             {% endif %}">
             
-            <div style="font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.85; margin-bottom: 0.75rem;">
-                📅 TODAY'S ATTENDANCE STATUS
-            </div>
-
-            <div class="hero-flex" style="display: flex; align-items: center; justify-content: center; gap: 1.25rem; flex-wrap: wrap; margin: 0.5rem 0;">
-                <div style="width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.25rem; background: #ffffff; box-shadow: 0 8px 20px rgba(0,0,0,0.1); flex-shrink: 0; margin: 0 auto;
+            <div style="display: flex; align-items: center; gap: 0.85rem;">
+                <div style="width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; background: #ffffff; box-shadow: 0 4px 10px rgba(0,0,0,0.08); flex-shrink: 0;
                     {% if today_holiday %}color: #d97706;
                     {% elif today_status == 'present' %}color: #16a34a;
                     {% elif today_status == 'absent' %}color: #dc2626;
@@ -333,8 +305,11 @@
                     <i class="fa-solid {% if today_holiday %}fa-umbrella-beach{% elif today_status == 'present' %}fa-circle-check{% elif today_status == 'absent' %}fa-circle-xmark{% elif today_status == 'late' %}fa-clock{% elif today_status == 'excused' %}fa-circle-info{% else %}fa-hourglass-half{% endif %}"></i>
                 </div>
 
-                <div class="hero-subtext" style="text-align: left;">
-                    <div class="hero-title" style="font-size: 2rem; font-weight: 900; line-height: 1.1; letter-spacing: -0.02em;">
+                <div style="flex: 1; min-width: 0; text-align: left;">
+                    <div style="font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.8; line-height: 1;">
+                        📅 TODAY'S ATTENDANCE
+                    </div>
+                    <div style="font-size: 1.05rem; font-weight: 800; line-height: 1.25; margin-top: 2px;">
                         {% if today_holiday %}
                             HOLIDAY: {{ today_holiday.title }}
                         {% elif today_status == 'present' %}
@@ -349,23 +324,35 @@
                             NOT MARKED YET ⏳
                         {% endif %}
                     </div>
-                    <div style="font-size: 0.98rem; font-weight: 600; margin-top: 0.4rem; opacity: 0.92; max-width: 480px; line-height: 1.4;">
+                    <div style="font-size: 0.78rem; font-weight: 600; opacity: 0.85; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                         {% if today_holiday %}
-                            🏖️ Campus is closed today for {{ today_holiday.title }}. Enjoy your holiday!
+                            Campus is closed today for {{ today_holiday.title }}
                         {% elif today_status == 'present' %}
-                            🎉 Great job! Your attendance is recorded for today. Keep up the great record!
+                            Attendance recorded successfully
                         {% elif today_status == 'absent' %}
-                            ⚠️ You have been marked absent for today. Please inform your class teacher if this is an error.
+                            Marked absent for today
                         {% elif today_status == 'late' %}
-                            ⏰ Your attendance has been recorded as late for today's session.
+                            Recorded as late today
                         {% elif today_status == 'excused' %}
-                            ℹ️ Excused leave / leave application recorded for today.
+                            Excused leave recorded
                         {% else %}
-                            ⏳ Your class teacher has not submitted today's attendance roster yet.
+                            Roster not submitted yet
                         {% endif %}
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- ACTION BUTTONS: REPORT CARD & EDIT PROFILE -->
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; width: 100%; max-width: 440px;">
+            {% if request.user.profile.student_record %}
+            <a href="{% url 'students:results_lookup' %}?student_id={{ request.user.profile.student_record.student_id }}" class="quick-action-btn" style="display: inline-flex; flex: 1; min-width: 170px; justify-content: center; align-items: center; gap: 8px; padding: 0.75rem 1.25rem; font-size: 0.9rem;">
+                <i class="fa-solid fa-poll-h"></i> Report Card
+            </a>
+            <a href="{% url 'students:student_self_profile_update' %}" class="quick-action-btn" style="display: inline-flex; flex: 1; min-width: 170px; justify-content: center; align-items: center; gap: 8px; padding: 0.75rem 1.25rem; font-size: 0.9rem; background: #fff; border: 1px solid #cbd5e1; color: #1e293b;">
+                <i class="fa-solid fa-key" style="color: var(--primary);"></i> Edit Profile
+            </a>
+            {% endif %}
         </div>
     </div>
 

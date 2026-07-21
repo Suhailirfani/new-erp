@@ -8,7 +8,7 @@
         .header-actions { flex-direction: column !important; align-items: flex-start !important; gap: 0.75rem; }
         .header-actions .btn { width: 100%; text-align: center; }
         .card { overflow-x: auto; }
-        table { min-width: 350px; }
+        table { min-width: 450px; }
         table th, table td { white-space: nowrap; font-size: 0.82rem; padding: 6px 8px; }
     }
 </style>
@@ -20,6 +20,11 @@
     <a href="{% url 'students:grade_create' %}" class="btn btn-success">+ Add New Grade</a>
 </div>
 
+<div style="background: rgba(79,70,229,0.07); border: 1px solid rgba(79,70,229,0.18); border-radius: 12px; padding: 0.85rem 1.25rem; margin-bottom: 1.25rem; color: #3730a3; font-size: 0.9rem;">
+    <i class="fa-solid fa-circle-info"></i>&nbsp;
+    <strong>Session Start Date</strong>: Set this per class to control when attendance tracking begins. E.g. if Class 11 starts on June 15, set <em>Session Start Date = June 15</em>. Attendance before this date will be hidden for that class.
+</div>
+
 <div class="card">
     <table>
         <thead>
@@ -27,6 +32,7 @@
                 <th>Order</th>
                 <th>Name</th>
                 <th>Section</th>
+                <th>Session Start Date</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -37,13 +43,20 @@
                 <td><strong>{{ grade.name }}</strong></td>
                 <td>{{ grade.section|default:"-" }}</td>
                 <td>
+                    {% if grade.session_start_date %}
+                        <span style="background: #dcfce7; color: #166534; padding: 0.2rem 0.6rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem;">{{ grade.session_start_date|date:"d M Y" }}</span>
+                    {% else %}
+                        <span style="color: #94a3b8; font-size: 0.82rem;">From Academic Year Start</span>
+                    {% endif %}
+                </td>
+                <td>
                     <a href="{% url 'students:grade_update' grade.id %}" class="btn">Edit</a>
                     <a href="{% url 'students:grade_delete' grade.id %}" class="btn btn-danger">Delete</a>
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="4" style="text-align: center;">No grades found. Create your first grade format.</td>
+                <td colspan="5" style="text-align: center;">No grades found. Create your first grade format.</td>
             </tr>
             {% endfor %}
         </tbody>

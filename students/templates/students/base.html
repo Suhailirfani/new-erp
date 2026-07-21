@@ -1447,6 +1447,14 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
+        .mobile-bottom-nav form {
+            display: flex;
+            flex: 1;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
         .mobile-nav-tab {
             display: flex;
             flex-direction: column;
@@ -1461,6 +1469,12 @@
             border-radius: 20px;
             transition: all 0.2s ease;
             -webkit-tap-highlight-color: transparent;
+            background: transparent;
+            border: none;
+            font-family: inherit;
+            padding: 0;
+            cursor: pointer;
+            width: 100%;
         }
 
         .mobile-nav-tab .mobile-nav-icon {
@@ -1481,6 +1495,18 @@
         .mobile-nav-tab.active .mobile-nav-icon {
             transform: translateY(-2px) scale(1.15);
             color: var(--primary);
+        }
+
+        .mobile-nav-logout {
+            color: #ef4444;
+        }
+
+        .mobile-nav-logout .mobile-nav-icon {
+            color: #ef4444;
+        }
+
+        .mobile-nav-logout:active {
+            color: #dc2626;
         }
 
         @media (max-width: 768px) {
@@ -1847,6 +1873,14 @@
             <span>Students</span>
         </a>
         {% endif %}
+
+        <form action="{% url 'logout' %}" method="post" style="display: flex; flex: 1; height: 100%; margin: 0;">
+            {% csrf_token %}
+            <button type="submit" class="mobile-nav-tab mobile-nav-logout" onclick="return confirm('Are you sure you want to log out?');">
+                <div class="mobile-nav-icon"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
+                <span>Logout</span>
+            </button>
+        </form>
     </nav>
     {% endif %}
 

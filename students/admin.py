@@ -232,8 +232,10 @@ from .models import Holiday
 
 @admin.register(Holiday)
 class HolidayAdmin(admin.ModelAdmin):
-    list_display = ('date', 'title')
-    ordering = ('date',)
+    list_display = ('date', 'title', 'applicable_grades_display', 'is_optional')
+    list_filter = ('is_optional', 'grades')
+    filter_horizontal = ('grades',)
+    ordering = ('-date',)
 
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin

@@ -34,8 +34,20 @@
             <small class="help-text">Determines the display order (0 is first).</small>
             {{ form.order.errors }}
         </div>
+
+        <div class="form-group">
+            <label for="{{ form.session_start_date.id_for_label }}">Session Start Date</label>
+            {{ form.session_start_date }}
+            <small class="help-text" style="color: #4f46e5;">
+                <strong>Optional.</strong> Set this if this class starts later than the academic year. 
+                E.g. if Class 11 starts June 15, only attendance from June 15 onwards will be counted for this class.
+                Leave blank to use the Academic Year's start date.
+            </small>
+            {{ form.session_start_date.errors }}
+        </div>
         
         <button type="submit" class="btn btn-success">Save Grade</button>
     </form>
 </div>
 {% endblock %}
+

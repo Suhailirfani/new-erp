@@ -19,6 +19,7 @@ class Grade(models.Model):
     name = models.CharField(max_length=50, unique=True)
     section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True, related_name='grades')
     order = models.PositiveIntegerField(default=0, help_text="Order for display sorting")
+    session_start_date = models.DateField(null=True, blank=True, help_text="Optional class start date for academic session (e.g. June 15)")
 
     class Meta:
         ordering = ['order', 'name']
@@ -125,6 +126,16 @@ class Student(models.Model):
         """Returns the division from the current active enrollment."""
         enrollment = self.current_enrollment
         return enrollment.division if enrollment else None
+
+    @property
+    def class_name(self):
+        """Returns the class & division name from the current active enrollment."""
+        enrollment = self.current_enrollment
+        if enrollment and enrollment.grade:
+            g_name = enrollment.grade.name
+            d_name = enrollment.division.name if enrollment.division else "No Division"
+            return f"{g_name} - {d_name}"
+        return "Unassigned"
 
 class Alumni(models.Model):
     """Stores post-graduation details for alumni students"""
@@ -489,9 +500,16 @@ class Holiday(models.Model):
     date = models.DateField(unique=True)
     title = models.CharField(max_length=100)
     is_optional = models.BooleanField(default=False)
+    grades = models.ManyToManyField('Grade', blank=True, related_name='holidays', help_text="Specific classes/grades. Leave empty to apply to ALL classes.")
 
     def __str__(self):
-        return f"{self.date} - {self.title}"
+        return f"{self.date} - {self.title} ({self.applicable_grades_display})"
+
+    @property
+    def applicable_grades_display(self):
+        if self.pk and self.grades.exists():
+            return ", ".join([g.name for g in self.grades.all()])
+        return "All Classes"
 
 
 class GlobalSettings(models.Model):
