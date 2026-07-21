@@ -846,9 +846,13 @@ def student_graduate(request):
     return render(request, 'students/student_graduate.html', context)
 
 
-@login_required
+@role_required(['admin', 'teacher', 'accountant', 'ntstaff'])
 def student_list(request):
     """List all students for the active academic year with filters"""
+    if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
+        messages.error(request, "Access denied. Students are not allowed to view the student directory.")
+        return redirect('students:home')
+        
     active_year = AcademicYear.objects.filter(is_active=True).first()
     
     if not active_year:
@@ -3998,6 +4002,10 @@ def section_list(request):
 @role_required(['admin', 'ntstaff'])
 def hostel_student_list_view(request):
     """List all students registered to the hostel"""
+    if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
+        messages.error(request, "Access denied. Students are not allowed to view the hostel student directory.")
+        return redirect('students:home')
+        
     from django.db.models import Q
     
     students = Student.objects.filter(student_type='hostel', is_active=True).exclude(alumni_record__isnull=False)
