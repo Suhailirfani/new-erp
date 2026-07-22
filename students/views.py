@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.db import models
 from django.db.models import Q, Count
 from django.utils import timezone
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from datetime import date, datetime
 from django.db.models import Max
 
@@ -167,6 +167,7 @@ def course_fee_calculator(request, course_id):
     return render(request, 'students/course_fee_calculator.html', context)
 
 
+@login_required
 def home(request):
     """Dashboard/Home page"""
     context = {}
@@ -6295,6 +6296,62 @@ def student_self_profile_update(request):
         'enrollment': enrollment,
     }
     return render(request, 'students/student_self_profile_update.html', context)
+
+
+def pwa_manifest(request):
+    """Serve PWA manifest.json for Chrome app download/installation"""
+    manifest_data = {
+        "name": "Markaz Hadiya Women's College",
+        "short_name": "Markaz Hadiya",
+        "description": "Markaz Hadiya Women's College ERP & Student Portal",
+        "start_url": "/home/",
+        "display": "standalone",
+        "background_color": "#ffffff",
+        "theme_color": "#6366f1",
+        "orientation": "portrait-primary",
+        "scope": "/",
+        "icons": [
+            {
+                "src": "/static/img/M_LOGO.png",
+                "sizes": "192x192 512x512",
+                "type": "image/png",
+                "purpose": "any maskable"
+            }
+        ]
+    }
+    return JsonResponse(manifest_data, content_type='application/manifest+json')
+
+
+def pwa_serviceworker(request):
+    """Serve PWA service worker sw.js with root scope for Chrome PWA installation"""
+    sw_code = """
+const CACHE_NAME = 'markaz-hadiya-pwa-v1';
+const urlsToCache = [
+  '/home/',
+  '/static/img/M_LOGO.png'
+];
+
+self.addEventListener('install', event => {
+  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(urlsToCache).catch(err => console.log('PWA cache addAll err:', err));
+    })
+  );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
+  );
+});
+"""
+    return HttpResponse(sw_code.strip(), content_type='application/javascript')
+
 
 
 

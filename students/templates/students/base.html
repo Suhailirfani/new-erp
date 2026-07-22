@@ -9,6 +9,7 @@
     <meta name="apple-mobile-web-app-title" content="Markaz Hadiya">
     <title>{% block title %}MARKAZ HADIYA WOMEN'S COLLEGE{% endblock %}</title>
     {% load static %}
+    <link rel="manifest" href="{% url 'students:pwa_manifest' %}">
     <link rel="icon" type="image/png" href="{% static 'img/M_LOGO.png' %}">
     <link rel="shortcut icon" type="image/png" href="{% static 'img/M_LOGO.png' %}">
     <link rel="apple-touch-icon" type="image/png" href="{% static 'img/M_LOGO.png' %}">
@@ -1887,5 +1888,38 @@
     {% endif %}
 
     {% block extra_js %}{% endblock %}
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register("{% url 'students:pwa_serviceworker' %}").then(function(reg) {
+                    console.log('PWA ServiceWorker registered with scope:', reg.scope);
+                }).catch(function(err) {
+                    console.log('PWA ServiceWorker registration failed:', err);
+                });
+            });
+        }
+
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.querySelectorAll('.btn-install-pwa').forEach(btn => btn.style.display = 'flex');
+        });
+
+        function triggerPwaInstall() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted Chrome PWA install');
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                alert("📲 How to Install this App from Chrome:\n\n1. Open Chrome menu (⋮ top-right)\n2. Tap 'Install app' or 'Add to Home screen'\n3. The app will download and install on your device!");
+            }
+        }
+    </script>
 </body>
 </html>
