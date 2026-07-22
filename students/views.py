@@ -5918,6 +5918,10 @@ def student_credentials_list(request):
         'selected_division': division_id,
         'selected_status': status_filter,
     }
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('ajax') == '1':
+        return render(request, 'students/partials/student_credentials_body.html', context)
+
     return render(request, 'students/student_credentials_list.html', context)
 
 
