@@ -6126,14 +6126,24 @@ def student_credential_bulk_reset(request):
 @role_required(['admin'])
 def student_credentials_print(request):
     """Printable list of student credentials"""
+    query = request.GET.get('q', '').strip()
     grade_id = request.GET.get('grade', '').strip()
     division_id = request.GET.get('division', '').strip()
+    status_filter = request.GET.get('status', '').strip()
 
     active_year = AcademicYear.objects.filter(is_active=True).first()
 
     students_qs = Student.objects.filter(is_active=True).select_related(
         'user_profile', 'user_profile__user'
     ).prefetch_related('enrollments', 'enrollments__grade', 'enrollments__division').order_by('first_name')
+
+    if query:
+        students_qs = students_qs.filter(
+            models.Q(student_id__icontains=query) |
+            models.Q(first_name__icontains=query) |
+            models.Q(last_name__icontains=query) |
+            models.Q(user_profile__user__username__icontains=query)
+        )
 
     if grade_id:
         students_qs = students_qs.filter(enrollments__grade_id=grade_id)
@@ -6156,6 +6166,15 @@ def student_credentials_print(request):
 
     all_students_list.sort(key=get_sort_key)
 
+    if status_filter == 'linked':
+        all_students_list = [s for s in all_students_list if hasattr(s, 'user_profile') and s.user_profile and s.user_profile.user]
+    elif status_filter == 'unlinked':
+        all_students_list = [s for s in all_students_list if not (hasattr(s, 'user_profile') and s.user_profile and s.user_profile.user)]
+    elif status_filter == 'active':
+        all_students_list = [s for s in all_students_list if hasattr(s, 'user_profile') and s.user_profile and s.user_profile.user and s.user_profile.user.is_active]
+    elif status_filter == 'inactive':
+        all_students_list = [s for s in all_students_list if hasattr(s, 'user_profile') and s.user_profile and s.user_profile.user and not s.user_profile.user.is_active]
+
     grade_obj = Grade.objects.filter(id=grade_id).first() if grade_id else None
     division_obj = Division.objects.filter(id=division_id).first() if division_id else None
 
@@ -6163,6 +6182,8 @@ def student_credentials_print(request):
         'students': all_students_list,
         'grade': grade_obj,
         'division': division_obj,
+        'query': query,
+        'status_filter': status_filter,
     }
     return render(request, 'students/student_credentials_print.html', context)
 
