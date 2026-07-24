@@ -6,6 +6,7 @@ app_name = 'students'
 urlpatterns = [
     path('manifest.json', views.pwa_manifest, name='pwa_manifest'),
     path('sw.js', views.pwa_serviceworker, name='pwa_serviceworker'),
+    path('brochure/', views.app_brochure_malayalam, name='brochure_malayalam'),
     path('home/', views.home, name='home'),
     path('', views.landing_page, name='landing'),
     path('results/', views.student_results_public_lookup, name='results_lookup'),

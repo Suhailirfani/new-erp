@@ -167,6 +167,11 @@ def course_fee_calculator(request, course_id):
     return render(request, 'students/course_fee_calculator.html', context)
 
 
+def app_brochure_malayalam(request):
+    """Render comprehensive Malayalam Feature Brochure for the Web App"""
+    return render(request, 'students/web_app_brochure_malayalam.html')
+
+
 @login_required
 def home(request):
     """Dashboard/Home page"""
