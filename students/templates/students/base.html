@@ -1559,6 +1559,10 @@
 
                 <span>Dashboard</span>
             </a>
+            <a href="{% url 'students:brochure_malayalam' %}" class="nav-item" target="_blank">
+                <i class="fa-solid fa-file-invoice"></i>
+                <span>App Features (മലയാളം)</span>
+            </a>
 
             {% if request.user.profile.role == 'student' %}
             <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">My Account</div>
