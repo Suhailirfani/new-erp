@@ -175,11 +175,11 @@
 {% block content %}
 <div class="login-sidebar">
     <div class="login-card-compact">
-        <div class="login-logo-small">
+        <div class="login-logo-small" style="text-align: center;">
             {% load static %}
-            <img src="{% static 'img/M_LOGO.png' %}" alt="Logo" onerror="this.style.display='none'">
-            <h2>System Login</h2>
-            <p>Access your Student ERP Portal</p>
+            <img src="{% static 'images/collegelogonobg.png' %}" alt="Markaz Hadiya Logo" style="width: 90px; height: auto; margin-bottom: 12px; filter: drop-shadow(0 4px 15px rgba(255,255,255,0.4));">
+            <h2 style="font-size: 1.4rem; font-weight: 800; letter-spacing: 1px;">System Login</h2>
+            <p style="color: #cbd5e1; font-size: 0.85rem;">Markaz Hadiya Women's College</p>
         </div>
 
         {% if form.non_field_errors %}
@@ -211,9 +211,9 @@
 
 <div class="visual-area">
     <div class="visual-content">
-        <i class="fas fa-graduation-cap"></i>
-        <h1>InstiFlow</h1>
-        <p>Institution Management System</p>
+        <img src="{% static 'images/collegelogonobg.png' %}" alt="Markaz Hadiya College Logo" style="width: 180px; height: auto; margin-bottom: 20px; filter: drop-shadow(0 10px 30px rgba(0,0,0,0.4));">
+        <h1 style="font-size: 2.2rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">MARKAZ HADIYA</h1>
+        <p style="font-size: 1.1rem; letter-spacing: 1px; opacity: 0.9;">WOMEN'S COLLEGE ERP PORTAL</p>
     </div>
 </div>
 {% endblock %}

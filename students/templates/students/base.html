@@ -10,9 +10,9 @@
     <title>{% block title %}MARKAZ HADIYA WOMEN'S COLLEGE{% endblock %}</title>
     {% load static %}
     <link rel="manifest" href="{% url 'students:pwa_manifest' %}">
-    <link rel="icon" type="image/png" href="{% static 'img/M_LOGO.png' %}">
-    <link rel="shortcut icon" type="image/png" href="{% static 'img/M_LOGO.png' %}">
-    <link rel="apple-touch-icon" type="image/png" href="{% static 'img/M_LOGO.png' %}">
+    <link rel="icon" type="image/png" href="{% static 'images/collegelogonobg.png' %}">
+    <link rel="shortcut icon" type="image/png" href="{% static 'images/collegelogonobg.png' %}">
+    <link rel="apple-touch-icon" type="image/png" href="{% static 'images/collegelogonobg.png' %}">
     
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -1541,15 +1541,58 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <!-- PWA APP LOADING & SPLASH SCREEN OVERLAY -->
+    <div id="pwaAppLoader" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999999; transition: opacity 0.5s ease, visibility 0.5s ease;">
+        <div style="position: relative; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem;">
+            <div style="position: absolute; width: 130px; height: 130px; border-radius: 50%; background: radial-gradient(circle, rgba(99, 102, 241, 0.45) 0%, transparent 70%); animation: pwaGlow 2s infinite ease-in-out;"></div>
+            <img src="{% static 'images/collegelogonobg.png' %}" alt="Markaz Hadiya Logo" style="width: 110px; height: 110px; object-fit: contain; z-index: 2; animation: pwaPulse 2s infinite ease-in-out; filter: drop-shadow(0 0 16px rgba(99, 102, 241, 0.6));">
+        </div>
+        <h2 style="color: #ffffff; font-family: 'Inter', sans-serif; font-size: 1.35rem; font-weight: 800; letter-spacing: 2px; margin-bottom: 0.25rem; text-align: center; text-transform: uppercase;">MARKAZ HADIYA</h2>
+        <p style="color: #94a3b8; font-size: 0.82rem; font-weight: 700; letter-spacing: 1px; margin-bottom: 1.75rem; text-align: center;">WOMEN'S COLLEGE ERP PORTAL</p>
+        <div style="width: 140px; height: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 10px; overflow: hidden; position: relative;">
+            <div style="position: absolute; top: 0; left: 0; height: 100%; width: 50%; background: linear-gradient(90deg, #4f46e5, #ec4899); border-radius: 10px; animation: pwaBar 1.5s infinite ease-in-out;"></div>
+        </div>
+    </div>
+    <style>
+        @keyframes pwaPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.06); }
+        }
+        @keyframes pwaGlow {
+            0%, 100% { transform: scale(1); opacity: 0.4; }
+            50% { transform: scale(1.3); opacity: 0.85; }
+        }
+        @keyframes pwaBar {
+            0% { left: -50%; width: 30%; }
+            50% { left: 35%; width: 60%; }
+            100% { left: 100%; width: 30%; }
+        }
+    </style>
+    <script>
+        window.addEventListener('load', function() {
+            const loader = document.getElementById('pwaAppLoader');
+            if (loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => {
+                    loader.style.visibility = 'hidden';
+                    loader.style.display = 'none';
+                }, 500);
+            }
+        });
+    </script>
+
     <!-- Mobile Navigation Overlay -->
     <div class="nav-overlay" id="navOverlay"></div>
     
     <!-- Sleek Left Sidebar -->
     <aside class="sidebar" id="sidebar">
-        <div class="sidebar-logo">
-            <a href="{% url 'students:landing' %}" style="text-decoration: none; display: block;">
-                <h2 style="color: var(--primary); font-weight: 800; font-size: 1.5rem; margin-bottom: 0.25rem; letter-spacing: -0.02em;">MARKAZ HADIYA</h2>
-                <h3 style="color: var(--dark-secondary); font-weight: 700; font-size: 1rem; opacity: 0.8; letter-spacing: 0.05em;">WOMEN'S COLLEGE</h3>
+        <div class="sidebar-logo" style="padding: 1.25rem 1rem;">
+            <a href="{% url 'students:landing' %}" style="text-decoration: none; display: flex; align-items: center; gap: 0.75rem;">
+                <img src="{% static 'images/collegelogonobg.png' %}" alt="College Logo" style="height: 48px; width: auto; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.3));">
+                <div>
+                    <h2 style="color: var(--primary); font-weight: 800; font-size: 1.15rem; margin: 0; line-height: 1.1; letter-spacing: -0.02em;">MARKAZ HADIYA</h2>
+                    <h3 style="color: var(--dark-secondary); font-weight: 700; font-size: 0.78rem; margin: 0; opacity: 0.8; letter-spacing: 0.05em;">WOMEN'S COLLEGE</h3>
+                </div>
             </a>
         </div>
         

@@ -6311,16 +6311,27 @@ def pwa_manifest(request):
         "description": "Markaz Hadiya Women's College ERP & Student Portal",
         "start_url": "/home/",
         "display": "standalone",
-        "background_color": "#ffffff",
-        "theme_color": "#6366f1",
+        "background_color": "#0f172a",
+        "theme_color": "#4f46e5",
         "orientation": "portrait-primary",
         "scope": "/",
         "icons": [
             {
-                "src": "/static/img/M_LOGO.png",
+                "src": "/static/images/collegelogonobg.png",
                 "sizes": "192x192 512x512",
                 "type": "image/png",
                 "purpose": "any maskable"
+            },
+            {
+                "src": "/static/images/college logo.png",
+                "sizes": "192x192 512x512",
+                "type": "image/png",
+                "purpose": "any"
+            },
+            {
+                "src": "/static/img/collegelogonobg.png",
+                "sizes": "192x192",
+                "type": "image/png"
             }
         ]
     }
@@ -6330,9 +6341,11 @@ def pwa_manifest(request):
 def pwa_serviceworker(request):
     """Serve PWA service worker sw.js with root scope for Chrome PWA installation"""
     sw_code = """
-const CACHE_NAME = 'markaz-hadiya-pwa-v1';
+const CACHE_NAME = 'markaz-hadiya-pwa-v2';
 const urlsToCache = [
   '/home/',
+  '/static/images/collegelogonobg.png',
+  '/static/images/college logo.png',
   '/static/img/M_LOGO.png'
 ];
 
