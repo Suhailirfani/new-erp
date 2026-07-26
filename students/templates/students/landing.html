@@ -395,8 +395,32 @@
         </div>
     </section>
 
+    <!-- App Features Brochure Callout Section at Bottom of Landing Page -->
+    <section class="section reveal" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.25) 0%, rgba(236, 72, 153, 0.25) 100%); border-radius: 30px; margin-bottom: 80px; border: 1px solid rgba(255, 255, 255, 0.2); padding: 50px 30px; text-align: center; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);">
+        <div style="max-width: 800px; margin: 0 auto;">
+            <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(37, 211, 102, 0.2); color: #25D366; padding: 6px 16px; border-radius: 30px; font-weight: 700; font-size: 0.9rem; margin-bottom: 15px; border: 1px solid rgba(37, 211, 102, 0.3);">
+                <i class="fas fa-mobile-alt"></i> Official PWA Mobile App & Portal Guide
+            </div>
+            <h2 style="font-size: 2.3rem; margin-bottom: 15px; color: white;">ആപ്പിന്റെ മുഴുവൻ ഫീച്ചറുകളും മലയാളത്തിൽ അറിയാം!</h2>
+            <p style="font-size: 1.15rem; color: #cbd5e1; margin-bottom: 30px; line-height: 1.7;">
+                മൊബൈൽ ആപ്പ് ഡൗൺലോഡ് ചെയ്യുന്ന വിധം, വാട്ട്‌സ്ആപ്പ് അറിയിപ്പുകൾ, ഫെയ്സ് അറ്റൻഡൻസ്, പരീക്ഷാ ഫലങ്ങൾ തുടങ്ങിയ എല്ലാ വിവരങ്ങളും അടങ്ങിയ സമ്പൂർണ്ണ ബ്രോഷർ വായിക്കാം.
+            </p>
+            <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                <a href="{% url 'students:brochure_malayalam' %}" class="btn btn-primary" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; border: none; font-weight: 700; padding: 15px 35px; font-size: 1.1rem; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);">
+                    <i class="fas fa-book-open"></i> Open Feature Brochure (മലയാളം)
+                </a>
+                <a href="{% url 'students:brochure_malayalam' %}" target="_blank" class="btn btn-outline" style="border-color: #38bdf8; color: #38bdf8;">
+                    <i class="fas fa-file-pdf"></i> Download PDF Brochure
+                </a>
+            </div>
+        </div>
+    </section>
+
     <footer style="padding: 50px 20px; text-align: center; border-top: 1px solid var(--glass-border); background: #070b14;">
-        <p>&copy; 2026 Markaz Hadiya Women's College, Thazhapra. All Rights Reserved. | <a href="{% url 'students:about_us' %}" style="color: var(--text-gold); text-decoration: none;">About Us</a></p>
+        <p>&copy; 2026 Markaz Hadiya Women's College, Thazhapra. All Rights Reserved. | 
+            <a href="{% url 'students:about_us' %}" style="color: var(--text-gold); text-decoration: none;">About Us</a> | 
+            <a href="{% url 'students:brochure_malayalam' %}" style="color: #25D366; text-decoration: none; font-weight: 700;">📱 App Brochure (മലയാളം)</a>
+        </p>
         <div style="margin-top: 20px; font-size: 1.5rem; display: flex; justify-content: center; gap: 20px;">
             <i class="fab fa-facebook"></i>
             <i class="fab fa-instagram"></i>
