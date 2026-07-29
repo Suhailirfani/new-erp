@@ -24,10 +24,13 @@
                 {% if division_name %} - {{ division_name }}{% endif %}
             </h4>
         </div>
-        <div class="badge-container" style="text-align: right;">
+        <div class="badge-container" style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem;">
             <span style="background-color: #d4edda; padding: 0.5rem 1rem; border-radius: 4px; font-weight: bold; color: #155724; display: inline-block;">
                 {{ students|length }} Student(s) | {{ subjects|length }} Subject(s)
             </span>
+            <div id="auto_save_status_badge" style="font-weight: 600; font-size: 0.85rem; color: #16a34a; padding: 0.35rem 0.75rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.35rem;">
+                ⚡ Auto-Save Enabled: Marks save automatically as you type!
+            </div>
         </div>
     </div>
 </div><div class="card filter-bar" style="margin-bottom: 1.5rem; background-color: #f8f9fa; padding: 1rem; border-radius: 8px; border: 1px solid #dee2e6;">
@@ -145,7 +148,12 @@
                             {% with student_marks=existing_marks|get_item:student.id %}
                                 {% with current_mark=student_marks|get_item:subject.id %}
                                 <input type="number" 
+                                       id="marks_{{ student.id }}_{{ subject.id }}"
                                        name="marks_{{ student.id }}_{{ subject.id }}" 
+                                       data-student-id="{{ student.id }}"
+                                       data-subject-id="{{ subject.id }}"
+                                       data-student-name="{{ student.full_name }}"
+                                       data-subject-name="{{ subject.name }}"
                                        value="{% if current_mark is not None %}{{ current_mark }}{% endif %}" 
                                        step="0.01" min="0" 
                                        placeholder="-" 
@@ -196,6 +204,10 @@
                             {% with current_mark=student_marks|get_item:subject.id %}
                             <input type="number" 
                                    id="mob_marks_{{ student.id }}_{{ subject.id }}" 
+                                   data-student-id="{{ student.id }}"
+                                   data-subject-id="{{ subject.id }}"
+                                   data-student-name="{{ student.full_name }}"
+                                   data-subject-name="{{ subject.name }}"
                                    value="{% if current_mark is not None %}{{ current_mark }}{% endif %}" 
                                    step="0.01" min="0" 
                                    placeholder="-" 
@@ -416,40 +428,156 @@
         }
     });
 
-    // Real-time synchronization between Mobile inputs and Desktop hidden/visible inputs
+    // Real-time Auto-Saving Functionality
+    const saveTimeouts = {};
+
+    function autoSaveMark(studentId, subjectId) {
+        const key = studentId + '_' + subjectId;
+        if (saveTimeouts[key]) {
+            clearTimeout(saveTimeouts[key]);
+        }
+
+        const deskInput = document.getElementById(`marks_${studentId}_${subjectId}`);
+        const mobInput = document.getElementById(`mob_marks_${studentId}_${subjectId}`);
+        const activeInput = deskInput || mobInput;
+        if (!activeInput) return;
+
+        const marksVal = activeInput.value;
+        const studentName = activeInput.dataset.studentName || 'Student';
+        const subjectName = activeInput.dataset.subjectName || 'Subject';
+
+        const maxInput = document.querySelector(`input[name="max_marks_${subjectId}"]`);
+        const maxVal = maxInput ? maxInput.value : '';
+        const examDateInput = document.querySelector('input[name="exam_date"]');
+        const examDate = examDateInput ? examDateInput.value : '';
+        const enteredByInput = document.querySelector('input[name="entered_by"]');
+        const enteredBy = enteredByInput ? enteredByInput.value : '';
+
+        // Visual saving state (amber background)
+        [deskInput, mobInput].forEach(inp => {
+            if (inp) {
+                inp.style.backgroundColor = '#fef3c7';
+                inp.style.borderColor = '#f59e0b';
+            }
+        });
+
+        updateAutoSaveStatus(`⏳ Saving mark for ${studentName}...`, '#d97706');
+
+        // Debounce AJAX request by 350ms
+        saveTimeouts[key] = setTimeout(() => {
+            const formData = new FormData();
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            formData.append('exam_type_id', '{{ exam_type.id }}');
+            formData.append('student_id', studentId);
+            formData.append('subject_id', subjectId);
+            formData.append('marks_obtained', marksVal);
+            formData.append('max_marks', maxVal);
+            formData.append('exam_date', examDate);
+            formData.append('entered_by', enteredBy);
+
+            fetch('{% url "students:mark_save_single_ajax" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    [deskInput, mobInput].forEach(inp => {
+                        if (inp) {
+                            if (marksVal.trim() !== '') {
+                                inp.style.backgroundColor = '#dcfce7'; // green pulse
+                                inp.style.borderColor = '#16a34a';
+                                setTimeout(() => {
+                                    inp.style.backgroundColor = '#f0f9ff';
+                                    inp.style.borderColor = '#bce8f1';
+                                }, 1200);
+                            } else {
+                                inp.style.backgroundColor = '';
+                                inp.style.borderColor = '';
+                            }
+                        }
+                    });
+
+                    const msg = data.action === 'deleted' 
+                        ? `Cleared ${studentName} (${subjectName})` 
+                        : `Saved ${studentName}: ${subjectName} = ${data.marks_obtained}/${data.max_marks}`;
+                    updateAutoSaveStatus(`✅ ${msg}`, '#16a34a');
+                } else {
+                    [deskInput, mobInput].forEach(inp => {
+                        if (inp) {
+                            inp.style.backgroundColor = '#fee2e2';
+                            inp.style.borderColor = '#dc2626';
+                        }
+                    });
+                    updateAutoSaveStatus(`❌ ${data.message || 'Error saving mark'}`, '#dc2626');
+                }
+            })
+            .catch(err => {
+                [deskInput, mobInput].forEach(inp => {
+                    if (inp) {
+                        inp.style.backgroundColor = '#fee2e2';
+                        inp.style.borderColor = '#dc2626';
+                    }
+                });
+                updateAutoSaveStatus('❌ Connection error: Mark not saved', '#dc2626');
+            });
+        }, 350);
+    }
+
+    function updateAutoSaveStatus(text, color) {
+        const badge = document.getElementById('auto_save_status_badge');
+        if (badge) {
+            badge.innerText = text;
+            badge.style.color = color;
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
-        // Sync student marks inputs: mobile to desktop
+        // Sync & Auto-save on mobile input change
         document.querySelectorAll('input[id^="mob_marks_"]').forEach(mobInput => {
             mobInput.addEventListener('input', function() {
                 const desktopId = this.id.replace('mob_', '');
                 const desktopInput = document.getElementById(desktopId);
                 if (desktopInput) {
                     desktopInput.value = this.value;
-                    // Trigger input event on desktop to color-code it if needed
-                    desktopInput.dispatchEvent(new Event('input'));
+                }
+                const studentId = this.dataset.studentId;
+                const subjectId = this.dataset.subjectId;
+                if (studentId && subjectId) {
+                    autoSaveMark(studentId, subjectId);
+                }
+            });
+            mobInput.addEventListener('change', function() {
+                const studentId = this.dataset.studentId;
+                const subjectId = this.dataset.subjectId;
+                if (studentId && subjectId) {
+                    autoSaveMark(studentId, subjectId);
                 }
             });
         });
 
-        // Sync student marks inputs: desktop to mobile
+        // Sync & Auto-save on desktop input change
         document.querySelectorAll('input[id^="marks_"]').forEach(deskInput => {
             deskInput.addEventListener('input', function() {
                 const mobId = 'mob_' + this.id;
                 const mobInput = document.getElementById(mobId);
                 if (mobInput) {
                     mobInput.value = this.value;
-                    // Highlight backgrounds
-                    if (this.value !== '') {
-                        mobInput.style.backgroundColor = '#f0f9ff';
-                        mobInput.style.borderColor = '#bce8f1';
-                        this.style.backgroundColor = '#f0f9ff';
-                        this.style.borderColor = '#bce8f1';
-                    } else {
-                        mobInput.style.backgroundColor = '';
-                        mobInput.style.borderColor = '';
-                        this.style.backgroundColor = '';
-                        this.style.borderColor = '';
-                    }
+                }
+                const studentId = this.dataset.studentId;
+                const subjectId = this.dataset.subjectId;
+                if (studentId && subjectId) {
+                    autoSaveMark(studentId, subjectId);
+                }
+            });
+            deskInput.addEventListener('change', function() {
+                const studentId = this.dataset.studentId;
+                const subjectId = this.dataset.subjectId;
+                if (studentId && subjectId) {
+                    autoSaveMark(studentId, subjectId);
                 }
             });
         });
@@ -461,7 +589,6 @@
                 const desktopInput = document.querySelector(`input[name="${nameAttr}"]`);
                 if (desktopInput) {
                     desktopInput.value = this.value;
-                    desktopInput.dispatchEvent(new Event('input'));
                 }
             });
         });

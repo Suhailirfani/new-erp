@@ -2221,6 +2221,98 @@ def mark_entry_step3(request, exam_type_id):
 
 
 @role_required(['admin', 'teacher'])
+def mark_save_single_ajax(request):
+    """AJAX view to auto-save a single student mark entry in real-time as user enters data"""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+        
+    student_id = request.POST.get('student_id')
+    exam_type_id = request.POST.get('exam_type_id')
+    subject_id = request.POST.get('subject_id')
+    marks_str = request.POST.get('marks_obtained', '')
+    max_marks_str = request.POST.get('max_marks', '')
+    exam_date = request.POST.get('exam_date')
+    entered_by = request.POST.get('entered_by', '').strip()
+
+    if not student_id or not exam_type_id or not subject_id:
+        return JsonResponse({'status': 'error', 'message': 'Missing required parameters'}, status=400)
+
+    try:
+        student = Student.objects.get(id=student_id)
+        exam_type = ExamType.objects.get(id=exam_type_id)
+        subject = Subject.objects.get(id=subject_id)
+    except (Student.DoesNotExist, ExamType.DoesNotExist, Subject.DoesNotExist) as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=404)
+
+    # Empty marks string means delete entry if it exists
+    if marks_str is None or str(marks_str).strip() == '':
+        deleted_count, _ = MarkEntry.objects.filter(
+            student=student,
+            exam_type=exam_type,
+            subject=subject
+        ).delete()
+        return JsonResponse({
+            'status': 'success', 
+            'action': 'deleted', 
+            'deleted': deleted_count > 0,
+            'student_name': student.full_name,
+            'subject_name': subject.name
+        })
+
+    try:
+        marks_obtained = float(marks_str)
+    except (ValueError, TypeError):
+        return JsonResponse({'status': 'error', 'message': 'Invalid numeric mark value'}, status=400)
+
+    # Determine max_marks
+    if max_marks_str and str(max_marks_str).strip():
+        try:
+            max_marks = float(max_marks_str)
+        except (ValueError, TypeError):
+            max_marks = float(subject.max_marks)
+    else:
+        override = ExamSubjectMaxMark.objects.filter(exam_type=exam_type, subject=subject).first()
+        max_marks = float(override.max_marks) if override else float(subject.max_marks)
+
+    # Active year and enrollment
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    if not active_year:
+        active_year = AcademicYear.objects.order_by('-start_date').first()
+
+    enrollment = Enrollment.objects.filter(student=student, academic_year=active_year).first()
+
+    if not entered_by:
+        entered_by = request.user.get_full_name().strip()
+        if not entered_by and hasattr(request.user, 'profile') and request.user.profile and request.user.profile.student_record:
+            entered_by = request.user.profile.student_record.full_name
+
+    mark_entry, created = MarkEntry.objects.update_or_create(
+        student=student,
+        exam_type=exam_type,
+        subject=subject,
+        defaults={
+            'enrollment': enrollment,
+            'marks_obtained': marks_obtained,
+            'max_marks': max_marks,
+            'exam_date': exam_date if exam_date else None,
+            'entered_by': entered_by,
+        }
+    )
+
+    return JsonResponse({
+        'status': 'success',
+        'action': 'saved' if not created else 'created',
+        'mark_id': mark_entry.id,
+        'student_name': student.full_name,
+        'subject_name': subject.name,
+        'marks_obtained': float(mark_entry.marks_obtained),
+        'max_marks': float(mark_entry.max_marks),
+        'percentage': float(mark_entry.percentage),
+        'grade_letter': mark_entry.grade_letter,
+    })
+
+
+@role_required(['admin', 'teacher'])
 def mark_bulk_import_template(request, exam_type_id):
     """Download an Excel template for bulk mark entry prefilled with students and subjects"""
     import openpyxl

@@ -34,6 +34,7 @@ view_roles = {
     'mark_entry_step1': ["@role_required(['admin', 'teacher'])"],
     'mark_entry_step2': ["@role_required(['admin', 'teacher'])"],
     'mark_entry_step3': ["@role_required(['admin', 'teacher'])"],
+    'mark_save_single_ajax': ["@role_required(['admin', 'teacher'])"],
     'mark_entry_list': ["@role_required(['admin', 'teacher'])"],
     'mark_entry_classwise_data': ["@role_required(['admin', 'teacher'])"],
     
