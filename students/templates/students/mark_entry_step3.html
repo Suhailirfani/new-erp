@@ -156,8 +156,9 @@
                                        data-subject-name="{{ subject.name }}"
                                        value="{% if current_mark is not None %}{{ current_mark|floatformat:0 }}{% endif %}" 
                                        step="1" min="0" 
+                                       inputmode="numeric"
                                        placeholder="-" 
-                                       style="width: 80px; padding: 0.5rem; text-align: center; border: 1px solid #ccc; border-radius: 4px; font-size: 1.1em;
+                                       style="width: 80px; padding: 0.5rem; text-align: center; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; touch-action: manipulation;
                                               {% if current_mark is not None %}background-color: #f0f9ff; border-color: #bce8f1;{% endif %}"
                                        autocomplete="off"
                                        tabindex="{{ forloop.parentloop.counter }}{{ forloop.counter|stringformat:"02d" }}">
@@ -211,8 +212,9 @@
                                    data-subject-name="{{ subject.name }}"
                                    value="{% if current_mark is not None %}{{ current_mark|floatformat:0 }}{% endif %}" 
                                    step="1" min="0" 
+                                   inputmode="numeric"
                                    placeholder="-" 
-                                   style="width: 90px; padding: 0.5rem; text-align: center; border: 1px solid #ccc; border-radius: 6px; font-size: 1.05rem; font-weight: bold;
+                                   style="width: 90px; padding: 0.5rem; text-align: center; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; font-weight: bold; touch-action: manipulation;
                                           {% if current_mark is not None %}background-color: #f0f9ff; border-color: #bce8f1;{% endif %}"
                                    autocomplete="off">
                             {% endwith %}
@@ -438,44 +440,44 @@
             clearTimeout(saveTimeouts[key]);
         }
 
-        const deskInput = document.getElementById(`marks_${studentId}_${subjectId}`);
-        const mobInput = document.getElementById(`mob_marks_${studentId}_${subjectId}`);
-
-        let activeInput = null;
-        if (mobInput && mobInput.value.trim() !== '') {
-            activeInput = mobInput;
-            if (deskInput) deskInput.value = mobInput.value;
-        } else if (deskInput && deskInput.value.trim() !== '') {
-            activeInput = deskInput;
-            if (mobInput) mobInput.value = deskInput.value;
-        } else {
-            activeInput = mobInput || deskInput;
-        }
-        if (!activeInput) return;
-
-        const marksVal = activeInput.value;
-        const studentName = activeInput.dataset.studentName || (deskInput && deskInput.dataset.studentName) || 'Student';
-        const subjectName = activeInput.dataset.subjectName || (deskInput && deskInput.dataset.subjectName) || 'Subject';
-
-        const maxInput = document.querySelector(`input[name="max_marks_${subjectId}"]`);
-        const maxVal = maxInput ? maxInput.value : '';
-        const examDateInput = document.querySelector('input[name="exam_date"]');
-        const examDate = examDateInput ? examDateInput.value : '';
-        const enteredByInput = document.querySelector('input[name="entered_by"]');
-        const enteredBy = enteredByInput ? enteredByInput.value : '';
-
-        // Visual saving state (amber background)
-        [deskInput, mobInput].forEach(inp => {
-            if (inp) {
-                inp.style.backgroundColor = '#fef3c7';
-                inp.style.borderColor = '#f59e0b';
-            }
-        });
-
-        updateAutoSaveStatus(`⏳ Saving mark for ${studentName}...`, '#d97706');
-
-        // Debounce AJAX request by 350ms
+        // Debounce AJAX request by 500ms for smooth non-blocking typing on mobile
         saveTimeouts[key] = setTimeout(() => {
+            const deskInput = document.getElementById(`marks_${studentId}_${subjectId}`);
+            const mobInput = document.getElementById(`mob_marks_${studentId}_${subjectId}`);
+
+            let activeInput = null;
+            if (mobInput && mobInput.value.trim() !== '') {
+                activeInput = mobInput;
+                if (deskInput) deskInput.value = mobInput.value;
+            } else if (deskInput && deskInput.value.trim() !== '') {
+                activeInput = deskInput;
+                if (mobInput) mobInput.value = deskInput.value;
+            } else {
+                activeInput = mobInput || deskInput;
+            }
+            if (!activeInput) return;
+
+            const marksVal = activeInput.value;
+            const studentName = activeInput.dataset.studentName || (deskInput && deskInput.dataset.studentName) || 'Student';
+            const subjectName = activeInput.dataset.subjectName || (deskInput && deskInput.dataset.subjectName) || 'Subject';
+
+            const maxInput = document.querySelector(`input[name="max_marks_${subjectId}"]`);
+            const maxVal = maxInput ? maxInput.value : '';
+            const examDateInput = document.querySelector('input[name="exam_date"]');
+            const examDate = examDateInput ? examDateInput.value : '';
+            const enteredByInput = document.querySelector('input[name="entered_by"]');
+            const enteredBy = enteredByInput ? enteredByInput.value : '';
+
+            // Visual saving state (only mutates styles when actual fetch begins)
+            [deskInput, mobInput].forEach(inp => {
+                if (inp) {
+                    inp.style.backgroundColor = '#fef3c7';
+                    inp.style.borderColor = '#f59e0b';
+                }
+            });
+
+            updateAutoSaveStatus(`⏳ Saving mark for ${studentName}...`, '#d97706');
+
             const formData = new FormData();
             formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
             formData.append('exam_type_id', '{{ exam_type.id }}');
@@ -504,7 +506,7 @@
                                 setTimeout(() => {
                                     inp.style.backgroundColor = '#f0f9ff';
                                     inp.style.borderColor = '#bce8f1';
-                                }, 1200);
+                                }, 1000);
                             } else {
                                 inp.style.backgroundColor = '';
                                 inp.style.borderColor = '';
@@ -535,7 +537,7 @@
                 });
                 updateAutoSaveStatus('❌ Connection error: Mark not saved', '#dc2626');
             });
-        }, 350);
+        }, 500);
     }
 
     function updateAutoSaveStatus(text, color) {
@@ -563,7 +565,7 @@
             });
         }
 
-        // Sync & Auto-save on mobile input change
+        // Sync & Auto-save on mobile input change (single input listener for zero lag)
         document.querySelectorAll('input[id^="mob_marks_"]').forEach(mobInput => {
             mobInput.addEventListener('input', function() {
                 const desktopId = this.id.replace('mob_', '');
@@ -577,16 +579,9 @@
                     autoSaveMark(studentId, subjectId);
                 }
             });
-            mobInput.addEventListener('change', function() {
-                const studentId = this.dataset.studentId;
-                const subjectId = this.dataset.subjectId;
-                if (studentId && subjectId) {
-                    autoSaveMark(studentId, subjectId);
-                }
-            });
         });
 
-        // Sync & Auto-save on desktop input change
+        // Sync & Auto-save on desktop input change (single input listener for zero lag)
         document.querySelectorAll('input[id^="marks_"]').forEach(deskInput => {
             deskInput.addEventListener('input', function() {
                 const mobId = 'mob_' + this.id;
@@ -594,13 +589,6 @@
                 if (mobInput) {
                     mobInput.value = this.value;
                 }
-                const studentId = this.dataset.studentId;
-                const subjectId = this.dataset.subjectId;
-                if (studentId && subjectId) {
-                    autoSaveMark(studentId, subjectId);
-                }
-            });
-            deskInput.addEventListener('change', function() {
                 const studentId = this.dataset.studentId;
                 const subjectId = this.dataset.subjectId;
                 if (studentId && subjectId) {
