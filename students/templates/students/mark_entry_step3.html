@@ -475,7 +475,7 @@
             formData.append('exam_date', examDate);
             formData.append('entered_by', enteredBy);
 
-            fetch('{% url "students:mark_save_single_ajax" %}', {
+            fetch('/students/marks/entry/save-single-ajax/', {
                 method: 'POST',
                 body: formData,
                 headers: {
