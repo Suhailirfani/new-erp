@@ -77,7 +77,7 @@
             </div>
             <div class="form-group" style="margin-bottom: 0;">
                 <label style="font-weight: bold; margin-bottom: 0.5rem; display: block;">Entered By</label>
-                <input type="text" name="entered_by" placeholder="Your name" style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
+                <input type="text" name="entered_by" value="{% if default_entered_by %}{{ default_entered_by }}{% else %}{{ request.user.get_full_name }}{% endif %}" placeholder="Your full name" style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
             </div>
             <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-end;">
                  <button type="submit" class="btn btn-success" style="padding: 0.6rem 1.5rem; font-size: 1.1rem; width: 100%; margin: 0;">

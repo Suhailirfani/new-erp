@@ -587,7 +587,7 @@ class Enquiry(models.Model):
         super().save(*args, **kwargs)
 
 from django.contrib.auth.models import User
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
 class UserProfile(models.Model):
@@ -617,6 +617,21 @@ def create_user_profile(sender, instance, created, **kwargs):
 def save_user_profile(sender, instance, **kwargs):
     if hasattr(instance, 'profile'):
         instance.profile.save()
+
+@receiver([post_save, post_delete], sender=MarkEntry)
+def update_progress_report_on_mark_change(sender, instance, **kwargs):
+    """Automatically update ProgressReport totals and grades when a MarkEntry is created, updated, or deleted."""
+    try:
+        reports = ProgressReport.objects.filter(
+            student=instance.student,
+            exam_type=instance.exam_type
+        )
+        for report in reports:
+            report.calculate_totals()
+            report.save(update_fields=['total_marks_obtained', 'total_max_marks', 'overall_percentage', 'overall_grade'])
+    except Exception:
+        pass
+
 
 # --- Job Vacancy System ---
 
@@ -703,4 +718,26 @@ class StudentFace(models.Model):
 
     def __str__(self):
         return f"Face Profile - {self.student}"
+
+
+class NewsTickerItem(models.Model):
+    """Model to store landing page news ticker announcements for admin CRUD"""
+    title = models.CharField(max_length=200, help_text="Short label or title for admin reference")
+    content = models.TextField(help_text="The announcement text displayed in the landing page ticker")
+    icon = models.CharField(max_length=50, default="🚀", blank=True, help_text="Emoji or icon (e.g. 📢, 🏆, ✨, 📱)")
+    link = models.CharField(max_length=500, blank=True, help_text="Optional URL link (e.g. /results/ or https://...)")
+    text_color = models.CharField(max_length=30, default="#25D366", help_text="Text highlight color code (e.g. #25D366, #f1c40f)")
+    is_active = models.BooleanField(default=True, help_text="Toggle to show/hide this ticker on the landing page")
+    order = models.IntegerField(default=0, help_text="Order index (lower values appear first)")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', '-created_at']
+        verbose_name = "News Ticker Item"
+        verbose_name_plural = "News Ticker Items"
+
+    def __str__(self):
+        return f"{self.icon} {self.title} ({'Active' if self.is_active else 'Disabled'})"
+
 

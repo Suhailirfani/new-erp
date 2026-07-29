@@ -346,11 +346,15 @@
 
         <div class="ticker-wrap">
             <div class="ticker">
-                <span>📱 <a href="{% url 'students:brochure_malayalam' %}" style="color: #25D366; text-decoration: underline;">App Features Brochure (മലയാളം) - വിവരങ്ങൾ ഇവിടെ ലഭ്യമാണ്!</a></span>
-                <span>🚀 Admissions Open for 2026-27 Academic Year!</span>
-                <span>🏆 Award Ceremony Registration is Live for Distinction Holders.</span>
-                <span>✨ Join AWAZE G-CAMP - Register Now to Secure Your Spot!</span>
-                <span>📅 Last Date for Excellence Award Registration: March 20, 2026.</span>
+                {% for item in active_tickers %}
+                    <span>{{ item.icon }} {% if item.link %}<a href="{{ item.link }}" style="color: {{ item.text_color|default:'#25D366' }}; text-decoration: underline;">{{ item.content }}</a>{% else %}<span style="color: {{ item.text_color|default:'#ffffff' }};">{{ item.content }}</span>{% endif %}</span>
+                {% empty %}
+                    <span>📱 <a href="{% url 'students:brochure_malayalam' %}" style="color: #25D366; text-decoration: underline;">App Features Brochure (മലയാളം) - വിവരങ്ങൾ ഇവിടെ ലഭ്യമാണ്!</a></span>
+                    <span>🚀 Admissions Open for 2026-27 Academic Year!</span>
+                    <span>🏆 Award Ceremony Registration is Live for Distinction Holders.</span>
+                    <span>✨ Join AWAZE G-CAMP - Register Now to Secure Your Spot!</span>
+                    <span>📅 Last Date for Excellence Award Registration: March 20, 2026.</span>
+                {% endfor %}
             </div>
         </div>
     </section>

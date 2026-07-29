@@ -18,7 +18,7 @@ except ImportError:
 from .models import (
     Student, Attendance, HostelMovement, Period, Activity, Division, Room,
     ExamType, Subject, MarkEntry, ProgressReport, AcademicYear, Enrollment,
-    Grade, Section, Holiday, ExamSubjectMaxMark
+    Grade, Section, Holiday, ExamSubjectMaxMark, NewsTickerItem
 )
 from .forms import SectionForm, AcademicYearForm, EnquiryForm, GradeForm, DivisionForm, SubjectForm
 from fees.models import FeeStructure, FeeItem
@@ -61,7 +61,7 @@ def get_holiday_dates(start_date, end_date, grade=None):
 
 def landing_page(request):
     """Public landing page"""
-    from .models import LandingPageStats
+    from .models import LandingPageStats, NewsTickerItem
     from django.db.models import F
     
     # Increment visitor count
@@ -72,7 +72,8 @@ def landing_page(request):
         stats.visit_count = 1
         stats.save()
         
-    return render(request, 'students/landing.html')
+    active_tickers = NewsTickerItem.objects.filter(is_active=True).order_by('order', '-created_at')
+    return render(request, 'students/landing.html', {'active_tickers': active_tickers})
 
 
 def after_10(request):
@@ -2042,6 +2043,8 @@ def mark_entry_step3(request, exam_type_id):
     
     # Get students for this class via Enrollment
     active_year = AcademicYear.objects.filter(is_active=True).first()
+    if not active_year:
+        active_year = AcademicYear.objects.order_by('-start_date').first()
     enrollments_query = Enrollment.objects.filter(academic_year=active_year, student__is_active=True, grade=grade_obj).select_related('student')
     if exam_type.section:
         enrollments_query = enrollments_query.filter(section=exam_type.section)
@@ -2116,7 +2119,13 @@ def mark_entry_step3(request, exam_type_id):
     
     if request.method == 'POST':
         exam_date = request.POST.get('exam_date')
-        entered_by = request.POST.get('entered_by', '')
+        user_full_name = request.user.get_full_name().strip()
+        if not user_full_name and hasattr(request.user, 'profile') and request.user.profile and request.user.profile.student_record:
+            user_full_name = request.user.profile.student_record.full_name
+            
+        entered_by = request.POST.get('entered_by', '').strip()
+        if not entered_by:
+            entered_by = user_full_name
         
         success_count = 0
         
@@ -2191,6 +2200,10 @@ def mark_entry_step3(request, exam_type_id):
             existing_marks[entry.student_id] = {}
         existing_marks[entry.student_id][entry.subject_id] = float(entry.marks_obtained)
         
+    user_full_name = request.user.get_full_name().strip()
+    if not user_full_name and hasattr(request.user, 'profile') and request.user.profile and request.user.profile.student_record:
+        user_full_name = request.user.profile.student_record.full_name
+
     context = {
         'exam_type': exam_type,
         'grade_id': grade_id, # Pass grade ID
@@ -2202,6 +2215,7 @@ def mark_entry_step3(request, exam_type_id):
         'all_class_subjects': all_class_subjects,
         'selected_subject': selected_subject,
         'existing_marks': existing_marks,
+        'default_entered_by': user_full_name,
     }
     return render(request, 'students/mark_entry_step3.html', context)
 
@@ -2441,6 +2455,8 @@ def mark_bulk_import(request, exam_type_id):
                 
             # 3. Process Student Rows
             active_year = AcademicYear.objects.filter(is_active=True).first()
+            if not active_year:
+                active_year = AcademicYear.objects.order_by('-start_date').first()
             success_count = 0
             row_idx = 6
             while True:
@@ -6369,6 +6385,76 @@ self.addEventListener('fetch', event => {
 });
 """
     return HttpResponse(sw_code.strip(), content_type='application/javascript')
+
+
+@role_required(['admin'])
+def news_ticker_list(request):
+    """Admin CRUD list page for News Ticker items"""
+    items = NewsTickerItem.objects.all().order_by('order', '-created_at')
+    
+    if request.method == 'POST':
+        item_id = request.POST.get('item_id')
+        title = request.POST.get('title', '').strip()
+        content = request.POST.get('content', '').strip()
+        icon = request.POST.get('icon', '📢').strip()
+        link = request.POST.get('link', '').strip()
+        text_color = request.POST.get('text_color', '#25D366').strip()
+        is_active = request.POST.get('is_active') == 'on'
+        try:
+            order = int(request.POST.get('order', 0))
+        except (ValueError, TypeError):
+            order = 0
+            
+        if item_id:
+            ticker_item = get_object_or_404(NewsTickerItem, pk=item_id)
+            ticker_item.title = title
+            ticker_item.content = content
+            ticker_item.icon = icon
+            ticker_item.link = link
+            ticker_item.text_color = text_color
+            ticker_item.is_active = is_active
+            ticker_item.order = order
+            ticker_item.save()
+            messages.success(request, f"Updated ticker item '{title}' successfully.")
+        else:
+            NewsTickerItem.objects.create(
+                title=title,
+                content=content,
+                icon=icon,
+                link=link,
+                text_color=text_color,
+                is_active=is_active,
+                order=order
+            )
+            messages.success(request, f"Added new ticker item '{title}' successfully.")
+            
+        return redirect('students:news_ticker_list')
+
+    return render(request, 'students/news_ticker_list.html', {'items': items})
+
+
+@role_required(['admin'])
+def news_ticker_toggle(request, pk):
+    """Toggle active/inactive status of a news ticker item"""
+    if request.method == 'POST':
+        item = get_object_or_404(NewsTickerItem, pk=pk)
+        item.is_active = not item.is_active
+        item.save()
+        status_str = "activated" if item.is_active else "disabled"
+        messages.success(request, f"Ticker item '{item.title}' is now {status_str}.")
+    return redirect('students:news_ticker_list')
+
+
+@role_required(['admin'])
+def news_ticker_delete(request, pk):
+    """Delete a news ticker item"""
+    if request.method == 'POST':
+        item = get_object_or_404(NewsTickerItem, pk=pk)
+        title = item.title
+        item.delete()
+        messages.success(request, f"Deleted ticker item '{title}' successfully.")
+    return redirect('students:news_ticker_list')
+
 
 
 

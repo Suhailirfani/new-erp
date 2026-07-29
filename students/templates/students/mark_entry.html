@@ -145,7 +145,7 @@
             </div>
             <div class="form-group">
                 <label>Entered By</label>
-                <input type="text" name="entered_by" placeholder="Your name">
+                <input type="text" name="entered_by" value="{{ request.user.get_full_name }}" placeholder="Your full name">
             </div>
         </div>
         
