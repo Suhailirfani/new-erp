@@ -2134,7 +2134,8 @@ def mark_entry_step3(request, exam_type_id):
             for subject in subjects:
                 # Expected input name format: marks_{student_id}_{subject_id}
                 input_name = f'marks_{student.id}_{subject.id}'
-                marks_str = request.POST.get(input_name)
+                raw_marks = request.POST.getlist(input_name)
+                marks_str = next((m for m in reversed(raw_marks) if m is not None and m.strip() != ''), '')
                 
                 if marks_str is not None and marks_str.strip() != '':
                     try:
@@ -2142,7 +2143,8 @@ def mark_entry_step3(request, exam_type_id):
                         
                         # Get max marks: form override → exam-specific override → subject default
                         max_marks_input = f'max_marks_{subject.id}'
-                        max_marks_str = request.POST.get(max_marks_input)
+                        raw_max = request.POST.getlist(max_marks_input)
+                        max_marks_str = next((m for m in reversed(raw_max) if m is not None and m.strip() != ''), '')
                         if max_marks_str and max_marks_str.strip():
                             max_marks = float(max_marks_str)
                         else:

@@ -102,7 +102,7 @@
                     </span>
                     <div style="font-size: 0.85rem; color: #64748b; display: flex; align-items: center; gap: 0.25rem;">
                         Max: 
-                        <input type="number" id="mob_max_marks_{{ subject.id }}" value="{{ subject.effective_max_marks|floatformat:0 }}" step="1" min="1" style="width: 70px; padding: 0.3rem; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: bold; color: #1e293b;">
+                        <input type="number" id="mob_max_marks_{{ subject.id }}" name="max_marks_{{ subject.id }}" value="{{ subject.effective_max_marks|floatformat:0 }}" step="1" min="1" style="width: 70px; padding: 0.3rem; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: bold; color: #1e293b;">
                     </div>
                 </div>
                 {% endfor %}
@@ -204,6 +204,7 @@
                             {% with current_mark=student_marks|get_item:subject.id %}
                             <input type="number" 
                                    id="mob_marks_{{ student.id }}_{{ subject.id }}" 
+                                   name="marks_{{ student.id }}_{{ subject.id }}"
                                    data-student-id="{{ student.id }}"
                                    data-subject-id="{{ subject.id }}"
                                    data-student-name="{{ student.full_name }}"
@@ -439,12 +440,22 @@
 
         const deskInput = document.getElementById(`marks_${studentId}_${subjectId}`);
         const mobInput = document.getElementById(`mob_marks_${studentId}_${subjectId}`);
-        const activeInput = deskInput || mobInput;
+
+        let activeInput = null;
+        if (mobInput && mobInput.value.trim() !== '') {
+            activeInput = mobInput;
+            if (deskInput) deskInput.value = mobInput.value;
+        } else if (deskInput && deskInput.value.trim() !== '') {
+            activeInput = deskInput;
+            if (mobInput) mobInput.value = deskInput.value;
+        } else {
+            activeInput = mobInput || deskInput;
+        }
         if (!activeInput) return;
 
         const marksVal = activeInput.value;
-        const studentName = activeInput.dataset.studentName || 'Student';
-        const subjectName = activeInput.dataset.subjectName || 'Subject';
+        const studentName = activeInput.dataset.studentName || (deskInput && deskInput.dataset.studentName) || 'Student';
+        const subjectName = activeInput.dataset.subjectName || (deskInput && deskInput.dataset.subjectName) || 'Subject';
 
         const maxInput = document.querySelector(`input[name="max_marks_${subjectId}"]`);
         const maxVal = maxInput ? maxInput.value : '';
@@ -536,6 +547,22 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        const markForm = document.querySelector('form');
+        if (markForm) {
+            markForm.addEventListener('submit', function() {
+                // Ensure all mobile inputs are synced to desktop inputs prior to form submission
+                document.querySelectorAll('input[id^="mob_marks_"]').forEach(mobInput => {
+                    const desktopId = mobInput.id.replace('mob_', '');
+                    const deskInput = document.getElementById(desktopId);
+                    if (deskInput && mobInput.value.trim() !== '') {
+                        deskInput.value = mobInput.value;
+                    } else if (deskInput && deskInput.value.trim() !== '' && mobInput.value.trim() === '') {
+                        mobInput.value = deskInput.value;
+                    }
+                });
+            });
+        }
+
         // Sync & Auto-save on mobile input change
         document.querySelectorAll('input[id^="mob_marks_"]').forEach(mobInput => {
             mobInput.addEventListener('input', function() {
