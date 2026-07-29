@@ -391,6 +391,19 @@
             flex-direction: column;
             gap: 1rem;
         }
+
+        /* Prevent page bouncing and violent up/down shifting when keyboard opens */
+        .mobile-cards-wrapper input[type="number"],
+        .mobile-max-marks-card input[type="number"] {
+            scroll-margin-top: 120px;
+            scroll-margin-bottom: 150px;
+            font-size: 16px !important;
+            touch-action: manipulation;
+        }
+
+        .student-mobile-card {
+            scroll-margin-top: 100px;
+        }
     }
 </style>
 
@@ -567,6 +580,12 @@
 
         // Sync & Auto-save on mobile input change (single input listener for zero lag)
         document.querySelectorAll('input[id^="mob_marks_"]').forEach(mobInput => {
+            mobInput.addEventListener('focus', function() {
+                const el = this;
+                setTimeout(() => {
+                    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }, 150);
+            });
             mobInput.addEventListener('input', function() {
                 const desktopId = this.id.replace('mob_', '');
                 const desktopInput = document.getElementById(desktopId);
