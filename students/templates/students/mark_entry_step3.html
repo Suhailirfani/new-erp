@@ -102,7 +102,7 @@
                     </span>
                     <div style="font-size: 0.85rem; color: #64748b; display: flex; align-items: center; gap: 0.25rem;">
                         Max: 
-                        <input type="number" id="mob_max_marks_{{ subject.id }}" value="{{ subject.effective_max_marks }}" step="0.01" min="1" style="width: 70px; padding: 0.3rem; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: bold; color: #1e293b;">
+                        <input type="number" id="mob_max_marks_{{ subject.id }}" value="{{ subject.effective_max_marks|floatformat:0 }}" step="1" min="1" style="width: 70px; padding: 0.3rem; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: bold; color: #1e293b;">
                     </div>
                 </div>
                 {% endfor %}
@@ -125,8 +125,8 @@
                             </div>
                             <div style="font-weight: normal; font-size: 0.9em; color: #bdc3c7;">
                                 Max: 
-                                <input type="number" name="max_marks_{{ subject.id }}" value="{{ subject.effective_max_marks }}" 
-                                       step="0.01" min="1" style="width: 60px; padding: 0.2rem; text-align: center; border: 1px solid #7f8c8d; background-color: #34495e; color: white; border-radius: 3px;">
+                                <input type="number" name="max_marks_{{ subject.id }}" value="{{ subject.effective_max_marks|floatformat:0 }}" 
+                                       step="1" min="1" style="width: 60px; padding: 0.2rem; text-align: center; border: 1px solid #7f8c8d; background-color: #34495e; color: white; border-radius: 3px;">
                             </div>
                         </th>
                         {% endfor %}
@@ -154,8 +154,8 @@
                                        data-subject-id="{{ subject.id }}"
                                        data-student-name="{{ student.full_name }}"
                                        data-subject-name="{{ subject.name }}"
-                                       value="{% if current_mark is not None %}{{ current_mark }}{% endif %}" 
-                                       step="0.01" min="0" 
+                                       value="{% if current_mark is not None %}{{ current_mark|floatformat:0 }}{% endif %}" 
+                                       step="1" min="0" 
                                        placeholder="-" 
                                        style="width: 80px; padding: 0.5rem; text-align: center; border: 1px solid #ccc; border-radius: 4px; font-size: 1.1em;
                                               {% if current_mark is not None %}background-color: #f0f9ff; border-color: #bce8f1;{% endif %}"
@@ -196,7 +196,7 @@
                                 {% if subject.subject_type == 'hadiya' %}<small style="color: #64748b;">(Hadiya)</small>{% endif %}
                             </span>
                             <span style="display: block; font-size: 0.75rem; color: #64748b; margin-top: 2px;">
-                                Max: <span id="span_max_{{ subject.id }}">{{ subject.effective_max_marks }}</span>
+                                Max: <span id="span_max_{{ subject.id }}">{{ subject.effective_max_marks|floatformat:0 }}</span>
                             </span>
                         </div>
                         
@@ -208,8 +208,8 @@
                                    data-subject-id="{{ subject.id }}"
                                    data-student-name="{{ student.full_name }}"
                                    data-subject-name="{{ subject.name }}"
-                                   value="{% if current_mark is not None %}{{ current_mark }}{% endif %}" 
-                                   step="0.01" min="0" 
+                                   value="{% if current_mark is not None %}{{ current_mark|floatformat:0 }}{% endif %}" 
+                                   step="1" min="0" 
                                    placeholder="-" 
                                    style="width: 90px; padding: 0.5rem; text-align: center; border: 1px solid #ccc; border-radius: 6px; font-size: 1.05rem; font-weight: bold;
                                           {% if current_mark is not None %}background-color: #f0f9ff; border-color: #bce8f1;{% endif %}"

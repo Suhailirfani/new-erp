@@ -2198,7 +2198,8 @@ def mark_entry_step3(request, exam_type_id):
     for entry in mark_entries:
         if entry.student_id not in existing_marks:
             existing_marks[entry.student_id] = {}
-        existing_marks[entry.student_id][entry.subject_id] = float(entry.marks_obtained)
+        val = float(entry.marks_obtained)
+        existing_marks[entry.student_id][entry.subject_id] = int(val) if val.is_integer() else val
         
     user_full_name = request.user.get_full_name().strip()
     if not user_full_name and hasattr(request.user, 'profile') and request.user.profile and request.user.profile.student_record:
@@ -2299,15 +2300,17 @@ def mark_save_single_ajax(request):
         }
     )
 
+    m_val = float(mark_entry.marks_obtained)
+    max_val = float(mark_entry.max_marks)
     return JsonResponse({
         'status': 'success',
         'action': 'saved' if not created else 'created',
         'mark_id': mark_entry.id,
         'student_name': student.full_name,
         'subject_name': subject.name,
-        'marks_obtained': float(mark_entry.marks_obtained),
-        'max_marks': float(mark_entry.max_marks),
-        'percentage': float(mark_entry.percentage),
+        'marks_obtained': int(m_val) if m_val.is_integer() else m_val,
+        'max_marks': int(max_val) if max_val.is_integer() else max_val,
+        'percentage': round(float(mark_entry.percentage), 1),
         'grade_letter': mark_entry.grade_letter,
     })
 
