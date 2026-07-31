@@ -4,19 +4,132 @@
 {% block title %}Class Timetable View - Student Attendance System{% endblock %}
 
 {% block content %}
+<style>
+    /* Desktop vs Mobile View Rules */
+    .mobile-app-container {
+        display: none;
+    }
+    .desktop-table-container {
+        display: block;
+    }
+
+    @media screen and (max-width: 768px) {
+        .desktop-table-container {
+            display: none !important;
+        }
+        .mobile-app-container {
+            display: block !important;
+        }
+
+        /* Day Selector Pill Tabs Bar */
+        .mobile-day-tabs-bar {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding: 0.5rem 0.25rem 0.75rem 0.25rem;
+            margin-bottom: 1rem;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        .mobile-day-tabs-bar::-webkit-scrollbar {
+            display: none;
+        }
+        .mobile-day-pill {
+            flex: 0 0 auto;
+            padding: 0.65rem 1.15rem;
+            border-radius: 20px;
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            color: #475569;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            touch-action: manipulation;
+        }
+        .mobile-day-pill:active {
+            transform: scale(0.95);
+        }
+        .mobile-day-pill.active {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: #ffffff;
+            border-color: #7c3aed;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.35);
+        }
+
+        /* Mobile Period Cards */
+        .mobile-slot-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 1rem 1.15rem;
+            margin-bottom: 0.85rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+        .mobile-slot-card.assigned {
+            border-left: 5px solid #8b5cf6;
+            background: linear-gradient(180deg, #f5f3ff 0%, #ffffff 100%);
+        }
+        .mobile-slot-card.empty {
+            border-left: 5px solid #cbd5e1;
+            opacity: 0.6;
+        }
+        .mobile-slot-card.break-card {
+            background: #fffbeb;
+            border: 1px dashed #f59e0b;
+            border-left: 5px solid #f59e0b;
+            text-align: center;
+            padding: 0.85rem;
+        }
+    }
+
+    @media print {
+        .no-print, .navbar, .sidebar, footer, .btn, .mobile-day-tabs-bar {
+            display: none !important;
+        }
+        .desktop-table-container {
+            display: block !important;
+        }
+        .mobile-app-container {
+            display: none !important;
+        }
+        body {
+            background: white !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .printable-timetable-container {
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+        }
+        table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+        th, td {
+            border: 1px solid #000 !important;
+            font-size: 11px !important;
+            padding: 6px !important;
+        }
+    }
+</style>
+
 <div class="header-container no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
     <div>
         <h1 style="font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 0.75rem;">
             <i class="fa-solid fa-graduation-cap" style="color: #8b5cf6;"></i> Class Timetable Noticeboard
         </h1>
-        <p style="color: #64748b; margin: 0.35rem 0 0 0;">Printable weekly schedule for classrooms and student reference.</p>
+        <p style="color: #64748b; margin: 0.35rem 0 0 0;">Printable & mobile weekly schedule for classrooms and students.</p>
     </div>
     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
         <a href="{% url 'students:timetable_dashboard' %}" class="btn btn-secondary">
             <i class="fa-solid fa-arrow-left"></i> Dashboard
         </a>
         <button onclick="window.print()" class="btn btn-primary" style="font-weight: 700;">
-            <i class="fa-solid fa-print"></i> Print Noticeboard Timetable
+            <i class="fa-solid fa-print"></i> Print Timetable
         </button>
     </div>
 </div>
@@ -24,27 +137,34 @@
 <!-- Filter Bar -->
 <div class="card no-print" style="background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid #cbd5e1; margin-bottom: 1.5rem;">
     <form method="get" id="class_view_form" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-        <label style="font-weight: 800; color: #334155;">Select Grade / Class:</label>
-        <select name="grade_id" onchange="document.getElementById('class_view_form').submit();" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #94a3b8; font-weight: 700;">
-            {% for g in grades %}
-            <option value="{{ g.id }}" {% if selected_grade.id == g.id %}selected{% endif %}>{{ g.name }}</option>
-            {% endfor %}
-        </select>
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 180px;">
+            <label style="font-weight: 800; color: #334155; white-space: nowrap;">Class:</label>
+            <select name="grade_id" onchange="document.getElementById('class_view_form').submit();" style="padding: 0.55rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; width: 100%;">
+                {% for g in grades %}
+                <option value="{{ g.id }}" {% if selected_grade.id == g.id %}selected{% endif %}>{{ g.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
 
-        <label style="font-weight: 800; color: #334155;">Division:</label>
-        <select name="division_id" onchange="document.getElementById('class_view_form').submit();" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #94a3b8; font-weight: 700;">
-            <option value="">-- All / None --</option>
-            {% for d in divisions %}
-            <option value="{{ d.id }}" {% if selected_division and selected_division.id == d.id %}selected{% endif %}>{{ d.name }}</option>
-            {% endfor %}
-        </select>
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 180px;">
+            <label style="font-weight: 800; color: #334155; white-space: nowrap;">Division:</label>
+            <select name="division_id" onchange="document.getElementById('class_view_form').submit();" style="padding: 0.55rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; width: 100%;">
+                <option value="">-- All / None --</option>
+                {% for d in divisions %}
+                <option value="{{ d.id }}" {% if selected_division and selected_division.id == d.id %}selected{% endif %}>{{ d.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
     </form>
 </div>
 
 {% if selected_grade and period_timings %}
-<div class="printable-timetable-container card" style="background: white; border-radius: 16px; padding: 1.75rem; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);">
+
+<!-- ========================================================================= -->
+<!-- 1. DESKTOP PRINTABLE VIEW -->
+<!-- ========================================================================= -->
+<div class="desktop-table-container printable-timetable-container card" style="background: white; border-radius: 16px; padding: 1.75rem; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);">
     
-    <!-- Printable Header Header -->
     <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
         <h2 style="font-size: 1.6rem; font-weight: 800; color: #0f172a; margin: 0;">CLASS WEEKLY TIMETABLE</h2>
         <h3 style="font-size: 1.15rem; font-weight: 700; color: #6366f1; margin: 0.35rem 0 0 0;">
@@ -110,33 +230,97 @@
     </div>
 
 </div>
-{% endif %}
 
-<style>
-    @media print {
-        .no-print, .navbar, .sidebar, footer, .btn {
-            display: none !important;
-        }
-        body {
-            background: white !important;
-            padding: 0 !important;
-            margin: 0 !important;
-        }
-        .printable-timetable-container {
-            border: none !important;
-            box-shadow: none !important;
-            padding: 0 !important;
-        }
-        table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-        }
-        th, td {
-            border: 1px solid #000 !important;
-            font-size: 11px !important;
-            padding: 6px !important;
-        }
+<!-- ========================================================================= -->
+<!-- 2. MOBILE APP VIEW -->
+<!-- ========================================================================= -->
+<div class="mobile-app-container no-print">
+
+    <!-- Day Selector Tabs Bar -->
+    <div class="mobile-day-tabs-bar">
+        {% for day_key, day_label in days_of_week %}
+        <button type="button" 
+                class="mobile-day-pill {% if forloop.first %}active{% endif %}" 
+                id="view_pill_{{ day_key }}"
+                onclick="switchViewDay('{{ day_key }}')">
+            {{ day_label }}
+        </button>
+        {% endfor %}
+    </div>
+
+    <!-- Day Panels -->
+    {% for day_key, day_label in days_of_week %}
+    <div class="mobile-view-panel" id="view_panel_{{ day_key }}" style="{% if not forloop.first %}display: none;{% endif %}">
+        
+        {% for pt in period_timings %}
+        {% if pt.is_break %}
+        <div class="mobile-slot-card break-card">
+            <div style="font-weight: 800; color: #b45309; font-size: 0.9rem;">
+                ☕ {{ pt.name }} ({{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }})
+            </div>
+        </div>
+        {% else %}
+
+        {% with slot_key=day_key|add:"_"|add:pt.id %}
+        {% with slot=slots_map|get_item:slot_key %}
+
+        <div class="mobile-slot-card {% if slot %}assigned{% else %}empty{% endif %}">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                <div style="font-weight: 800; color: #1e293b; font-size: 0.9rem;">
+                    <i class="fa-solid fa-clock" style="color: #8b5cf6; margin-right: 0.35rem;"></i> {{ pt.name }}
+                </div>
+                <div style="font-size: 0.75rem; color: #64748b; font-weight: 700; background: #f1f5f9; padding: 0.2rem 0.5rem; border-radius: 6px;">
+                    {{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }}
+                </div>
+            </div>
+
+            {% if slot %}
+            <div style="font-size: 1.1rem; font-weight: 800; color: #6d28d9; margin-bottom: 0.25rem;">
+                {{ slot.subject.name }}
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; font-size: 0.85rem; color: #334155; font-weight: 700;">
+                <div>
+                    <i class="fa-solid fa-chalkboard-user" style="color: #8b5cf6;"></i> {{ slot.teacher.get_full_name|default:slot.teacher.username }}
+                </div>
+                {% if slot.room_number %}
+                <div style="color: #64748b;">
+                    📍 Room: {{ slot.room_number }}
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div style="color: #cbd5e1; font-size: 0.85rem; font-weight: 600; margin-top: 0.25rem;">
+                - No Subject Assigned -
+            </div>
+            {% endif %}
+
+        </div>
+
+        {% endwith %}
+        {% endwith %}
+
+        {% endif %}
+        {% endfor %}
+
+    </div>
+    {% endfor %}
+
+</div>
+
+<script>
+    function switchViewDay(dayKey) {
+        document.querySelectorAll('.mobile-day-pill').forEach(pill => pill.classList.remove('active'));
+        document.querySelectorAll('.mobile-view-panel').forEach(panel => panel.style.display = 'none');
+
+        const activePill = document.getElementById(`view_pill_${dayKey}`);
+        const activePanel = document.getElementById(`view_panel_${dayKey}`);
+
+        if (activePill) activePill.classList.add('active');
+        if (activePanel) activePanel.style.display = 'block';
     }
-</style>
+</script>
+
+{% endif %}
 
 {% endblock %}
