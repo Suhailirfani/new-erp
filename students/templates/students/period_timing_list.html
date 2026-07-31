@@ -25,7 +25,21 @@
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; align-items: start;">
+<style>
+    .timetable-responsive-grid {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 1.5rem;
+        align-items: start;
+    }
+    @media screen and (max-width: 992px) {
+        .timetable-responsive-grid {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
+
+<div class="timetable-responsive-grid">
     
     <!-- Table List -->
     <div class="card" style="background: white; border-radius: 16px; padding: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);">
