@@ -120,7 +120,9 @@
                 <select name="subject_id" required style="width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 8px;">
                     <option value="">-- Choose Subject --</option>
                     {% for s in subjects %}
-                    <option value="{{ s.id }}">{{ s.name }} ({{ s.grade.name }})</option>
+                    <option value="{{ s.id }}" data-grade-id="{{ s.grade.id }}" data-division-id="{{ s.division.id|default:'' }}">
+                        {{ s.name }} ({{ s.grade.name }}{% if s.division %} - {{ s.division.name }}{% else %} General{% endif %})
+                    </option>
                     {% endfor %}
                 </select>
             </div>
@@ -137,4 +139,49 @@
     </div>
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const gradeSelect = document.querySelector('select[name="grade_id"]');
+    const divisionSelect = document.querySelector('select[name="division_id"]');
+    const subjectSelect = document.querySelector('select[name="subject_id"]');
+
+    function filterSubjects() {
+        const selectedGrade = gradeSelect.value;
+        const selectedDivision = divisionSelect.value;
+
+        const options = subjectSelect.querySelectorAll('option');
+
+        options.forEach(opt => {
+            if (!opt.value) return; // Keep placeholder '-- Choose Subject --'
+
+            const gradeId = opt.dataset.gradeId;
+            const divisionId = opt.dataset.divisionId;
+
+            let matchesGrade = !selectedGrade || (gradeId === selectedGrade);
+            let matchesDivision = !selectedDivision || (!divisionId || divisionId === selectedDivision);
+
+            if (matchesGrade && matchesDivision) {
+                opt.style.display = '';
+                opt.disabled = false;
+            } else {
+                opt.style.display = 'none';
+                opt.disabled = true;
+            }
+        });
+
+        // Reset selected value if current selection is disabled
+        const currentOpt = subjectSelect.options[subjectSelect.selectedIndex];
+        if (currentOpt && currentOpt.disabled) {
+            subjectSelect.value = '';
+        }
+    }
+
+    if (gradeSelect && divisionSelect && subjectSelect) {
+        gradeSelect.addEventListener('change', filterSubjects);
+        divisionSelect.addEventListener('change', filterSubjects);
+        filterSubjects();
+    }
+});
+</script>
 {% endblock %}
