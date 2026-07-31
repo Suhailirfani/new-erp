@@ -18,7 +18,8 @@ except ImportError:
 from .models import (
     Student, Attendance, HostelMovement, Period, Activity, Division, Room,
     ExamType, Subject, MarkEntry, ProgressReport, AcademicYear, Enrollment,
-    Grade, Section, Holiday, ExamSubjectMaxMark, NewsTickerItem
+    Grade, Section, Holiday, ExamSubjectMaxMark, NewsTickerItem,
+    PeriodTiming, TeacherSubjectAssignment, TimetableSlot
 )
 from .forms import SectionForm, AcademicYearForm, EnquiryForm, GradeForm, DivisionForm, SubjectForm
 from fees.models import FeeStructure, FeeItem
@@ -6551,6 +6552,432 @@ def news_ticker_delete(request, pk):
         item.delete()
         messages.success(request, f"Deleted ticker item '{title}' successfully.")
     return redirect('students:news_ticker_list')
+
+
+# ==============================================================================
+# TIMETABLE MANAGEMENT SYSTEM VIEWS
+# ==============================================================================
+
+@login_required
+def timetable_dashboard(request):
+    """Main dashboard for Timetable management system"""
+    grades = Grade.objects.all()
+    divisions = Division.objects.all()
+    teachers_count = User.objects.filter(profile__role='teacher').count()
+    slots_count = TimetableSlot.objects.count()
+    assignments_count = TeacherSubjectAssignment.objects.count()
+    period_timings_count = PeriodTiming.objects.count()
+
+    context = {
+        'grades': grades,
+        'divisions': divisions,
+        'teachers_count': teachers_count,
+        'slots_count': slots_count,
+        'assignments_count': assignments_count,
+        'period_timings_count': period_timings_count,
+    }
+    return render(request, 'students/timetable_dashboard.html', context)
+
+
+@role_required(['admin'])
+def period_timing_list(request):
+    """CRUD list view for Period Timings"""
+    if request.method == 'POST':
+        period_id = request.POST.get('period_id')
+        name = request.POST.get('name', '').strip()
+        start_time = request.POST.get('start_time')
+        end_time = request.POST.get('end_time')
+        period_order = request.POST.get('period_order', 1)
+        is_break = request.POST.get('is_break') == 'on'
+
+        if name and start_time and end_time:
+            if period_id:
+                pt = get_object_or_404(PeriodTiming, pk=period_id)
+                pt.name = name
+                pt.start_time = start_time
+                pt.end_time = end_time
+                pt.period_order = period_order
+                pt.is_break = is_break
+                pt.save()
+                messages.success(request, f"Updated Period Timing '{name}'.")
+            else:
+                PeriodTiming.objects.create(
+                    name=name,
+                    start_time=start_time,
+                    end_time=end_time,
+                    period_order=period_order,
+                    is_break=is_break
+                )
+                messages.success(request, f"Created Period Timing '{name}'.")
+            return redirect('students:period_timing_list')
+
+    timings = PeriodTiming.objects.all()
+    return render(request, 'students/period_timing_list.html', {'timings': timings})
+
+
+@role_required(['admin'])
+def period_timing_seed(request):
+    """Seed standard 8-period school timings if none exist"""
+    if request.method == 'POST':
+        if PeriodTiming.objects.exists():
+            messages.warning(request, "Period timings already exist. Delete them first if you want to re-seed defaults.")
+            return redirect('students:period_timing_list')
+
+        defaults = [
+            {'name': 'Period 1', 'start_time': '08:30', 'end_time': '09:15', 'period_order': 1, 'is_break': False},
+            {'name': 'Period 2', 'start_time': '09:15', 'end_time': '10:00', 'period_order': 2, 'is_break': False},
+            {'name': 'Tea Break', 'start_time': '10:00', 'end_time': '10:15', 'period_order': 3, 'is_break': True},
+            {'name': 'Period 3', 'start_time': '10:15', 'end_time': '11:00', 'period_order': 4, 'is_break': False},
+            {'name': 'Period 4', 'start_time': '11:00', 'end_time': '11:45', 'period_order': 5, 'is_break': False},
+            {'name': 'Lunch Break', 'start_time': '11:45', 'end_time': '12:30', 'period_order': 6, 'is_break': True},
+            {'name': 'Period 5', 'start_time': '12:30', 'end_time': '13:15', 'period_order': 7, 'is_break': False},
+            {'name': 'Period 6', 'start_time': '13:15', 'end_time': '14:00', 'period_order': 8, 'is_break': False},
+        ]
+        for d in defaults:
+            PeriodTiming.objects.create(**d)
+        messages.success(request, "Successfully created default period timings!")
+    return redirect('students:period_timing_list')
+
+
+@role_required(['admin'])
+def period_timing_delete(request, pk):
+    if request.method == 'POST':
+        pt = get_object_or_404(PeriodTiming, pk=pk)
+        name = pt.name
+        pt.delete()
+        messages.success(request, f"Deleted period timing '{name}'.")
+    return redirect('students:period_timing_list')
+
+
+@role_required(['admin', 'teacher'])
+def teacher_assignment_list(request):
+    """View to assign teachers to subjects for Grade and Division"""
+    if request.method == 'POST':
+        teacher_id = request.POST.get('teacher_id')
+        subject_id = request.POST.get('subject_id')
+        grade_id = request.POST.get('grade_id')
+        division_id = request.POST.get('division_id')
+        periods_per_week = request.POST.get('periods_per_week', 5)
+
+        teacher = get_object_or_404(User, pk=teacher_id)
+        subject = get_object_or_404(Subject, pk=subject_id)
+        grade = get_object_or_404(Grade, pk=grade_id)
+        division = Division.objects.filter(pk=division_id).first() if division_id else None
+
+        active_year = AcademicYear.objects.filter(is_active=True).first() or AcademicYear.objects.order_by('-start_date').first()
+
+        TeacherSubjectAssignment.objects.update_or_create(
+            teacher=teacher,
+            subject=subject,
+            grade=grade,
+            division=division,
+            defaults={
+                'periods_per_week': int(periods_per_week),
+                'academic_year': active_year,
+            }
+        )
+        messages.success(request, f"Assigned {teacher.get_full_name() or teacher.username} to {subject.name} ({grade.name} {division.name if division else ''}).")
+        return redirect('students:teacher_assignment_list')
+
+    assignments = TeacherSubjectAssignment.objects.select_related('teacher', 'subject', 'grade', 'division').all()
+    teachers = User.objects.filter(profile__role='teacher').order_by('first_name', 'last_name', 'username')
+    grades = Grade.objects.all()
+    divisions = Division.objects.all()
+    subjects = Subject.objects.filter(is_active=True)
+
+    context = {
+        'assignments': assignments,
+        'teachers': teachers,
+        'grades': grades,
+        'divisions': divisions,
+        'subjects': subjects,
+    }
+    return render(request, 'students/teacher_assignment_list.html', context)
+
+
+@role_required(['admin'])
+def teacher_assignment_delete(request, pk):
+    if request.method == 'POST':
+        assignment = get_object_or_404(TeacherSubjectAssignment, pk=pk)
+        assignment.delete()
+        messages.success(request, "Deleted teacher subject assignment.")
+    return redirect('students:teacher_assignment_list')
+
+
+@role_required(['admin', 'teacher'])
+def timetable_builder(request):
+    """Interactive Weekly Timetable Grid Builder for a selected Grade and Division"""
+    grades = Grade.objects.all()
+    divisions = Division.objects.all()
+
+    grade_id = request.GET.get('grade_id')
+    division_id = request.GET.get('division_id')
+
+    selected_grade = Grade.objects.filter(pk=grade_id).first() if grade_id else grades.first()
+    selected_division = Division.objects.filter(pk=division_id).first() if division_id else None
+
+    period_timings = PeriodTiming.objects.all().order_by('period_order')
+    days_of_week = [
+        ('monday', 'Monday'),
+        ('tuesday', 'Tuesday'),
+        ('wednesday', 'Wednesday'),
+        ('thursday', 'Thursday'),
+        ('friday', 'Friday'),
+        ('saturday', 'Saturday'),
+    ]
+
+    active_year = AcademicYear.objects.filter(is_active=True).first() or AcademicYear.objects.order_by('-start_date').first()
+
+    # Get assigned subjects and teachers for this class
+    class_assignments = []
+    if selected_grade:
+        class_assignments = TeacherSubjectAssignment.objects.filter(
+            grade=selected_grade
+        ).select_related('teacher', 'subject', 'division')
+        if selected_division:
+            class_assignments = class_assignments.filter(
+                Q(division=selected_division) | Q(division__isnull=True)
+            )
+
+    all_teachers = User.objects.filter(profile__role='teacher').order_by('first_name', 'last_name')
+    all_subjects = Subject.objects.filter(is_active=True)
+    if selected_grade:
+        all_subjects = all_subjects.filter(grade=selected_grade)
+
+    # Fetch existing slots for grid
+    slots_map = {}
+    if selected_grade:
+        existing_slots = TimetableSlot.objects.filter(
+            grade=selected_grade,
+            division=selected_division
+        ).select_related('subject', 'teacher', 'period_timing')
+
+        for slot in existing_slots:
+            key = f"{slot.day_of_week}_{slot.period_timing_id}"
+            slots_map[key] = slot
+
+    context = {
+        'grades': grades,
+        'divisions': divisions,
+        'selected_grade': selected_grade,
+        'selected_division': selected_division,
+        'period_timings': period_timings,
+        'days_of_week': days_of_week,
+        'class_assignments': class_assignments,
+        'all_teachers': all_teachers,
+        'all_subjects': all_subjects,
+        'slots_map': slots_map,
+        'active_year': active_year,
+    }
+    return render(request, 'students/timetable_builder.html', context)
+
+
+@role_required(['admin', 'teacher'])
+def timetable_check_clash_ajax(request):
+    """AJAX endpoint to check if assigning a teacher to a day and period causes a clash"""
+    if request.method == 'POST':
+        grade_id = request.POST.get('grade_id')
+        division_id = request.POST.get('division_id')
+        day_of_week = request.POST.get('day_of_week')
+        period_timing_id = request.POST.get('period_timing_id')
+        teacher_id = request.POST.get('teacher_id')
+        slot_id = request.POST.get('slot_id')
+
+        if not (day_of_week and period_timing_id and teacher_id):
+            return JsonResponse({'has_clash': False})
+
+        teacher = User.objects.filter(pk=teacher_id).first()
+        period_timing = PeriodTiming.objects.filter(pk=period_timing_id).first()
+        if not (teacher and period_timing):
+            return JsonResponse({'has_clash': False})
+
+        # Check teacher clash (teacher already assigned to another class at this time)
+        query = TimetableSlot.objects.filter(
+            teacher=teacher,
+            day_of_week=day_of_week,
+            period_timing=period_timing
+        )
+        if slot_id:
+            query = query.exclude(pk=slot_id)
+
+        clash = query.first()
+        if clash:
+            div_str = f" {clash.division.name}" if clash.division else ""
+            msg = f"⚠️ Conflict: {teacher.get_full_name() or teacher.username} is already teaching {clash.grade.name}{div_str} ({clash.subject.name}) in {period_timing.name} on {clash.get_day_of_week_display()}!"
+            return JsonResponse({
+                'has_clash': True,
+                'clash_type': 'teacher',
+                'message': msg,
+                'clash_class': f"{clash.grade.name}{div_str}",
+                'clash_subject': clash.subject.name,
+            })
+
+        return JsonResponse({'has_clash': False})
+
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+@role_required(['admin', 'teacher'])
+def timetable_save_slot_ajax(request):
+    """AJAX endpoint to save, update, or remove a timetable slot"""
+    if request.method == 'POST':
+        grade_id = request.POST.get('grade_id')
+        division_id = request.POST.get('division_id')
+        day_of_week = request.POST.get('day_of_week')
+        period_timing_id = request.POST.get('period_timing_id')
+        subject_id = request.POST.get('subject_id')
+        teacher_id = request.POST.get('teacher_id')
+        room_number = request.POST.get('room_number', '').strip()
+
+        grade = get_object_or_404(Grade, pk=grade_id)
+        division = Division.objects.filter(pk=division_id).first() if division_id else None
+        period_timing = get_object_or_404(PeriodTiming, pk=period_timing_id)
+        active_year = AcademicYear.objects.filter(is_active=True).first() or AcademicYear.objects.order_by('-start_date').first()
+
+        # If subject or teacher is cleared, delete the slot
+        if not subject_id or not teacher_id:
+            TimetableSlot.objects.filter(
+                grade=grade,
+                division=division,
+                day_of_week=day_of_week,
+                period_timing=period_timing
+            ).delete()
+            return JsonResponse({'status': 'success', 'action': 'deleted'})
+
+        subject = get_object_or_404(Subject, pk=subject_id)
+        teacher = get_object_or_404(User, pk=teacher_id)
+
+        try:
+            slot, created = TimetableSlot.objects.update_or_create(
+                grade=grade,
+                division=division,
+                day_of_week=day_of_week,
+                period_timing=period_timing,
+                defaults={
+                    'subject': subject,
+                    'teacher': teacher,
+                    'room_number': room_number,
+                    'academic_year': active_year,
+                }
+            )
+            return JsonResponse({
+                'status': 'success',
+                'action': 'created' if created else 'updated',
+                'slot_id': slot.id,
+                'subject_name': subject.name,
+                'teacher_name': teacher.get_full_name() or teacher.username,
+                'room_number': room_number,
+            })
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+@login_required
+def teacher_my_schedule(request):
+    """View for logged-in teacher or selected teacher to view their weekly teaching schedule"""
+    teacher = request.user
+    teacher_id = request.GET.get('teacher_id')
+    if teacher_id and request.user.profile.role == 'admin':
+        teacher = get_object_or_404(User, pk=teacher_id)
+
+    period_timings = PeriodTiming.objects.all().order_by('period_order')
+    days_of_week = [
+        ('monday', 'Monday'),
+        ('tuesday', 'Tuesday'),
+        ('wednesday', 'Wednesday'),
+        ('thursday', 'Thursday'),
+        ('friday', 'Friday'),
+        ('saturday', 'Saturday'),
+    ]
+
+    slots = TimetableSlot.objects.filter(teacher=teacher).select_related('grade', 'division', 'subject', 'period_timing')
+
+    schedule_map = {}
+    for slot in slots:
+        key = f"{slot.day_of_week}_{slot.period_timing_id}"
+        schedule_map[key] = slot
+
+    all_teachers = User.objects.filter(profile__role='teacher').order_by('first_name', 'last_name')
+
+    context = {
+        'teacher': teacher,
+        'period_timings': period_timings,
+        'days_of_week': days_of_week,
+        'schedule_map': schedule_map,
+        'all_teachers': all_teachers,
+        'total_periods': slots.count(),
+    }
+    return render(request, 'students/teacher_my_schedule.html', context)
+
+
+@login_required
+def class_timetable_view(request, grade_id=None):
+    """Public / Printable View of Class Timetable for students, parents, and teachers"""
+    grades = Grade.objects.all()
+    selected_grade = Grade.objects.filter(pk=grade_id).first() if grade_id else grades.first()
+
+    division_id = request.GET.get('division_id')
+    selected_division = Division.objects.filter(pk=division_id).first() if division_id else None
+
+    period_timings = PeriodTiming.objects.all().order_by('period_order')
+    days_of_week = [
+        ('monday', 'Monday'),
+        ('tuesday', 'Tuesday'),
+        ('wednesday', 'Wednesday'),
+        ('thursday', 'Thursday'),
+        ('friday', 'Friday'),
+        ('saturday', 'Saturday'),
+    ]
+
+    slots_map = {}
+    if selected_grade:
+        existing_slots = TimetableSlot.objects.filter(
+            grade=selected_grade,
+            division=selected_division
+        ).select_related('subject', 'teacher', 'period_timing')
+
+        for slot in existing_slots:
+            key = f"{slot.day_of_week}_{slot.period_timing_id}"
+            slots_map[key] = slot
+
+    context = {
+        'grades': grades,
+        'selected_grade': selected_grade,
+        'selected_division': selected_division,
+        'period_timings': period_timings,
+        'days_of_week': days_of_week,
+        'slots_map': slots_map,
+    }
+    return render(request, 'students/class_timetable_view.html', context)
+
+
+@role_required(['admin', 'teacher'])
+def substitute_teacher_finder_ajax(request):
+    """Finds all free teachers available during a specific day and period timing"""
+    day_of_week = request.GET.get('day_of_week')
+    period_timing_id = request.GET.get('period_timing_id')
+
+    if not day_of_week or not period_timing_id:
+        return JsonResponse({'free_teachers': []})
+
+    # Get IDs of teachers who are currently teaching a class in this period
+    busy_teacher_ids = TimetableSlot.objects.filter(
+        day_of_week=day_of_week,
+        period_timing_id=period_timing_id
+    ).values_list('teacher_id', flat=True)
+
+    # Get free teachers
+    free_teachers = User.objects.filter(profile__role='teacher').exclude(id__in=busy_teacher_ids)
+
+    results = []
+    for t in free_teachers:
+        name = t.get_full_name() or t.username
+        results.append({'id': t.id, 'name': name})
+
+    return JsonResponse({'free_teachers': results, 'count': len(results)})
+
 
 
 

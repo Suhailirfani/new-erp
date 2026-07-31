@@ -1639,6 +1639,10 @@
                 <i class="fa-solid fa-graduation-cap"></i>
                 <span>Examination</span>
             </a>
+            <a href="{% url 'students:timetable_dashboard' %}" class="nav-item">
+                <i class="fa-solid fa-calendar-days"></i>
+                <span>Timetable</span>
+            </a>
             {% endif %}
 
             {% if request.user.is_superuser or request.user.profile.role in 'admin,accountant,ntstaff' %}

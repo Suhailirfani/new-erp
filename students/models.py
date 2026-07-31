@@ -741,3 +741,113 @@ class NewsTickerItem(models.Model):
         return f"{self.icon} {self.title} ({'Active' if self.is_active else 'Disabled'})"
 
 
+class PeriodTiming(models.Model):
+    """Defines time slots for periods and breaks across the school day."""
+    name = models.CharField(max_length=100, help_text="e.g. Period 1, Morning Break, Period 4")
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    period_order = models.PositiveIntegerField(default=1, help_text="Display order (1, 2, 3...)")
+    is_break = models.BooleanField(default=False, help_text="Set to True for recess/lunch break")
+
+    class Meta:
+        ordering = ['period_order', 'start_time']
+        verbose_name = "Period Timing"
+        verbose_name_plural = "Period Timings"
+
+    def __str__(self):
+        return f"{self.name} ({self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')})"
+
+
+class TeacherSubjectAssignment(models.Model):
+    """Maps which teacher teaches which subject for a specific Grade and Division."""
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subject_assignments')
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='teacher_assignments')
+    grade = models.ForeignKey(Grade, on_delete=models.CASCADE, related_name='teacher_assignments')
+    division = models.ForeignKey(Division, on_delete=models.CASCADE, null=True, blank=True, related_name='teacher_assignments')
+    periods_per_week = models.PositiveIntegerField(default=5, help_text="Target periods per week")
+    academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, null=True, blank=True)
+
+    class Meta:
+        unique_together = ['teacher', 'subject', 'grade', 'division']
+        verbose_name = "Teacher Subject Assignment"
+        verbose_name_plural = "Teacher Subject Assignments"
+
+    def __str__(self):
+        div_str = f" ({self.division.name})" if self.division else ""
+        return f"{self.teacher.get_full_name() or self.teacher.username} -> {self.subject.name} - {self.grade.name}{div_str}"
+
+
+class TimetableSlot(models.Model):
+    """Stores individual weekly timetable slot assignments for classes."""
+    DAY_CHOICES = [
+        ('monday', 'Monday'),
+        ('tuesday', 'Tuesday'),
+        ('wednesday', 'Wednesday'),
+        ('thursday', 'Thursday'),
+        ('friday', 'Friday'),
+        ('saturday', 'Saturday'),
+        ('sunday', 'Sunday'),
+    ]
+
+    academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, null=True, blank=True)
+    grade = models.ForeignKey(Grade, on_delete=models.CASCADE, related_name='timetable_slots')
+    division = models.ForeignKey(Division, on_delete=models.CASCADE, null=True, blank=True, related_name='timetable_slots')
+    day_of_week = models.CharField(max_length=15, choices=DAY_CHOICES)
+    period_timing = models.ForeignKey(PeriodTiming, on_delete=models.CASCADE, related_name='timetable_slots')
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='timetable_slots')
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name='timetable_slots')
+    room_number = models.CharField(max_length=50, blank=True, null=True, help_text="Classroom or Lab number")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['grade', 'division', 'day_of_week', 'period_timing']
+        ordering = ['day_of_week', 'period_timing__period_order']
+        verbose_name = "Timetable Slot"
+        verbose_name_plural = "Timetable Slots"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        # 1. Teacher Clash Check
+        teacher_clash = TimetableSlot.objects.filter(
+            teacher=self.teacher,
+            day_of_week=self.day_of_week,
+            period_timing=self.period_timing
+        ).exclude(pk=self.pk)
+        if self.academic_year:
+            teacher_clash = teacher_clash.filter(academic_year=self.academic_year)
+
+        if teacher_clash.exists():
+            clash = teacher_clash.first()
+            raise ValidationError(
+                f"Conflict: Teacher {self.teacher.get_full_name() or self.teacher.username} is already assigned to "
+                f"{clash.grade.name} ({clash.division.name if clash.division else 'No Div'}) during {self.period_timing.name} on {self.get_day_of_week_display()}."
+            )
+
+        # 2. Class Clash Check
+        class_clash = TimetableSlot.objects.filter(
+            grade=self.grade,
+            division=self.division,
+            day_of_week=self.day_of_week,
+            period_timing=self.period_timing
+        ).exclude(pk=self.pk)
+        if self.academic_year:
+            class_clash = class_clash.filter(academic_year=self.academic_year)
+
+        if class_clash.exists():
+            clash = class_clash.first()
+            raise ValidationError(
+                f"Conflict: {self.grade.name} ({self.division.name if self.division else 'No Div'}) already has subject "
+                f"'{clash.subject.name}' ({clash.teacher.get_full_name() or clash.teacher.username}) during {self.period_timing.name} on {self.get_day_of_week_display()}."
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        div_str = f" {self.division.name}" if self.division else ""
+        return f"{self.grade.name}{div_str} | {self.get_day_of_week_display()} {self.period_timing.name}: {self.subject.name} ({self.teacher.get_full_name() or self.teacher.username})"
+
+
+

@@ -1,0 +1,349 @@
+{% extends 'students/base.html' %}
+{% load students_extras %}
+
+{% block title %}Weekly Timetable Grid Builder - Student Attendance System{% endblock %}
+
+{% block content %}
+<div class="header-container" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fa-solid fa-border-all" style="color: #6366f1;"></i> Interactive Timetable Grid Builder
+        </h1>
+        <p style="color: #64748b; margin: 0.35rem 0 0 0;">Click any cell to assign subjects & teachers. Real-time clash detection prevents teacher double-booking.</p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'students:timetable_dashboard' %}" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Dashboard
+        </a>
+        {% if selected_grade %}
+        <a href="{% url 'students:class_timetable_view_grade' selected_grade.id %}{% if selected_division %}?division_id={{ selected_division.id }}{% endif %}" target="_blank" class="btn btn-success" style="font-weight: 700;">
+            <i class="fa-solid fa-print"></i> Print View
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Class Filter Bar -->
+<div class="card" style="background: #f8fafc; padding: 1.25rem; border-radius: 16px; border: 1px solid #cbd5e1; margin-bottom: 1.5rem;">
+    <form method="get" id="class_filter_form" style="display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label style="font-weight: 800; color: #334155; margin: 0;">Select Class (Grade):</label>
+            <select name="grade_id" onchange="document.getElementById('class_filter_form').submit();" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #94a3b8; font-weight: 700; color: #0f172a; min-width: 160px;">
+                {% for g in grades %}
+                <option value="{{ g.id }}" {% if selected_grade.id == g.id %}selected{% endif %}>{{ g.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label style="font-weight: 800; color: #334155; margin: 0;">Division:</label>
+            <select name="division_id" onchange="document.getElementById('class_filter_form').submit();" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #94a3b8; font-weight: 700; color: #0f172a; min-width: 160px;">
+                <option value="">-- All / None --</option>
+                {% for d in divisions %}
+                <option value="{{ d.id }}" {% if selected_division and selected_division.id == d.id %}selected{% endif %}>{{ d.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div id="status_toast" style="margin-left: auto; font-weight: 700; font-size: 0.85rem; padding: 0.4rem 0.85rem; border-radius: 8px; background: #e0e7ff; color: #4338ca; display: flex; align-items: center; gap: 0.35rem;">
+            ⚡ Auto-Save Enabled: Click any cell to edit!
+        </div>
+    </form>
+</div>
+
+{% if selected_grade and period_timings %}
+
+<!-- Interactive Grid Table -->
+<div class="card" style="background: white; border-radius: 16px; padding: 1.25rem; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); overflow-x: auto;">
+    <table class="table-custom" style="width: 100%; border-collapse: separate; border-spacing: 6px; min-width: 900px;">
+        <thead>
+            <tr style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white;">
+                <th style="padding: 1rem; text-align: center; border-radius: 10px; width: 140px; font-weight: 800; font-size: 0.9rem;">
+                    Period / Day
+                </th>
+                {% for day_key, day_label in days_of_week %}
+                <th style="padding: 1rem; text-align: center; border-radius: 10px; font-weight: 800; font-size: 0.9rem; letter-spacing: 0.5px;">
+                    {{ day_label }}
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for pt in period_timings %}
+            <tr>
+                <!-- Period Timing Column Header -->
+                <td style="background: #f1f5f9; padding: 0.85rem; border-radius: 10px; text-align: center; border: 1px solid #cbd5e1; vertical-align: middle;">
+                    <div style="font-weight: 800; color: #1e293b; font-size: 0.95rem;">{{ pt.name }}</div>
+                    <div style="font-size: 0.75rem; color: #64748b; font-weight: 700; margin-top: 2px;">
+                        {{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }}
+                    </div>
+                </td>
+
+                {% if pt.is_break %}
+                <!-- Break / Recess Row Span Across All Days -->
+                <td colspan="6" style="background: #fef3c7; color: #92400e; font-weight: 800; text-align: center; padding: 0.75rem; border-radius: 10px; border: 1px dashed #f59e0b; font-size: 0.9rem; letter-spacing: 1px;">
+                    ☕ {{ pt.name|upper }} INTERVAL
+                </td>
+                {% else %}
+
+                {% for day_key, day_label in days_of_week %}
+                {% with slot_key=day_key|add:"_"|add:pt.id %}
+                {% with slot=slots_map|get_item:slot_key %}
+                
+                <td class="timetable-cell" 
+                    id="cell_{{ day_key }}_{{ pt.id }}"
+                    data-day="{{ day_key }}"
+                    data-period-id="{{ pt.id }}"
+                    data-period-name="{{ pt.name }}"
+                    data-day-label="{{ day_label }}"
+                    data-subject-id="{{ slot.subject.id|default:'' }}"
+                    data-teacher-id="{{ slot.teacher.id|default:'' }}"
+                    data-room="{{ slot.room_number|default:'' }}"
+                    onclick="openSlotModal('{{ day_key }}', '{{ pt.id }}', '{{ day_label }}', '{{ pt.name }}')"
+                    style="background: {% if slot %}#f0fdf4{% else %}#ffffff{% endif %}; 
+                           border: 2px dashed {% if slot %}#86efac{% else %}#cbd5e1{% endif %}; 
+                           border-radius: 10px; padding: 0.75rem; text-align: center; vertical-align: middle; cursor: pointer; transition: all 0.2s ease;">
+                    
+                    {% if slot %}
+                    <div style="font-weight: 800; color: #15803d; font-size: 0.9rem; line-height: 1.2;">
+                        {{ slot.subject.name }}
+                    </div>
+                    <div style="font-size: 0.75rem; color: #334155; font-weight: 700; margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
+                        <i class="fa-solid fa-user-tie" style="color: #6366f1;"></i> {{ slot.teacher.get_full_name|default:slot.teacher.username }}
+                    </div>
+                    {% if slot.room_number %}
+                    <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">
+                        📍 Room: {{ slot.room_number }}
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div style="color: #94a3b8; font-size: 0.8rem; font-weight: 600;">
+                        <i class="fa-solid fa-plus" style="margin-right: 0.2rem;"></i> Assign
+                    </div>
+                    {% endif %}
+
+                </td>
+
+                {% endwith %}
+                {% endwith %}
+                {% endfor %}
+
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal for Assigning / Editing a Timetable Cell Slot -->
+<div id="slot_editor_modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+    <div class="card" style="width: 480px; max-width: 92%; background: white; padding: 1.75rem; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); position: relative;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem;">
+            <div>
+                <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0;" id="modal_title">
+                    Assign Period
+                </h3>
+                <div style="font-size: 0.8rem; color: #64748b; font-weight: 600;" id="modal_subtitle">
+                    Grade {{ selected_grade.name }} {% if selected_division %}- {{ selected_division.name }}{% endif %}
+                </div>
+            </div>
+            <button type="button" onclick="closeSlotModal()" style="background: #f1f5f9; border: none; width: 32px; height: 32px; border-radius: 50%; font-weight: 800; cursor: pointer; color: #64748b;">&times;</button>
+        </div>
+
+        <!-- Clash Warning Banner -->
+        <div id="clash_warning_box" style="display: none; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 10px; padding: 0.85rem; margin-bottom: 1.25rem; color: #991b1b; font-size: 0.85rem; font-weight: 700; line-height: 1.4;">
+            <div id="clash_message"></div>
+        </div>
+
+        <form id="slot_form" onsubmit="event.preventDefault(); saveSlot();">
+            <input type="hidden" id="modal_day">
+            <input type="hidden" id="modal_period_id">
+
+            <div style="margin-bottom: 1.25rem;">
+                <label style="font-weight: 700; display: block; margin-bottom: 0.4rem; color: #334155; font-size: 0.85rem;">Select Subject</label>
+                <select id="modal_subject_id" onchange="onSubjectChange()" required style="width: 100%; padding: 0.65rem; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 600;">
+                    <option value="">-- Choose Subject --</option>
+                    {% for sub in all_subjects %}
+                    <option value="{{ sub.id }}">{{ sub.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                    <label style="font-weight: 700; color: #334155; font-size: 0.85rem;">Assign Teacher</label>
+                    <button type="button" onclick="findFreeTeachers()" style="background: none; border: none; color: #6366f1; font-weight: 700; font-size: 0.75rem; cursor: pointer;">
+                        🔍 Find Free Teachers
+                    </button>
+                </div>
+                <select id="modal_teacher_id" onchange="checkTeacherClash()" required style="width: 100%; padding: 0.65rem; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 600;">
+                    <option value="">-- Choose Teacher --</option>
+                    {% for t in all_teachers %}
+                    <option value="{{ t.id }}">{{ t.get_full_name|default:t.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="font-weight: 700; display: block; margin-bottom: 0.4rem; color: #334155; font-size: 0.85rem;">Room / Lab (Optional)</label>
+                <input type="text" id="modal_room" placeholder="e.g. Lab 1 or Room 204" style="width: 100%; padding: 0.65rem; border: 1px solid #cbd5e1; border-radius: 10px;">
+            </div>
+
+            <div style="display: flex; gap: 0.75rem;">
+                <button type="button" onclick="clearSlot()" style="background: #fee2e2; color: #dc2626; border: none; padding: 0.75rem 1rem; border-radius: 10px; font-weight: 700; cursor: pointer;">
+                    🗑️ Clear
+                </button>
+                <button type="submit" id="btn_save_slot" class="btn btn-primary" style="flex: 1; padding: 0.75rem; border-radius: 10px; font-weight: 700;">
+                    💾 Save Slot
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script>
+    const classAssignments = {
+        {% for a in class_assignments %}
+        "{{ a.subject.id }}": "{{ a.teacher.id }}",
+        {% endfor %}
+    };
+
+    function openSlotModal(day, periodId, dayLabel, periodName) {
+        document.getElementById('modal_day').value = day;
+        document.getElementById('modal_period_id').value = periodId;
+        document.getElementById('modal_title').innerText = `${dayLabel} - ${periodName}`;
+
+        const cell = document.getElementById(`cell_${day}_${periodId}`);
+        const subjectId = cell.dataset.subjectId;
+        const teacherId = cell.dataset.teacherId;
+        const room = cell.dataset.room;
+
+        document.getElementById('modal_subject_id').value = subjectId;
+        document.getElementById('modal_teacher_id').value = teacherId;
+        document.getElementById('modal_room').value = room;
+
+        document.getElementById('clash_warning_box').style.display = 'none';
+        document.getElementById('slot_editor_modal').style.display = 'flex';
+    }
+
+    function closeSlotModal() {
+        document.getElementById('slot_editor_modal').style.display = 'none';
+    }
+
+    function onSubjectChange() {
+        const subjectId = document.getElementById('modal_subject_id').value;
+        if (classAssignments[subjectId]) {
+            document.getElementById('modal_teacher_id').value = classAssignments[subjectId];
+            checkTeacherClash();
+        }
+    }
+
+    function checkTeacherClash() {
+        const day = document.getElementById('modal_day').value;
+        const periodId = document.getElementById('modal_period_id').value;
+        const teacherId = document.getElementById('modal_teacher_id').value;
+
+        if (!teacherId) {
+            document.getElementById('clash_warning_box').style.display = 'none';
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        formData.append('grade_id', '{{ selected_grade.id }}');
+        formData.append('division_id', '{{ selected_division.id|default:"" }}');
+        formData.append('day_of_week', day);
+        formData.append('period_timing_id', periodId);
+        formData.append('teacher_id', teacherId);
+
+        fetch('{% url "students:timetable_check_clash_ajax" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(res => res.json())
+        .then(data => {
+            const warningBox = document.getElementById('clash_warning_box');
+            if (data.has_clash) {
+                document.getElementById('clash_message').innerText = data.message;
+                warningBox.style.display = 'block';
+            } else {
+                warningBox.style.display = 'none';
+            }
+        });
+    }
+
+    function findFreeTeachers() {
+        const day = document.getElementById('modal_day').value;
+        const periodId = document.getElementById('modal_period_id').value;
+
+        fetch(`{% url "students:substitute_teacher_finder_ajax" %}?day_of_week=${day}&period_timing_id=${periodId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.free_teachers && data.free_teachers.length > 0) {
+                let options = '<option value="">-- Available Free Teachers --</option>';
+                data.free_teachers.forEach(t => {
+                    options += `<option value="${t.id}">${t.name} (Free)</option>`;
+                });
+                document.getElementById('modal_teacher_id').innerHTML = options;
+                alert(`Found ${data.count} available free teacher(s) for this period!`);
+            } else {
+                alert('No completely free teachers found for this period slot.');
+            }
+        });
+    }
+
+    function saveSlot() {
+        const day = document.getElementById('modal_day').value;
+        const periodId = document.getElementById('modal_period_id').value;
+        const subjectId = document.getElementById('modal_subject_id').value;
+        const teacherId = document.getElementById('modal_teacher_id').value;
+        const room = document.getElementById('modal_room').value;
+
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        formData.append('grade_id', '{{ selected_grade.id }}');
+        formData.append('division_id', '{{ selected_division.id|default:"" }}');
+        formData.append('day_of_week', day);
+        formData.append('period_timing_id', periodId);
+        formData.append('subject_id', subjectId);
+        formData.append('teacher_id', teacherId);
+        formData.append('room_number', room);
+
+        fetch('{% url "students:timetable_save_slot_ajax" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                closeSlotModal();
+                window.location.reload();
+            } else {
+                alert('Error saving slot: ' + (data.message || 'Validation failed'));
+            }
+        });
+    }
+
+    function clearSlot() {
+        document.getElementById('modal_subject_id').value = '';
+        document.getElementById('modal_teacher_id').value = '';
+        saveSlot();
+    }
+</script>
+
+{% else %}
+<div style="text-align: center; padding: 4rem 1rem; background: white; border-radius: 16px; border: 1px dashed #cbd5e1;">
+    <i class="fa-solid fa-border-all" style="font-size: 3.5rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
+    <h3 style="color: #334155;">Please Configure Period Timings & Select a Class</h3>
+    <p style="color: #64748b;">You need active grades and period timings to use the Grid Builder.</p>
+    <a href="{% url 'students:period_timing_list' %}" class="btn btn-primary" style="margin-top: 1rem; font-weight: 700;">
+        ⚙️ Setup Period Timings
+    </a>
+</div>
+{% endif %}
+
+{% endblock %}

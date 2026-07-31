@@ -151,4 +151,19 @@ urlpatterns = [
     # Holiday Management
     path('holidays/', views.holiday_list, name='holiday_list'),
     path('holidays/<int:pk>/delete/', views.holiday_delete, name='holiday_delete'),
+
+    # Timetable Management System Routes
+    path('timetable/dashboard/', views.timetable_dashboard, name='timetable_dashboard'),
+    path('timetable/period-timings/', views.period_timing_list, name='period_timing_list'),
+    path('timetable/period-timings/seed/', views.period_timing_seed, name='period_timing_seed'),
+    path('timetable/period-timings/<int:pk>/delete/', views.period_timing_delete, name='period_timing_delete'),
+    path('timetable/teacher-assignments/', views.teacher_assignment_list, name='teacher_assignment_list'),
+    path('timetable/teacher-assignments/<int:pk>/delete/', views.teacher_assignment_delete, name='teacher_assignment_delete'),
+    path('timetable/builder/', views.timetable_builder, name='timetable_builder'),
+    path('timetable/api/check-clash/', views.timetable_check_clash_ajax, name='timetable_check_clash_ajax'),
+    path('timetable/api/save-slot/', views.timetable_save_slot_ajax, name='timetable_save_slot_ajax'),
+    path('timetable/my-schedule/', views.teacher_my_schedule, name='teacher_my_schedule'),
+    path('timetable/class/', views.class_timetable_view, name='class_timetable_view'),
+    path('timetable/class/<int:grade_id>/', views.class_timetable_view, name='class_timetable_view_grade'),
+    path('timetable/api/find-substitute/', views.substitute_teacher_finder_ajax, name='substitute_teacher_finder_ajax'),
 ]

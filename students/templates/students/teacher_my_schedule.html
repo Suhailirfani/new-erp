@@ -1,0 +1,115 @@
+{% extends 'students/base.html' %}
+{% load students_extras %}
+
+{% block title %}My Weekly Teaching Schedule - Student Attendance System{% endblock %}
+
+{% block content %}
+<div class="header-container" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fa-solid fa-calendar-user" style="color: #0ea5e9;"></i> 
+            Weekly Schedule: {{ teacher.get_full_name|default:teacher.username }}
+        </h1>
+        <p style="color: #64748b; margin: 0.35rem 0 0 0;">Total Allocated Teaching Periods: <strong style="color: #0ea5e9;">{{ total_periods }} Periods/Week</strong></p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'students:timetable_dashboard' %}" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Dashboard
+        </a>
+        <button onclick="window.print()" class="btn btn-primary" style="font-weight: 700;">
+            <i class="fa-solid fa-print"></i> Print Schedule
+        </button>
+    </div>
+</div>
+
+{% if request.user.profile.role == 'admin' %}
+<!-- Admin Teacher Selector -->
+<div class="card" style="background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid #cbd5e1; margin-bottom: 1.5rem;">
+    <form method="get" id="teacher_select_form" style="display: flex; align-items: center; gap: 0.75rem;">
+        <label style="font-weight: 800; color: #334155;">View Schedule For Teacher:</label>
+        <select name="teacher_id" onchange="document.getElementById('teacher_select_form').submit();" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #94a3b8; font-weight: 700;">
+            {% for t in all_teachers %}
+            <option value="{{ t.id }}" {% if teacher.id == t.id %}selected{% endif %}>{{ t.get_full_name|default:t.username }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+{% endif %}
+
+{% if period_timings %}
+<div class="card" style="background: white; border-radius: 16px; padding: 1.25rem; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); overflow-x: auto;">
+    <table class="table-custom" style="width: 100%; border-collapse: separate; border-spacing: 6px; min-width: 900px;">
+        <thead>
+            <tr style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white;">
+                <th style="padding: 1rem; text-align: center; border-radius: 10px; width: 140px; font-weight: 800; font-size: 0.9rem;">
+                    Period / Time
+                </th>
+                {% for day_key, day_label in days_of_week %}
+                <th style="padding: 1rem; text-align: center; border-radius: 10px; font-weight: 800; font-size: 0.9rem;">
+                    {{ day_label }}
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for pt in period_timings %}
+            <tr>
+                <td style="background: #f1f5f9; padding: 0.85rem; border-radius: 10px; text-align: center; border: 1px solid #cbd5e1; vertical-align: middle;">
+                    <div style="font-weight: 800; color: #1e293b; font-size: 0.95rem;">{{ pt.name }}</div>
+                    <div style="font-size: 0.75rem; color: #64748b; font-weight: 700; margin-top: 2px;">
+                        {{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }}
+                    </div>
+                </td>
+
+                {% if pt.is_break %}
+                <td colspan="6" style="background: #fef3c7; color: #92400e; font-weight: 800; text-align: center; padding: 0.75rem; border-radius: 10px; border: 1px dashed #f59e0b; font-size: 0.9rem;">
+                    ☕ {{ pt.name|upper }} INTERVAL
+                </td>
+                {% else %}
+
+                {% for day_key, day_label in days_of_week %}
+                {% with slot_key=day_key|add:"_"|add:pt.id %}
+                {% with slot=schedule_map|get_item:slot_key %}
+                
+                <td style="background: {% if slot %}#f0f9ff{% else %}#ffffff{% endif %}; 
+                           border: 1px solid {% if slot %}#bae6fd{% else %}#e2e8f0{% endif %}; 
+                           border-radius: 10px; padding: 0.75rem; text-align: center; vertical-align: middle;">
+                    
+                    {% if slot %}
+                    <div style="font-weight: 800; color: #0369a1; font-size: 0.95rem;">
+                        {{ slot.subject.name }}
+                    </div>
+                    <div style="font-size: 0.8rem; color: #0f172a; font-weight: 700; margin-top: 4px;">
+                        🏫 {{ slot.grade.name }} {% if slot.division %}- {{ slot.division.name }}{% endif %}
+                    </div>
+                    {% if slot.room_number %}
+                    <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">
+                        📍 {{ slot.room_number }}
+                    </div>
+                    {% endif %}
+                    <div style="margin-top: 6px;">
+                        <a href="{% url 'students:mark_attendance_class' slot.grade.id slot.division.id|default:0 %}" class="btn btn-sm btn-success" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; font-weight: 700; border-radius: 6px; text-decoration: none;">
+                            <i class="fa-solid fa-check"></i> Attendance
+                        </a>
+                    </div>
+                    {% else %}
+                    <div style="color: #cbd5e1; font-size: 0.8rem; font-weight: 600;">
+                        - Free -
+                    </div>
+                    {% endif %}
+
+                </td>
+
+                {% endwith %}
+                {% endwith %}
+                {% endfor %}
+
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% endblock %}
