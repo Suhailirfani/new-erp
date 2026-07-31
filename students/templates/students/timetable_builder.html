@@ -28,19 +28,19 @@
     <form method="get" id="class_filter_form" style="display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap;">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
             <label style="font-weight: 800; color: #334155; margin: 0;">Select Class (Grade):</label>
-            <select name="grade_id" onchange="document.getElementById('class_filter_form').submit();" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #94a3b8; font-weight: 700; color: #0f172a; min-width: 160px;">
+            <select name="grade_id" id="builder_grade_select" onchange="document.getElementById('class_filter_form').submit();" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #94a3b8; font-weight: 700; color: #0f172a; min-width: 160px;">
                 {% for g in grades %}
-                <option value="{{ g.id }}" {% if selected_grade.id == g.id %}selected{% endif %}>{{ g.name }}</option>
+                <option value="{{ g.id }}" data-section-id="{{ g.section.id|default:'' }}" {% if selected_grade.id == g.id %}selected{% endif %}>{{ g.name }}</option>
                 {% endfor %}
             </select>
         </div>
 
         <div style="display: flex; align-items: center; gap: 0.5rem;">
             <label style="font-weight: 800; color: #334155; margin: 0;">Division:</label>
-            <select name="division_id" onchange="document.getElementById('class_filter_form').submit();" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #94a3b8; font-weight: 700; color: #0f172a; min-width: 160px;">
+            <select name="division_id" id="builder_division_select" onchange="document.getElementById('class_filter_form').submit();" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #94a3b8; font-weight: 700; color: #0f172a; min-width: 160px;">
                 <option value="">-- All / None --</option>
                 {% for d in divisions %}
-                <option value="{{ d.id }}" {% if selected_division and selected_division.id == d.id %}selected{% endif %}>{{ d.name }}</option>
+                <option value="{{ d.id }}" data-section-id="{{ d.section.id|default:'' }}" {% if selected_division and selected_division.id == d.id %}selected{% endif %}>{{ d.name }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -50,6 +50,31 @@
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const gradeSelect = document.getElementById('builder_grade_select');
+    const divisionSelect = document.getElementById('builder_division_select');
+
+    if (gradeSelect && divisionSelect) {
+        const selectedGradeOpt = gradeSelect.options[gradeSelect.selectedIndex];
+        const selectedGradeSection = selectedGradeOpt ? selectedGradeOpt.dataset.sectionId : '';
+
+        const divOptions = divisionSelect.querySelectorAll('option');
+        divOptions.forEach(opt => {
+            if (!opt.value) return;
+            const secId = opt.dataset.sectionId;
+            if (!selectedGradeSection || !secId || secId === selectedGradeSection) {
+                opt.style.display = '';
+                opt.disabled = false;
+            } else {
+                opt.style.display = 'none';
+                opt.disabled = true;
+            }
+        });
+    }
+});
+</script>
 
 {% if selected_grade and period_timings %}
 

@@ -100,7 +100,7 @@
                 <select name="grade_id" required style="width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 8px;">
                     <option value="">-- Choose Grade --</option>
                     {% for g in grades %}
-                    <option value="{{ g.id }}">{{ g.name }}</option>
+                    <option value="{{ g.id }}" data-section-id="{{ g.section.id|default:'' }}">{{ g.name }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -110,7 +110,7 @@
                 <select name="division_id" style="width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 8px;">
                     <option value="">-- All Divisions / None --</option>
                     {% for d in divisions %}
-                    <option value="{{ d.id }}">{{ d.name }}</option>
+                    <option value="{{ d.id }}" data-section-id="{{ d.section.id|default:'' }}">{{ d.name }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -146,14 +146,35 @@ document.addEventListener('DOMContentLoaded', function() {
     const divisionSelect = document.querySelector('select[name="division_id"]');
     const subjectSelect = document.querySelector('select[name="subject_id"]');
 
-    function filterSubjects() {
+    function filterDivisionsAndSubjects() {
+        const selectedGradeOpt = gradeSelect.options[gradeSelect.selectedIndex];
+        const selectedGradeSection = selectedGradeOpt ? selectedGradeOpt.dataset.sectionId : '';
         const selectedGrade = gradeSelect.value;
+
+        // 1. Filter Divisions by selected Class Department (Section)
+        const divOptions = divisionSelect.querySelectorAll('option');
+        divOptions.forEach(opt => {
+            if (!opt.value) return; // Keep '-- All Divisions / None --'
+            const secId = opt.dataset.sectionId;
+            if (!selectedGrade || !selectedGradeSection || !secId || secId === selectedGradeSection) {
+                opt.style.display = '';
+                opt.disabled = false;
+            } else {
+                opt.style.display = 'none';
+                opt.disabled = true;
+            }
+        });
+
+        const currentDivOpt = divisionSelect.options[divisionSelect.selectedIndex];
+        if (currentDivOpt && currentDivOpt.disabled) {
+            divisionSelect.value = '';
+        }
+
+        // 2. Filter Subjects by selected Class & Division
         const selectedDivision = divisionSelect.value;
-
-        const options = subjectSelect.querySelectorAll('option');
-
-        options.forEach(opt => {
-            if (!opt.value) return; // Keep placeholder '-- Choose Subject --'
+        const subOptions = subjectSelect.querySelectorAll('option');
+        subOptions.forEach(opt => {
+            if (!opt.value) return; // Keep '-- Choose Subject --'
 
             const gradeId = opt.dataset.gradeId;
             const divisionId = opt.dataset.divisionId;
@@ -170,17 +191,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Reset selected value if current selection is disabled
-        const currentOpt = subjectSelect.options[subjectSelect.selectedIndex];
-        if (currentOpt && currentOpt.disabled) {
+        const currentSubOpt = subjectSelect.options[subjectSelect.selectedIndex];
+        if (currentSubOpt && currentSubOpt.disabled) {
             subjectSelect.value = '';
         }
     }
 
     if (gradeSelect && divisionSelect && subjectSelect) {
-        gradeSelect.addEventListener('change', filterSubjects);
-        divisionSelect.addEventListener('change', filterSubjects);
-        filterSubjects();
+        gradeSelect.addEventListener('change', filterDivisionsAndSubjects);
+        divisionSelect.addEventListener('change', filterDivisionsAndSubjects);
+        filterDivisionsAndSubjects();
     }
 });
 </script>
