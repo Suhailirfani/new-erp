@@ -360,6 +360,7 @@ class Subject(models.Model):
     code = models.CharField(max_length=20, blank=True, help_text="Subject code")
     max_marks = models.PositiveIntegerField(default=100, help_text="Maximum marks for this subject")
     description = models.TextField(blank=True)
+    is_common_subject = models.BooleanField(default=False, help_text="Is this subject taught jointly across multiple divisions/classes?")
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -797,6 +798,8 @@ class TimetableSlot(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='timetable_slots')
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name='timetable_slots')
     room_number = models.CharField(max_length=50, blank=True, null=True, help_text="Classroom or Lab number")
+    is_combined = models.BooleanField(default=False, help_text="Is this a joint/combined class period shared across divisions?")
+    combined_group_id = models.CharField(max_length=50, blank=True, null=True, help_text="Group tag linking simultaneous combined slots")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -819,10 +822,18 @@ class TimetableSlot(models.Model):
 
         if teacher_clash.exists():
             clash = teacher_clash.first()
-            raise ValidationError(
-                f"Conflict: Teacher {self.teacher.get_full_name() or self.teacher.username} is already assigned to "
-                f"{clash.grade.name} ({clash.division.name if clash.division else 'No Div'}) during {self.period_timing.name} on {self.get_day_of_week_display()}."
+            # If both slots are marked as combined AND share the same teacher & subject (or combined_group_id), allow joint hall class!
+            is_valid_combined = (
+                self.is_combined and clash.is_combined and 
+                (self.teacher == clash.teacher) and 
+                ((self.combined_group_id and self.combined_group_id == clash.combined_group_id) or 
+                 (self.subject.name.strip().lower() == clash.subject.name.strip().lower()))
             )
+            if not is_valid_combined:
+                raise ValidationError(
+                    f"Conflict: Teacher {self.teacher.get_full_name() or self.teacher.username} is already assigned to "
+                    f"{clash.grade.name} ({clash.division.name if clash.division else 'No Div'}) during {self.period_timing.name} on {self.get_day_of_week_display()}."
+                )
 
         # 2. Class Clash Check
         class_clash = TimetableSlot.objects.filter(

@@ -260,6 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     data-subject-id="{{ slot.subject.id|default:'' }}"
                     data-teacher-id="{{ slot.teacher.id|default:'' }}"
                     data-room="{{ slot.room_number|default:'' }}"
+                    data-is-combined="{% if slot and slot.is_combined %}true{% else %}false{% endif %}"
                     onclick="openSlotModal('{{ day_key }}', '{{ pt.id }}', '{{ day_label }}', '{{ pt.name }}')"
                     style="background: {% if slot %}#f0fdf4{% else %}#ffffff{% endif %}; 
                            border: 2px dashed {% if slot %}#86efac{% else %}#cbd5e1{% endif %}; 
@@ -272,6 +273,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div style="font-size: 0.75rem; color: #334155; font-weight: 700; margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
                         <i class="fa-solid fa-user-tie" style="color: #6366f1;"></i> {{ slot.teacher.get_full_name|default:slot.teacher.username }}
                     </div>
+                    {% if slot.is_combined %}
+                    <div style="margin-top: 3px;">
+                        <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">🔗 Joint Class</span>
+                    </div>
+                    {% endif %}
                     {% if slot.room_number %}
                     <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">
                         📍 Room: {{ slot.room_number }}
@@ -344,6 +350,9 @@ document.addEventListener('DOMContentLoaded', function() {
             {% if slot %}
             <div style="font-size: 1.05rem; font-weight: 800; color: #047857; margin-bottom: 0.25rem;">
                 {{ slot.subject.name }}
+                {% if slot.is_combined %}
+                <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700; margin-left: 0.35rem;">🔗 Joint Class</span>
+                {% endif %}
             </div>
             <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; font-size: 0.82rem; color: #334155; font-weight: 700;">
                 <div>
@@ -426,9 +435,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 </select>
             </div>
 
-            <div style="margin-bottom: 1.5rem;">
+            <div style="margin-bottom: 1.25rem;">
                 <label style="font-weight: 700; display: block; margin-bottom: 0.4rem; color: #334155; font-size: 0.85rem;">Room / Lab (Optional)</label>
-                <input type="text" id="modal_room" placeholder="e.g. Lab 1 or Room 204" style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 12px;">
+                <input type="text" id="modal_room" placeholder="e.g. Main Hall or Room 204" style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 12px;">
+            </div>
+
+            <!-- Joint Class / Combined Period Box -->
+            <div style="margin-bottom: 1.5rem; background: #f8fafc; padding: 0.85rem; border-radius: 12px; border: 1px solid #cbd5e1;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="checkbox" id="modal_is_combined" onchange="toggleJointClassesBox()" style="width: 20px; height: 20px; cursor: pointer;">
+                    <label for="modal_is_combined" style="font-weight: 700; color: #1e293b; margin: 0; cursor: pointer; font-size: 0.88rem;">
+                        🔗 Combined Class (Shared Main Hall)
+                    </label>
+                </div>
+                <div id="joint_classes_box" style="display: none; margin-top: 0.75rem; border-top: 1px solid #cbd5e1; padding-top: 0.75rem;">
+                    <div style="font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.4rem;">Jointly Schedule With Divisions:</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; max-height: 120px; overflow-y: auto;">
+                        {% for div in all_divisions %}
+                        <label style="font-size: 0.8rem; font-weight: 600; color: #334155; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                            <input type="checkbox" name="modal_joint_divisions" value="{{ div.id }}" class="joint-div-checkbox" style="width: 16px; height: 16px;"> {{ div.name }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
 
             <div style="display: flex; gap: 0.75rem;">
@@ -462,6 +491,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (activePanel) activePanel.style.display = 'block';
     }
 
+    function toggleJointClassesBox() {
+        const isChecked = document.getElementById('modal_is_combined').checked;
+        document.getElementById('joint_classes_box').style.display = isChecked ? 'block' : 'none';
+        checkTeacherClash();
+    }
+
     function openSlotModal(day, periodId, dayLabel, periodName) {
         document.getElementById('modal_day').value = day;
         document.getElementById('modal_period_id').value = periodId;
@@ -471,10 +506,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const subjectId = cell ? cell.dataset.subjectId : '';
         const teacherId = cell ? cell.dataset.teacherId : '';
         const room = cell ? cell.dataset.room : '';
+        const isCombined = cell ? (cell.dataset.isCombined === 'true') : false;
 
         document.getElementById('modal_subject_id').value = subjectId;
         document.getElementById('modal_teacher_id').value = teacherId;
         document.getElementById('modal_room').value = room;
+        document.getElementById('modal_is_combined').checked = isCombined;
+        toggleJointClassesBox();
 
         document.getElementById('clash_warning_box').style.display = 'none';
         document.getElementById('slot_editor_modal').style.display = 'flex';
@@ -496,6 +534,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const day = document.getElementById('modal_day').value;
         const periodId = document.getElementById('modal_period_id').value;
         const teacherId = document.getElementById('modal_teacher_id').value;
+        const subjectId = document.getElementById('modal_subject_id').value;
+        const isCombined = document.getElementById('modal_is_combined').checked;
 
         if (!teacherId) {
             document.getElementById('clash_warning_box').style.display = 'none';
@@ -509,6 +549,8 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.append('day_of_week', day);
         formData.append('period_timing_id', periodId);
         formData.append('teacher_id', teacherId);
+        formData.append('subject_id', subjectId);
+        formData.append('is_combined', isCombined ? 'true' : 'false');
 
         fetch('{% url "students:timetable_check_clash_ajax" %}', {
             method: 'POST',
@@ -553,6 +595,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const subjectId = document.getElementById('modal_subject_id').value;
         const teacherId = document.getElementById('modal_teacher_id').value;
         const room = document.getElementById('modal_room').value;
+        const isCombined = document.getElementById('modal_is_combined').checked;
 
         const formData = new FormData();
         formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
@@ -563,6 +606,13 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.append('subject_id', subjectId);
         formData.append('teacher_id', teacherId);
         formData.append('room_number', room);
+        formData.append('is_combined', isCombined ? 'true' : 'false');
+
+        if (isCombined) {
+            document.querySelectorAll('.joint-div-checkbox:checked').forEach(cb => {
+                formData.append('joint_division_ids[]', cb.value);
+            });
+        }
 
         fetch('{% url "students:timetable_save_slot_ajax" %}', {
             method: 'POST',

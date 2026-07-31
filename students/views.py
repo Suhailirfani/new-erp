@@ -6756,9 +6756,12 @@ def timetable_builder(request):
             key = f"{slot.day_of_week}_{slot.period_timing_id}"
             slots_map[key] = slot
 
+    all_divisions = Division.objects.all()
+
     context = {
         'grades': grades,
         'divisions': divisions,
+        'all_divisions': all_divisions,
         'selected_grade': selected_grade,
         'selected_division': selected_division,
         'period_timings': period_timings,
@@ -6781,7 +6784,9 @@ def timetable_check_clash_ajax(request):
         day_of_week = request.POST.get('day_of_week')
         period_timing_id = request.POST.get('period_timing_id')
         teacher_id = request.POST.get('teacher_id')
+        subject_id = request.POST.get('subject_id')
         slot_id = request.POST.get('slot_id')
+        is_combined = request.POST.get('is_combined') == 'true'
 
         if not (day_of_week and period_timing_id and teacher_id):
             return JsonResponse({'has_clash': False})
@@ -6802,15 +6807,22 @@ def timetable_check_clash_ajax(request):
 
         clash = query.first()
         if clash:
-            div_str = f" {clash.division.name}" if clash.division else ""
-            msg = f"⚠️ Conflict: {teacher.get_full_name() or teacher.username} is already teaching {clash.grade.name}{div_str} ({clash.subject.name}) in {period_timing.name} on {clash.get_day_of_week_display()}!"
-            return JsonResponse({
-                'has_clash': True,
-                'clash_type': 'teacher',
-                'message': msg,
-                'clash_class': f"{clash.grade.name}{div_str}",
-                'clash_subject': clash.subject.name,
-            })
+            # If user marked is_combined and existing clash is ALSO combined with matching subject name, allow joint hall class!
+            selected_subject = Subject.objects.filter(pk=subject_id).first() if subject_id else None
+            is_valid_combined = (
+                is_combined and clash.is_combined and selected_subject and 
+                (selected_subject.name.strip().lower() == clash.subject.name.strip().lower() or selected_subject.is_common_subject)
+            )
+            if not is_valid_combined:
+                div_str = f" {clash.division.name}" if clash.division else ""
+                msg = f"⚠️ Conflict: {teacher.get_full_name() or teacher.username} is already teaching {clash.grade.name}{div_str} ({clash.subject.name}) in {period_timing.name} on {clash.get_day_of_week_display()}!"
+                return JsonResponse({
+                    'has_clash': True,
+                    'clash_type': 'teacher',
+                    'message': msg,
+                    'clash_class': f"{clash.grade.name}{div_str}",
+                    'clash_subject': clash.subject.name,
+                })
 
         return JsonResponse({'has_clash': False})
 
@@ -6819,7 +6831,8 @@ def timetable_check_clash_ajax(request):
 
 @role_required(['admin', 'teacher'])
 def timetable_save_slot_ajax(request):
-    """AJAX endpoint to save, update, or remove a timetable slot"""
+    """AJAX endpoint to save, update, or remove a timetable slot with combined class support"""
+    import uuid
     if request.method == 'POST':
         grade_id = request.POST.get('grade_id')
         division_id = request.POST.get('division_id')
@@ -6828,26 +6841,42 @@ def timetable_save_slot_ajax(request):
         subject_id = request.POST.get('subject_id')
         teacher_id = request.POST.get('teacher_id')
         room_number = request.POST.get('room_number', '').strip()
+        is_combined = request.POST.get('is_combined') == 'true'
+        joint_division_ids = request.POST.getlist('joint_division_ids[]') or request.POST.getlist('joint_division_ids')
 
         grade = get_object_or_404(Grade, pk=grade_id)
         division = Division.objects.filter(pk=division_id).first() if division_id else None
         period_timing = get_object_or_404(PeriodTiming, pk=period_timing_id)
         active_year = AcademicYear.objects.filter(is_active=True).first() or AcademicYear.objects.order_by('-start_date').first()
 
+        existing_slot = TimetableSlot.objects.filter(
+            grade=grade,
+            division=division,
+            day_of_week=day_of_week,
+            period_timing=period_timing
+        ).first()
+
+        group_id = (existing_slot.combined_group_id if (existing_slot and existing_slot.combined_group_id) 
+                    else str(uuid.uuid4())[:8])
+
         # If subject or teacher is cleared, delete the slot
         if not subject_id or not teacher_id:
-            TimetableSlot.objects.filter(
-                grade=grade,
-                division=division,
-                day_of_week=day_of_week,
-                period_timing=period_timing
-            ).delete()
+            if existing_slot and existing_slot.is_combined and existing_slot.combined_group_id:
+                TimetableSlot.objects.filter(combined_group_id=existing_slot.combined_group_id).delete()
+            else:
+                TimetableSlot.objects.filter(
+                    grade=grade,
+                    division=division,
+                    day_of_week=day_of_week,
+                    period_timing=period_timing
+                ).delete()
             return JsonResponse({'status': 'success', 'action': 'deleted'})
 
         subject = get_object_or_404(Subject, pk=subject_id)
         teacher = get_object_or_404(User, pk=teacher_id)
 
         try:
+            # 1. Save primary slot
             slot, created = TimetableSlot.objects.update_or_create(
                 grade=grade,
                 division=division,
@@ -6858,8 +6887,36 @@ def timetable_save_slot_ajax(request):
                     'teacher': teacher,
                     'room_number': room_number,
                     'academic_year': active_year,
+                    'is_combined': is_combined,
+                    'combined_group_id': group_id if is_combined else None,
                 }
             )
+
+            # 2. If is_combined and joint_division_ids provided, create/update slots for joined divisions!
+            if is_combined and joint_division_ids:
+                for j_div_id in joint_division_ids:
+                    j_div = Division.objects.filter(pk=j_div_id).first()
+                    if j_div and (j_div != division or grade != grade):
+                        # Find matching subject for that joined class or fallback to current subject
+                        j_subject = Subject.objects.filter(
+                            grade=grade, division=j_div, name__iexact=subject.name
+                        ).first() or subject
+
+                        TimetableSlot.objects.update_or_create(
+                            grade=grade,
+                            division=j_div,
+                            day_of_week=day_of_week,
+                            period_timing=period_timing,
+                            defaults={
+                                'subject': j_subject,
+                                'teacher': teacher,
+                                'room_number': room_number,
+                                'academic_year': active_year,
+                                'is_combined': True,
+                                'combined_group_id': group_id,
+                            }
+                        )
+
             return JsonResponse({
                 'status': 'success',
                 'action': 'created' if created else 'updated',
@@ -6867,6 +6924,7 @@ def timetable_save_slot_ajax(request):
                 'subject_name': subject.name,
                 'teacher_name': teacher.get_full_name() or teacher.username,
                 'room_number': room_number,
+                'is_combined': is_combined,
             })
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
