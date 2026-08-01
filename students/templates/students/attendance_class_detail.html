@@ -225,9 +225,12 @@
         <h1 style="color: #1a202c; font-size: 1.8rem; margin: 0; font-weight: 700;">🏫 {% if section %}{{ section.name }} - {% endif %}{{ grade }} - {{ division.name|default:"No Division" }}</h1>
         <p class="text-muted" style="color: #6c757d; margin: 0.25rem 0 0 0; font-size: 0.9rem;">Attendance overview for all students in this class.</p>
     </div>
-    <div>
-        <button type="button" onclick="printCumulativeAttendance()" class="btn btn-dark" style="background: #1e293b; color: white; font-weight: 700; padding: 0.65rem 1.25rem; border-radius: 10px; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-            <i class="fa-solid fa-print"></i> 🖨️ Minimal Print Cumulative
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'students:cumulative_attendance_pdf' grade_id=grade.id division_id=division.id|default:0 %}?section={{ section_id|default:'' }}&amp;date_from={{ current_filters.date_from|default:'' }}&amp;date_to={{ current_filters.date_to|default:'' }}" class="btn btn-primary" style="background: #2563eb; color: white; font-weight: 700; padding: 0.65rem 1.15rem; border-radius: 10px; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">
+            <i class="fa-solid fa-file-pdf"></i> 📥 Download PDF
+        </a>
+        <button type="button" onclick="printCumulativeAttendance()" class="btn btn-dark" style="background: #1e293b; color: white; font-weight: 700; padding: 0.65rem 1.15rem; border-radius: 10px; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            <i class="fa-solid fa-print"></i> 🖨️ Minimal Print
         </button>
     </div>
 </div>
@@ -275,12 +278,15 @@
         {% endfor %}
     </div>
     
-    <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 1.5rem; flex-wrap: wrap;">
-        <button id="toggleDetailedBtn" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.75rem; border-radius: 12px; font-weight: 700; background: var(--primary, #6366f1); border: none; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2); cursor: pointer; transition: all 0.2s;">
+    <div style="display: flex; justify-content: center; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 1.5rem; flex-wrap: wrap;">
+        <button id="toggleDetailedBtn" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; background: var(--primary, #6366f1); border: none; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2); cursor: pointer; transition: all 0.2s;">
             <i class="fa-solid fa-chart-line"></i> View Detailed Records
         </button>
-        <button type="button" onclick="printCumulativeAttendance()" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.75rem; border-radius: 12px; font-weight: 700; background: #1e293b; color: white; border: none; cursor: pointer;">
-            <i class="fa-solid fa-print"></i> 🖨️ Minimal Print Cumulative
+        <a href="{% url 'students:cumulative_attendance_pdf' grade_id=grade.id division_id=division.id|default:0 %}?section={{ section_id|default:'' }}&amp;date_from={{ current_filters.date_from|default:'' }}&amp;date_to={{ current_filters.date_to|default:'' }}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; background: #2563eb; color: white; text-decoration: none; border: none; box-shadow: 0 4px 10px rgba(37,99,235,0.2);">
+            <i class="fa-solid fa-file-pdf"></i> 📥 Download PDF
+        </a>
+        <button type="button" onclick="printCumulativeAttendance()" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; background: #1e293b; color: white; border: none; cursor: pointer;">
+            <i class="fa-solid fa-print"></i> 🖨️ Minimal Print
         </button>
     </div>
 </div>
@@ -292,9 +298,14 @@
             <i class="fa-solid fa-list-check" style="color: #3498db;"></i>
             Students Cumulative Attendance ({{ student_stats|length }})
         </h2>
-        <button type="button" onclick="printCumulativeAttendance()" class="btn btn-sm" style="background: #1e293b; color: white; font-weight: 700; border-radius: 6px; padding: 0.4rem 0.85rem; border: none; cursor: pointer;">
-            🖨️ Minimal Print
-        </button>
+        <div style="display: flex; gap: 0.5rem;">
+            <a href="{% url 'students:cumulative_attendance_pdf' grade_id=grade.id division_id=division.id|default:0 %}?section={{ section_id|default:'' }}&amp;date_from={{ current_filters.date_from|default:'' }}&amp;date_to={{ current_filters.date_to|default:'' }}" class="btn btn-sm" style="background: #2563eb; color: white; font-weight: 700; border-radius: 6px; padding: 0.4rem 0.85rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem;">
+                <i class="fa-solid fa-file-pdf"></i> PDF
+            </a>
+            <button type="button" onclick="printCumulativeAttendance()" class="btn btn-sm" style="background: #1e293b; color: white; font-weight: 700; border-radius: 6px; padding: 0.4rem 0.85rem; border: none; cursor: pointer;">
+                🖨️ Minimal Print
+            </button>
+        </div>
     </div>
     
     <div class="table-wrapper" style="overflow-x: auto;">
