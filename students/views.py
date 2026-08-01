@@ -3982,6 +3982,9 @@ def attendance_class_detail(request, grade_id, division_id):
     Shows a list of students for a specific grade and division,
     along with their total attendance count and percentage.
     """
+    import calendar
+    from datetime import datetime
+
     try:
         if division_id == 0:
             division = None
@@ -4010,16 +4013,31 @@ def attendance_class_detail(request, grade_id, division_id):
         enrollments = enrollments.filter(section_id=section_id)
         section = Section.objects.filter(id=section_id).first()
     
-    # Use grade session_start_date to limit attendance to class start date
+    # Month Filter Handling
+    month_filter = request.GET.get('month_filter', '').strip()
+    date_from = request.GET.get('date_from', '').strip()
+    date_to = request.GET.get('date_to', '').strip()
+    specified_month_name = None
+
+    if month_filter:
+        try:
+            m_year, m_month = map(int, month_filter.split('-'))
+            _, last_day = calendar.monthrange(m_year, m_month)
+            date_from = f"{m_year:04d}-{m_month:02d}-01"
+            date_to = f"{m_year:04d}-{m_month:02d}-{last_day:02d}"
+            specified_month_name = datetime(m_year, m_month, 1).strftime('%B %Y').upper()
+        except Exception:
+            pass
+    elif date_from and date_to:
+        try:
+            d1 = datetime.strptime(date_from, '%Y-%m-%d')
+            d2 = datetime.strptime(date_to, '%Y-%m-%d')
+            if d1.month == d2.month and d1.year == d2.year:
+                specified_month_name = d1.strftime('%B %Y').upper()
+        except Exception:
+            pass
+
     grade_session_start = grade.session_start_date if grade and grade.session_start_date else (active_year.start_date if active_year else None)
-
-    # Calculate attendance stats for each student
-    student_stats = []
-    
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
-
-    # If no manual date_from, use session start date
     effective_date_from = date_from or (grade_session_start.isoformat() if grade_session_start else None)
     
     # Pre-fetch holiday dates in range to optimize performance
@@ -4041,6 +4059,7 @@ def attendance_class_detail(request, grade_id, division_id):
     today_attendances = Attendance.objects.filter(enrollment__in=enrollments, date=today)
     today_status_map = {att.enrollment_id: att.status for att in today_attendances}
     
+    student_stats = []
     for enrollment in enrollments:
         attendances = Attendance.objects.filter(enrollment=enrollment)
         
@@ -4057,7 +4076,6 @@ def attendance_class_detail(request, grade_id, division_id):
         excused_count = stats_attendances.filter(status='excused').count()
         absent_count = stats_attendances.filter(status='absent').count()
         
-        # Calculate percentage (Present + Late + Excused are considered 'attended')
         attended_count = present_count + late_count + excused_count
         
         percentage = 0
@@ -4084,9 +4102,11 @@ def attendance_class_detail(request, grade_id, division_id):
         'student_stats': student_stats,
         'section': section,
         'section_id': section_id or '',
+        'specified_month_name': specified_month_name,
         'active_year': active_year,
         'session_start': grade_session_start,
         'current_filters': {
+            'month_filter': month_filter or '',
             'date_from': date_from or '',
             'date_to': date_to or '',
         }
@@ -4099,6 +4119,9 @@ def cumulative_attendance_pdf(request, grade_id, division_id):
     """
     Generates a minimal black & white PDF download for Cumulative Student Attendance.
     """
+    import calendar
+    from datetime import datetime
+
     try:
         if division_id == 0:
             division = None
@@ -4127,11 +4150,31 @@ def cumulative_attendance_pdf(request, grade_id, division_id):
         enrollments = enrollments.filter(section_id=section_id)
         section = Section.objects.filter(id=section_id).first()
 
+    # Month Filter Handling
+    month_filter = request.GET.get('month_filter', '').strip()
+    date_from = request.GET.get('date_from', '').strip()
+    date_to = request.GET.get('date_to', '').strip()
+    specified_month_name = None
+
+    if month_filter:
+        try:
+            m_year, m_month = map(int, month_filter.split('-'))
+            _, last_day = calendar.monthrange(m_year, m_month)
+            date_from = f"{m_year:04d}-{m_month:02d}-01"
+            date_to = f"{m_year:04d}-{m_month:02d}-{last_day:02d}"
+            specified_month_name = datetime(m_year, m_month, 1).strftime('%B %Y').upper()
+        except Exception:
+            pass
+    elif date_from and date_to:
+        try:
+            d1 = datetime.strptime(date_from, '%Y-%m-%d')
+            d2 = datetime.strptime(date_to, '%Y-%m-%d')
+            if d1.month == d2.month and d1.year == d2.year:
+                specified_month_name = d1.strftime('%B %Y').upper()
+        except Exception:
+            pass
+
     grade_session_start = grade.session_start_date if grade and grade.session_start_date else (active_year.start_date if active_year else None)
-
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
-
     effective_date_from = date_from or (grade_session_start.isoformat() if grade_session_start else None)
 
     class_attendances = Attendance.objects.filter(enrollment__grade_id=grade_id)
@@ -4193,19 +4236,35 @@ def cumulative_attendance_pdf(request, grade_id, division_id):
     )
 
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        'TitleStyle',
+    inst_style = ParagraphStyle(
+        'InstStyle',
         parent=styles['Heading1'],
         fontName='Helvetica-Bold',
         fontSize=14,
         alignment=1,
+        spaceAfter=3
+    )
+    title_style = ParagraphStyle(
+        'TitleStyle',
+        parent=styles['Heading2'],
+        fontName='Helvetica-Bold',
+        fontSize=12,
+        alignment=1,
         spaceAfter=4
+    )
+    month_style = ParagraphStyle(
+        'MonthStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=10.5,
+        alignment=1,
+        spaceAfter=3
     )
     sub_style = ParagraphStyle(
         'SubStyle',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=10,
+        fontSize=9.5,
         alignment=1,
         spaceAfter=3
     )
@@ -4213,7 +4272,7 @@ def cumulative_attendance_pdf(request, grade_id, division_id):
         'MetaStyle',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=9,
+        fontSize=8.5,
         alignment=1,
         spaceAfter=10
     )
@@ -4221,7 +4280,12 @@ def cumulative_attendance_pdf(request, grade_id, division_id):
     elements = []
 
     # Title & Subtitles
+    elements.append(Paragraph("MARKAZ HADIYA WOMEN'S COLLEGE, THAZHAPRA", inst_style))
     elements.append(Paragraph("STUDENT CUMULATIVE ATTENDANCE REPORT", title_style))
+    
+    if specified_month_name:
+        elements.append(Paragraph(f"MONTH: {specified_month_name}", month_style))
+
     sec_prefix = f"{section.name} - " if section else ""
     div_suffix = division.name if division else "No Division"
     year_suffix = f" | Academic Year: {active_year.name}" if active_year else ""
