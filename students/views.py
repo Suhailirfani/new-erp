@@ -3686,7 +3686,7 @@ from django.http import HttpResponse
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
-from reportlab.platypus import Table, TableStyle, SimpleDocTemplate, Paragraph, Spacer
+from reportlab.platypus import Table, TableStyle, SimpleDocTemplate, Paragraph, Spacer, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from django.db.models import Max
@@ -4344,7 +4344,252 @@ def cumulative_attendance_pdf(request, grade_id, division_id):
         ('VALIGN', (0,0), (-1,-1), 'BOTTOM'),
         ('BOTTOMPADDING', (0,0), (-1,-1), 2),
     ]))
-    elements.append(f_table)
+    doc.build(elements)
+    return response
+
+
+@role_required(['admin', 'teacher'])
+def all_classes_cumulative_pdf(request):
+    """
+    Generates a single bulk PDF containing cumulative attendance reports
+    for ALL classes/divisions, separated by PageBreaks so each class starts on a new page.
+    """
+    import calendar
+    from datetime import datetime
+
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    section_id = request.GET.get('section')
+
+    month_filter = request.GET.get('month_filter', '').strip()
+    date_from = request.GET.get('date_from', '').strip()
+    date_to = request.GET.get('date_to', '').strip()
+    specified_month_name = None
+
+    if month_filter:
+        try:
+            m_year, m_month = map(int, month_filter.split('-'))
+            _, last_day = calendar.monthrange(m_year, m_month)
+            date_from = f"{m_year:04d}-{m_month:02d}-01"
+            date_to = f"{m_year:04d}-{m_month:02d}-{last_day:02d}"
+            specified_month_name = datetime(m_year, m_month, 1).strftime('%B %Y').upper()
+        except Exception:
+            pass
+    elif date_from and date_to:
+        try:
+            d1 = datetime.strptime(date_from, '%Y-%m-%d')
+            d2 = datetime.strptime(date_to, '%Y-%m-%d')
+            if d1.month == d2.month and d1.year == d2.year:
+                specified_month_name = d1.strftime('%B %Y').upper()
+        except Exception:
+            pass
+
+    response = HttpResponse(content_type='application/pdf')
+    month_slug = specified_month_name.replace(' ', '_').lower() if specified_month_name else 'all'
+    filename = f"all_classes_cumulative_attendance_{month_slug}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    doc = SimpleDocTemplate(
+        response,
+        pagesize=A4,
+        rightMargin=1.2*cm, leftMargin=1.2*cm,
+        topMargin=1.2*cm, bottomMargin=1.2*cm
+    )
+
+    styles = getSampleStyleSheet()
+    inst_style = ParagraphStyle(
+        'InstStyle',
+        parent=styles['Heading1'],
+        fontName='Helvetica-Bold',
+        fontSize=14,
+        alignment=1,
+        spaceAfter=3
+    )
+    title_style = ParagraphStyle(
+        'TitleStyle',
+        parent=styles['Heading2'],
+        fontName='Helvetica-Bold',
+        fontSize=12,
+        alignment=1,
+        spaceAfter=4
+    )
+    month_style = ParagraphStyle(
+        'MonthStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=10.5,
+        alignment=1,
+        spaceAfter=3
+    )
+    sub_style = ParagraphStyle(
+        'SubStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=9.5,
+        alignment=1,
+        spaceAfter=3
+    )
+    meta_style = ParagraphStyle(
+        'MetaStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=8.5,
+        alignment=1,
+        spaceAfter=10
+    )
+
+    elements = []
+
+    # Get distinct active class/division combinations
+    combos = (
+        Enrollment.objects
+        .filter(student__is_active=True)
+        .values('grade_id', 'division_id')
+        .distinct()
+        .order_by('grade__order', 'grade__name', 'division__name')
+    )
+
+    class_count = 0
+
+    for combo in combos:
+        grade = get_object_or_404(Grade, id=combo['grade_id'])
+        division = Division.objects.filter(id=combo['division_id']).first() if combo['division_id'] else None
+
+        if division:
+            enrollments = Enrollment.objects.filter(grade=grade, division=division, student__is_active=True)
+        else:
+            enrollments = Enrollment.objects.filter(grade=grade, division__isnull=True, student__is_active=True)
+
+        if active_year and enrollments.filter(academic_year=active_year).exists():
+            enrollments = enrollments.filter(academic_year=active_year)
+
+        if section_id and str(section_id).strip() not in ['', 'None']:
+            enrollments = enrollments.filter(section_id=section_id)
+
+        if not enrollments.exists():
+            continue
+
+        enrollments = enrollments.select_related('student', 'section').order_by('student__first_name', 'student__last_name')
+        section_obj = enrollments.first().section if enrollments.exists() else None
+
+        grade_session_start = grade.session_start_date if grade and grade.session_start_date else (active_year.start_date if active_year else None)
+        effective_date_from = date_from or (grade_session_start.isoformat() if grade_session_start else None)
+
+        class_attendances = Attendance.objects.filter(enrollment__grade=grade)
+        if division:
+            class_attendances = class_attendances.filter(enrollment__division=division)
+        else:
+            class_attendances = class_attendances.filter(enrollment__division__isnull=True)
+
+        if effective_date_from:
+            class_attendances = class_attendances.filter(date__gte=effective_date_from)
+        if date_to:
+            class_attendances = class_attendances.filter(date__lte=date_to)
+
+        dates = list(class_attendances.values_list('date', flat=True))
+        h_dates = get_holiday_dates(min(dates), max(dates)) if dates else set()
+
+        student_stats = []
+        for enrollment in enrollments:
+            attendances = Attendance.objects.filter(enrollment=enrollment)
+            if effective_date_from:
+                attendances = attendances.filter(date__gte=effective_date_from)
+            if date_to:
+                attendances = attendances.filter(date__lte=date_to)
+
+            stats_attendances = attendances.exclude(date__in=h_dates, status='absent')
+            total_days = stats_attendances.count()
+            present_count = stats_attendances.filter(status='present').count()
+            late_count = stats_attendances.filter(status='late').count()
+            excused_count = stats_attendances.filter(status='excused').count()
+            absent_count = stats_attendances.filter(status='absent').count()
+
+            attended_count = present_count + late_count + excused_count
+            percentage = 0
+            if total_days > 0:
+                percentage = round((attended_count / total_days) * 100, 2)
+
+            student_stats.append({
+                'student_id': enrollment.student.student_id,
+                'full_name': enrollment.student.full_name,
+                'total_days': total_days,
+                'present_count': present_count,
+                'absent_count': absent_count,
+                'late_excused': f"{late_count} / {excused_count}",
+                'percentage': f"{percentage}%"
+            })
+
+        if class_count > 0:
+            elements.append(PageBreak())
+
+        class_count += 1
+
+        elements.append(Paragraph("MARKAZ HADIYA WOMEN'S COLLEGE, THAZHAPRA", inst_style))
+        elements.append(Paragraph("STUDENT CUMULATIVE ATTENDANCE REPORT", title_style))
+        
+        if specified_month_name:
+            elements.append(Paragraph(f"MONTH: {specified_month_name}", month_style))
+
+        sec_prefix = f"{section_obj.name} - " if section_obj else ""
+        div_suffix = division.name if division else "No Division"
+        year_suffix = f" | Academic Year: {active_year.name}" if active_year else ""
+        elements.append(Paragraph(f"Class: {sec_prefix}{grade.name} - {div_suffix}{year_suffix}", sub_style))
+
+        p_from = date_from or "Session Start"
+        p_to = date_to or "Today"
+        elements.append(Paragraph(f"Period: {p_from} to {p_to} | Total Enrolled Students: {len(student_stats)}", meta_style))
+
+        table_data = [
+            ["Sl", "Student ID", "Student Name", "Total Days", "Present", "Absent", "Late/Excused", "Attendance %"]
+        ]
+
+        for idx, stat in enumerate(student_stats, 1):
+            table_data.append([
+                str(idx),
+                stat['student_id'],
+                stat['full_name'],
+                str(stat['total_days']),
+                str(stat['present_count']),
+                str(stat['absent_count']),
+                stat['late_excused'],
+                stat['percentage']
+            ])
+
+        col_widths = [0.8*cm, 2.3*cm, 5.7*cm, 2.0*cm, 1.8*cm, 1.8*cm, 2.2*cm, 2.0*cm]
+        t = Table(table_data, colWidths=col_widths, repeatRows=1)
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f2f2f2')),
+            ('TEXTCOLOR', (0,0), (-1,-1), colors.black),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,-1), 8.5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('ALIGN', (0,0), (1,-1), 'CENTER'),
+            ('ALIGN', (2,0), (2,-1), 'LEFT'),
+            ('ALIGN', (3,0), (-1,-1), 'CENTER'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ]))
+        elements.append(t)
+        elements.append(Spacer(1, 1.0*cm))
+
+        footer_data = [
+            ["_________________________", "_________________________", "Date: __________________"],
+            ["Class Teacher Signature", "Principal / Headmaster", ""]
+        ]
+        f_table = Table(footer_data, colWidths=[6.2*cm, 6.2*cm, 6.2*cm])
+        f_table.setStyle(TableStyle([
+            ('FONTNAME', (0,0), (-1,-1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+            ('ALIGN', (0,0), (0,-1), 'LEFT'),
+            ('ALIGN', (1,0), (1,-1), 'CENTER'),
+            ('ALIGN', (2,0), (2,-1), 'RIGHT'),
+            ('VALIGN', (0,0), (-1,-1), 'BOTTOM'),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+        ]))
+        elements.append(f_table)
+
+    if not elements:
+        elements.append(Paragraph("MARKAZ HADIYA WOMEN'S COLLEGE, THAZHAPRA", inst_style))
+        elements.append(Paragraph("No active classes or student records found.", sub_style))
 
     doc.build(elements)
     return response

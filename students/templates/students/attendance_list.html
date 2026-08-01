@@ -280,16 +280,19 @@
     }
 </style>
 
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
     <h1 style="color: #2c3e50; margin: 0;">📊 Attendance Records</h1>
-    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-        <a href="{% url 'students:mark_attendance' %}" class="btn btn-primary" style="background: #27ae60; border: none; box-shadow: 0 4px 6px -1px rgba(39, 174, 96, 0.3);">
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <a href="{% url 'students:all_classes_cumulative_pdf' %}" class="btn btn-primary" style="background: #2563eb; color: white; border: none; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);">
+            <i class="fa-solid fa-file-pdf"></i> 📥 Download All Classes PDF
+        </a>
+        <a href="{% url 'students:mark_attendance' %}" class="btn btn-primary" style="background: #27ae60; border: none; text-decoration: none; box-shadow: 0 4px 6px -1px rgba(39, 174, 96, 0.3);">
             <span style="margin-right: 0.5rem;">✅</span> Mark Attendance
         </a>
-        <a href="{% url 'students:monthly_attendance_select' %}" class="btn btn-primary" style="background: #9b59b6; border: none; box-shadow: 0 4px 6px -1px rgba(155, 89, 182, 0.3);">
+        <a href="{% url 'students:monthly_attendance_select' %}" class="btn btn-primary" style="background: #9b59b6; border: none; text-decoration: none; box-shadow: 0 4px 6px -1px rgba(155, 89, 182, 0.3);">
             <span style="margin-right: 0.5rem;">📅</span> Monthly Grid
         </a>
-        <a href="{% url 'students:attendance_update_tracking' %}" class="btn btn-primary" style="background: #e67e22; border: none; box-shadow: 0 4px 6px -1px rgba(230, 126, 34, 0.3);">
+        <a href="{% url 'students:attendance_update_tracking' %}" class="btn btn-primary" style="background: #e67e22; border: none; text-decoration: none; box-shadow: 0 4px 6px -1px rgba(230, 126, 34, 0.3);">
             <span style="margin-right: 0.5rem;">⏱️</span> Update Tracking
         </a>
     </div>
