@@ -106,12 +106,25 @@
         display: none;
     }
 
-    /* MINIMAL BLACK & WHITE PRINT STYLES */
+    /* PERFECT MINIMAL A4 PRINT STYLES */
+    @page {
+        size: A4 portrait;
+        margin: 12mm 10mm 12mm 10mm;
+    }
+
     @media print {
-        body {
+        /* Reset outer containers so page fits 100% cleanly */
+        html, body, main, #wrapper, .content-wrapper, .main-content, .container, .container-fluid, .content {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            position: static !important;
+            float: none !important;
             background: #ffffff !important;
             color: #000000 !important;
             font-family: 'Helvetica', 'Arial', sans-serif !important;
+            box-sizing: border-box !important;
         }
 
         /* Hide screen elements */
@@ -125,32 +138,33 @@
         .print-only-area {
             display: block !important;
             visibility: visible !important;
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
+            position: static !important;
             width: 100% !important;
             color: #000000 !important;
             background: #ffffff !important;
+            padding: 0 !important;
+            margin: 0 !important;
         }
 
         .print-header-box {
             text-align: center;
             border-bottom: 2px solid #000000;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
         }
 
         .print-header-box h2 {
             margin: 0 0 4px 0;
-            font-size: 16pt;
+            font-size: 15pt;
             font-weight: bold;
             color: #000000;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .print-header-box .sub-info {
-            font-size: 10pt;
-            color: #111111;
+            font-size: 10.5pt;
+            color: #000000;
             font-weight: bold;
         }
 
@@ -158,30 +172,47 @@
             width: 100% !important;
             border-collapse: collapse !important;
             margin-top: 10px !important;
+            font-size: 9.5pt !important;
+        }
+
+        .print-table thead {
+            display: table-header-group; /* Repeat headers across multiple pages */
+        }
+
+        .print-table tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
 
         .print-table th, .print-table td {
             border: 1px solid #000000 !important;
-            padding: 6px 8px !important;
-            font-size: 9.5pt !important;
+            padding: 5px 6px !important;
             color: #000000 !important;
             background: transparent !important;
+            vertical-align: middle !important;
         }
 
         .print-table th {
             background-color: #f2f2f2 !important;
             font-weight: bold !important;
-            text-align: left;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
 
-        .print-footer-box {
-            margin-top: 45px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 10pt;
-            font-weight: bold;
+        .print-footer-table {
+            width: 100% !important;
+            margin-top: 45px !important;
+            border-collapse: collapse !important;
+            page-break-inside: avoid;
+        }
+
+        .print-footer-table td {
+            border: none !important;
+            padding: 0 !important;
+            font-size: 10pt !important;
+            font-weight: bold !important;
+            color: #000000 !important;
+            vertical-align: bottom !important;
         }
     }
 </style>
@@ -321,7 +352,7 @@
             Class: {% if section %}{{ section.name }} - {% endif %}{{ grade.name }} - {{ division.name|default:"No Division" }}
             {% if active_year %} | Academic Year: {{ active_year.name }}{% endif %}
         </div>
-        <div style="font-size: 9.5pt; color: #222; margin-top: 4px;">
+        <div style="font-size: 9pt; color: #222222; margin-top: 3px;">
             {% if current_filters.date_from or current_filters.date_to %}
             Filter Period: {{ current_filters.date_from|default:"Session Start" }} to {{ current_filters.date_to|default:"Today" }}
             {% else %}
@@ -334,9 +365,9 @@
     <table class="print-table">
         <thead>
             <tr>
-                <th style="width: 35px; text-align: center;">Sl</th>
-                <th style="width: 85px;">Student ID</th>
-                <th>Student Name</th>
+                <th style="width: 30px; text-align: center;">Sl</th>
+                <th style="width: 80px; text-align: center;">Student ID</th>
+                <th style="text-align: left;">Student Name</th>
                 <th style="text-align: center; width: 70px;">Total Days</th>
                 <th style="text-align: center; width: 60px;">Present</th>
                 <th style="text-align: center; width: 60px;">Absent</th>
@@ -348,8 +379,8 @@
             {% for stat in student_stats %}
             <tr>
                 <td style="text-align: center;">{{ forloop.counter }}</td>
-                <td>{{ stat.student.student_id }}</td>
-                <td><strong>{{ stat.student.full_name }}</strong></td>
+                <td style="text-align: center;">{{ stat.student.student_id }}</td>
+                <td style="text-align: left;"><strong>{{ stat.student.full_name }}</strong></td>
                 <td style="text-align: center;">{{ stat.total_days }}</td>
                 <td style="text-align: center;">{{ stat.present_count }}</td>
                 <td style="text-align: center;">{{ stat.absent_count }}</td>
@@ -364,19 +395,21 @@
         </tbody>
     </table>
 
-    <div class="print-footer-box">
-        <div>
-            <div>___________________________</div>
-            <div style="margin-top: 4px;">Class Teacher Signature</div>
-        </div>
-        <div>
-            <div>___________________________</div>
-            <div style="margin-top: 4px;">Principal / Headmaster</div>
-        </div>
-        <div>
-            <div>Date: ____________________</div>
-        </div>
-    </div>
+    <table class="print-footer-table">
+        <tr>
+            <td style="text-align: left; width: 33%;">
+                <div>___________________________</div>
+                <div style="margin-top: 4px;">Class Teacher Signature</div>
+            </td>
+            <td style="text-align: center; width: 34%;">
+                <div>___________________________</div>
+                <div style="margin-top: 4px;">Principal / Headmaster</div>
+            </td>
+            <td style="text-align: right; width: 33%;">
+                <div>Date: ____________________</div>
+            </td>
+        </tr>
+    </table>
 </div>
 
 <script>
