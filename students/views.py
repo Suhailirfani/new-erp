@@ -1300,6 +1300,18 @@ def attendance_list(request):
     today = date.today()
     month = int(request.GET.get('month', today.month))
     year = int(request.GET.get('year', today.year))
+    current_month_str = today.strftime('%Y-%m')
+
+    month_filter = request.GET.get('month_filter', '').strip()
+    if month_filter:
+        try:
+            m_year, m_month = map(int, month_filter.split('-'))
+            import calendar
+            _, last_day = calendar.monthrange(m_year, m_month)
+            date_from = f"{m_year:04d}-{m_month:02d}-01"
+            date_to = f"{m_year:04d}-{m_month:02d}-{last_day:02d}"
+        except Exception:
+            pass
 
     active_year = AcademicYear.objects.filter(is_active=True).first()
 
@@ -1533,7 +1545,9 @@ def attendance_list(request):
         'sections': Section.objects.all().order_by('order', 'name'),
         
         # State
+        'current_month_str': current_month_str,
         'current_filters': {
+            'month_filter': month_filter or '',
             'date_from': date_from,
             'date_to': date_to,
             'attendance_type': attendance_type,
