@@ -101,17 +101,107 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
+
+    .print-only-area {
+        display: none;
+    }
+
+    /* MINIMAL BLACK & WHITE PRINT STYLES */
+    @media print {
+        body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            font-family: 'Helvetica', 'Arial', sans-serif !important;
+        }
+
+        /* Hide screen elements */
+        header, footer, nav, sidebar, .page-header, .filter-form, .today-cards-grid, 
+        #toggleDetailedBtn, .no-print, .btn, .actions-col, #detailedRecordsSection,
+        .today-attendance-card-box {
+            display: none !important;
+        }
+
+        /* Reveal minimal print area */
+        .print-only-area {
+            display: block !important;
+            visibility: visible !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            color: #000000 !important;
+            background: #ffffff !important;
+        }
+
+        .print-header-box {
+            text-align: center;
+            border-bottom: 2px solid #000000;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .print-header-box h2 {
+            margin: 0 0 4px 0;
+            font-size: 16pt;
+            font-weight: bold;
+            color: #000000;
+            text-transform: uppercase;
+        }
+
+        .print-header-box .sub-info {
+            font-size: 10pt;
+            color: #111111;
+            font-weight: bold;
+        }
+
+        .print-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            margin-top: 10px !important;
+        }
+
+        .print-table th, .print-table td {
+            border: 1px solid #000000 !important;
+            padding: 6px 8px !important;
+            font-size: 9.5pt !important;
+            color: #000000 !important;
+            background: transparent !important;
+        }
+
+        .print-table th {
+            background-color: #f2f2f2 !important;
+            font-weight: bold !important;
+            text-align: left;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .print-footer-box {
+            margin-top: 45px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 10pt;
+            font-weight: bold;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-header" style="margin-bottom: 2rem; background: #fff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-    <a href="{% url 'students:attendance_list' %}" class="btn btn-secondary" style="margin-bottom: 1rem; padding: 0.5rem 1rem; border-radius: 6px; background: #6c757d; color: white; text-decoration: none; display: inline-block;">← Back to All Classes</a>
-    <h1 style="color: #1a202c; font-size: 2rem; margin-bottom: 0.5rem; font-weight: 700;">🏫 {% if section %}{{ section.name }} - {% endif %}{{ grade }} - {{ division.name|default:"No Division" }}</h1>
-    <p class="text-muted" style="color: #6c757d;">Attendance overview for all students in this class.</p>
+<div class="page-header no-print" style="margin-bottom: 2rem; background: #fff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <a href="{% url 'students:attendance_list' %}" class="btn btn-secondary" style="margin-bottom: 0.75rem; padding: 0.4rem 0.85rem; border-radius: 6px; background: #6c757d; color: white; text-decoration: none; display: inline-block; font-size: 0.85rem;">← Back to All Classes</a>
+        <h1 style="color: #1a202c; font-size: 1.8rem; margin: 0; font-weight: 700;">🏫 {% if section %}{{ section.name }} - {% endif %}{{ grade }} - {{ division.name|default:"No Division" }}</h1>
+        <p class="text-muted" style="color: #6c757d; margin: 0.25rem 0 0 0; font-size: 0.9rem;">Attendance overview for all students in this class.</p>
+    </div>
+    <div>
+        <button type="button" onclick="printCumulativeAttendance()" class="btn btn-dark" style="background: #1e293b; color: white; font-weight: 700; padding: 0.65rem 1.25rem; border-radius: 10px; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            <i class="fa-solid fa-print"></i> 🖨️ Minimal Print Cumulative
+        </button>
+    </div>
 </div>
 
-<div class="filter-form" style="background: #fff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 1.5rem;">
+<div class="filter-form no-print" style="background: #fff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 1.5rem;">
     <form method="get">
         <div class="form-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
             <div class="form-group" style="margin-bottom: 0;">
@@ -125,14 +215,14 @@
             </div>
             <div class="btn-group" style="display: flex; gap: 0.75rem;">
                 <button type="submit" class="btn btn-primary" style="background: #3498db; color: white;">🔍 Filter</button>
-                <a href="{% url 'students:attendance_class_detail' grade_id=grade.id division_id=division.id|default:0 %}?section={{ section_id|default:'' }}" class="btn btn-secondary" style="background: #95a5a6; color: white;">🧹 Clear</a>
+                <a href="{% url 'students:attendance_class_detail' grade_id=grade.id division_id=division.id|default:0 %}{% if section_id %}?section={{ section_id }}{% endif %}" class="btn btn-secondary" style="background: #95a5a6; color: white;">🧹 Clear</a>
             </div>
         </div>
     </form>
 </div>
 
 <!-- Today's Attendance Cards (Shown First) -->
-<div class="card" style="background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.5rem; margin-bottom: 1.5rem;">
+<div class="card today-attendance-card-box no-print" style="background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.5rem; margin-bottom: 1.5rem;">
     <h2 style="margin: 0 0 0.5rem 0; color: #2c3e50; display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.25rem;">
         <i class="fa-regular fa-calendar-check" style="color: var(--primary, #6366f1);"></i>
         Today's Attendance Status
@@ -154,19 +244,27 @@
         {% endfor %}
     </div>
     
-    <div style="display: flex; justify-content: center; margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 1.5rem;">
-        <button id="toggleDetailedBtn" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 2rem; border-radius: 12px; font-weight: 700; background: var(--primary, #6366f1); border: none; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2); cursor: pointer; transition: all 0.2s;">
+    <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 1.5rem; flex-wrap: wrap;">
+        <button id="toggleDetailedBtn" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.75rem; border-radius: 12px; font-weight: 700; background: var(--primary, #6366f1); border: none; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2); cursor: pointer; transition: all 0.2s;">
             <i class="fa-solid fa-chart-line"></i> View Detailed Records
+        </button>
+        <button type="button" onclick="printCumulativeAttendance()" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.75rem; border-radius: 12px; font-weight: 700; background: #1e293b; color: white; border: none; cursor: pointer;">
+            <i class="fa-solid fa-print"></i> 🖨️ Minimal Print Cumulative
         </button>
     </div>
 </div>
 
-<!-- Detailed Cumulative Records Section (Hidden by default) -->
-<div id="detailedRecordsSection" class="card" style="display: none; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.5rem;">
-    <h2 style="margin: 0 0 1.5rem 0; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 0.5rem; font-weight: 700; font-size: 1.25rem;">
-        <i class="fa-solid fa-list-check" style="color: #3498db;"></i>
-        Students Cumulative Attendance ({{ student_stats|length }})
-    </h2>
+<!-- Detailed Cumulative Records Section -->
+<div id="detailedRecordsSection" class="card no-print" style="display: none; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid #3498db; padding-bottom: 0.5rem; flex-wrap: wrap; gap: 0.75rem;">
+        <h2 style="margin: 0; color: #2c3e50; font-weight: 700; font-size: 1.25rem;">
+            <i class="fa-solid fa-list-check" style="color: #3498db;"></i>
+            Students Cumulative Attendance ({{ student_stats|length }})
+        </h2>
+        <button type="button" onclick="printCumulativeAttendance()" class="btn btn-sm" style="background: #1e293b; color: white; font-weight: 700; border-radius: 6px; padding: 0.4rem 0.85rem; border: none; cursor: pointer;">
+            🖨️ Minimal Print
+        </button>
+    </div>
     
     <div class="table-wrapper" style="overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse; text-align: left;">
@@ -215,6 +313,72 @@
     </div>
 </div>
 
+<!-- MINIMAL BLACK & WHITE PRINT CONTAINER -->
+<div id="printCumulativeArea" class="print-only-area">
+    <div class="print-header-box">
+        <h2>Students Cumulative Attendance Report</h2>
+        <div class="sub-info">
+            Class: {% if section %}{{ section.name }} - {% endif %}{{ grade.name }} - {{ division.name|default:"No Division" }}
+            {% if active_year %} | Academic Year: {{ active_year.name }}{% endif %}
+        </div>
+        <div style="font-size: 9.5pt; color: #222; margin-top: 4px;">
+            {% if current_filters.date_from or current_filters.date_to %}
+            Filter Period: {{ current_filters.date_from|default:"Session Start" }} to {{ current_filters.date_to|default:"Today" }}
+            {% else %}
+            Report Date: {% now "d F Y" %}
+            {% endif %}
+            | Total Enrolled Students: {{ student_stats|length }}
+        </div>
+    </div>
+
+    <table class="print-table">
+        <thead>
+            <tr>
+                <th style="width: 35px; text-align: center;">Sl</th>
+                <th style="width: 85px;">Student ID</th>
+                <th>Student Name</th>
+                <th style="text-align: center; width: 70px;">Total Days</th>
+                <th style="text-align: center; width: 60px;">Present</th>
+                <th style="text-align: center; width: 60px;">Absent</th>
+                <th style="text-align: center; width: 85px;">Late/Excused</th>
+                <th style="text-align: center; width: 80px;">Attendance %</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stat in student_stats %}
+            <tr>
+                <td style="text-align: center;">{{ forloop.counter }}</td>
+                <td>{{ stat.student.student_id }}</td>
+                <td><strong>{{ stat.student.full_name }}</strong></td>
+                <td style="text-align: center;">{{ stat.total_days }}</td>
+                <td style="text-align: center;">{{ stat.present_count }}</td>
+                <td style="text-align: center;">{{ stat.absent_count }}</td>
+                <td style="text-align: center;">{{ stat.late_count }} / {{ stat.excused_count }}</td>
+                <td style="text-align: center; font-weight: bold;">{{ stat.percentage }}%</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" style="text-align: center;">No students found in this class.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="print-footer-box">
+        <div>
+            <div>___________________________</div>
+            <div style="margin-top: 4px;">Class Teacher Signature</div>
+        </div>
+        <div>
+            <div>___________________________</div>
+            <div style="margin-top: 4px;">Principal / Headmaster</div>
+        </div>
+        <div>
+            <div>Date: ____________________</div>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const toggleBtn = document.getElementById('toggleDetailedBtn');
@@ -233,5 +397,9 @@
             }
         });
     });
+
+    function printCumulativeAttendance() {
+        window.print();
+    }
 </script>
 {% endblock %}
