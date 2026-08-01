@@ -3995,16 +3995,19 @@ def attendance_class_detail(request, grade_id, division_id):
     section_id = request.GET.get('section')
     
     if division:
-        enrollments = Enrollment.objects.filter(grade_id=grade_id, division=division, academic_year=active_year, student__is_active=True).select_related('student', 'section').order_by('student__first_name', 'student__last_name')
+        enrollments = Enrollment.objects.filter(grade_id=grade_id, division=division, student__is_active=True)
     else:
-        enrollments = Enrollment.objects.filter(grade_id=grade_id, division__isnull=True, academic_year=active_year, student__is_active=True).select_related('student', 'section').order_by('student__first_name', 'student__last_name')
+        enrollments = Enrollment.objects.filter(grade_id=grade_id, division__isnull=True, student__is_active=True)
         
-    if section_id:
+    if active_year and enrollments.filter(academic_year=active_year).exists():
+        enrollments = enrollments.filter(academic_year=active_year)
+
+    enrollments = enrollments.select_related('student', 'section').order_by('student__first_name', 'student__last_name')
+        
+    section = None
+    if section_id and str(section_id).strip() not in ['', 'None']:
         enrollments = enrollments.filter(section_id=section_id)
-        section = Section.objects.get(id=section_id)
-    else:
-        enrollments = enrollments.filter(section__isnull=True)
-        section = None
+        section = Section.objects.filter(id=section_id).first()
     
     # Use grade session_start_date to limit attendance to class start date
     grade_session_start = grade.session_start_date if grade and grade.session_start_date else (active_year.start_date if active_year else None)
@@ -4079,6 +4082,7 @@ def attendance_class_detail(request, grade_id, division_id):
         'division': division,
         'student_stats': student_stats,
         'section': section,
+        'section_id': section_id or '',
         'active_year': active_year,
         'session_start': grade_session_start,
         'current_filters': {
@@ -6743,18 +6747,25 @@ def timetable_builder(request):
     all_subjects = Subject.objects.filter(is_active=True)
     if selected_grade:
         all_subjects = all_subjects.filter(grade=selected_grade)
+        if selected_division:
+            all_subjects = all_subjects.filter(
+                Q(division=selected_division) | Q(division__isnull=True)
+            )
 
     # Fetch existing slots for grid
     slots_map = {}
     if selected_grade:
-        existing_slots = TimetableSlot.objects.filter(
-            grade=selected_grade,
-            division=selected_division
-        ).select_related('subject', 'teacher', 'period_timing')
+        slots_qs = TimetableSlot.objects.filter(grade=selected_grade)
+        if selected_division:
+            slots_qs = slots_qs.filter(
+                Q(division=selected_division) | Q(division__isnull=True)
+            )
+        existing_slots = slots_qs.select_related('subject', 'teacher', 'period_timing')
 
         for slot in existing_slots:
             key = f"{slot.day_of_week}_{slot.period_timing_id}"
             slots_map[key] = slot
+            slots_map[str(key)] = slot
 
     all_divisions = Division.objects.all()
 
