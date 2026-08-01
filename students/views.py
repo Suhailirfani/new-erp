@@ -3995,7 +3995,10 @@ def attendance_class_detail(request, grade_id, division_id):
         return redirect('students:attendance_list')
 
     active_year = AcademicYear.objects.filter(is_active=True).first()
-    grade = get_object_or_404(Grade, id=grade_id)
+    grade = Grade.objects.filter(id=grade_id).first()
+    if not grade:
+        messages.error(request, "Class/Grade not found.")
+        return redirect('students:attendance_list')
     section_id = request.GET.get('section')
     
     if division:
@@ -4132,7 +4135,10 @@ def cumulative_attendance_pdf(request, grade_id, division_id):
         return redirect('students:attendance_list')
 
     active_year = AcademicYear.objects.filter(is_active=True).first()
-    grade = get_object_or_404(Grade, id=grade_id)
+    grade = Grade.objects.filter(id=grade_id).first()
+    if not grade:
+        messages.error(request, "Class/Grade not found.")
+        return redirect('students:attendance_list')
     section_id = request.GET.get('section')
 
     if division:
@@ -4451,7 +4457,11 @@ def all_classes_cumulative_pdf(request):
     class_count = 0
 
     for combo in combos:
-        grade = get_object_or_404(Grade, id=combo['grade_id'])
+        if not combo['grade_id']:
+            continue
+        grade = Grade.objects.filter(id=combo['grade_id']).first()
+        if not grade:
+            continue
         division = Division.objects.filter(id=combo['division_id']).first() if combo['division_id'] else None
 
         if division:
