@@ -1547,7 +1547,8 @@ def attendance_list(request):
         # State
         'current_month_str': current_month_str,
         'current_filters': {
-            'month_filter': month_filter or '',
+            'month_filter': month_filter or current_month_str,
+            'current_month_str': current_month_str,
             'date_from': date_from,
             'date_to': date_to,
             'attendance_type': attendance_type,
