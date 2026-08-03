@@ -64,14 +64,19 @@ def landing_page(request):
     """Public landing page"""
     from .models import LandingPageStats, NewsTickerItem
     from django.db.models import F
+    from django.db import OperationalError
     
-    # Increment visitor count
-    stats, created = LandingPageStats.objects.get_or_create(pk=1)
-    if not created:
-        LandingPageStats.objects.filter(pk=1).update(visit_count=F('visit_count') + 1)
-    else:
-        stats.visit_count = 1
-        stats.save()
+    # Increment visitor count safely
+    try:
+        stats, created = LandingPageStats.objects.get_or_create(pk=1)
+        if not created:
+            LandingPageStats.objects.filter(pk=1).update(visit_count=F('visit_count') + 1)
+        else:
+            stats.visit_count = 1
+            stats.save()
+    except OperationalError:
+        # Prevent database locked error from crashing page rendering
+        pass
         
     active_tickers = NewsTickerItem.objects.filter(is_active=True).order_by('order', '-created_at')
     return render(request, 'students/landing.html', {'active_tickers': active_tickers})
