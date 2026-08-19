@@ -110,23 +110,23 @@
         </div>
 
         <!-- 1. DESKTOP VIEW LAYOUT (TABLE) -->
-        <div class="desktop-table-wrapper table-wrapper" style="overflow-x: auto;">
-            <table style="min-width: 100%; border-collapse: collapse; white-space: nowrap;">
+        <div class="desktop-table-wrapper table-wrapper" style="overflow-x: auto; max-width: 100%; border-radius: 10px; border: 1px solid #e2e8f0;">
+            <table style="width: 100%; border-collapse: collapse; white-space: nowrap; font-size: 0.85rem;">
                 <thead style="position: sticky; top: 0; z-index: 10;">
                     <tr style="background-color: #2c3e50; color: white;">
-                        <th style="padding: 1rem; text-align: left; border: 1px solid #34495e; position: sticky; left: 0; background-color: #2c3e50; z-index: 11;">Sl No</th>
-                        <th style="padding: 1rem; text-align: left; border: 1px solid #34495e; position: sticky; left: 60px; background-color: #2c3e50; z-index: 11; min-width: 200px;">Student Name</th>
+                        <th style="padding: 0.6rem 0.5rem; text-align: left; border: 1px solid #34495e; position: sticky; left: 0; background-color: #2c3e50; z-index: 11; width: 45px;">Sl</th>
+                        <th style="padding: 0.6rem 0.6rem; text-align: left; border: 1px solid #34495e; position: sticky; left: 45px; background-color: #2c3e50; z-index: 11; min-width: 160px; max-width: 180px;">Student Name</th>
                         
                         {% for subject in subjects %}
-                        <th style="padding: 1rem; text-align: center; border: 1px solid #34495e;">
-                            <div style="font-weight: bold; margin-bottom: 0.5rem; white-space: normal; min-width: 120px;">
+                        <th style="padding: 0.5rem 0.4rem; text-align: center; border: 1px solid #34495e;">
+                            <div style="font-weight: bold; margin-bottom: 0.25rem; white-space: normal; min-width: 90px; max-width: 120px; font-size: 0.8rem;">
                                 {{ subject.name }}
                                 {% if subject.subject_type == 'hadiya' %}<br><small style="color: #bdc3c7;">(Hadiya)</small>{% endif %}
                             </div>
-                            <div style="font-weight: normal; font-size: 0.9em; color: #bdc3c7;">
+                            <div style="font-weight: normal; font-size: 0.78em; color: #bdc3c7;">
                                 Max: 
                                 <input type="number" name="max_marks_{{ subject.id }}" value="{{ subject.effective_max_marks|floatformat:0 }}" 
-                                       step="1" min="1" style="width: 60px; padding: 0.2rem; text-align: center; border: 1px solid #7f8c8d; background-color: #34495e; color: white; border-radius: 3px;">
+                                       step="1" min="1" style="width: 50px; padding: 0.15rem; text-align: center; border: 1px solid #7f8c8d; background-color: #34495e; color: white; border-radius: 3px; font-size: 0.8rem;">
                             </div>
                         </th>
                         {% endfor %}
@@ -135,16 +135,16 @@
                 <tbody>
                     {% for student in students %}
                     <tr style="background-color: {% cycle '#ffffff' '#f9f9f9' %}; border-bottom: 1px solid #eee;">
-                        <td style="padding: 0.75rem; text-align: left; border: 1px solid #eee; position: sticky; left: 0; background-color: inherit; z-index: 5;">
+                        <td style="padding: 0.4rem 0.5rem; text-align: left; border: 1px solid #eee; position: sticky; left: 0; background-color: inherit; z-index: 5;">
                             {{ forloop.counter }}
                         </td>
-                        <td style="padding: 0.75rem; border: 1px solid #eee; position: sticky; left: 60px; background-color: inherit; z-index: 5; font-weight: bold; color: #2c3e50;">
+                        <td style="padding: 0.4rem 0.5rem; border: 1px solid #eee; position: sticky; left: 45px; background-color: inherit; z-index: 5; font-weight: bold; color: #2c3e50; max-width: 180px; overflow: hidden; text-overflow: ellipsis;">
                             {{ student.full_name }}
-                            <div style="font-size: 0.8em; color: #7f8c8d; font-weight: normal;">ID: {{ student.student_id }}</div>
+                            <div style="font-size: 0.75em; color: #7f8c8d; font-weight: normal;">ID: {{ student.student_id }}</div>
                         </td>
                         
                         {% for subject in subjects %}
-                        <td style="padding: 0.75rem; text-align: center; border: 1px solid #eee;">
+                        <td style="padding: 0.4rem 0.3rem; text-align: center; border: 1px solid #eee;">
                             {% with student_marks=existing_marks|get_item:student.id %}
                                 {% with current_mark=student_marks|get_item:subject.id %}
                                 <input type="number" 
