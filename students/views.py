@@ -3991,6 +3991,171 @@ def single_progress_report_pdf(request, pk):
     c.save()
     return response
 
+
+@role_required(['admin', 'teacher', 'student'])
+def acknowledgement_certificate(request, pk=None):
+    """Generate and view Student Bonafide / Acknowledgement Certificate"""
+    selected_student = None
+    if pk:
+        selected_student = get_object_or_404(Student, pk=pk)
+    else:
+        student_id = request.GET.get('student')
+        if student_id:
+            selected_student = Student.objects.filter(pk=student_id).first()
+
+    is_student = hasattr(request.user, 'profile') and request.user.profile.role == 'student'
+    if is_student:
+        if not request.user.profile.student_record:
+            messages.error(request, "Student record not found.")
+            return redirect('students:home')
+        selected_student = request.user.profile.student_record
+
+    purpose = request.GET.get('purpose', 'Official Purposes').strip()
+
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    if not active_year:
+        active_year = AcademicYear.objects.order_by('-start_date').first()
+
+    enrollment = None
+    if selected_student:
+        enrollment = Enrollment.objects.filter(student=selected_student, academic_year=active_year).select_related('grade', 'division', 'section', 'academic_year').first()
+        if not enrollment:
+            enrollment = Enrollment.objects.filter(student=selected_student).select_related('grade', 'division', 'section', 'academic_year').order_by('-academic_year__start_date').first()
+
+    all_students = Student.objects.filter(is_active=True).order_by('first_name', 'last_name')
+
+    context = {
+        'selected_student': selected_student,
+        'enrollment': enrollment,
+        'all_students': all_students,
+        'active_year': active_year,
+        'purpose': purpose,
+        'today_date': date.today(),
+        'certificate_no': f"MHWC/CERT/{date.today().strftime('%Y%m')}/{selected_student.id}" if selected_student else "MHWC/CERT/SAMPLE"
+    }
+    return render(request, 'students/acknowledgement_certificate.html', context)
+
+
+@role_required(['admin', 'teacher', 'student'])
+def acknowledgement_certificate_pdf(request, pk):
+    """Generate official downloadable PDF Acknowledgement Certificate for a student"""
+    student = get_object_or_404(Student, pk=pk)
+
+    if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
+        if not request.user.profile.student_record or request.user.profile.student_record != student:
+            messages.error(request, "You do not have permission to download other students' certificates.")
+            return redirect('students:home')
+
+    purpose = request.GET.get('purpose', 'Official Purposes').strip()
+
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    enrollment = Enrollment.objects.filter(student=student, academic_year=active_year).select_related('grade', 'division', 'academic_year').first()
+    if not enrollment:
+        enrollment = Enrollment.objects.filter(student=student).select_related('grade', 'division', 'academic_year').order_by('-academic_year__start_date').first()
+
+    response = HttpResponse(content_type='application/pdf')
+    clean_id = str(student.student_id).replace('/', '_').replace('\\', '_')
+    response['Content-Disposition'] = f'attachment; filename="bonafide_certificate_{clean_id}.pdf"'
+
+    c = canvas.Canvas(response, pagesize=A4)
+    width, height = A4
+
+    # Border frame around certificate page
+    c.setLineWidth(2)
+    c.setStrokeColor(colors.HexColor('#0f172a'))
+    c.rect(1.5 * cm, 1.5 * cm, width - 3 * cm, height - 3 * cm)
+
+    c.setLineWidth(0.5)
+    c.setStrokeColor(colors.HexColor('#64748b'))
+    c.rect(1.7 * cm, 1.7 * cm, width - 3.4 * cm, height - 3.4 * cm)
+
+    y = height - 3 * cm
+
+    # Header
+    c.setFont("Helvetica-Bold", 16)
+    c.setFillColor(colors.HexColor('#0f172a'))
+    c.drawCentredString(width / 2, y, "MARKAZ HADIYA WOMEN'S COLLEGE")
+    y -= 0.6 * cm
+
+    c.setFont("Helvetica", 10)
+    c.setFillColor(colors.HexColor('#475569'))
+    c.drawCentredString(width / 2, y, "THAZHAPRA, KERALA - INDIA")
+    y -= 0.4 * cm
+    c.drawCentredString(width / 2, y, "Affiliated Educational Institution")
+    y -= 0.8 * cm
+
+    c.setLineWidth(1)
+    c.setStrokeColor(colors.HexColor('#0f172a'))
+    c.line(2.5 * cm, y, width - 2.5 * cm, y)
+    y -= 0.8 * cm
+
+    # Cert No & Date
+    cert_no = f"Ref No: MHWC/CERT/{date.today().strftime('%Y%m')}/{student.id}"
+    date_str = f"Date: {date.today().strftime('%d-%b-%Y')}"
+
+    c.setFont("Helvetica-Bold", 9)
+    c.setFillColor(colors.HexColor('#0f172a'))
+    c.drawString(2.5 * cm, y, cert_no)
+    c.drawRightString(width - 2.5 * cm, y, date_str)
+    y -= 1.5 * cm
+
+    # Certificate Title
+    c.setFont("Helvetica-Bold", 13)
+    c.drawCentredString(width / 2, y, "STUDY ACKNOWLEDGEMENT CERTIFICATE")
+    y -= 0.3 * cm
+
+    title_w = c.stringWidth("STUDY ACKNOWLEDGEMENT CERTIFICATE", "Helvetica-Bold", 13)
+    c.line(width / 2 - title_w / 2, y, width / 2 + title_w / 2, y)
+    y -= 1.5 * cm
+
+    # Wording
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(2.5 * cm, y, "TO WHOMSOEVER IT MAY CONCERN")
+    y -= 0.8 * cm
+
+    grade_name = enrollment.grade.name if enrollment and enrollment.grade else "N/A"
+    div_name = f" - {enrollment.division.name}" if enrollment and enrollment.division else ""
+    year_name = enrollment.academic_year.name if enrollment and enrollment.academic_year else "Current Academic Year"
+
+    p1 = f"This is to certify that <b>{student.full_name}</b> (Student ID: <b>{student.student_id}</b>) is a bonafide student of Markaz Hadiya Women's College, Thazhapra."
+    p2 = f"She is currently enrolled and pursuing her studies in <b>{grade_name}{div_name}</b> during the academic year <b>{year_name}</b>."
+    p3 = f"As per our institutional records, her conduct and character have been good throughout her period of study."
+    p4 = f"This acknowledgement certificate is issued upon her request for the purpose of <b>{purpose}</b>."
+
+    styles = getSampleStyleSheet()
+    normal_style = ParagraphStyle(
+        'CertBody',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=11,
+        leading=18,
+        textColor=colors.HexColor('#0f172a'),
+        alignment=4
+    )
+
+    full_text = f"{p1} {p2} {p3}<br/><br/>{p4}"
+    para = Paragraph(full_text, normal_style)
+
+    w, h = para.wrap(width - 5 * cm, height)
+    para.drawOn(c, 2.5 * cm, y - h)
+    y = y - h - 4 * cm
+
+    # Signatures
+    c.setFont("Helvetica-Bold", 10)
+    c.setFillColor(colors.HexColor('#0f172a'))
+    c.drawString(2.5 * cm, y, "Prepared / Verified By")
+    c.drawRightString(width - 2.5 * cm, y, "Principal / Head of Institution")
+
+    y -= 0.4 * cm
+    c.setFont("Helvetica", 9)
+    c.setFillColor(colors.HexColor('#64748b'))
+    c.drawString(2.5 * cm, y, "College Office")
+    c.drawRightString(width - 2.5 * cm, y, "Markaz Hadiya Women's College")
+
+    c.showPage()
+    c.save()
+    return response
+
 from datetime import date
 import calendar
 from django.shortcuts import render

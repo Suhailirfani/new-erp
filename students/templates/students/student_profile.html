@@ -211,13 +211,16 @@
                 <h4 style="font-weight: 800; color: #1e293b; margin-bottom: 0.25rem;">{{ student.full_name }}</h4>
                 <div style="font-size: 0.85rem; color: #64748b; font-weight: 600; margin-bottom: 1rem;">ID: {{ student.student_id }}</div>
 
-                {% if request.user.profile.role == 'student' %}
-                <div style="margin-bottom: 1.5rem;">
-                    <a href="{% url 'students:student_self_profile_update' %}" class="btn btn-sm btn-primary" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border: none; font-weight: 700; border-radius: 10px; padding: 0.5rem 1.2rem; display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.25);">
-                        <i class="fa-solid fa-user-pen"></i> Edit Profile & Password
+                <div style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+                    {% if request.user.profile.role == 'student' %}
+                    <a href="{% url 'students:student_self_profile_update' %}" class="btn btn-sm btn-primary" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border: none; font-weight: 700; border-radius: 10px; padding: 0.5rem 1rem; display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.25);">
+                        <i class="fa-solid fa-user-pen"></i> Edit Profile
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'students:acknowledgement_certificate_student' student.id %}" class="btn btn-sm btn-success" style="font-weight: 700; border-radius: 10px; padding: 0.5rem 1rem; display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+                        <i class="fa-solid fa-certificate"></i> Study Certificate
                     </a>
                 </div>
-                {% endif %}
 
                 <!-- Stylized Striped Data Table -->
                 <div class="table-responsive">
