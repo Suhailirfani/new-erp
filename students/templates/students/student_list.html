@@ -44,23 +44,24 @@
         height: auto;
     }
     .filter-form small {
-        display: none !important; /* Hide the generic small text to save space */
+        display: none !important;
     }
 
-    /* Print styles */
+    /* Print styles: ONLY print table view */
     @media print {
         @page {
             size: A4 portrait;
-            margin: 0.5cm;
+            margin: 0.6cm;
         }
-        /* Hide everything except the cards list */
-        .sidebar, .navbar, .button-group, .filter-form, h1, .btn, .card-actions {
+        .no-print, .sidebar, .navbar, footer, .button-group, .filter-form, h1, .btn, .card-actions, .filter-actions, .student-cards-view {
             display: none !important;
         }
-        body, .main-content {
+        body, .main-content, .main-workspace, .container {
             background-color: white !important;
             margin: 0 !important;
             padding: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
             font-size: 10pt !important;
         }
         .card {
@@ -68,32 +69,39 @@
             border: none !important;
             margin: 0 !important;
             padding: 0 !important;
+            background: transparent !important;
+        }
+        .student-table-view {
+            display: block !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            border: none !important;
+        }
+        .student-list-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            background: white !important;
+        }
+        .student-list-table th, .student-list-table td {
+            border: 1px solid #000 !important;
+            padding: 5px 8px !important;
+            font-size: 9pt !important;
+            color: #000 !important;
+            background: white !important;
+        }
+        .student-list-table thead tr {
+            background: #f1f5f9 !important;
+            color: #000 !important;
         }
         .class-section-header {
-            border-bottom: 1px solid #000 !important;
-            margin: 1cm 0 0.5cm 0 !important;
+            border-bottom: 2px solid #000 !important;
+            margin: 0.6cm 0 0.3cm 0 !important;
             page-break-after: avoid;
-        }
-        .student-cards-grid {
-            display: block !important;
-        }
-        .student-card {
-            page-break-inside: avoid;
-            display: flex !important;
-            flex-direction: row !important;
-            justify-content: space-between !important;
-            align-items: center !important;
-            border: 1px solid #ddd !important;
-            border-radius: 0 !important;
-            padding: 6px 10px !important;
-            margin-bottom: -1px !important; /* Collapse borders */
-            box-shadow: none !important;
-            font-size: 9pt !important;
-        }
-        .student-card .badge-student-type {
-            border: 1px solid #aaa !important;
             color: #000 !important;
-            background: transparent !important;
+            font-size: 11pt !important;
+            font-weight: bold !important;
         }
     }
 
@@ -252,21 +260,37 @@
 {% endblock %}
 
 {% block content %}
-<h1>Student List</h1>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="margin: 0; font-size: 1.8rem; color: #1e293b;">Student Directory</h1>
+        <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.9rem;">View, search, filter and print student records.</p>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.75rem;" class="no-print">
+        <!-- View Mode Switcher Buttons -->
+        <div style="display: flex; background: #e2e8f0; padding: 3px; border-radius: 8px; gap: 2px;">
+            <button type="button" id="btnCardsView" onclick="setStudentView('cards')" style="border: none; padding: 0.4rem 0.85rem; border-radius: 6px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">
+                <i class="fa-solid fa-border-all"></i> Cards
+            </button>
+            <button type="button" id="btnTableView" onclick="setStudentView('table')" style="border: none; padding: 0.4rem 0.85rem; border-radius: 6px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">
+                <i class="fa-solid fa-table-list"></i> Table
+            </button>
+        </div>
+    </div>
+</div>
 
-<div class="button-group" style="margin-bottom: 1rem;">
+<div class="button-group no-print" style="margin-bottom: 1rem;">
     <a href="{% url 'students:student_create' %}" class="btn btn-success">Add Single Student</a>
     <a href="{% url 'students:student_bulk_import' %}" class="btn" style="background-color: #27ae60;">Bulk Import from Excel</a>
     <a href="{% url 'students:student_upgrade' %}" class="btn" style="background-color: #9b59b6;">Upgrade Students</a>
     <button type="submit" form="filterForm" name="export" value="excel" class="btn" style="background-color: #2980b9; color: white;"><i class="fas fa-file-excel"></i> Export to Excel</button>
 </div>
 
-<div class="filter-form">
+<div class="filter-form no-print">
     <form id="filterForm" method="get">
         <div class="form-row">
             <div class="form-group">
                 <label>Search</label>
-                <input type="text" name="search" value="{{ current_filters.search|default_if_none:''  }}" placeholder="Student ID, Name...">
+                <input type="text" name="search" value="{{ current_filters.search|default_if_none:'' }}" placeholder="Student ID, Name...">
             </div>
             <div class="form-group">
                 <label>Grade/Year</label>
@@ -276,9 +300,6 @@
                     <option value="{{ g.id }}" {% if current_filters.grade == g.id|stringformat:"s" %}selected{% endif %}>{{ g.name }}</option>
                     {% endfor %}
                 </select>
-                <small style="display: block; margin-top: 0.5rem; color: #666;">
-                    Select from existing grades to filter
-                </small>
             </div>
             <div class="form-group">
                 <label>Division</label>
@@ -319,14 +340,14 @@
         <div class="filter-actions" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;">
             <button type="submit" class="btn" style="flex: 1; margin: 0; min-width: 100px;">Filter</button>
             <button type="submit" name="export" value="excel" class="btn" style="background-color: #2980b9; color: white; flex: 1; margin: 0; min-width: 120px;">Export to Excel</button>
-            <button type="button" class="btn" style="background-color: #34495e; color: white; flex: 1; margin: 0; min-width: 80px;" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+            <button type="button" class="btn" style="background-color: #34495e; color: white; flex: 1; margin: 0; min-width: 80px;" onclick="window.print()"><i class="fas fa-print"></i> Print Table</button>
             <a href="{% url 'students:student_list' %}" class="btn btn-danger" style="flex: 1; margin: 0; min-width: 80px; text-align: center; text-decoration: none;">Clear</a>
         </div>
     </form>
 </div>
 
 <div class="card" style="background: transparent; box-shadow: none; border: none; padding: 0;">
-    <h2 id="studentCountHeader" style="margin-bottom: 1.5rem; font-weight: 800;">Students ({{ students.count }})</h2>
+    <h2 id="studentCountHeader" style="margin-bottom: 1rem; font-weight: 800;" class="no-print">Students ({{ students.count }})</h2>
     <div id="studentTableBody">
         {% include 'students/partials/student_table_body.html' %}
     </div>
@@ -334,10 +355,32 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
+    function setStudentView(mode) {
+        localStorage.setItem('student_view_mode', mode);
+        applyStudentView(mode);
+    }
+
+    function applyStudentView(mode) {
+        if (!mode) mode = localStorage.getItem('student_view_mode') || 'cards';
+
+        if (mode === 'table') {
+            $('.student-cards-view').hide();
+            $('.student-table-view').show();
+            $('#btnTableView').css({'background': '#ffffff', 'color': '#0f172a', 'box-shadow': '0 2px 4px rgba(0,0,0,0.1)'});
+            $('#btnCardsView').css({'background': 'transparent', 'color': '#64748b', 'box-shadow': 'none'});
+        } else {
+            $('.student-table-view').hide();
+            $('.student-cards-view').show();
+            $('#btnCardsView').css({'background': '#ffffff', 'color': '#0f172a', 'box-shadow': '0 2px 4px rgba(0,0,0,0.1)'});
+            $('#btnTableView').css({'background': 'transparent', 'color': '#64748b', 'box-shadow': 'none'});
+        }
+    }
+
     $(document).ready(function() {
-        // Function to perform the AJAX search
+        applyStudentView();
+
         function performSearch() {
-            var searchData = $('form').serialize();
+            var searchData = $('form#filterForm').serialize();
             
             $.ajax({
                 url: "{% url 'students:student_list' %}",
@@ -349,10 +392,14 @@
                 success: function(response) {
                     $('#studentTableBody').html(response);
                     
-                    // Update the student count based on the number of student rows returned
                     var rowCount = $('#studentTableBody .student-row').length;
-                    
+                    if ($('.student-table-view').length) {
+                        rowCount = $('#studentTableBody .student-list-table tbody tr').length;
+                    }
                     $('#studentCountHeader').text('Students (' + rowCount + ')');
+
+                    // Re-apply current view mode after AJAX content update
+                    applyStudentView();
                 },
                 error: function(error) {
                     console.log("Error fetching search results:", error);
@@ -360,18 +407,15 @@
             });
         }
 
-        // Trigger search when typing in the search box
         var searchTimer;
         $('input[name="search"]').on('keyup', function() {
             clearTimeout(searchTimer);
-            searchTimer = setTimeout(performSearch, 300); // 300ms debounce
+            searchTimer = setTimeout(performSearch, 300);
         });
 
-        // Trigger search when any dropdown changes
         $('select[name="grade"], select[name="division"], select[name="section"], select[name="student_type"], select[name="room"]').on('change', function() {
             performSearch();
         });
     });
 </script>
 {% endblock %}
-

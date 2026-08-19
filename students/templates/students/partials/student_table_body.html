@@ -6,7 +6,8 @@
         <span class="badge-count">{{ group.list|length }} Student{% if group.list|length != 1 %}s{% endif %}</span>
     </div>
     
-    <div class="student-cards-grid">
+    <!-- 1. CARDS VIEW -->
+    <div class="student-cards-grid student-cards-view">
         {% for enrollment in group.list %}
         <div class="student-card student-row" onclick="window.location='{% url 'students:student_profile' enrollment.student.id %}'" style="cursor: pointer;">
             <!-- Top row: Name and Type Badge -->
@@ -60,6 +61,54 @@
             </div>
         </div>
         {% endfor %}
+    </div>
+
+    <!-- 2. TABLE VIEW -->
+    <div class="table-wrapper student-table-view" style="width: 100%; max-width: 100%; overflow-x: auto; margin-bottom: 2rem; border-radius: 8px; border: 1px solid #cbd5e1;">
+        <table class="student-list-table" style="width: 100%; border-collapse: collapse; background: white; font-size: 0.85rem;">
+            <thead>
+                <tr style="background: #ffffff; color: #0f172a; border-bottom: 2px solid #cbd5e1;">
+                    <th style="padding: 0.6rem 0.75rem; text-align: left; width: 45px; border-right: 1px solid #cbd5e1;">Sl</th>
+                    <th style="padding: 0.6rem 0.75rem; text-align: left; border-right: 1px solid #cbd5e1;">Student ID</th>
+                    <th style="padding: 0.6rem 0.75rem; text-align: left; border-right: 1px solid #cbd5e1;">Student Name</th>
+                    <th style="padding: 0.6rem 0.75rem; text-align: center; border-right: 1px solid #cbd5e1;">Type</th>
+                    <th style="padding: 0.6rem 0.75rem; text-align: left; border-right: 1px solid #cbd5e1;">Grade & Division</th>
+                    <th style="padding: 0.6rem 0.75rem; text-align: center; border-right: 1px solid #cbd5e1;">Room</th>
+                    <th style="padding: 0.6rem 0.75rem; text-align: center;" class="no-print">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for enrollment in group.list %}
+                <tr class="student-row" style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 0.5rem 0.75rem; color: #64748b; border-right: 1px solid #e2e8f0;">{{ forloop.counter }}</td>
+                    <td style="padding: 0.5rem 0.75rem; font-weight: 600; color: #334155; border-right: 1px solid #e2e8f0;">{{ enrollment.student.student_id }}</td>
+                    <td style="padding: 0.5rem 0.75rem; font-weight: 700; border-right: 1px solid #e2e8f0;">
+                        <a href="{% url 'students:student_profile' enrollment.student.id %}" style="color: #0f172a; text-decoration: none;">{{ enrollment.student.full_name }}</a>
+                    </td>
+                    <td style="padding: 0.5rem 0.75rem; text-align: center; border-right: 1px solid #e2e8f0;">
+                        <span class="badge-student-type {% if enrollment.student.student_type == 'hostel' %}badge-hostel{% else %}badge-day-scholar{% endif %}">
+                            {% if enrollment.student.student_type == 'hostel' %}Hostel{% else %}Day Scholar{% endif %}
+                        </span>
+                    </td>
+                    <td style="padding: 0.5rem 0.75rem; color: #334155; border-right: 1px solid #e2e8f0;">
+                        {{ enrollment.grade.name }}{% if enrollment.division %} - {{ enrollment.division.name }}{% endif %}
+                    </td>
+                    <td style="padding: 0.5rem 0.75rem; text-align: center; color: #64748b; border-right: 1px solid #e2e8f0;">
+                        {{ enrollment.room.room_number|default:"-" }}
+                    </td>
+                    <td style="padding: 0.5rem 0.75rem; text-align: center;" class="no-print">
+                        <div style="display: flex; justify-content: center; gap: 0.35rem;">
+                            <a href="{% url 'students:student_profile' enrollment.student.id %}" class="btn btn-sm btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; background: #f1f5f9; color: #0f172a !important; border: 1px solid #cbd5e1;" title="View"><i class="fa-solid fa-eye"></i></a>
+                            <a href="{% url 'students:student_edit' enrollment.student.id %}" class="btn btn-sm btn-primary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a>
+                            <a href="{% url 'fees:student_fees' enrollment.student.id %}" class="btn btn-sm btn-success" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Fees"><i class="fa-solid fa-indian-rupee-sign"></i></a>
+                            <a href="{% url 'students:transfer_to_alumni' enrollment.student.id %}" class="btn btn-sm btn-info" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Alumni"><i class="fa-solid fa-user-graduate"></i></a>
+                            <a href="{% url 'students:student_delete' enrollment.student.id %}" class="btn btn-sm btn-danger" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" onclick="return confirm('Delete {{ enrollment.student.full_name }}?');" title="Delete"><i class="fa-solid fa-trash-can"></i></a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 {% empty %}
     <div class="no-students-card">
