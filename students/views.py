@@ -2840,9 +2840,68 @@ def mark_entry_classwise_data(request):
     return JsonResponse({'html': html})
 
 
-@role_required(['admin', 'teacher', 'student'])
+def get_dynamic_student_progress(student, exam_type=None, academic_year=None):
+    """
+    Dynamically fetches and calculates a student's progress report from entered MarkEntry records.
+    No manual report generation step required.
+    """
+    if not academic_year:
+        active_year = AcademicYear.objects.filter(is_active=True).first()
+        academic_year = active_year if active_year else AcademicYear.objects.order_by('-start_date').first()
+
+    enrollment = Enrollment.objects.filter(student=student, academic_year=academic_year).select_related('grade', 'division', 'section', 'academic_year').first()
+    if not enrollment:
+        enrollment = Enrollment.objects.filter(student=student).select_related('grade', 'division', 'section', 'academic_year').order_by('-academic_year__start_date').first()
+
+    if not exam_type:
+        exam_type = ExamType.objects.first()
+
+    mark_entries = MarkEntry.objects.filter(
+        student=student,
+        exam_type=exam_type
+    ).select_related('subject').order_by('subject__subject_type', 'subject__name')
+
+    total_marks = sum(entry.marks_obtained for entry in mark_entries)
+    total_max = sum(entry.max_marks for entry in mark_entries)
+    percentage = (total_marks / total_max * 100) if total_max > 0 else 0
+
+    if percentage >= 90:
+        grade_letter = 'A+'
+    elif percentage >= 80:
+        grade_letter = 'A'
+    elif percentage >= 70:
+        grade_letter = 'B+'
+    elif percentage >= 60:
+        grade_letter = 'B'
+    elif percentage >= 50:
+        grade_letter = 'C+'
+    elif percentage >= 40:
+        grade_letter = 'C'
+    else:
+        grade_letter = 'F'
+
+    hadiya_subjects = [entry for entry in mark_entries if entry.subject.subject_type == 'hadiya']
+    division_subjects = [entry for entry in mark_entries if entry.subject.subject_type == 'division']
+
+    return {
+        'student': student,
+        'enrollment': enrollment,
+        'exam_type': exam_type,
+        'academic_year': enrollment.academic_year if enrollment else academic_year,
+        'mark_entries': mark_entries,
+        'has_marks': mark_entries.exists(),
+        'total_marks_obtained': total_marks,
+        'total_max_marks': total_max,
+        'overall_percentage': percentage,
+        'overall_grade': grade_letter if mark_entries.exists() else '-',
+        'hadiya_subjects': hadiya_subjects,
+        'division_subjects': division_subjects,
+        'pk': student.id,
+    }
+
+
 def progress_report(request):
-    """Generate and view progress reports"""
+    """View live progress reports for students computed directly from entered marks"""
     student_id = request.GET.get('student_id')
     exam_type_id = request.GET.get('exam_type')
     section_id = request.GET.get('section')
@@ -2850,16 +2909,13 @@ def progress_report(request):
     division_id = request.GET.get('division')
     academic_year_name = request.GET.get('academic_year', '')
 
-    # Data isolation for students
     is_student = hasattr(request.user, 'profile') and request.user.profile.role == 'student'
     if is_student:
         if not request.user.profile.student_record:
             messages.error(request, "Student record not found.")
             return redirect('students:home')
-        # Force student_id filter to own student_id
         student_id = request.user.profile.student_record.student_id
-        
-    # Get the active academic year (or most recent if none is active)
+
     active_year = AcademicYear.objects.filter(is_active=True).first()
     if not active_year:
         active_year = AcademicYear.objects.order_by('-start_date').first()
@@ -2869,129 +2925,47 @@ def progress_report(request):
         if year_obj:
             active_year = year_obj
 
-    enrollments_query = Enrollment.objects.filter(academic_year=active_year).select_related('student', 'grade', 'division', 'section')
+    enrollments_query = Enrollment.objects.filter(academic_year=active_year, student__is_active=True).select_related('student', 'grade', 'division', 'section')
 
     if student_id:
-        enrollments_query = enrollments_query.filter(student__student_id__icontains=student_id)
+        enrollments_query = enrollments_query.filter(
+            Q(student__student_id__icontains=student_id) |
+            Q(student__first_name__icontains=student_id) |
+            Q(student__last_name__icontains=student_id)
+        )
     if section_id:
         enrollments_query = enrollments_query.filter(section_id=section_id)
     if grade_id:
-        enrollments_query = enrollments_query.filter(grade_id=grade_id) # Filter by grade ID
+        enrollments_query = enrollments_query.filter(grade_id=grade_id)
     if division_id:
         enrollments_query = enrollments_query.filter(division_id=division_id)
 
-    enrollments = enrollments_query
-
-    if request.method == 'POST':
-        if is_student:
-             messages.error(request, "Students cannot generate progress reports.")
-             return redirect('students:progress_report')
-        student_ids = request.POST.getlist('students')
-        exam_type_id = request.POST.get('exam_type')
-        academic_year_name = request.POST.get('academic_year', '') # Changed to academic_year_name
-        generated_by = request.user.get_full_name() or request.user.username
-
-        if not student_ids or not exam_type_id:
-            messages.error(request, 'Please select students and exam type.')
-            return redirect('students:progress_report')
-
-        exam_type = get_object_or_404(ExamType, id=exam_type_id)
-        created_count = 0
-
-        for student_id in student_ids:
-            student = get_object_or_404(Student, id=student_id)
-
-            # Calculate totals from mark entries
-            mark_entries = MarkEntry.objects.filter(
-                student=student,
-                exam_type=exam_type
-            )
-
-            if not mark_entries.exists():
-                continue
-
-            total_marks = sum(entry.marks_obtained for entry in mark_entries)
-            total_max_marks = sum(entry.max_marks for entry in mark_entries)
-            percentage = (total_marks / total_max_marks * 100) if total_max_marks > 0 else 0
-
-            # Calculate grade
-            if percentage >= 90:
-                grade_letter = 'A+'
-            elif percentage >= 80:
-                grade_letter = 'A'
-            elif percentage >= 70:
-                grade_letter = 'B+'
-            elif percentage >= 60:
-                grade_letter = 'B'
-            elif percentage >= 50:
-                grade_letter = 'C+'
-            elif percentage >= 40:
-                grade_letter = 'C'
-            else:
-                grade_letter = 'F'
-
-            # Find the active enrollment for this student
-            enrollment = Enrollment.objects.filter(student=student, academic_year=active_year).first()
-
-            # Create or update progress report
-            report, created = ProgressReport.objects.update_or_create(
-                student=student,
-                exam_type=exam_type,
-                enrollment=enrollment,
-                defaults={
-                    'total_marks_obtained': total_marks,
-                    'total_max_marks': total_max_marks,
-                    'overall_percentage': percentage,
-                    'overall_grade': grade_letter,
-                    'generated_by': generated_by,
-                }
-            )
-            if created:
-                created_count += 1
-
-        messages.success(request, f'Successfully generated {created_count} progress report(s).')
-        return redirect('students:progress_report')
-
-    # Get progress reports
-    latest_reports = (
-        ProgressReport.objects
-        .values('student_id')
-        .annotate(latest_time=Max('generated_at'))
-    )
-
-    reports = ProgressReport.objects.filter(
-        generated_at__in=[r['latest_time'] for r in latest_reports]
-    ).select_related(
-        'student', 'exam_type', 'enrollment__grade' # Select grade
-    )
-
     if is_student:
-        reports = reports.filter(student=request.user.profile.student_record, exam_type__is_published=True)
-        student_id = None
+        enrollments_query = enrollments_query.filter(student=request.user.profile.student_record)
 
+    enrollments = enrollments_query.order_by('grade__order', 'grade__name', 'division__name', 'student__first_name')
 
-    if student_id:
-        reports = reports.filter(student__student_id__icontains=student_id)
     if exam_type_id:
-        reports = reports.filter(exam_type_id=exam_type_id)
-    if grade_id:
-        reports = reports.filter(enrollment__grade_id=grade_id) # Filter by grade ID
-    if division_id:
-        reports = reports.filter(enrollment__division_id=division_id)
-    if academic_year_name:
-        reports = reports.filter(enrollment__academic_year__name=academic_year_name)
+        selected_exam_type = ExamType.objects.filter(id=exam_type_id).first()
+    else:
+        selected_exam_type = ExamType.objects.first()
 
-    reports = reports.order_by('-generated_at', 'enrollment__grade__order', 'enrollment__grade__name', 'student__last_name') # Order by grade object
+    if is_student and selected_exam_type and not selected_exam_type.is_published:
+        reports = []
+    else:
+        reports = []
+        for enrollment in enrollments:
+            report_data = get_dynamic_student_progress(enrollment.student, selected_exam_type, active_year)
+            reports.append(report_data)
 
     exam_types = ExamType.objects.all()
     divisions = Division.objects.all()
     sections = Section.objects.all().order_by('order', 'name')
-    # Get all unique grades from database
     all_grades = Grade.objects.all().order_by('order', 'name')
 
     context = {
-        'enrollments': enrollments,
         'reports': reports,
+        'selected_exam_type': selected_exam_type,
         'exam_types': exam_types,
         'divisions': divisions,
         'grades': all_grades,
@@ -2999,12 +2973,12 @@ def progress_report(request):
         'academic_years': AcademicYear.objects.order_by('-start_date'),
         'active_year': active_year,
         'current_filters': {
-            'student_id': student_id,
-            'exam_type': exam_type_id,
-            'section': section_id,
-            'grade': grade_id,
-            'division': division_id,
-            'academic_year': academic_year_name,
+            'student_id': student_id or '',
+            'exam_type': str(selected_exam_type.id) if selected_exam_type else '',
+            'section': section_id or '',
+            'grade': grade_id or '',
+            'division': division_id or '',
+            'academic_year': active_year.name if active_year else '',
         }
     }
     return render(request, 'students/progress_report.html', context)
@@ -3012,32 +2986,34 @@ def progress_report(request):
 
 @role_required(['admin', 'teacher', 'student'])
 def progress_report_detail(request, pk):
-    """View detailed progress report for a student"""
-    report = get_object_or_404(ProgressReport, pk=pk)
-    
-    # Data isolation for students
+    """View detailed dynamic progress report for a student"""
+    if ProgressReport.objects.filter(pk=pk).exists():
+        report_obj = ProgressReport.objects.get(pk=pk)
+        student = report_obj.student
+        exam_type = report_obj.exam_type
+    else:
+        student = get_object_or_404(Student, pk=pk)
+        exam_type_id = request.GET.get('exam_type')
+        if exam_type_id:
+            exam_type = ExamType.objects.filter(id=exam_type_id).first()
+        else:
+            exam_type = ExamType.objects.first()
+
     if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
-        if not report.exam_type.is_published:
+        if exam_type and not exam_type.is_published:
             messages.error(request, "Results for this exam have not been published yet.")
             return redirect('students:home')
-        if not request.user.profile.student_record or request.user.profile.student_record != report.student:
+        if not request.user.profile.student_record or request.user.profile.student_record != student:
             messages.error(request, "You do not have permission to view other students' progress reports.")
             return redirect('students:home')
-            
-    mark_entries = MarkEntry.objects.filter(
-        student=report.student,
-        exam_type=report.exam_type
-    ).select_related('subject').order_by('subject__subject_type', 'subject__name')
 
-    # Separate Hadiya and division subjects
-    hadiya_subjects = [entry for entry in mark_entries if entry.subject.subject_type == 'hadiya']
-    division_subjects = [entry for entry in mark_entries if entry.subject.subject_type == 'division']
+    report = get_dynamic_student_progress(student, exam_type)
 
     context = {
         'report': report,
-        'hadiya_subjects': hadiya_subjects,
-        'division_subjects': division_subjects,
-        'all_subjects': mark_entries,
+        'hadiya_subjects': report['hadiya_subjects'],
+        'division_subjects': report['division_subjects'],
+        'all_subjects': report['mark_entries'],
     }
     return render(request, 'students/progress_report_detail.html', context)
 
@@ -3717,85 +3693,85 @@ from django.db.models.functions import Cast
 
 @role_required(['admin', 'teacher'])
 def bulk_progress_report_pdf(request):
+    """Generate multi-page PDF progress report booklet live for filtered students"""
+    exam_type_id = request.GET.get('exam_type')
+    section_id = request.GET.get('section')
+    grade_id = request.GET.get('grade')
+    division_id = request.GET.get('division')
+    academic_year_name = request.GET.get('academic_year', '')
+
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    if academic_year_name:
+        year_obj = AcademicYear.objects.filter(name=academic_year_name).first()
+        if year_obj:
+            active_year = year_obj
+
+    enrollments = Enrollment.objects.filter(academic_year=active_year, student__is_active=True).select_related('student', 'grade', 'division', 'section')
+
+    if section_id:
+        enrollments = enrollments.filter(section_id=section_id)
+    if grade_id:
+        enrollments = enrollments.filter(grade_id=grade_id)
+    if division_id:
+        enrollments = enrollments.filter(division_id=division_id)
+
+    if exam_type_id:
+        exam_type = ExamType.objects.filter(id=exam_type_id).first()
+    else:
+        exam_type = ExamType.objects.first()
+
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="progress_reports.pdf"'
 
     c = canvas.Canvas(response, pagesize=A4)
     width, height = A4
 
-    latest_reports = (
-        ProgressReport.objects
-        .values('student_id')
-        .annotate(latest_time=Max('generated_at'))
-    )
-
-    reports = ProgressReport.objects.filter(
-        generated_at__in=[r['latest_time'] for r in latest_reports]
-    ).select_related(
-        'student', 'exam_type', 'enrollment', 'enrollment__division'
-    ).annotate(
-        student_id_int=Cast('student__student_id', IntegerField())
-    ).order_by(
-        'student_id_int'
-    )
-
-
-    for report in reports:
+    for enrollment in enrollments:
+        student = enrollment.student
+        report = get_dynamic_student_progress(student, exam_type, active_year)
+        
         y = height - 2 * cm
 
-        # ================= INSTITUTION HEADER =================
         c.setFont("Helvetica-Bold", 14)
-        c.drawCentredString(
-            width / 2,
-            y,
-            "MARKAZ HADIYA WOMEN'S COLLEGE, THAZHAPRA"
-        )
+        c.drawCentredString(width / 2, y, "MARKAZ HADIYA WOMEN'S COLLEGE, THAZHAPRA")
         y -= 0.7 * cm
 
+        exam_title = exam_type.name.upper() if exam_type else "EXAMINATION"
         c.setFont("Helvetica-Bold", 12)
-        c.drawCentredString(
-            width / 2,
-            y,
-            "HIGHER SECONDARY HALF YEARLY EXAMINATION"
-        )
-        y -= 1 * cm
+        c.drawCentredString(width / 2, y, f"{exam_title} - PROGRESS REPORT")
+        y -= 0.8 * cm
 
-        # Divider line
+        c.setLineWidth(1)
         c.line(2 * cm, y, width - 2 * cm, y)
-        y -= 1 * cm
-
-        # ================= REPORT TITLE =================
-        c.setFont("Helvetica-Bold", 16)
-        c.drawCentredString(width / 2, y, "PROGRESS REPORT")
-        y -= 1.2 * cm
+        y -= 0.8 * cm
 
         c.setFont("Helvetica", 11)
-        c.drawString(2 * cm, y, f"Student ID : {report.student.student_id}")
+        grade_str = enrollment.grade.name if enrollment.grade else '-'
+        div_str = enrollment.division.name if enrollment.division else '-'
+        year_str = enrollment.academic_year.name if enrollment.academic_year else '-'
+
+        c.drawString(2 * cm, y, f"Student ID : {student.student_id}")
+        c.drawString(width / 2 + 1 * cm, y, f"Exam : {exam_type.name if exam_type else '-'}")
         y -= 0.6 * cm
-        c.drawString(2 * cm, y, f"Name       : {report.student.full_name}")
+        c.drawString(2 * cm, y, f"Name       : {student.full_name}")
+        c.drawString(width / 2 + 1 * cm, y, f"Academic Year : {year_str}")
         y -= 0.6 * cm
-        c.drawString(2 * cm, y, f"Grade      : {report.enrollment.grade.name if report.enrollment and report.enrollment.grade else '-'}")
-        y -= 0.6 * cm
-        c.drawString(2 * cm, y, f"Division   : {report.enrollment.division.name if report.enrollment and report.enrollment.division else '-'}")
-        y -= 0.6 * cm
-        c.drawString(2 * cm, y, f"Exam       : {report.exam_type.name}")
-        y -= 0.6 * cm
-        c.drawString(2 * cm, y, f"Academic Year : {report.enrollment.academic_year.name if report.enrollment else '-'}")
+        c.drawString(2 * cm, y, f"Grade      : {grade_str}")
+        c.drawString(width / 2 + 1 * cm, y, f"Division   : {div_str}")
         y -= 1 * cm
 
-        # ================= OVERALL PERFORMANCE =================
         c.setFont("Helvetica-Bold", 12)
         c.drawString(2 * cm, y, "Overall Performance")
         y -= 0.4 * cm
 
         overall_table = Table(
             [
-                ["Total Marks", "Percentage", "Grade", "Rank"],
+                ["Total Marks", "Percentage", "Grade", "Status"],
                 [
-                    f"{report.total_marks_obtained}/{report.total_max_marks}",
-                    f"{report.overall_percentage:.2f}%",
-                    report.overall_grade,
-                    report.rank or "-"
+                    f"{report['total_marks_obtained']}/{report['total_max_marks']}" if report['has_marks'] else "-",
+                    f"{report['overall_percentage']:.2f}%" if report['has_marks'] else "-",
+                    report['overall_grade'],
+                    "Marks Entered" if report['has_marks'] else "Pending"
                 ]
             ],
             colWidths=[4 * cm] * 4
@@ -3809,23 +3785,8 @@ def bulk_progress_report_pdf(request):
         ]))
 
         overall_table.wrapOn(c, width, height)
-        overall_table.drawOn(c, 2 * cm, y - 2 * cm)
-        y -= 3 * cm
-
-        # ================= SUBJECT DATA (SAME AS DETAIL VIEW) =================
-        mark_entries = MarkEntry.objects.filter(
-            student=report.student,
-            exam_type=report.exam_type
-        ).select_related('subject').order_by(
-            'subject__subject_type', 'subject__name'
-        )
-
-        hadiya_subjects = [
-            e for e in mark_entries if e.subject.subject_type == 'hadiya'
-        ]
-        division_subjects = [
-            e for e in mark_entries if e.subject.subject_type == 'division'
-        ]
+        overall_table.drawOn(c, 2 * cm, y - 1.5 * cm)
+        y -= 2.5 * cm
 
         def draw_subject_table(title, entries, y_pos):
             if not entries:
@@ -3835,13 +3796,13 @@ def bulk_progress_report_pdf(request):
             c.drawString(2 * cm, y_pos, title)
             y_pos -= 0.4 * cm
 
-            data = [["Subject", "Marks", "Max", "Percentage", "Grade"]]
+            data = [["Subject", "Marks Obtained", "Max Marks", "Percentage", "Grade"]]
 
             for e in entries:
                 data.append([
                     e.subject.name,
-                    e.marks_obtained,
-                    e.max_marks,
+                    str(e.marks_obtained),
+                    str(e.max_marks),
                     f"{e.percentage:.2f}%",
                     e.grade_letter
                 ])
@@ -3850,7 +3811,7 @@ def bulk_progress_report_pdf(request):
             table.setStyle(TableStyle([
                 ('GRID', (0,0), (-1,-1), 1, colors.black),
                 ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
-                ('ALIGN', (1,1), (-1,-1), 'CENTER'),
+                ('ALIGN', (1,0), (-1,-1), 'CENTER'),
                 ('FONT', (0,0), (-1,0), 'Helvetica-Bold'),
             ]))
 
@@ -3860,23 +3821,21 @@ def bulk_progress_report_pdf(request):
 
             return y_pos - table_height - 0.8 * cm
 
-        y = draw_subject_table("Hadiya (Islamic) Subjects", hadiya_subjects, y)
-        y = draw_subject_table("Division Specific Subjects", division_subjects, y)
-        # ================= PARENT SIGNATURE =================
-        y -= 1.5 * cm
+        y = draw_subject_table("Hadiya (Islamic) Subjects", report['hadiya_subjects'], y)
+        y = draw_subject_table("Division Specific Subjects", report['division_subjects'], y)
 
-        c.setFont("Helvetica-Bold", 11)
+        if not report['hadiya_subjects'] and not report['division_subjects'] and report['mark_entries']:
+            y = draw_subject_table("Subject Marks", list(report['mark_entries']), y)
+
+        y -= 1.2 * cm
+        c.setFont("Helvetica-Bold", 10)
         c.drawString(2 * cm, y, "Parent / Guardian Signature:")
-        c.drawString(width / 2 + 1 * cm, y, "Date:")
+        c.drawString(width / 2 + 1 * cm, y, "Principal / Head Signature:")
 
         y -= 0.8 * cm
-
-        # Signature lines
         c.line(2 * cm, y, width / 2 - 1 * cm, y)
         c.line(width / 2 + 1 * cm, y, width - 2 * cm, y)
 
-
-        # ================= NEW PAGE =================
         c.showPage()
 
     c.save()
@@ -3885,20 +3844,31 @@ def bulk_progress_report_pdf(request):
 
 @role_required(['admin', 'teacher', 'student'])
 def single_progress_report_pdf(request, pk):
-    """Generate and download a clean PDF progress report for a single student"""
-    report = get_object_or_404(ProgressReport, pk=pk)
-    
-    # Data isolation for students
+    """Generate and download a clean PDF progress report dynamically for a student"""
+    if ProgressReport.objects.filter(pk=pk).exists():
+        report_obj = ProgressReport.objects.get(pk=pk)
+        student = report_obj.student
+        exam_type = report_obj.exam_type
+    else:
+        student = get_object_or_404(Student, pk=pk)
+        exam_type_id = request.GET.get('exam_type')
+        if exam_type_id:
+            exam_type = ExamType.objects.filter(id=exam_type_id).first()
+        else:
+            exam_type = ExamType.objects.first()
+
     if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
-        if not report.exam_type.is_published:
+        if exam_type and not exam_type.is_published:
             messages.error(request, "Results for this exam have not been published yet.")
             return redirect('students:home')
-        if not request.user.profile.student_record or request.user.profile.student_record != report.student:
+        if not request.user.profile.student_record or request.user.profile.student_record != student:
             messages.error(request, "You do not have permission to view other students' progress reports.")
             return redirect('students:home')
-            
+
+    report = get_dynamic_student_progress(student, exam_type)
+
     response = HttpResponse(content_type='application/pdf')
-    clean_id = str(report.student.student_id).replace('/', '_').replace('\\', '_')
+    clean_id = str(student.student_id).replace('/', '_').replace('\\', '_')
     response['Content-Disposition'] = f'attachment; filename="progress_report_{clean_id}.pdf"'
 
     c = canvas.Canvas(response, pagesize=A4)
@@ -3906,57 +3876,46 @@ def single_progress_report_pdf(request, pk):
 
     y = height - 2 * cm
 
-    # ================= INSTITUTION HEADER =================
     c.setFont("Helvetica-Bold", 14)
-    c.drawCentredString(
-        width / 2,
-        y,
-        "MARKAZ HADIYA WOMEN'S COLLEGE, THAZHAPRA"
-    )
+    c.drawCentredString(width / 2, y, "MARKAZ HADIYA WOMEN'S COLLEGE, THAZHAPRA")
     y -= 0.7 * cm
 
+    exam_title = exam_type.name.upper() if exam_type else "EXAMINATION"
     c.setFont("Helvetica-Bold", 12)
-    c.drawCentredString(
-        width / 2,
-        y,
-        f"{report.exam_type.name.upper()} - PROGRESS REPORT"
-    )
+    c.drawCentredString(width / 2, y, f"{exam_title} - PROGRESS REPORT")
     y -= 0.8 * cm
 
-    # Divider line
     c.setLineWidth(1)
     c.line(2 * cm, y, width - 2 * cm, y)
     y -= 0.8 * cm
 
-    # ================= STUDENT INFO =================
     c.setFont("Helvetica", 11)
-    grade_str = report.enrollment.grade.name if report.enrollment and report.enrollment.grade else '-'
-    div_str = report.enrollment.division.name if report.enrollment and report.enrollment.division else '-'
-    year_str = report.enrollment.academic_year.name if report.enrollment else (report.academic_year or '-')
+    grade_str = report['enrollment'].grade.name if report['enrollment'] and report['enrollment'].grade else '-'
+    div_str = report['enrollment'].division.name if report['enrollment'] and report['enrollment'].division else '-'
+    year_str = report['enrollment'].academic_year.name if report['enrollment'] and report['enrollment'].academic_year else '-'
 
-    c.drawString(2 * cm, y, f"Student ID : {report.student.student_id}")
-    c.drawString(width / 2 + 1 * cm, y, f"Exam : {report.exam_type.name}")
+    c.drawString(2 * cm, y, f"Student ID : {student.student_id}")
+    c.drawString(width / 2 + 1 * cm, y, f"Exam : {exam_type.name if exam_type else '-'}")
     y -= 0.6 * cm
-    c.drawString(2 * cm, y, f"Name       : {report.student.full_name}")
+    c.drawString(2 * cm, y, f"Name       : {student.full_name}")
     c.drawString(width / 2 + 1 * cm, y, f"Academic Year : {year_str}")
     y -= 0.6 * cm
     c.drawString(2 * cm, y, f"Grade      : {grade_str}")
     c.drawString(width / 2 + 1 * cm, y, f"Division   : {div_str}")
     y -= 1 * cm
 
-    # ================= OVERALL PERFORMANCE =================
     c.setFont("Helvetica-Bold", 12)
     c.drawString(2 * cm, y, "Overall Performance")
     y -= 0.4 * cm
 
     overall_table = Table(
         [
-            ["Total Marks", "Percentage", "Grade", "Rank"],
+            ["Total Marks", "Percentage", "Grade", "Status"],
             [
-                f"{report.total_marks_obtained}/{report.total_max_marks}",
-                f"{report.overall_percentage:.2f}%",
-                report.overall_grade,
-                report.rank or "-"
+                f"{report['total_marks_obtained']}/{report['total_max_marks']}" if report['has_marks'] else "-",
+                f"{report['overall_percentage']:.2f}%" if report['has_marks'] else "-",
+                report['overall_grade'],
+                "Marks Entered" if report['has_marks'] else "Pending"
             ]
         ],
         colWidths=[4 * cm] * 4
@@ -3972,17 +3931,6 @@ def single_progress_report_pdf(request, pk):
     overall_table.wrapOn(c, width, height)
     overall_table.drawOn(c, 2 * cm, y - 1.5 * cm)
     y -= 2.5 * cm
-
-    # ================= SUBJECT MARKS =================
-    mark_entries = MarkEntry.objects.filter(
-        student=report.student,
-        exam_type=report.exam_type
-    ).select_related('subject').order_by(
-        'subject__subject_type', 'subject__name'
-    )
-
-    hadiya_subjects = [e for e in mark_entries if e.subject.subject_type == 'hadiya']
-    division_subjects = [e for e in mark_entries if e.subject.subject_type == 'division']
 
     def draw_subject_table(title, entries, y_pos):
         if not entries:
@@ -4017,13 +3965,12 @@ def single_progress_report_pdf(request, pk):
 
         return y_pos - table_height - 0.8 * cm
 
-    y = draw_subject_table("Hadiya (Islamic) Subjects", hadiya_subjects, y)
-    y = draw_subject_table("Division Specific Subjects", division_subjects, y)
+    y = draw_subject_table("Hadiya (Islamic) Subjects", report['hadiya_subjects'], y)
+    y = draw_subject_table("Division Specific Subjects", report['division_subjects'], y)
 
-    if not hadiya_subjects and not division_subjects and mark_entries.exists():
-        y = draw_subject_table("Subject Marks", list(mark_entries), y)
+    if not report['hadiya_subjects'] and not report['division_subjects'] and report['mark_entries']:
+        y = draw_subject_table("Subject Marks", list(report['mark_entries']), y)
 
-    # ================= SIGNATURES =================
     y -= 1.2 * cm
     c.setFont("Helvetica-Bold", 10)
     c.drawString(2 * cm, y, "Parent / Guardian Signature:")
