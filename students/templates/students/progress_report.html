@@ -29,6 +29,7 @@
             <div class="form-group">
                 <label style="font-weight: 600; font-size: 0.85rem; color: #475569;">Exam Type</label>
                 <select name="exam_type" class="form-control">
+                    <option value="all" {% if current_filters.exam_type == 'all' or not current_filters.exam_type %}selected{% endif %}>-- All Exams (All Entered Marks) --</option>
                     {% for exam_type in exam_types %}
                     <option value="{{ exam_type.id }}" {% if current_filters.exam_type == exam_type.id|stringformat:"s" %}selected{% endif %}>{{ exam_type.name }}</option>
                     {% endfor %}

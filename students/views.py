@@ -2866,7 +2866,7 @@ def mark_entry_classwise_data(request):
 def get_dynamic_student_progress(student, exam_type=None, academic_year=None):
     """
     Dynamically fetches and calculates a student's progress report from entered MarkEntry records.
-    No manual report generation step required.
+    No manual report generation step required. Fetches all entered marks across subjects.
     """
     if not academic_year:
         active_year = AcademicYear.objects.filter(is_active=True).first()
@@ -2876,15 +2876,28 @@ def get_dynamic_student_progress(student, exam_type=None, academic_year=None):
     if not enrollment:
         enrollment = Enrollment.objects.filter(student=student).select_related('grade', 'division', 'section', 'academic_year').order_by('-academic_year__start_date').first()
 
-    if not exam_type:
-        exam_type = ExamType.objects.first()
+    # Query all mark entries for this student
+    mark_entries_qs = MarkEntry.objects.filter(student=student).select_related('subject', 'exam_type')
 
-    mark_entries = MarkEntry.objects.filter(
-        student=student,
-        exam_type=exam_type
-    ).select_related('subject').order_by('subject__subject_type', 'subject__name')
+    if exam_type and exam_type != 'all':
+        filtered_qs = mark_entries_qs.filter(exam_type=exam_type)
+        # If student has marks under this specific exam type, use them;
+        # otherwise if empty, fallback to all student entries so no marks are hidden!
+        if filtered_qs.exists():
+            mark_entries_qs = filtered_qs
+    else:
+        if not exam_type:
+            exam_type = ExamType.objects.first()
 
-    total_marks = sum(entry.marks_obtained for entry in mark_entries)
+    # Consolidate latest mark entry per subject so both Hadiya & Division subjects appear
+    entries_by_subject = {}
+    for entry in mark_entries_qs.order_by('subject__subject_type', 'subject__name', '-updated_at'):
+        if entry.subject_id not in entries_by_subject:
+            entries_by_subject[entry.subject_id] = entry
+
+    mark_entries = list(entries_by_subject.values())
+
+    total_marks = sum(entry.marks_obtained for entry in mark_entries if not entry.is_absent)
     total_max = sum(entry.max_marks for entry in mark_entries)
     percentage = (total_marks / total_max * 100) if total_max > 0 else 0
 
@@ -2903,8 +2916,10 @@ def get_dynamic_student_progress(student, exam_type=None, academic_year=None):
     else:
         grade_letter = 'F'
 
-    hadiya_subjects = [entry for entry in mark_entries if entry.subject.subject_type == 'hadiya']
-    division_subjects = [entry for entry in mark_entries if entry.subject.subject_type == 'division']
+    hadiya_subjects = [entry for entry in mark_entries if entry.subject and entry.subject.subject_type == 'hadiya']
+    division_subjects = [entry for entry in mark_entries if entry.subject and entry.subject.subject_type == 'division']
+
+    has_marks = len(mark_entries) > 0
 
     return {
         'student': student,
@@ -2912,11 +2927,12 @@ def get_dynamic_student_progress(student, exam_type=None, academic_year=None):
         'exam_type': exam_type,
         'academic_year': enrollment.academic_year if enrollment else academic_year,
         'mark_entries': mark_entries,
-        'has_marks': mark_entries.exists(),
+        'all_subjects': mark_entries,
+        'has_marks': has_marks,
         'total_marks_obtained': total_marks,
         'total_max_marks': total_max,
         'overall_percentage': percentage,
-        'overall_grade': grade_letter if mark_entries.exists() else '-',
+        'overall_grade': grade_letter if has_marks else '-',
         'hadiya_subjects': hadiya_subjects,
         'division_subjects': division_subjects,
         'pk': student.id,
@@ -2968,10 +2984,10 @@ def progress_report(request):
 
     enrollments = enrollments_query.order_by('grade__order', 'grade__name', 'division__name', 'student__first_name')
 
-    if exam_type_id:
+    if exam_type_id and exam_type_id != 'all':
         selected_exam_type = ExamType.objects.filter(id=exam_type_id).first()
     else:
-        selected_exam_type = ExamType.objects.first()
+        selected_exam_type = None
 
     if is_student and selected_exam_type and not selected_exam_type.is_published:
         reports = []
@@ -2997,7 +3013,7 @@ def progress_report(request):
         'active_year': active_year,
         'current_filters': {
             'student_id': student_id or '',
-            'exam_type': str(selected_exam_type.id) if selected_exam_type else '',
+            'exam_type': str(selected_exam_type.id) if selected_exam_type else (exam_type_id or 'all'),
             'section': section_id or '',
             'grade': grade_id or '',
             'division': division_id or '',
@@ -3019,12 +3035,12 @@ def progress_report_detail(request, pk):
         student = get_object_or_404(Student, pk=pk)
 
     exam_type_id = request.GET.get('exam_type')
-    if exam_type_id:
+    if exam_type_id and exam_type_id != 'all':
         exam_type = ExamType.objects.filter(id=exam_type_id).first()
     elif 'report_obj' in locals() and report_obj.exam_type:
         exam_type = report_obj.exam_type
     else:
-        exam_type = ExamType.objects.first()
+        exam_type = None
 
     if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
         if exam_type and not exam_type.is_published:
