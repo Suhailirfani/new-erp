@@ -97,10 +97,10 @@
             {% for entry in hadiya_subjects %}
             <tr>
                 <td><strong>{{ entry.subject.name }}</strong></td>
-                <td style="text-align: center;">{{ entry.marks_obtained }}</td>
+                <td style="text-align: center;">{% if entry.is_absent %}<span style="color: #dc2626; font-weight: bold;">AB</span>{% else %}{{ entry.marks_obtained }}{% endif %}</td>
                 <td style="text-align: center;">{{ entry.max_marks }}</td>
-                <td style="text-align: center;">{{ entry.percentage|floatformat:2 }}%</td>
-                <td style="text-align: center;"><span style="background: #f8fafc; color: #0f172a; border: 1px solid #cbd5e1; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{{ entry.grade_letter }}</span></td>
+                <td style="text-align: center;">{% if entry.is_absent %}ABSENT{% else %}{{ entry.percentage|floatformat:2 }}%{% endif %}</td>
+                <td style="text-align: center;"><span style="background: {% if entry.is_absent %}#fee2e2; color: #dc2626; border: 1px solid #fca5a5;{% else %}#f8fafc; color: #0f172a; border: 1px solid #cbd5e1;{% endif %} padding: 2px 8px; border-radius: 4px; font-weight: bold;">{{ entry.grade_letter }}</span></td>
             </tr>
             {% endfor %}
         </tbody>
@@ -127,10 +127,10 @@
             {% for entry in division_subjects %}
             <tr>
                 <td><strong>{{ entry.subject.name }}</strong></td>
-                <td style="text-align: center;">{{ entry.marks_obtained }}</td>
+                <td style="text-align: center;">{% if entry.is_absent %}<span style="color: #dc2626; font-weight: bold;">AB</span>{% else %}{{ entry.marks_obtained }}{% endif %}</td>
                 <td style="text-align: center;">{{ entry.max_marks }}</td>
-                <td style="text-align: center;">{{ entry.percentage|floatformat:2 }}%</td>
-                <td style="text-align: center;"><span style="background: #f8fafc; color: #0f172a; border: 1px solid #cbd5e1; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{{ entry.grade_letter }}</span></td>
+                <td style="text-align: center;">{% if entry.is_absent %}ABSENT{% else %}{{ entry.percentage|floatformat:2 }}%{% endif %}</td>
+                <td style="text-align: center;"><span style="background: {% if entry.is_absent %}#fee2e2; color: #dc2626; border: 1px solid #fca5a5;{% else %}#f8fafc; color: #0f172a; border: 1px solid #cbd5e1;{% endif %} padding: 2px 8px; border-radius: 4px; font-weight: bold;">{{ entry.grade_letter }}</span></td>
             </tr>
             {% endfor %}
         </tbody>
@@ -157,10 +157,10 @@
             {% for entry in all_subjects %}
             <tr>
                 <td><strong>{{ entry.subject.name }}</strong></td>
-                <td style="text-align: center;">{{ entry.marks_obtained }}</td>
+                <td style="text-align: center;">{% if entry.is_absent %}<span style="color: #dc2626; font-weight: bold;">AB</span>{% else %}{{ entry.marks_obtained }}{% endif %}</td>
                 <td style="text-align: center;">{{ entry.max_marks }}</td>
-                <td style="text-align: center;">{{ entry.percentage|floatformat:2 }}%</td>
-                <td style="text-align: center;"><span style="background: #f8fafc; color: #0f172a; border: 1px solid #cbd5e1; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{{ entry.grade_letter }}</span></td>
+                <td style="text-align: center;">{% if entry.is_absent %}ABSENT{% else %}{{ entry.percentage|floatformat:2 }}%{% endif %}</td>
+                <td style="text-align: center;"><span style="background: {% if entry.is_absent %}#fee2e2; color: #dc2626; border: 1px solid #fca5a5;{% else %}#f8fafc; color: #0f172a; border: 1px solid #cbd5e1;{% endif %} padding: 2px 8px; border-radius: 4px; font-weight: bold;">{{ entry.grade_letter }}</span></td>
             </tr>
             {% endfor %}
         </tbody>

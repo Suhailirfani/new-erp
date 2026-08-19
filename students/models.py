@@ -405,6 +405,7 @@ class MarkEntry(models.Model):
     exam_date = models.DateField(null=True, blank=True)
     remarks = models.TextField(blank=True)
     entered_by = models.CharField(max_length=100, blank=True)
+    is_absent = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -418,11 +419,15 @@ class MarkEntry(models.Model):
         ]
 
     def __str__(self):
+        if self.is_absent:
+            return f"{self.student} - {self.exam_type} - {self.subject} - ABSENT"
         return f"{self.student} - {self.exam_type} - {self.subject} - {self.marks_obtained}/{self.max_marks}"
 
     @property
     def percentage(self):
         """Calculate percentage"""
+        if self.is_absent:
+            return 0
         if self.max_marks > 0:
             return (self.marks_obtained / self.max_marks) * 100
         return 0
@@ -430,6 +435,8 @@ class MarkEntry(models.Model):
     @property
     def grade_letter(self):
         """Calculate grade letter"""
+        if self.is_absent:
+            return 'AB'
         percentage = self.percentage
         if percentage >= 87.5:
             return 'A+'

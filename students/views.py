@@ -2158,37 +2158,44 @@ def mark_entry_step3(request, exam_type_id):
                 marks_str = next((m for m in reversed(raw_marks) if m is not None and m.strip() != ''), '')
                 
                 if marks_str is not None and marks_str.strip() != '':
-                    try:
-                        marks_obtained = float(marks_str)
+                    clean_str = marks_str.strip().upper()
+                    is_absent = False
+                    if clean_str in ['A', 'AB', 'ABSENT', 'ABS']:
+                        is_absent = True
+                        marks_obtained = 0.0
+                    else:
+                        try:
+                            marks_obtained = float(marks_str)
+                        except ValueError:
+                            continue
                         
-                        # Get max marks: form override → exam-specific override → subject default
-                        max_marks_input = f'max_marks_{subject.id}'
-                        raw_max = request.POST.getlist(max_marks_input)
-                        max_marks_str = next((m for m in reversed(raw_max) if m is not None and m.strip() != ''), '')
-                        if max_marks_str and max_marks_str.strip():
-                            max_marks = float(max_marks_str)
-                        else:
-                            max_marks = float(subject.effective_max_marks)
-                            
-                        # Find matching enrollment
-                        enrollment = next((e for e in enrollments if e.student == student), None)
+                    # Get max marks: form override → exam-specific override → subject default
+                    max_marks_input = f'max_marks_{subject.id}'
+                    raw_max = request.POST.getlist(max_marks_input)
+                    max_marks_str = next((m for m in reversed(raw_max) if m is not None and m.strip() != ''), '')
+                    if max_marks_str and max_marks_str.strip():
+                        max_marks = float(max_marks_str)
+                    else:
+                        max_marks = float(subject.effective_max_marks)
                         
-                        # Update or create
-                        MarkEntry.objects.update_or_create(
-                            student=student,
-                            exam_type=exam_type,
-                            subject=subject,
-                            defaults={
-                                'enrollment': enrollment,
-                                'marks_obtained': marks_obtained,
-                                'max_marks': max_marks,
-                                'exam_date': exam_date if exam_date else None,
-                                'entered_by': entered_by,
-                            }
-                        )
-                        success_count += 1
-                    except ValueError:
-                        pass # Ignore invalid inputs
+                    # Find matching enrollment
+                    enrollment = next((e for e in enrollments if e.student == student), None)
+                    
+                    # Update or create
+                    MarkEntry.objects.update_or_create(
+                        student=student,
+                        exam_type=exam_type,
+                        subject=subject,
+                        defaults={
+                            'enrollment': enrollment,
+                            'marks_obtained': marks_obtained,
+                            'max_marks': max_marks,
+                            'is_absent': is_absent,
+                            'exam_date': exam_date if exam_date else None,
+                            'entered_by': entered_by,
+                        }
+                    )
+                    success_count += 1
                 else:
                     # If field is empty and we are doing subject-wise entry, delete existing mark entry if it exists
                     if selected_subject:
@@ -2220,8 +2227,11 @@ def mark_entry_step3(request, exam_type_id):
     for entry in mark_entries:
         if entry.student_id not in existing_marks:
             existing_marks[entry.student_id] = {}
-        val = float(entry.marks_obtained)
-        existing_marks[entry.student_id][entry.subject_id] = int(val) if val.is_integer() else val
+        if entry.is_absent:
+            existing_marks[entry.student_id][entry.subject_id] = 'AB'
+        else:
+            val = float(entry.marks_obtained)
+            existing_marks[entry.student_id][entry.subject_id] = int(val) if val.is_integer() else val
         
     user_full_name = request.user.get_full_name().strip()
     if not user_full_name and hasattr(request.user, 'profile') and request.user.profile and request.user.profile.student_record:
@@ -2282,10 +2292,16 @@ def mark_save_single_ajax(request):
             'subject_name': subject.name
         })
 
-    try:
-        marks_obtained = float(marks_str)
-    except (ValueError, TypeError):
-        return JsonResponse({'status': 'error', 'message': 'Invalid numeric mark value'}, status=400)
+    clean_str = str(marks_str).strip().upper()
+    is_absent = False
+    if clean_str in ['A', 'AB', 'ABSENT', 'ABS']:
+        is_absent = True
+        marks_obtained = 0.0
+    else:
+        try:
+            marks_obtained = float(marks_str)
+        except (ValueError, TypeError):
+            return JsonResponse({'status': 'error', 'message': 'Invalid mark value. Enter numeric marks or "A" for Absent.'}, status=400)
 
     # Determine max_marks
     if max_marks_str and str(max_marks_str).strip():
@@ -2303,6 +2319,8 @@ def mark_save_single_ajax(request):
         active_year = AcademicYear.objects.order_by('-start_date').first()
 
     enrollment = Enrollment.objects.filter(student=student, academic_year=active_year).first()
+    if not enrollment:
+        enrollment = student.current_enrollment or Enrollment.objects.filter(student=student).order_by('-academic_year__start_date').first()
 
     if not entered_by:
         entered_by = request.user.get_full_name().strip()
@@ -2317,6 +2335,7 @@ def mark_save_single_ajax(request):
             'enrollment': enrollment,
             'marks_obtained': marks_obtained,
             'max_marks': max_marks,
+            'is_absent': is_absent,
             'exam_date': exam_date if exam_date else None,
             'entered_by': entered_by,
         }
@@ -2330,10 +2349,11 @@ def mark_save_single_ajax(request):
         'mark_id': mark_entry.id,
         'student_name': student.full_name,
         'subject_name': subject.name,
-        'marks_obtained': int(m_val) if m_val.is_integer() else m_val,
+        'marks_obtained': 'AB' if mark_entry.is_absent else (int(m_val) if m_val.is_integer() else m_val),
         'max_marks': int(max_val) if max_val.is_integer() else max_val,
         'percentage': round(float(mark_entry.percentage), 1),
         'grade_letter': mark_entry.grade_letter,
+        'is_absent': mark_entry.is_absent,
     })
 
 
@@ -2758,19 +2778,23 @@ def mark_entry_classwise_data(request):
             student = students[e.student.id]
             subject_index = subjects.index(e.subject.name)
 
-            is_fail = str(e.grade_letter).strip().upper() == 'F'
-
-            student['marks'][subject_index] = {
-                'marks': float(e.marks_obtained),
-                'grade': e.grade_letter,
-                'is_fail': is_fail,
-            }
-
-            student['total'] += float(e.marks_obtained)
-
-            # reduce fail count if passed
-            if not is_fail:
-                student['fail_count'] -= 1
+            if getattr(e, 'is_absent', False) or e.grade_letter == 'AB':
+                student['marks'][subject_index] = {
+                    'marks': 'AB',
+                    'grade': 'AB',
+                    'is_fail': True,
+                }
+            else:
+                is_fail = str(e.grade_letter).strip().upper() == 'F'
+                m_val = float(e.marks_obtained)
+                student['marks'][subject_index] = {
+                    'marks': int(m_val) if m_val.is_integer() else m_val,
+                    'grade': e.grade_letter,
+                    'is_fail': is_fail,
+                }
+                student['total'] += m_val
+                if not is_fail:
+                    student['fail_count'] -= 1
 
 
         # -------------------------
@@ -3950,13 +3974,22 @@ def single_progress_report_pdf(request, pk):
         data = [["Subject", "Marks Obtained", "Max Marks", "Percentage", "Grade"]]
 
         for e in entries:
-            data.append([
-                e.subject.name,
-                str(e.marks_obtained),
-                str(e.max_marks),
-                f"{e.percentage:.2f}%",
-                e.grade_letter
-            ])
+            if getattr(e, 'is_absent', False) or e.grade_letter == 'AB':
+                data.append([
+                    e.subject.name,
+                    "AB",
+                    str(e.max_marks),
+                    "ABSENT",
+                    "AB"
+                ])
+            else:
+                data.append([
+                    e.subject.name,
+                    str(e.marks_obtained),
+                    str(e.max_marks),
+                    f"{e.percentage:.2f}%",
+                    e.grade_letter
+                ])
 
         table = Table(data, colWidths=[6*cm, 3*cm, 3*cm, 3*cm, 2*cm])
         table.setStyle(TableStyle([

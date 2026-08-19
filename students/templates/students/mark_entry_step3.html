@@ -147,19 +147,17 @@
                         <td style="padding: 0.4rem 0.3rem; text-align: center; border: 1px solid #eee;">
                             {% with student_marks=existing_marks|get_item:student.id %}
                                 {% with current_mark=student_marks|get_item:subject.id %}
-                                <input type="number" 
+                                <input type="text" 
                                        id="marks_{{ student.id }}_{{ subject.id }}"
                                        name="marks_{{ student.id }}_{{ subject.id }}" 
                                        data-student-id="{{ student.id }}"
                                        data-subject-id="{{ subject.id }}"
                                        data-student-name="{{ student.full_name }}"
                                        data-subject-name="{{ subject.name }}"
-                                       value="{% if current_mark is not None %}{{ current_mark|floatformat:0 }}{% endif %}" 
-                                       step="1" min="0" 
-                                       inputmode="numeric"
-                                       placeholder="-" 
-                                       style="width: 80px; padding: 0.5rem; text-align: center; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; touch-action: manipulation;
-                                              {% if current_mark is not None %}background-color: #f0f9ff; border-color: #bce8f1;{% endif %}"
+                                       value="{% if current_mark is not None %}{{ current_mark }}{% endif %}" 
+                                       placeholder="- (or A)" 
+                                       style="width: 80px; padding: 0.5rem; text-align: center; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; font-weight: bold; touch-action: manipulation;
+                                              {% if current_mark == 'AB' %}background-color: #fee2e2; color: #dc2626; border-color: #fca5a5;{% elif current_mark is not None %}background-color: #f0f9ff; border-color: #bce8f1;{% endif %}"
                                        autocomplete="off"
                                        tabindex="{{ forloop.parentloop.counter }}{{ forloop.counter|stringformat:"02d" }}">
                                 {% endwith %}
@@ -190,32 +188,27 @@
                 <!-- Subject Marks Input Fields -->
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                     {% for subject in subjects %}
-                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
-                        <div style="min-width: 0; flex: 1;">
-                            <span style="font-weight: 600; font-size: 0.9rem; color: #334155; word-wrap: break-word; overflow-wrap: break-word;">
-                                {{ subject.name }}
-                                {% if subject.subject_type == 'hadiya' %}<small style="color: #64748b;">(Hadiya)</small>{% endif %}
-                            </span>
-                            <span style="display: block; font-size: 0.75rem; color: #64748b; margin-top: 2px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 0.6rem 0.8rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <div>
+                            <div style="font-weight: 700; color: #334155; font-size: 0.9rem;">{{ subject.name }}</div>
+                            <span style="font-size: 0.75rem; color: #64748b;">
                                 Max: <span id="span_max_{{ subject.id }}">{{ subject.effective_max_marks|floatformat:0 }}</span>
                             </span>
                         </div>
                         
                         {% with student_marks=existing_marks|get_item:student.id %}
                             {% with current_mark=student_marks|get_item:subject.id %}
-                            <input type="number" 
+                            <input type="text" 
                                    id="mob_marks_{{ student.id }}_{{ subject.id }}" 
                                    name="marks_{{ student.id }}_{{ subject.id }}"
                                    data-student-id="{{ student.id }}"
                                    data-subject-id="{{ subject.id }}"
                                    data-student-name="{{ student.full_name }}"
                                    data-subject-name="{{ subject.name }}"
-                                   value="{% if current_mark is not None %}{{ current_mark|floatformat:0 }}{% endif %}" 
-                                   step="1" min="0" 
-                                   inputmode="numeric"
-                                   placeholder="-" 
+                                   value="{% if current_mark is not None %}{{ current_mark }}{% endif %}" 
+                                   placeholder="- (or A)" 
                                    style="width: 90px; padding: 0.5rem; text-align: center; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; font-weight: bold; touch-action: manipulation;
-                                          {% if current_mark is not None %}background-color: #f0f9ff; border-color: #bce8f1;{% endif %}"
+                                          {% if current_mark == 'AB' %}background-color: #fee2e2; color: #dc2626; border-color: #fca5a5;{% elif current_mark is not None %}background-color: #f0f9ff; border-color: #bce8f1;{% endif %}"
                                    autocomplete="off">
                             {% endwith %}
                         {% endwith %}
