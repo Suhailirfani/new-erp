@@ -953,7 +953,7 @@ def student_list(request):
         ws = wb.active
         ws.title = "Students List"
         
-        columns = ['Student ID', 'First Name', 'Last Name', 'Grade', 'Division', 'Room', 'Student Type', 'Phone', 'Email', 'Address']
+        columns = ['Student ID', 'Full Name', 'Grade', 'Division', 'Room', 'Student Type', 'Phone', 'Email', 'Address']
         ws.append(columns)
         
         for item in students:
@@ -970,8 +970,7 @@ def student_list(request):
                 
             ws.append([
                 s.student_id,
-                s.first_name,
-                s.last_name,
+                s.full_name,
                 grade_val,
                 div_val,
                 room_val,
