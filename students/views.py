@@ -2987,17 +2987,21 @@ def progress_report(request):
 @role_required(['admin', 'teacher', 'student'])
 def progress_report_detail(request, pk):
     """View detailed dynamic progress report for a student"""
-    if ProgressReport.objects.filter(pk=pk).exists():
+    if Student.objects.filter(pk=pk).exists():
+        student = Student.objects.get(pk=pk)
+    elif ProgressReport.objects.filter(pk=pk).exists():
         report_obj = ProgressReport.objects.get(pk=pk)
         student = report_obj.student
-        exam_type = report_obj.exam_type
     else:
         student = get_object_or_404(Student, pk=pk)
-        exam_type_id = request.GET.get('exam_type')
-        if exam_type_id:
-            exam_type = ExamType.objects.filter(id=exam_type_id).first()
-        else:
-            exam_type = ExamType.objects.first()
+
+    exam_type_id = request.GET.get('exam_type')
+    if exam_type_id:
+        exam_type = ExamType.objects.filter(id=exam_type_id).first()
+    elif 'report_obj' in locals() and report_obj.exam_type:
+        exam_type = report_obj.exam_type
+    else:
+        exam_type = ExamType.objects.first()
 
     if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
         if exam_type and not exam_type.is_published:
@@ -3845,17 +3849,21 @@ def bulk_progress_report_pdf(request):
 @role_required(['admin', 'teacher', 'student'])
 def single_progress_report_pdf(request, pk):
     """Generate and download a clean PDF progress report dynamically for a student"""
-    if ProgressReport.objects.filter(pk=pk).exists():
+    if Student.objects.filter(pk=pk).exists():
+        student = Student.objects.get(pk=pk)
+    elif ProgressReport.objects.filter(pk=pk).exists():
         report_obj = ProgressReport.objects.get(pk=pk)
         student = report_obj.student
-        exam_type = report_obj.exam_type
     else:
         student = get_object_or_404(Student, pk=pk)
-        exam_type_id = request.GET.get('exam_type')
-        if exam_type_id:
-            exam_type = ExamType.objects.filter(id=exam_type_id).first()
-        else:
-            exam_type = ExamType.objects.first()
+
+    exam_type_id = request.GET.get('exam_type')
+    if exam_type_id:
+        exam_type = ExamType.objects.filter(id=exam_type_id).first()
+    elif 'report_obj' in locals() and report_obj.exam_type:
+        exam_type = report_obj.exam_type
+    else:
+        exam_type = ExamType.objects.first()
 
     if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
         if exam_type and not exam_type.is_published:
