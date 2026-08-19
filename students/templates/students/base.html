@@ -1405,22 +1405,49 @@
             letter-spacing: 0.05em;
         }
 
-        /* Print Styles */
+        /* Comprehensive Global Print Styles (Hides ALL Navbars, Sidebars, Bottom Nav, Buttons & Icons) */
         @media print {
-            body {
-                background: white;
-            }
-            
+            .mobile-bottom-nav,
+            .mobile-bottom-nav *,
+            .sidebar,
+            .top-navbar,
             .navbar,
+            .nav,
+            .header,
+            .header-actions,
+            .no-print,
             .btn,
-            .button-group {
-                display: none;
+            .button-group,
+            .user-profile-menu,
+            .action-card-footer,
+            .floating-btn,
+            nav,
+            header,
+            footer,
+            .filter-form,
+            .filter-actions {
+                display: none !important;
+                visibility: hidden !important;
+                height: 0 !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
             }
             
+            body, .main-workspace, .main-content, .container, .container-fluid {
+                background: white !important;
+                color: black !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-shadow: none !important;
+            }
+
             .card, .glass-card {
-                box-shadow: none;
-                border: 1px solid var(--border);
-                background: white;
+                box-shadow: none !important;
+                border: 1px solid #cbd5e1 !important;
+                background: white !important;
+                margin-bottom: 1rem !important;
             }
         }
 
