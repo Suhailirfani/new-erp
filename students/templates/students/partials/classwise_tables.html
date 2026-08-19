@@ -23,18 +23,18 @@
     <div class="table-wrapper" style="width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 0.5rem;">
         <table class="table-custom" style="width: 100%; border-collapse: separate; border-spacing: 0; background: white; font-size: 0.82rem;">
             <thead>
-                <tr style="background: #f8fafc; color: #0f172a;">
-                    <th rowspan="2" style="position: sticky; left: 0; z-index: 10; background: #f8fafc; vertical-align: middle; text-align: left; padding: 0.6rem 0.75rem; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; border-bottom: 2px solid #cbd5e1; border-right: 1px solid #cbd5e1; min-width: 150px; max-width: 180px; color: #0f172a; box-shadow: 2px 0 5px rgba(0,0,0,0.04);">Student</th>
+                <tr style="background: #ffffff; color: #1e293b;">
+                    <th rowspan="2" style="position: sticky; left: 0; z-index: 10; background: #ffffff; vertical-align: middle; text-align: left; padding: 0.6rem 0.75rem; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; border-bottom: 2px solid #cbd5e1; border-right: 1px solid #cbd5e1; min-width: 150px; max-width: 180px; color: #1e293b; box-shadow: 2px 0 5px rgba(0,0,0,0.04);">Student</th>
                     {% for s in table.subjects %}
-                        <th colspan="2" style="text-align: center; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; font-size: 0.78rem; padding: 0.5rem 0.4rem; font-weight: 700; white-space: nowrap; color: #0f172a;">{{ s }}</th>
+                        <th colspan="2" style="text-align: center; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; font-size: 0.78rem; padding: 0.5rem 0.4rem; font-weight: 700; white-space: nowrap; color: #1e293b; background: #ffffff;">{{ s }}</th>
                     {% endfor %}
-                    <th rowspan="2" style="vertical-align: middle; text-align: center; padding: 0.6rem 0.5rem; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; border-bottom: 2px solid #cbd5e1; border-right: 1px solid #cbd5e1; min-width: 55px; color: #0f172a;">Total</th>
-                    <th rowspan="2" style="vertical-align: middle; text-align: center; padding: 0.6rem 0.5rem; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; border-bottom: 2px solid #cbd5e1; min-width: 65px; color: #0f172a;">Rank</th>
+                    <th rowspan="2" style="vertical-align: middle; text-align: center; padding: 0.6rem 0.5rem; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; border-bottom: 2px solid #cbd5e1; border-right: 1px solid #cbd5e1; min-width: 55px; color: #1e293b; background: #ffffff;">Total</th>
+                    <th rowspan="2" style="vertical-align: middle; text-align: center; padding: 0.6rem 0.5rem; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; border-bottom: 2px solid #cbd5e1; min-width: 65px; color: #1e293b; background: #ffffff;">Rank</th>
                 </tr>
-                <tr style="background: #f8fafc; color: #64748b;">
+                <tr style="background: #f8fafc; color: #475569;">
                     {% for s in table.subjects %}
-                        <th style="font-size: 0.68rem; text-align: center; padding: 0.35rem 0.25rem; text-transform: uppercase; font-weight: 600; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #e2e8f0; color: #64748b; min-width: 40px;">Marks</th>
-                        <th style="font-size: 0.68rem; text-align: center; padding: 0.35rem 0.25rem; text-transform: uppercase; font-weight: 600; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #cbd5e1; color: #64748b; min-width: 40px;">Grade</th>
+                        <th style="font-size: 0.68rem; text-align: center; padding: 0.35rem 0.25rem; text-transform: uppercase; font-weight: 600; border-bottom: 2px solid #cbd5e1; border-right: 1px solid #e2e8f0; color: #475569; background: #f8fafc; min-width: 40px;">Marks</th>
+                        <th style="font-size: 0.68rem; text-align: center; padding: 0.35rem 0.25rem; text-transform: uppercase; font-weight: 600; border-bottom: 2px solid #cbd5e1; border-right: 1px solid #cbd5e1; color: #475569; background: #f8fafc; min-width: 40px;">Grade</th>
                     {% endfor %}
                 </tr>
             </thead>
