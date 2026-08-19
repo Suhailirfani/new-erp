@@ -48,6 +48,7 @@ urlpatterns = [
     path('marks/list/data/', views.mark_entry_classwise_data, name='mark_list_data'),
     path('progress-report/', views.progress_report, name='progress_report'),
     path('progress-report/<int:pk>/', views.progress_report_detail, name='progress_report_detail'),
+    path('progress-report/<int:pk>/pdf/', views.single_progress_report_pdf, name='single_progress_report_pdf'),
     path('students/<int:pk>/profile/', views.student_profile, name='student_profile'),
     path('students/<int:pk>/edit/', views.student_edit, name='student_edit'),
     path('students/<int:pk>/create-user/', views.create_student_user, name='create_student_user'),

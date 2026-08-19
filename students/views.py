@@ -3882,6 +3882,161 @@ def bulk_progress_report_pdf(request):
     c.save()
     return response
 
+
+@role_required(['admin', 'teacher', 'student'])
+def single_progress_report_pdf(request, pk):
+    """Generate and download a clean PDF progress report for a single student"""
+    report = get_object_or_404(ProgressReport, pk=pk)
+    
+    # Data isolation for students
+    if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
+        if not report.exam_type.is_published:
+            messages.error(request, "Results for this exam have not been published yet.")
+            return redirect('students:home')
+        if not request.user.profile.student_record or request.user.profile.student_record != report.student:
+            messages.error(request, "You do not have permission to view other students' progress reports.")
+            return redirect('students:home')
+            
+    response = HttpResponse(content_type='application/pdf')
+    clean_id = str(report.student.student_id).replace('/', '_').replace('\\', '_')
+    response['Content-Disposition'] = f'attachment; filename="progress_report_{clean_id}.pdf"'
+
+    c = canvas.Canvas(response, pagesize=A4)
+    width, height = A4
+
+    y = height - 2 * cm
+
+    # ================= INSTITUTION HEADER =================
+    c.setFont("Helvetica-Bold", 14)
+    c.drawCentredString(
+        width / 2,
+        y,
+        "MARKAZ HADIYA WOMEN'S COLLEGE, THAZHAPRA"
+    )
+    y -= 0.7 * cm
+
+    c.setFont("Helvetica-Bold", 12)
+    c.drawCentredString(
+        width / 2,
+        y,
+        f"{report.exam_type.name.upper()} - PROGRESS REPORT"
+    )
+    y -= 0.8 * cm
+
+    # Divider line
+    c.setLineWidth(1)
+    c.line(2 * cm, y, width - 2 * cm, y)
+    y -= 0.8 * cm
+
+    # ================= STUDENT INFO =================
+    c.setFont("Helvetica", 11)
+    grade_str = report.enrollment.grade.name if report.enrollment and report.enrollment.grade else '-'
+    div_str = report.enrollment.division.name if report.enrollment and report.enrollment.division else '-'
+    year_str = report.enrollment.academic_year.name if report.enrollment else (report.academic_year or '-')
+
+    c.drawString(2 * cm, y, f"Student ID : {report.student.student_id}")
+    c.drawString(width / 2 + 1 * cm, y, f"Exam : {report.exam_type.name}")
+    y -= 0.6 * cm
+    c.drawString(2 * cm, y, f"Name       : {report.student.full_name}")
+    c.drawString(width / 2 + 1 * cm, y, f"Academic Year : {year_str}")
+    y -= 0.6 * cm
+    c.drawString(2 * cm, y, f"Grade      : {grade_str}")
+    c.drawString(width / 2 + 1 * cm, y, f"Division   : {div_str}")
+    y -= 1 * cm
+
+    # ================= OVERALL PERFORMANCE =================
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(2 * cm, y, "Overall Performance")
+    y -= 0.4 * cm
+
+    overall_table = Table(
+        [
+            ["Total Marks", "Percentage", "Grade", "Rank"],
+            [
+                f"{report.total_marks_obtained}/{report.total_max_marks}",
+                f"{report.overall_percentage:.2f}%",
+                report.overall_grade,
+                report.rank or "-"
+            ]
+        ],
+        colWidths=[4 * cm] * 4
+    )
+
+    overall_table.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 1, colors.black),
+        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('FONT', (0,0), (-1,0), 'Helvetica-Bold'),
+    ]))
+
+    overall_table.wrapOn(c, width, height)
+    overall_table.drawOn(c, 2 * cm, y - 1.5 * cm)
+    y -= 2.5 * cm
+
+    # ================= SUBJECT MARKS =================
+    mark_entries = MarkEntry.objects.filter(
+        student=report.student,
+        exam_type=report.exam_type
+    ).select_related('subject').order_by(
+        'subject__subject_type', 'subject__name'
+    )
+
+    hadiya_subjects = [e for e in mark_entries if e.subject.subject_type == 'hadiya']
+    division_subjects = [e for e in mark_entries if e.subject.subject_type == 'division']
+
+    def draw_subject_table(title, entries, y_pos):
+        if not entries:
+            return y_pos
+
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(2 * cm, y_pos, title)
+        y_pos -= 0.4 * cm
+
+        data = [["Subject", "Marks Obtained", "Max Marks", "Percentage", "Grade"]]
+
+        for e in entries:
+            data.append([
+                e.subject.name,
+                str(e.marks_obtained),
+                str(e.max_marks),
+                f"{e.percentage:.2f}%",
+                e.grade_letter
+            ])
+
+        table = Table(data, colWidths=[6*cm, 3*cm, 3*cm, 3*cm, 2*cm])
+        table.setStyle(TableStyle([
+            ('GRID', (0,0), (-1,-1), 1, colors.black),
+            ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+            ('ALIGN', (1,0), (-1,-1), 'CENTER'),
+            ('FONT', (0,0), (-1,0), 'Helvetica-Bold'),
+        ]))
+
+        table_height = len(data) * 0.6 * cm
+        table.wrapOn(c, width, height)
+        table.drawOn(c, 2 * cm, y_pos - table_height)
+
+        return y_pos - table_height - 0.8 * cm
+
+    y = draw_subject_table("Hadiya (Islamic) Subjects", hadiya_subjects, y)
+    y = draw_subject_table("Division Specific Subjects", division_subjects, y)
+
+    if not hadiya_subjects and not division_subjects and mark_entries.exists():
+        y = draw_subject_table("Subject Marks", list(mark_entries), y)
+
+    # ================= SIGNATURES =================
+    y -= 1.2 * cm
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(2 * cm, y, "Parent / Guardian Signature:")
+    c.drawString(width / 2 + 1 * cm, y, "Principal / Head Signature:")
+
+    y -= 0.8 * cm
+    c.line(2 * cm, y, width / 2 - 1 * cm, y)
+    c.line(width / 2 + 1 * cm, y, width - 2 * cm, y)
+
+    c.showPage()
+    c.save()
+    return response
+
 from datetime import date
 import calendar
 from django.shortcuts import render

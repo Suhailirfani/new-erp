@@ -1,79 +1,106 @@
 {% extends 'students/base.html' %}
 
-{% block title %}Progress Report Detail - Student Attendance System{% endblock %}
+{% block title %}Progress Report - {{ report.student.full_name }} | MARKAZ HADIYA{% endblock %}
 
 {% block content %}
-<h1>Progress Report - {{ report.student.full_name }}</h1>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="margin: 0; font-size: 1.8rem; color: #1e293b;">Progress Report</h1>
+        <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.95rem;">Marklist for {{ report.student.full_name }} ({{ report.exam_type.name }})</p>
+    </div>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        {% if request.user.profile.role != 'student' %}
+            <a href="{% url 'students:progress_report' %}" class="btn btn-secondary">← Back to Reports</a>
+        {% else %}
+            <a href="{% url 'students:home' %}" class="btn btn-secondary">← Back to Dashboard</a>
+        {% endif %}
+        <a href="{% url 'students:single_progress_report_pdf' report.pk %}" class="btn btn-success" style="font-weight: 700;">
+            <i class="fa-solid fa-file-pdf"></i> Download PDF Report
+        </a>
+        <button onclick="window.print()" class="btn btn-primary"><i class="fa-solid fa-print"></i> Print Report</button>
+    </div>
+</div>
 
-<div class="card">
-    <h2>Student Information</h2>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+<div class="card" style="border-top: 4px solid #4f46e5; margin-bottom: 1.5rem;">
+    <h2 style="margin-top: 0; font-size: 1.2rem; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem;">
+        <i class="fa-solid fa-id-card" style="color: #4f46e5;"></i> Student & Exam Information
+    </h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; font-size: 0.95rem;">
         <div>
-            <strong>Student ID:</strong> {{ report.student.student_id }}
+            <span style="color: #64748b; font-size: 0.85rem; display: block;">Student ID</span>
+            <strong>{{ report.student.student_id }}</strong>
         </div>
         <div>
-            <strong>Name:</strong> {{ report.student.full_name }}
+            <span style="color: #64748b; font-size: 0.85rem; display: block;">Student Name</span>
+            <strong>{{ report.student.full_name }}</strong>
         </div>
         <div>
-            <strong>Grade:</strong> {{ report.enrollment.grade|default:"-" }}
+            <span style="color: #64748b; font-size: 0.85rem; display: block;">Grade / Class</span>
+            <strong>{{ report.enrollment.grade.name|default:"-" }}</strong>
         </div>
         <div>
-            <strong>Division:</strong> {{ report.enrollment.division.name|default:"-" }}
+            <span style="color: #64748b; font-size: 0.85rem; display: block;">Division</span>
+            <strong>{{ report.enrollment.division.name|default:"-" }}</strong>
         </div>
         <div>
-            <strong>Exam Type:</strong> {{ report.exam_type.name }}
+            <span style="color: #64748b; font-size: 0.85rem; display: block;">Exam Type</span>
+            <strong>{{ report.exam_type.name }}</strong>
         </div>
-            <strong>Academic Year:</strong> {% if report.enrollment %}{{ report.enrollment.academic_year.name }}{% else %}{{ report.academic_year|default:"-" }}{% endif %}
+        <div>
+            <span style="color: #64748b; font-size: 0.85rem; display: block;">Academic Year</span>
+            <strong>{% if report.enrollment %}{{ report.enrollment.academic_year.name }}{% else %}{{ report.academic_year|default:"-" }}{% endif %}</strong>
         </div>
     </div>
 </div>
 
-<div class="card">
-    <h2>Overall Performance</h2>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;">
-        <div style="text-align: center; padding: 1rem; background: #f0f0f0; border-radius: 8px;">
-            <div style="font-size: 2rem; font-weight: bold; color: #3498db;">{{ report.total_marks_obtained }}/{{ report.total_max_marks }}</div>
-            <div>Total Marks</div>
+<div class="card" style="margin-bottom: 1.5rem;">
+    <h2 style="margin-top: 0; font-size: 1.2rem; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem;">
+        <i class="fa-solid fa-chart-simple" style="color: #10b981;"></i> Overall Performance Summary
+    </h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-top: 1rem;">
+        <div style="text-align: center; padding: 1.2rem 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+            <div style="font-size: 1.8rem; font-weight: 800; color: #2563eb;">{{ report.total_marks_obtained }}/{{ report.total_max_marks }}</div>
+            <div style="color: #64748b; font-size: 0.85rem; margin-top: 4px; font-weight: 600;">Total Marks</div>
         </div>
-        <div style="text-align: center; padding: 1rem; background: #f0f0f0; border-radius: 8px;">
-            <div style="font-size: 2rem; font-weight: bold; color: #27ae60;">{{ report.overall_percentage|floatformat:2 }}%</div>
-            <div>Percentage</div>
+        <div style="text-align: center; padding: 1.2rem 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+            <div style="font-size: 1.8rem; font-weight: 800; color: #059669;">{{ report.overall_percentage|floatformat:2 }}%</div>
+            <div style="color: #64748b; font-size: 0.85rem; margin-top: 4px; font-weight: 600;">Percentage</div>
         </div>
-        <div style="text-align: center; padding: 1rem; background: #f0f0f0; border-radius: 8px;">
-            <div style="font-size: 2rem; font-weight: bold; color: #9b59b6;">{{ report.overall_grade }}</div>
-            <div>Grade</div>
+        <div style="text-align: center; padding: 1.2rem 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+            <div style="font-size: 1.8rem; font-weight: 800; color: #7c3aed;">{{ report.overall_grade }}</div>
+            <div style="color: #64748b; font-size: 0.85rem; margin-top: 4px; font-weight: 600;">Overall Grade</div>
         </div>
         {% if report.rank %}
-        <div style="text-align: center; padding: 1rem; background: #f0f0f0; border-radius: 8px;">
-            <div style="font-size: 2rem; font-weight: bold; color: #e74c3c;">{{ report.rank }}</div>
-            <div>Rank</div>
+        <div style="text-align: center; padding: 1.2rem 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+            <div style="font-size: 1.8rem; font-weight: 800; color: #dc2626;">#{{ report.rank }}</div>
+            <div style="color: #64748b; font-size: 0.85rem; margin-top: 4px; font-weight: 600;">Class Rank</div>
         </div>
         {% endif %}
     </div>
 </div>
 
 {% if hadiya_subjects %}
-<div class="card">
-    <h2>Hadiya (Islamic) Subjects</h2>
+<div class="card" style="margin-bottom: 1.5rem;">
+    <h2 style="margin-top: 0; font-size: 1.15rem; color: #1e293b;">Hadiya (Islamic) Subjects</h2>
     <div class="table-wrapper">
     <table>
         <thead>
             <tr>
-                <th>Subject</th>
-                <th>Marks Obtained</th>
-                <th>Max Marks</th>
-                <th>Percentage</th>
-                <th>Grade</th>
+                <th>Subject Name</th>
+                <th style="text-align: center;">Marks Obtained</th>
+                <th style="text-align: center;">Max Marks</th>
+                <th style="text-align: center;">Percentage</th>
+                <th style="text-align: center;">Grade</th>
             </tr>
         </thead>
         <tbody>
             {% for entry in hadiya_subjects %}
             <tr>
-                <td>{{ entry.subject.name }}</td>
-                <td>{{ entry.marks_obtained }}</td>
-                <td>{{ entry.max_marks }}</td>
-                <td>{{ entry.percentage|floatformat:2 }}%</td>
-                <td><strong>{{ entry.grade_letter }}</strong></td>
+                <td><strong>{{ entry.subject.name }}</strong></td>
+                <td style="text-align: center;">{{ entry.marks_obtained }}</td>
+                <td style="text-align: center;">{{ entry.max_marks }}</td>
+                <td style="text-align: center;">{{ entry.percentage|floatformat:2 }}%</td>
+                <td style="text-align: center;"><span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 6px; font-weight: bold;">{{ entry.grade_letter }}</span></td>
             </tr>
             {% endfor %}
         </tbody>
@@ -83,27 +110,57 @@
 {% endif %}
 
 {% if division_subjects %}
-<div class="card">
-    <h2>Division Specific Subjects</h2>
+<div class="card" style="margin-bottom: 1.5rem;">
+    <h2 style="margin-top: 0; font-size: 1.15rem; color: #1e293b;">Division Specific Subjects</h2>
     <div class="table-wrapper">
     <table>
         <thead>
             <tr>
-                <th>Subject</th>
-                <th>Marks Obtained</th>
-                <th>Max Marks</th>
-                <th>Percentage</th>
-                <th>Grade</th>
+                <th>Subject Name</th>
+                <th style="text-align: center;">Marks Obtained</th>
+                <th style="text-align: center;">Max Marks</th>
+                <th style="text-align: center;">Percentage</th>
+                <th style="text-align: center;">Grade</th>
             </tr>
         </thead>
         <tbody>
             {% for entry in division_subjects %}
             <tr>
-                <td>{{ entry.subject.name }}</td>
-                <td>{{ entry.marks_obtained }}</td>
-                <td>{{ entry.max_marks }}</td>
-                <td>{{ entry.percentage|floatformat:2 }}%</td>
-                <td><strong>{{ entry.grade_letter }}</strong></td>
+                <td><strong>{{ entry.subject.name }}</strong></td>
+                <td style="text-align: center;">{{ entry.marks_obtained }}</td>
+                <td style="text-align: center;">{{ entry.max_marks }}</td>
+                <td style="text-align: center;">{{ entry.percentage|floatformat:2 }}%</td>
+                <td style="text-align: center;"><span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 6px; font-weight: bold;">{{ entry.grade_letter }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% endif %}
+
+{% if not hadiya_subjects and not division_subjects and all_subjects %}
+<div class="card" style="margin-bottom: 1.5rem;">
+    <h2 style="margin-top: 0; font-size: 1.15rem; color: #1e293b;">Subject Marks</h2>
+    <div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Subject Name</th>
+                <th style="text-align: center;">Marks Obtained</th>
+                <th style="text-align: center;">Max Marks</th>
+                <th style="text-align: center;">Percentage</th>
+                <th style="text-align: center;">Grade</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in all_subjects %}
+            <tr>
+                <td><strong>{{ entry.subject.name }}</strong></td>
+                <td style="text-align: center;">{{ entry.marks_obtained }}</td>
+                <td style="text-align: center;">{{ entry.max_marks }}</td>
+                <td style="text-align: center;">{{ entry.percentage|floatformat:2 }}%</td>
+                <td style="text-align: center;"><span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 6px; font-weight: bold;">{{ entry.grade_letter }}</span></td>
             </tr>
             {% endfor %}
         </tbody>
@@ -113,19 +170,21 @@
 {% endif %}
 
 {% if report.remarks %}
-<div class="card">
-    <h2>Remarks</h2>
-    <p>{{ report.remarks }}</p>
+<div class="card" style="margin-bottom: 1.5rem;">
+    <h2 style="margin-top: 0; font-size: 1.15rem; color: #1e293b;">Teacher Remarks</h2>
+    <p style="margin: 0; color: #334155; font-size: 0.95rem; line-height: 1.5;">{{ report.remarks }}</p>
 </div>
 {% endif %}
 
-<div style="margin-top: 1rem;">
+<div style="margin-top: 1.5rem; display: flex; gap: 10px; flex-wrap: wrap;">
     {% if request.user.profile.role != 'student' %}
-        <a href="{% url 'students:progress_report' %}" class="btn">Back to Reports</a>
+        <a href="{% url 'students:progress_report' %}" class="btn btn-secondary">← Back to Reports</a>
     {% else %}
-        <a href="{% url 'students:home' %}" class="btn">Back to Dashboard</a>
+        <a href="{% url 'students:home' %}" class="btn btn-secondary">← Back to Dashboard</a>
     {% endif %}
-    <button onclick="window.print()" class="btn btn-success">Print Report</button>
+    <a href="{% url 'students:single_progress_report_pdf' report.pk %}" class="btn btn-success" style="font-weight: 700;">
+        <i class="fa-solid fa-file-pdf"></i> Download PDF Report
+    </a>
+    <button onclick="window.print()" class="btn btn-primary"><i class="fa-solid fa-print"></i> Print Report</button>
 </div>
 {% endblock %}
-
