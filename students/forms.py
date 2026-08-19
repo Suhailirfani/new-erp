@@ -60,11 +60,12 @@ class GradeForm(forms.ModelForm):
 class DivisionForm(forms.ModelForm):
     class Meta:
         model = Division
-        fields = ['name', 'description', 'section']
+        fields = ['grade', 'name', 'section', 'description']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'grade': forms.Select(attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Commerce, Humanities, BCom'}),
             'section': forms.Select(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
 
@@ -82,6 +83,17 @@ class SubjectForm(forms.ModelForm):
             'max_marks': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'grade' in self.data:
+            try:
+                grade_id = int(self.data.get('grade'))
+                self.fields['division'].queryset = Division.objects.filter(grade_id=grade_id).order_by('name')
+            except (ValueError, TypeError):
+                pass
+        elif self.instance and self.instance.grade_id:
+            self.fields['division'].queryset = Division.objects.filter(grade_id=self.instance.grade_id).order_by('name')
 
 
 class EnquiryForm(forms.ModelForm):

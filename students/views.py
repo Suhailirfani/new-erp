@@ -5374,11 +5374,20 @@ def grade_delete(request, pk):
 
 @role_required(['admin'])
 def division_list(request):
-    divisions = Division.objects.all()
-    return render(request, 'students/division_list.html', {'divisions': divisions})
+    grades = Grade.objects.prefetch_related('divisions', 'section').all().order_by('order', 'name')
+    unassigned_divisions = Division.objects.filter(grade__isnull=True)
+    divisions = Division.objects.select_related('grade', 'section').all()
+    return render(request, 'students/division_list.html', {
+        'grades': grades,
+        'divisions': divisions,
+        'unassigned_divisions': unassigned_divisions,
+    })
 
 @role_required(['admin'])
 def division_create(request):
+    initial = {}
+    if request.GET.get('grade'):
+        initial['grade'] = request.GET.get('grade')
     if request.method == 'POST':
         form = DivisionForm(request.POST)
         if form.is_valid():
@@ -5386,7 +5395,7 @@ def division_create(request):
             messages.success(request, 'Division created successfully.')
             return redirect('students:division_list')
     else:
-        form = DivisionForm()
+        form = DivisionForm(initial=initial)
     return render(request, 'students/division_form.html', {'form': form})
 
 @role_required(['admin'])
@@ -5410,6 +5419,17 @@ def division_delete(request, pk):
         messages.success(request, 'Division deleted successfully.')
         return redirect('students:division_list')
     return render(request, 'students/division_confirm_delete.html', {'division': division})
+
+def api_get_divisions_by_grade(request):
+    """Returns JSON list of divisions filtered by grade_id for dynamic form dropdowns."""
+    grade_id = request.GET.get('grade_id')
+    if grade_id:
+        divisions = Division.objects.filter(grade_id=grade_id).order_by('name')
+    else:
+        divisions = Division.objects.all().order_by('grade__name', 'name')
+    
+    data = [{'id': d.id, 'name': d.name, 'full_name': str(d)} for d in divisions]
+    return JsonResponse({'divisions': data})
 
 # --- SUBJECT CRUD ---
 

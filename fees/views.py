@@ -1013,13 +1013,10 @@ def bulk_course_fee_update(request):
     # We want a list of (Grade, Division or None)
     classrooms = []
     for g in grades:
-        if g.section:
-            grade_divisions = divisions.filter(section=g.section)
-            if grade_divisions.exists():
-                for d in grade_divisions:
-                    classrooms.append({'grade': g, 'division': d})
-            else:
-                classrooms.append({'grade': g, 'division': None})
+        grade_divisions = g.divisions.all().order_by('name')
+        if grade_divisions.exists():
+            for d in grade_divisions:
+                classrooms.append({'grade': g, 'division': d})
         else:
             classrooms.append({'grade': g, 'division': None})
 
@@ -1389,13 +1386,10 @@ def fee_item_create(request):
     
     classrooms = []
     for g in grades:
-        if g.section:
-            grade_divisions = divisions.filter(section=g.section)
-            if grade_divisions.exists():
-                for d in grade_divisions:
-                    classrooms.append({'grade': g, 'division': d})
-            else:
-                classrooms.append({'grade': g, 'division': None})
+        grade_divisions = g.divisions.all().order_by('name')
+        if grade_divisions.exists():
+            for d in grade_divisions:
+                classrooms.append({'grade': g, 'division': d})
         else:
             classrooms.append({'grade': g, 'division': None})
 
@@ -1483,13 +1477,10 @@ def fee_item_update(request, pk):
     
     classrooms = []
     for g in grades:
-        if g.section:
-            grade_divisions = divisions.filter(section=g.section)
-            if grade_divisions.exists():
-                for d in grade_divisions:
-                    classrooms.append({'grade': g, 'division': d})
-            else:
-                classrooms.append({'grade': g, 'division': None})
+        grade_divisions = g.divisions.all().order_by('name')
+        if grade_divisions.exists():
+            for d in grade_divisions:
+                classrooms.append({'grade': g, 'division': d})
         else:
             classrooms.append({'grade': g, 'division': None})
 

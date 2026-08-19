@@ -17,9 +17,9 @@ class AcademicYearAdmin(admin.ModelAdmin):
 
 @admin.register(Division)
 class DivisionAdmin(admin.ModelAdmin):
-    list_display = ['name', 'section', 'description']
-    search_fields = ['name']
-    list_filter = ['section', 'name']
+    list_display = ['name', 'grade', 'section', 'description']
+    search_fields = ['name', 'grade__name']
+    list_filter = ['grade', 'section']
 
 
 @admin.register(Room)

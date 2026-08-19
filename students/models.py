@@ -53,15 +53,19 @@ class AcademicYear(models.Model):
         super().save(*args, **kwargs)
 
 class Division(models.Model):
-    """Division like Commerce, Science, Arts, etc."""
-    name = models.CharField(max_length=100, unique=True)
+    """Division like Commerce, Science, Arts, etc. linked under a Grade"""
+    grade = models.ForeignKey(Grade, on_delete=models.CASCADE, null=True, blank=True, related_name='divisions')
+    name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True, related_name='divisions')
 
     class Meta:
-        ordering = ['name']
+        ordering = ['grade', 'name']
+        unique_together = [['grade', 'name']]
 
     def __str__(self):
+        if self.grade:
+            return f"{self.grade.name} {self.name}"
         return self.name
 
 

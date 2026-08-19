@@ -94,6 +94,7 @@ urlpatterns = [
     path('divisions/create/', views.division_create, name='division_create'),
     path('divisions/<int:pk>/update/', views.division_update, name='division_update'),
     path('divisions/<int:pk>/delete/', views.division_delete, name='division_delete'),
+    path('api/divisions-by-grade/', views.api_get_divisions_by_grade, name='api_divisions_by_grade'),
     
     # Enquiry Management
     path('enquiries/', views.enquiry_list_view, name='enquiry_list'),
