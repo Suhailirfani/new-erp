@@ -2701,166 +2701,185 @@ def mark_entry_classwise_data(request):
     AJAX view:
     Returns class-wise mark tables with ranking
     """
-    mark_entries = MarkEntry.objects.select_related(
-        'student',
-        'enrollment',
-        'enrollment__section',
-        'enrollment__division',
-        'enrollment__grade', # Select grade
-        'exam_type',
-        'subject',
-    )
-
-    # -------------------------
-    # Filters (no reload)
-    # -------------------------
-    exam_type = request.GET.get('exam_type')
-    section = request.GET.get('section')
-    grade_id = request.GET.get('grade') # Get grade ID
-    division = request.GET.get('division')
-
-    if exam_type:
-        mark_entries = mark_entries.filter(exam_type_id=exam_type)
-    if section:
-        mark_entries = mark_entries.filter(enrollment__section_id=section)
-    if grade_id:
-        mark_entries = mark_entries.filter(enrollment__grade_id=grade_id) # Filter by grade ID
-    if division:
-        mark_entries = mark_entries.filter(enrollment__division_id=division)
-
-    # -------------------------
-    # Group entries class-wise
-    # -------------------------
-    grouped = defaultdict(list)
-
-    for entry in mark_entries:
-        key = (
-            entry.enrollment.section.name if entry.enrollment and entry.enrollment.section else "-",
-            entry.enrollment.grade.name if entry.enrollment and entry.enrollment.grade else '-', # Use grade name
-            entry.enrollment.division.name if entry.enrollment and entry.enrollment.division else "-",
-            entry.exam_type.name,
+    try:
+        mark_entries = MarkEntry.objects.select_related(
+            'student',
+            'enrollment',
+            'enrollment__section',
+            'enrollment__division',
+            'enrollment__grade',
+            'exam_type',
+            'subject',
         )
-        grouped[key].append(entry)
-
-    class_tables = []
-
-    # -------------------------
-    # Build tables
-    # -------------------------
-    for (sec, cls, div, exam), entries in grouped.items():
-
-        # Collect subjects (ordered, unique)
-        subjects = []
-        for e in entries:
-            if e.subject.name not in subjects:
-                subjects.append(e.subject.name)
-
-        # Collect students
-        students = {}
-
-        for e in entries:
-            sid = e.student.id
-            if sid not in students:
-                students[sid] = {
-                    'name': e.student.full_name,
-                    'marks': [
-                        {'marks': '-', 'grade': 'F', 'is_fail': True}
-                        for _ in subjects
-                    ],
-                    'total': 0,
-                    'fail_count': len(subjects),  # assume fail until proven pass
-
-                }
-
-
-        # Fill marks
-        for e in entries:
-            student = students[e.student.id]
-            subject_index = subjects.index(e.subject.name)
-
-            if getattr(e, 'is_absent', False) or e.grade_letter == 'AB':
-                student['marks'][subject_index] = {
-                    'marks': 'AB',
-                    'grade': 'AB',
-                    'is_fail': True,
-                }
-            else:
-                is_fail = str(e.grade_letter).strip().upper() == 'F'
-                m_val = float(e.marks_obtained)
-                student['marks'][subject_index] = {
-                    'marks': int(m_val) if m_val.is_integer() else m_val,
-                    'grade': e.grade_letter,
-                    'is_fail': is_fail,
-                }
-                student['total'] += m_val
-                if not is_fail:
-                    student['fail_count'] -= 1
-
 
         # -------------------------
-        # Rank calculation
+        # Filters (no reload)
         # -------------------------
-        sorted_students = sorted(
-            students.values(),
-            key=lambda x: (
-                x['fail_count'],   # fewer fails first
-                -x['total']        # higher marks next
+        exam_type = request.GET.get('exam_type')
+        section = request.GET.get('section')
+        grade_id = request.GET.get('grade')
+        division = request.GET.get('division')
+
+        if exam_type:
+            mark_entries = mark_entries.filter(exam_type_id=exam_type)
+        if section:
+            mark_entries = mark_entries.filter(enrollment__section_id=section)
+        if grade_id:
+            mark_entries = mark_entries.filter(enrollment__grade_id=grade_id)
+        if division:
+            mark_entries = mark_entries.filter(enrollment__division_id=division)
+
+        # -------------------------
+        # Group entries class-wise
+        # -------------------------
+        grouped = defaultdict(list)
+
+        for entry in mark_entries:
+            if not entry.student or not entry.exam_type or not entry.subject:
+                continue
+            key = (
+                entry.enrollment.section.name if entry.enrollment and entry.enrollment.section else "-",
+                entry.enrollment.grade.name if entry.enrollment and entry.enrollment.grade else '-',
+                entry.enrollment.division.name if entry.enrollment and entry.enrollment.division else "-",
+                entry.exam_type.name,
             )
+            grouped[key].append(entry)
+
+        class_tables = []
+
+        # -------------------------
+        # Build tables
+        # -------------------------
+        for (sec, cls, div, exam), entries in grouped.items():
+
+            # Collect subjects (ordered, unique)
+            subjects = []
+            for e in entries:
+                if e.subject and e.subject.name and e.subject.name not in subjects:
+                    subjects.append(e.subject.name)
+
+            # Collect students
+            students = {}
+
+            for e in entries:
+                if not e.student:
+                    continue
+                sid = e.student.id
+                if sid not in students:
+                    students[sid] = {
+                        'name': e.student.full_name,
+                        'marks': [
+                            {'marks': '-', 'grade': 'F', 'is_fail': True}
+                            for _ in subjects
+                        ],
+                        'total': 0.0,
+                        'fail_count': len(subjects),  # assume fail until proven pass
+                    }
+
+            # Fill marks
+            for e in entries:
+                if not e.student or e.student.id not in students or not e.subject or not e.subject.name:
+                    continue
+                if e.subject.name not in subjects:
+                    continue
+                student = students[e.student.id]
+                subject_index = subjects.index(e.subject.name)
+
+                if getattr(e, 'is_absent', False) or str(e.grade_letter).strip().upper() == 'AB':
+                    student['marks'][subject_index] = {
+                        'marks': 'AB',
+                        'grade': 'AB',
+                        'is_fail': True,
+                    }
+                else:
+                    is_fail = str(e.grade_letter).strip().upper() == 'F'
+                    try:
+                        m_val = float(e.marks_obtained) if e.marks_obtained is not None else 0.0
+                    except (ValueError, TypeError):
+                        m_val = 0.0
+
+                    student['marks'][subject_index] = {
+                        'marks': int(m_val) if m_val.is_integer() else round(m_val, 2),
+                        'grade': e.grade_letter if e.grade_letter else ('F' if is_fail else '-'),
+                        'is_fail': is_fail,
+                    }
+                    student['total'] += m_val
+                    if not is_fail:
+                        student['fail_count'] -= 1
+
+            # Clean total formatting
+            for st in students.values():
+                t = st['total']
+                st['total'] = int(t) if isinstance(t, float) and t.is_integer() else round(t, 2)
+
+            # -------------------------
+            # Rank calculation
+            # -------------------------
+            sorted_students = sorted(
+                students.values(),
+                key=lambda x: (
+                    x['fail_count'],   # fewer fails first
+                    -x['total']        # higher marks next
+                )
+            )
+
+            prev_key = None
+            current_rank = 0
+
+            for index, st in enumerate(sorted_students):
+                current_key = (st['fail_count'], st['total'])
+
+                if prev_key is None or current_key != prev_key:
+                    current_rank = index + 1
+
+                st['rank'] = current_rank
+                prev_key = current_key
+
+            # -------------------------
+            # Subject-wise averages
+            # -------------------------
+            subject_totals = [0.0] * len(subjects)
+            subject_counts = [0] * len(subjects)
+
+            for st in sorted_students:
+                for i, m in enumerate(st['marks']):
+                    if isinstance(m.get('marks'), (int, float)):
+                        subject_totals[i] += m['marks']
+                        subject_counts[i] += 1
+
+            subject_averages = [
+                round(subject_totals[i] / subject_counts[i], 2) if subject_counts[i] > 0 else 0
+                for i in range(len(subjects))
+            ]
+
+            # -------------------------
+            # Final table object
+            # -------------------------
+            class_tables.append({
+                'section': sec,
+                'grade': cls,
+                'division': div,
+                'exam_type': exam,
+                'subjects': subjects,
+                'students': sorted_students,
+                'subject_averages': subject_averages,
+            })
+
+        # -------------------------
+        # Render partial HTML
+        # -------------------------
+        html = render_to_string(
+            'students/partials/classwise_tables.html',
+            {'class_tables': class_tables},
+            request=request
         )
 
+        return JsonResponse({'status': 'success', 'html': html})
 
-        prev_key = None
-        current_rank = 0
-
-        for index, st in enumerate(sorted_students):
-            current_key = (st['fail_count'], st['total'])
-
-            if prev_key is None or current_key != prev_key:
-                current_rank = index + 1
-
-            st['rank'] = current_rank
-            prev_key = current_key
-
-
-        # -------------------------
-        # Subject-wise averages
-        # -------------------------
-        subject_totals = [0] * len(subjects)
-        student_count = len(sorted_students)
-
-        for st in sorted_students:
-            for i, m in enumerate(st['marks']):
-                if m['marks'] != '-':
-                    subject_totals[i] += m['marks']
-
-        subject_averages = [
-            round(total / student_count, 2) if student_count else 0
-            for total in subject_totals
-        ]
-
-        # -------------------------
-        # Final table object
-        # -------------------------
-        class_tables.append({
-            'section': sec,
-            'grade': cls,
-            'division': div,
-            'exam_type': exam,
-            'subjects': subjects,
-            'students': sorted_students,
-            'subject_averages': subject_averages,
-        })
-
-    # -------------------------
-    # Render partial HTML
-    # -------------------------
-    html = render_to_string(
-        'students/partials/classwise_tables.html',
-        {'class_tables': class_tables},
-        request=request
-    )
-
-    return JsonResponse({'html': html})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'status': 'error', 'message': str(e), 'html': ''}, status=500)
 
 
 def get_dynamic_student_progress(student, exam_type=None, academic_year=None):

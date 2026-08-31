@@ -166,11 +166,30 @@
         resultsEl.style.display = 'none';
 
         fetch(`/marks/list/data/?exam_type=${exam}&section=${section}&grade=${grade}&division=${division}`)
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(errData => {
+                        throw new Error(errData.message || `Server responded with status ${res.status}`);
+                    }).catch(e => {
+                        throw new Error(e.message || `Server responded with status ${res.status}`);
+                    });
+                }
+                return res.json();
+            })
             .then(data => {
                 spinnerEl.style.display = 'none';
                 resultsEl.style.display = 'block';
-                resultsEl.innerHTML = data.html;
+                if (data.status === 'error') {
+                    resultsEl.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fa-solid fa-triangle-exclamation" style="color: var(--danger);"></i>
+                            <h3>Compilation Error</h3>
+                            <p>${data.message || 'An error occurred while compiling marks. Please check filters and try again.'}</p>
+                        </div>
+                    `;
+                } else {
+                    resultsEl.innerHTML = data.html;
+                }
             })
             .catch(err => {
                 spinnerEl.style.display = 'none';
@@ -179,7 +198,7 @@
                     <div class="empty-state">
                         <i class="fa-solid fa-triangle-exclamation" style="color: var(--danger);"></i>
                         <h3>Compilation Error</h3>
-                        <p>An error occurred while compiling marks. Please check filters and try again.</p>
+                        <p>${err.message && !err.message.includes('JSON') ? err.message : 'An error occurred while compiling marks. Please check filters and try again.'}</p>
                     </div>
                 `;
             });
