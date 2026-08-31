@@ -107,12 +107,25 @@
         display: inline-block;
     }
     @media print {
-        .no-print, .navbar, .sidebar, footer, .btn, .page-header, .filter-form {
+        .no-print,
+        .navbar,
+        .sidebar,
+        aside,
+        footer,
+        .btn,
+        .page-header,
+        .page-title,
+        .filter-form,
+        .filter-card,
+        .messages,
+        .loading-spinner,
+        #spinner,
+        .empty-state {
             display: none !important;
         }
         body {
-            background: white !important;
-            color: black !important;
+            background: #ffffff !important;
+            color: #000000 !important;
             padding: 0 !important;
             margin: 0 !important;
             font-size: 10pt !important;
@@ -124,11 +137,13 @@
             max-width: 100% !important;
         }
         .card.glass-card {
-            background: white !important;
+            background: #ffffff !important;
             border: none !important;
             box-shadow: none !important;
             padding: 0 !important;
-            margin: 0 0 1rem 0 !important;
+            margin: 0 0 1.5rem 0 !important;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
         .table-wrapper {
             overflow-x: visible !important;
@@ -138,24 +153,33 @@
         table {
             width: 100% !important;
             border-collapse: collapse !important;
-            background: white !important;
+            background: #ffffff !important;
         }
         th, td {
             border: 1px solid #000 !important;
             padding: 4px 6px !important;
             font-size: 9pt !important;
-            color: black !important;
-            background: white !important;
+            color: #000000 !important;
+            background: #ffffff !important;
             box-shadow: none !important;
+        }
+        thead {
+            display: table-header-group;
+        }
+        tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
         thead tr th {
             background: #f1f5f9 !important;
-            color: black !important;
+            color: #000000 !important;
             border: 1px solid #000 !important;
             font-weight: bold !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
         span, div, td {
-            color: black !important;
+            color: #000000 !important;
             background: none !important;
             box-shadow: none !important;
         }

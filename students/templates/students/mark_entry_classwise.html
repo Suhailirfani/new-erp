@@ -49,10 +49,42 @@
         color: var(--dark-secondary);
         margin-bottom: 0.5rem;
     }
+
+    @media print {
+        .no-print,
+        .navbar,
+        .sidebar,
+        aside,
+        footer,
+        .btn,
+        .page-header,
+        .page-title,
+        .messages,
+        .filter-card,
+        .loading-spinner,
+        #spinner,
+        .empty-state {
+            display: none !important;
+        }
+
+        body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        .main-workspace, .container {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+    }
 </style>
 
 <!-- Header Action Row -->
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+<div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
     <div>
         <p style="color: var(--gray); font-size: 1rem;">Filter, inspect, print, and track ranking lists for each academic class.</p>
     </div>
@@ -67,7 +99,7 @@
 </div>
 
 <!-- Premium Filter Glass Card -->
-<div class="card glass-card p-4 mb-4">
+<div class="card glass-card p-4 mb-4 no-print filter-card">
     <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--dark); margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
         <i class="fa-solid fa-sliders" style="color: var(--primary);"></i> Filter Criteria
     </h3>
@@ -122,14 +154,14 @@
 </div>
 
 <!-- Spinner overlay -->
-<div class="loading-spinner" id="spinner">
+<div class="loading-spinner no-print" id="spinner">
     <i class="fa-solid fa-circle-notch"></i>
     <p style="margin-top: 1rem; color: var(--gray); font-weight: 600;">Fetching and compiling marksheets...</p>
 </div>
 
 <!-- Results Area -->
 <div id="mark-results">
-    <div class="empty-state">
+    <div class="empty-state no-print">
         <i class="fa-solid fa-list-ol"></i>
         <h3>No Marks Displayed</h3>
         <p>Please select an Exam Type and optional filters above to generate class tables.</p>
