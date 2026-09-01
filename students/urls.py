@@ -42,6 +42,7 @@ urlpatterns = [
     path('marks/entry/<int:exam_type_id>/', views.mark_entry_step2, name='mark_entry_step2'),
     path('marks/entry/<int:exam_type_id>/class/', views.mark_entry_step3, name='mark_entry_step3'),
     path('marks/entry/save-single-ajax/', views.mark_save_single_ajax, name='mark_save_single_ajax'),
+    path('students/marks/entry/save-single-ajax/', views.mark_save_single_ajax),
     path('marks/entry/<int:exam_type_id>/class/download-template/', views.mark_bulk_import_template, name='mark_bulk_import_template'),
     path('marks/entry/<int:exam_type_id>/class/upload-excel/', views.mark_bulk_import, name='mark_bulk_import'),
     path('marks/list/', views.mark_entry_list, name='mark_entry_list'),

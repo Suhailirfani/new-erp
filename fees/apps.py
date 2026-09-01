@@ -14,6 +14,8 @@ def _start_monthly_fee_scheduler():
     from datetime import date
 
     def run():
+        # Wait 30 seconds after server startup before checking fees to avoid startup latency
+        time.sleep(30)
         last_run_month = None
         while True:
             try:
