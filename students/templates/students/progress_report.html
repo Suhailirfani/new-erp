@@ -146,14 +146,24 @@
                     </td>
                     <td>
                         {% if report.has_marks %}
-                            <span style="background: #f8fafc; color: #0f172a; border: 1px solid #cbd5e1; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85rem;">{{ report.overall_grade }}</span>
+                            <span style="background: {% if not report.all_passed %}#fee2e2; color: #dc2626; border: 1px solid #fca5a5;{% else %}#f8fafc; color: #0f172a; border: 1px solid #cbd5e1;{% endif %} padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85rem;">
+                                {{ report.overall_grade }}
+                            </span>
                         {% else %}
                             <span style="color: #94a3b8;">-</span>
                         {% endif %}
                     </td>
                     <td>
                         {% if report.has_marks %}
-                            <span style="background: #f8fafc; color: #15803d; border: 1px solid #bbf7d0; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 0.78rem;"><i class="fa-solid fa-check"></i> Marks Entered</span>
+                            {% if report.all_passed %}
+                                <span style="background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; padding: 2px 8px; border-radius: 12px; font-weight: 700; font-size: 0.78rem;">
+                                    <i class="fa-solid fa-check"></i> PASSED
+                                </span>
+                            {% else %}
+                                <span style="background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; padding: 2px 8px; border-radius: 12px; font-weight: 700; font-size: 0.78rem;">
+                                    <i class="fa-solid fa-xmark"></i> FAILED ({{ report.failed_count }})
+                                </span>
+                            {% endif %}
                         {% else %}
                             <span style="background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 0.78rem;">Pending</span>
                         {% endif %}

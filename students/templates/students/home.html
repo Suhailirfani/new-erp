@@ -590,7 +590,11 @@
                         <td style="padding: 1.25rem 1rem; color: var(--gray);">{{ result.exam_type.name }}</td>
                         <td style="padding: 1.25rem 1rem; font-weight: 800; color: var(--primary);">{{ result.marks_obtained|floatformat:0 }}/{{ result.max_marks|floatformat:0 }}</td>
                         <td style="padding: 1.25rem 1rem; border-radius: 0 12px 12px 0;">
-                            <span style="background: #f0fdf4; color: #16a34a; padding: 4px 10px; border-radius: 8px; font-weight: 700; font-size: 0.8rem;">Pass</span>
+                            {% if result.is_passed %}
+                                <span style="background: #f0fdf4; color: #16a34a; padding: 4px 10px; border-radius: 8px; font-weight: 700; font-size: 0.8rem;">Pass</span>
+                            {% else %}
+                                <span style="background: #fef2f2; color: #dc2626; padding: 4px 10px; border-radius: 8px; font-weight: 700; font-size: 0.8rem;">Fail</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}

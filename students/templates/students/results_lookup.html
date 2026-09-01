@@ -531,19 +531,29 @@
                             <thead>
                                 <tr>
                                     <th>Subject</th>
-                                    <th style="text-align: center; width: 120px;">Marks</th>
-                                    <th style="text-align: center; width: 120px;">Max Marks</th>
-                                    <th style="text-align: center; width: 120px;">Grade</th>
+                                    <th style="text-align: center; width: 100px;">Marks</th>
+                                    <th style="text-align: center; width: 100px;">Max</th>
+                                    <th style="text-align: center; width: 100px;">Pass</th>
+                                    <th style="text-align: center; width: 100px;">Result</th>
+                                    <th style="text-align: center; width: 80px;">Grade</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for r in data.hadiya_marks %}
-                                <tr>
+                                <tr {% if not r.is_passed %}style="background: rgba(239, 68, 68, 0.05);"{% endif %}>
                                     <td><strong>{{ r.subject.name }}</strong></td>
-                                    <td style="text-align: center;"><span class="badge badge-info">{{ r.marks_obtained }}</span></td>
-                                    <td style="text-align: center;">{{ r.max_marks }}</td>
+                                    <td style="text-align: center;"><span class="badge badge-info">{% if r.is_absent %}AB{% else %}{{ r.marks_obtained|floatformat:0 }}{% endif %}</span></td>
+                                    <td style="text-align: center;">{{ r.max_marks|floatformat:0 }}</td>
+                                    <td style="text-align: center; color: var(--text-muted);">{{ r.pass_marks|floatformat:0 }}</td>
                                     <td style="text-align: center;">
-                                        <span class="badge {% if r.grade_letter == 'F' %}badge-danger{% else %}badge-success{% endif %}">
+                                        {% if r.is_passed %}
+                                            <span class="badge badge-success">PASS</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">FAIL</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <span class="badge {% if not r.is_passed or r.grade_letter == 'F' %}badge-danger{% else %}badge-success{% endif %}">
                                             {{ r.grade_letter }}
                                         </span>
                                     </td>
@@ -561,19 +571,29 @@
                             <thead>
                                 <tr>
                                     <th>Subject</th>
-                                    <th style="text-align: center; width: 120px;">Marks</th>
-                                    <th style="text-align: center; width: 120px;">Max Marks</th>
-                                    <th style="text-align: center; width: 120px;">Grade</th>
+                                    <th style="text-align: center; width: 100px;">Marks</th>
+                                    <th style="text-align: center; width: 100px;">Max</th>
+                                    <th style="text-align: center; width: 100px;">Pass</th>
+                                    <th style="text-align: center; width: 100px;">Result</th>
+                                    <th style="text-align: center; width: 80px;">Grade</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for r in data.division_marks %}
-                                <tr>
+                                <tr {% if not r.is_passed %}style="background: rgba(239, 68, 68, 0.05);"{% endif %}>
                                     <td><strong>{{ r.subject.name }}</strong></td>
-                                    <td style="text-align: center;"><span class="badge badge-info">{{ r.marks_obtained }}</span></td>
-                                    <td style="text-align: center;">{{ r.max_marks }}</td>
+                                    <td style="text-align: center;"><span class="badge badge-info">{% if r.is_absent %}AB{% else %}{{ r.marks_obtained|floatformat:0 }}{% endif %}</span></td>
+                                    <td style="text-align: center;">{{ r.max_marks|floatformat:0 }}</td>
+                                    <td style="text-align: center; color: var(--text-muted);">{{ r.pass_marks|floatformat:0 }}</td>
                                     <td style="text-align: center;">
-                                        <span class="badge {% if r.grade_letter == 'F' %}badge-danger{% else %}badge-success{% endif %}">
+                                        {% if r.is_passed %}
+                                            <span class="badge badge-success">PASS</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">FAIL</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <span class="badge {% if not r.is_passed or r.grade_letter == 'F' %}badge-danger{% else %}badge-success{% endif %}">
                                             {{ r.grade_letter }}
                                         </span>
                                     </td>
@@ -596,6 +616,10 @@
                         <div class="summary-block">
                             <span class="summary-lbl">Overall Grade</span>
                             <span class="summary-val">{{ data.overall_grade }}</span>
+                        </div>
+                        <div class="summary-block">
+                            <span class="summary-lbl">Result Status</span>
+                            <span class="summary-val" style="{% if data.has_failed %}color: #ef4444;{% else %}color: #22c55e;{% endif %}">{{ data.overall_status }}</span>
                         </div>
                     </div>
                 {% endfor %}

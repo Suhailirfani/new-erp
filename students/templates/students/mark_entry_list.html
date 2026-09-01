@@ -65,7 +65,9 @@
                 <th>Subject</th>
                 <th>Subject Type</th>
                 <th>Marks</th>
+                <th>Pass Mark</th>
                 <th>Percentage</th>
+                <th>Result</th>
                 <th>Grade</th>
                 <th>Exam Date</th>
                 <th>Entered By</th>
@@ -73,20 +75,30 @@
         </thead>
         <tbody>
             {% for entry in mark_entries %}
-            <tr>
-                <td>{{ entry.student.full_name }} ({{ entry.student.student_id }})</td>
+            <tr {% if not entry.is_passed %}style="background: #fff5f5;"{% endif %}>
+                <td><strong>{{ entry.student.full_name }}</strong><br><span style="font-size: 0.8rem; color: #64748b;">{{ entry.student.student_id }}</span></td>
                 <td>{{ entry.exam_type.name }}</td>
                 <td>{{ entry.subject.name }}</td>
                 <td>{{ entry.subject.get_subject_type_display }}</td>
-                <td>{{ entry.marks_obtained }}/{{ entry.max_marks }}</td>
+                <td><strong>{{ entry.marks_obtained|floatformat:0 }}</strong> / {{ entry.max_marks|floatformat:0 }}</td>
+                <td style="color: #64748b;">{{ entry.pass_marks|floatformat:0 }}</td>
                 <td>{{ entry.percentage|floatformat:2 }}%</td>
-                <td><strong>{{ entry.grade_letter }}</strong></td>
+                <td>
+                    {% if entry.is_passed %}
+                        <span style="background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">PASS</span>
+                    {% else %}
+                        <span style="background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">FAIL</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <strong style="{% if not entry.is_passed or entry.grade_letter == 'F' %}color: #dc2626;{% endif %}">{{ entry.grade_letter }}</strong>
+                </td>
                 <td>{{ entry.exam_date|default:"-" }}</td>
                 <td>{{ entry.entered_by|default:"-" }}</td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="9" style="text-align: center;">No mark entries found.</td>
+                <td colspan="11" style="text-align: center;">No mark entries found.</td>
             </tr>
             {% endfor %}
         </tbody>

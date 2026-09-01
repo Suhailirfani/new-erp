@@ -329,6 +329,10 @@ def home(request):
                         (esm.exam_type_id, esm.subject_id): esm.max_marks
                         for esm in ExamSubjectMaxMark.objects.all()
                     }
+                    overrides_pass = {
+                        (esm.exam_type_id, esm.subject_id): esm.pass_marks
+                        for esm in ExamSubjectMaxMark.objects.filter(pass_marks__isnull=False)
+                    }
                     exam_results = []
                     for r in exam_results_qs:
                         ov = overrides_map.get((r.exam_type_id, r.subject_id))
@@ -336,6 +340,13 @@ def home(request):
                             r.max_marks = ov
                         elif r.subject and r.subject.max_marks:
                             r.max_marks = r.subject.max_marks
+
+                        ov_p = overrides_pass.get((r.exam_type_id, r.subject_id))
+                        if ov_p is not None and ov_p >= 0:
+                            r.pass_marks = ov_p
+                        elif r.subject and r.subject.pass_marks is not None:
+                            r.pass_marks = r.subject.pass_marks
+
                         exam_results.append(r)
             
             # Fetch ProgressReport objects for trend chart
@@ -2809,6 +2820,15 @@ def mark_entry_classwise_data(request):
         # -------------------------
         # Build tables
         # -------------------------
+        overrides_max = {
+            (esm.exam_type_id, esm.subject_id): esm.max_marks
+            for esm in ExamSubjectMaxMark.objects.all()
+        }
+        overrides_pass = {
+            (esm.exam_type_id, esm.subject_id): esm.pass_marks
+            for esm in ExamSubjectMaxMark.objects.filter(pass_marks__isnull=False)
+        }
+
         for (sec, cls, div, exam), entries in grouped.items():
 
             # Collect subjects (ordered, unique)
@@ -2844,6 +2864,19 @@ def mark_entry_classwise_data(request):
                 student = students[e.student.id]
                 subject_index = subjects.index(e.subject.name)
 
+                # Attach dynamic overrides
+                ov_m = overrides_max.get((e.exam_type_id, e.subject_id))
+                if ov_m is not None and ov_m > 0:
+                    e.max_marks = ov_m
+                elif e.subject and e.subject.max_marks:
+                    e.max_marks = e.subject.max_marks
+
+                ov_p = overrides_pass.get((e.exam_type_id, e.subject_id))
+                if ov_p is not None and ov_p >= 0:
+                    e.pass_marks = ov_p
+                elif e.subject and e.subject.pass_marks is not None:
+                    e.pass_marks = e.subject.pass_marks
+
                 if getattr(e, 'is_absent', False) or str(e.grade_letter).strip().upper() == 'AB':
                     student['marks'][subject_index] = {
                         'marks': 'AB',
@@ -2851,15 +2884,16 @@ def mark_entry_classwise_data(request):
                         'is_fail': True,
                     }
                 else:
-                    is_fail = str(e.grade_letter).strip().upper() == 'F'
                     try:
                         m_val = float(e.marks_obtained) if e.marks_obtained is not None else 0.0
                     except (ValueError, TypeError):
                         m_val = 0.0
 
+                    is_fail = (not e.is_passed) or (str(e.grade_letter).strip().upper() == 'F')
+
                     student['marks'][subject_index] = {
                         'marks': int(m_val) if m_val.is_integer() else round(m_val, 2),
-                        'grade': e.grade_letter if e.grade_letter else ('F' if is_fail else '-'),
+                        'grade': 'F' if is_fail else (e.grade_letter if e.grade_letter else '-'),
                         'is_fail': is_fail,
                     }
                     student['total'] += m_val
@@ -3772,6 +3806,15 @@ def performance_analysis(request):
             )
             grouped[key].append(e)
 
+        overrides_max = {
+            (esm.exam_type_id, esm.subject_id): esm.max_marks
+            for esm in ExamSubjectMaxMark.objects.all()
+        }
+        overrides_pass = {
+            (esm.exam_type_id, esm.subject_id): esm.pass_marks
+            for esm in ExamSubjectMaxMark.objects.filter(pass_marks__isnull=False)
+        }
+
         for (section, grade, division), marks in grouped.items():
             students = {}
             subjects_per_student = defaultdict(set)
@@ -3789,11 +3832,24 @@ def performance_analysis(request):
                         'fail_count': 0,
                     }
 
+                # Attach dynamic overrides
+                ov_m = overrides_max.get((m.exam_type_id, m.subject_id))
+                if ov_m is not None and ov_m > 0:
+                    m.max_marks = ov_m
+                elif m.subject and m.subject.max_marks:
+                    m.max_marks = m.subject.max_marks
+
+                ov_p = overrides_pass.get((m.exam_type_id, m.subject_id))
+                if ov_p is not None and ov_p >= 0:
+                    m.pass_marks = ov_p
+                elif m.subject and m.subject.pass_marks is not None:
+                    m.pass_marks = m.subject.pass_marks
+
                 students[sid]['total'] += float(m.marks_obtained)
                 subjects_per_student[sid].add(m.subject_id)
 
-                # FAIL if grade is F
-                is_fail = str(m.grade_letter).strip().upper() == 'F'
+                # FAIL if below pass mark or grade is F/AB
+                is_fail = not m.is_passed or str(m.grade_letter).strip().upper() in ['F', 'AB']
                 if is_fail:
                     students[sid]['fail_count'] += 1
 
@@ -6347,37 +6403,55 @@ def student_results_public_lookup(request):
                 ).select_related('subject').order_by('subject__subject_type', 'subject__name')
                 
                 if mark_entries.exists():
-                    overrides = {
+                    overrides_max = {
                         esm.subject_id: esm.max_marks
                         for esm in ExamSubjectMaxMark.objects.filter(exam_type=exam)
                     }
+                    overrides_pass = {
+                        esm.subject_id: esm.pass_marks
+                        for esm in ExamSubjectMaxMark.objects.filter(exam_type=exam, pass_marks__isnull=False)
+                    }
+                    has_failed = False
                     for entry in mark_entries:
-                        ov_max = overrides.get(entry.subject_id)
+                        ov_max = overrides_max.get(entry.subject_id)
                         if ov_max is not None and ov_max > 0:
                             entry.max_marks = ov_max
                         elif entry.subject and entry.subject.max_marks:
                             entry.max_marks = entry.subject.max_marks
 
+                        ov_pass = overrides_pass.get(entry.subject_id)
+                        if ov_pass is not None and ov_pass >= 0:
+                            entry.pass_marks = ov_pass
+                        elif entry.subject and entry.subject.pass_marks is not None:
+                            entry.pass_marks = entry.subject.pass_marks
+
+                        if not entry.is_passed:
+                            has_failed = True
+
                     total_obtained = sum(entry.marks_obtained for entry in mark_entries if not entry.is_absent)
                     total_max = sum(entry.max_marks for entry in mark_entries)
                     overall_percentage = (total_obtained / total_max * 100) if total_max > 0 else 0
                     
-                    # Calculate overall grade letter
-                    pct = float(overall_percentage)
-                    if pct >= 90:
-                        overall_grade = 'A+'
-                    elif pct >= 80:
-                        overall_grade = 'A'
-                    elif pct >= 70:
-                        overall_grade = 'B+'
-                    elif pct >= 60:
-                        overall_grade = 'B'
-                    elif pct >= 50:
-                        overall_grade = 'C+'
-                    elif pct >= 40:
-                        overall_grade = 'C'
-                    else:
+                    if has_failed:
                         overall_grade = 'F'
+                        overall_status = 'FAILED'
+                    else:
+                        pct = float(overall_percentage)
+                        if pct >= 90:
+                            overall_grade = 'A+'
+                        elif pct >= 80:
+                            overall_grade = 'A'
+                        elif pct >= 70:
+                            overall_grade = 'B+'
+                        elif pct >= 60:
+                            overall_grade = 'B'
+                        elif pct >= 50:
+                            overall_grade = 'C+'
+                        elif pct >= 40:
+                            overall_grade = 'C'
+                        else:
+                            overall_grade = 'F'
+                        overall_status = 'PASSED' if overall_grade != 'F' else 'FAILED'
                         
                     # Split into Hadiya and Division subjects
                     hadiya_marks = [e for e in mark_entries if e.subject.subject_type == 'hadiya']
@@ -6391,6 +6465,8 @@ def student_results_public_lookup(request):
                         'total_max': total_max,
                         'percentage': overall_percentage,
                         'overall_grade': overall_grade,
+                        'overall_status': overall_status,
+                        'has_failed': has_failed,
                     }
                     
             if not results_by_exam and selected_exam_id:
