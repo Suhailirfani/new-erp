@@ -248,19 +248,58 @@
 </div>
 
 <style>
-    /* CSS to highlight the active cell's row and column for easier data entry */
-    tbody tr:hover {
-        background-color: #e8f4f8 !important;
+    /* Disable all animations and transitions on the mark entry page for normal, instant data entry */
+    *, *::before, *::after {
+        transition: none !important;
+        animation: none !important;
     }
-    
-    table input[type="number"]:focus {
-        border-color: #3498db;
-        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.25);
-        outline: none;
-        background-color: #fff;
+
+    input, select, textarea, button {
+        transition: none !important;
+        animation: none !important;
+        transform: none !important;
     }
-    
-    /* Ensure the sticky columns play nicely together */
+
+    /* Normal flat inputs without transitions */
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    select {
+        transition: none !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 4px !important;
+        box-shadow: none !important;
+        background-color: #ffffff;
+    }
+
+    /* Simple, clean focus state without any animation, scale, or glow */
+    input:focus,
+    select:focus,
+    textarea:focus {
+        outline: 2px solid #2563eb !important;
+        outline-offset: 0 !important;
+        border-color: #2563eb !important;
+        box-shadow: none !important;
+        transform: none !important;
+    }
+
+    .desktop-table-wrapper input,
+    .mobile-cards-wrapper input {
+        border: 1px solid #cbd5e1;
+        background: #ffffff;
+        box-shadow: none;
+        transition: none;
+    }
+
+    .desktop-table-wrapper input:focus,
+    .mobile-cards-wrapper input:focus {
+        outline: 2px solid #2563eb !important;
+        border-color: #2563eb !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+    }
+
+    /* Ensure sticky columns stay clean */
     tbody td:nth-child(1), thead th:nth-child(1) {
         border-right: none;
     }
@@ -276,7 +315,7 @@
         margin-bottom: 1.5rem;
         background-color: #f8f9fa;
         padding: 1.25rem;
-        border-radius: 12px;
+        border-radius: 8px;
         border: 1px solid #dee2e6;
     }
 
@@ -374,7 +413,7 @@
         .mobile-max-marks-card {
             display: block;
             background: #f8f9fa;
-            border-radius: 12px;
+            border-radius: 8px;
             padding: 1rem;
             margin-bottom: 1.5rem;
             border: 1px solid #dee2e6;
@@ -385,27 +424,20 @@
             gap: 1rem;
         }
 
-        /* Prevent page bouncing and violent up/down shifting when keyboard opens */
-        .mobile-cards-wrapper input[type="number"],
-        .mobile-max-marks-card input[type="number"] {
-            scroll-margin-top: 120px;
-            scroll-margin-bottom: 150px;
+        .mobile-cards-wrapper input,
+        .mobile-max-marks-card input {
             font-size: 16px !important;
             touch-action: manipulation;
-        }
-
-        .student-mobile-card {
-            scroll-margin-top: 100px;
         }
     }
 </style>
 
 <script>
-    // Optional script to allow navigating the inputs with arrow keys like Excel (Desktop)
+    // Navigate inputs with arrow keys and Enter like Excel (Desktop)
     document.addEventListener('keydown', function(e) {
-        if (!e.target.matches('td input[type="number"]')) return;
+        if (!e.target.matches('td input')) return;
         
-        const inputs = Array.from(document.querySelectorAll('td input[type="number"]'));
+        const inputs = Array.from(document.querySelectorAll('td input'));
         const cols = document.querySelector('thead tr').children.length - 2; // Subtract SlNo and Name cols
         const currentIdx = inputs.indexOf(e.target);
         let nextIdx = -1;
@@ -420,10 +452,14 @@
                 e.preventDefault();
                 break;
             case 'ArrowLeft':
-                nextIdx = currentIdx - 1;
+                if (e.target.selectionStart === 0) {
+                    nextIdx = currentIdx - 1;
+                }
                 break;
             case 'ArrowRight':
-                nextIdx = currentIdx + 1;
+                if (e.target.selectionEnd === e.target.value.length) {
+                    nextIdx = currentIdx + 1;
+                }
                 break;
             case 'Enter':
                 nextIdx = currentIdx + cols;
@@ -446,7 +482,7 @@
             clearTimeout(saveTimeouts[key]);
         }
 
-        // Debounce AJAX request by 500ms for smooth non-blocking typing on mobile
+        // Debounce AJAX request by 500ms
         saveTimeouts[key] = setTimeout(() => {
             const deskInput = document.getElementById(`marks_${studentId}_${subjectId}`);
             const mobInput = document.getElementById(`mob_marks_${studentId}_${subjectId}`);
@@ -474,15 +510,7 @@
             const enteredByInput = document.querySelector('input[name="entered_by"]');
             const enteredBy = enteredByInput ? enteredByInput.value : '';
 
-            // Visual saving state (only mutates styles when actual fetch begins)
-            [deskInput, mobInput].forEach(inp => {
-                if (inp) {
-                    inp.style.backgroundColor = '#fef3c7';
-                    inp.style.borderColor = '#f59e0b';
-                }
-            });
-
-            updateAutoSaveStatus(`⏳ Saving mark for ${studentName}...`, '#d97706');
+            updateAutoSaveStatus(`Saving mark for ${studentName}...`, '#475569');
 
             const formData = new FormData();
             formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
@@ -504,44 +532,16 @@
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
-                    [deskInput, mobInput].forEach(inp => {
-                        if (inp) {
-                            if (marksVal.trim() !== '') {
-                                inp.style.backgroundColor = '#dcfce7'; // green pulse
-                                inp.style.borderColor = '#16a34a';
-                                setTimeout(() => {
-                                    inp.style.backgroundColor = '#f0f9ff';
-                                    inp.style.borderColor = '#bce8f1';
-                                }, 1000);
-                            } else {
-                                inp.style.backgroundColor = '';
-                                inp.style.borderColor = '';
-                            }
-                        }
-                    });
-
                     const msg = data.action === 'deleted' 
                         ? `Cleared ${studentName} (${subjectName})` 
                         : `Saved ${studentName}: ${subjectName} = ${data.marks_obtained}/${data.max_marks}`;
-                    updateAutoSaveStatus(`✅ ${msg}`, '#16a34a');
+                    updateAutoSaveStatus(`✓ ${msg}`, '#16a34a');
                 } else {
-                    [deskInput, mobInput].forEach(inp => {
-                        if (inp) {
-                            inp.style.backgroundColor = '#fee2e2';
-                            inp.style.borderColor = '#dc2626';
-                        }
-                    });
-                    updateAutoSaveStatus(`❌ ${data.message || 'Error saving mark'}`, '#dc2626');
+                    updateAutoSaveStatus(`✕ ${data.message || 'Error saving mark'}`, '#dc2626');
                 }
             })
             .catch(err => {
-                [deskInput, mobInput].forEach(inp => {
-                    if (inp) {
-                        inp.style.backgroundColor = '#fee2e2';
-                        inp.style.borderColor = '#dc2626';
-                    }
-                });
-                updateAutoSaveStatus('❌ Connection error: Mark not saved', '#dc2626');
+                updateAutoSaveStatus('✕ Connection error: Mark not saved', '#dc2626');
             });
         }, 500);
     }
@@ -571,14 +571,8 @@
             });
         }
 
-        // Sync & Auto-save on mobile input change (single input listener for zero lag)
+        // Sync & Auto-save on mobile input change
         document.querySelectorAll('input[id^="mob_marks_"]').forEach(mobInput => {
-            mobInput.addEventListener('focus', function() {
-                const el = this;
-                setTimeout(() => {
-                    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-                }, 150);
-            });
             mobInput.addEventListener('input', function() {
                 const desktopId = this.id.replace('mob_', '');
                 const desktopInput = document.getElementById(desktopId);
@@ -593,7 +587,7 @@
             });
         });
 
-        // Sync & Auto-save on desktop input change (single input listener for zero lag)
+        // Sync & Auto-save on desktop input change
         document.querySelectorAll('input[id^="marks_"]').forEach(deskInput => {
             deskInput.addEventListener('input', function() {
                 const mobId = 'mob_' + this.id;
