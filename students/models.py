@@ -363,6 +363,7 @@ class Subject(models.Model):
     section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True, related_name='subjects')
     code = models.CharField(max_length=20, blank=True, help_text="Subject code")
     max_marks = models.PositiveIntegerField(default=100, help_text="Maximum marks for this subject")
+    pass_marks = models.PositiveIntegerField(default=30, help_text="Minimum passing marks for this subject")
     description = models.TextField(blank=True)
     is_common_subject = models.BooleanField(default=False, help_text="Is this subject taught jointly across multiple divisions/classes?")
     is_active = models.BooleanField(default=True)
@@ -378,11 +379,12 @@ class Subject(models.Model):
 
 
 class ExamSubjectMaxMark(models.Model):
-    """Defines the maximum marks for a specific subject in a specific exam type.
-    If no record exists for an exam+subject pair, Subject.max_marks is used as fallback."""
+    """Defines the maximum and passing marks for a specific subject in a specific exam type.
+    If no record exists for an exam+subject pair, Subject.max_marks / Subject.pass_marks is used as fallback."""
     exam_type = models.ForeignKey(ExamType, on_delete=models.CASCADE, related_name='subject_max_marks')
     subject   = models.ForeignKey(Subject,  on_delete=models.CASCADE, related_name='exam_max_marks')
     max_marks = models.PositiveIntegerField(default=100, help_text="Maximum marks for this subject in this exam")
+    pass_marks = models.PositiveIntegerField(null=True, blank=True, help_text="Passing marks for this subject in this exam (overrides Subject.pass_marks)")
 
     class Meta:
         unique_together = [['exam_type', 'subject']]
@@ -391,7 +393,8 @@ class ExamSubjectMaxMark(models.Model):
         verbose_name_plural = "Exam Subject Max Marks"
 
     def __str__(self):
-        return f"{self.exam_type.name} | {self.subject.name} → {self.max_marks}"
+        pm_str = f" [Pass: {self.pass_marks}]" if self.pass_marks else ""
+        return f"{self.exam_type.name} | {self.subject.name} → {self.max_marks}{pm_str}"
 
 
 class MarkEntry(models.Model):
@@ -402,6 +405,7 @@ class MarkEntry(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     marks_obtained = models.DecimalField(max_digits=5, decimal_places=2)
     max_marks = models.DecimalField(max_digits=5, decimal_places=2, default=100)
+    pass_marks = models.DecimalField(max_digits=5, decimal_places=2, default=30)
     exam_date = models.DateField(null=True, blank=True)
     remarks = models.TextField(blank=True)
     entered_by = models.CharField(max_length=100, blank=True)
@@ -433,10 +437,21 @@ class MarkEntry(models.Model):
         return 0
 
     @property
+    def is_passed(self):
+        """Check if student passed this subject"""
+        if self.is_absent:
+            return False
+        if self.pass_marks is not None and float(self.pass_marks) > 0:
+            return float(self.marks_obtained) >= float(self.pass_marks)
+        return self.percentage >= 30
+
+    @property
     def grade_letter(self):
         """Calculate grade letter"""
         if self.is_absent:
             return 'AB'
+        if not self.is_passed:
+            return 'F'
         percentage = self.percentage
         if percentage >= 87.5:
             return 'A+'

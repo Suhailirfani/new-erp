@@ -1964,44 +1964,68 @@ def exam_subject_maxmarks(request, exam_type_id):
     if request.method == 'POST':
         saved = 0
         for subject in Subject.objects.filter(is_active=True):
-            field_name = f'max_marks_{subject.id}'
-            val_str = request.POST.get(field_name, '').strip()
-            if val_str == '':
-                # No value submitted — remove any existing override (revert to subject default)
-                ExamSubjectMaxMark.objects.filter(exam_type=exam_type, subject=subject).delete()
-                MarkEntry.objects.filter(exam_type=exam_type, subject=subject).update(max_marks=subject.max_marks)
-            else:
+            max_str = request.POST.get(f'max_marks_{subject.id}', '').strip()
+            pass_str = request.POST.get(f'pass_marks_{subject.id}', '').strip()
+
+            val_max = None
+            val_pass = None
+            if max_str != '':
                 try:
-                    val = int(float(val_str))
-                    if val > 0:
-                        ExamSubjectMaxMark.objects.update_or_create(
-                            exam_type=exam_type,
-                            subject=subject,
-                            defaults={'max_marks': val}
-                        )
-                        MarkEntry.objects.filter(exam_type=exam_type, subject=subject).update(max_marks=val)
-                        saved += 1
-                    else:
-                        ExamSubjectMaxMark.objects.filter(exam_type=exam_type, subject=subject).delete()
-                        MarkEntry.objects.filter(exam_type=exam_type, subject=subject).update(max_marks=subject.max_marks)
+                    val_max = int(float(max_str))
+                    if val_max <= 0:
+                        val_max = None
                 except (ValueError, TypeError):
-                    pass
-        messages.success(request, f'Saved max marks for {saved} subject(s) for "{exam_type.name}".')
+                    val_max = None
+            if pass_str != '':
+                try:
+                    val_pass = int(float(pass_str))
+                    if val_pass < 0:
+                        val_pass = None
+                except (ValueError, TypeError):
+                    val_pass = None
+
+            if val_max is None and val_pass is None:
+                # Remove override and revert to subject defaults
+                ExamSubjectMaxMark.objects.filter(exam_type=exam_type, subject=subject).delete()
+                MarkEntry.objects.filter(exam_type=exam_type, subject=subject).update(
+                    max_marks=subject.max_marks,
+                    pass_marks=subject.pass_marks
+                )
+            else:
+                defaults = {
+                    'max_marks': val_max if val_max is not None else subject.max_marks,
+                    'pass_marks': val_pass,
+                }
+                ExamSubjectMaxMark.objects.update_or_create(
+                    exam_type=exam_type,
+                    subject=subject,
+                    defaults=defaults
+                )
+                MarkEntry.objects.filter(exam_type=exam_type, subject=subject).update(
+                    max_marks=defaults['max_marks'],
+                    pass_marks=val_pass if val_pass is not None else subject.pass_marks
+                )
+                saved += 1
+        messages.success(request, f'Saved marks configuration for {saved} subject(s) for "{exam_type.name}".')
         redirect_url = reverse('students:exam_subject_maxmarks', args=[exam_type_id])
         if grade_id:
             redirect_url += f'?grade_id={grade_id}'
         return redirect(redirect_url)
 
-    # Build existing overrides lookup: {subject_id: max_marks}
-    overrides = {
-        esm.subject_id: esm.max_marks
-        for esm in ExamSubjectMaxMark.objects.filter(exam_type=exam_type)
-    }
+    # Build existing overrides lookup
+    overrides_max = {}
+    overrides_pass = {}
+    for esm in ExamSubjectMaxMark.objects.filter(exam_type=exam_type):
+        overrides_max[esm.subject_id] = esm.max_marks
+        if esm.pass_marks is not None:
+            overrides_pass[esm.subject_id] = esm.pass_marks
 
-    # Annotate subjects with their effective max marks
+    # Annotate subjects with their effective max & pass marks
     for s in subjects:
-        s.effective_max = overrides.get(s.id, s.max_marks)
-        s.has_override  = s.id in overrides
+        s.effective_max = overrides_max.get(s.id, s.max_marks)
+        s.has_override  = s.id in overrides_max
+        s.effective_pass = overrides_pass.get(s.id, s.pass_marks)
+        s.has_pass_override = s.id in overrides_pass
 
     # All available grades (for the filter dropdown)
     grades_qs = Grade.objects.filter(subjects__is_active=True).distinct().order_by('order', 'name')
@@ -2139,49 +2163,42 @@ def mark_entry_step3(request, exam_type_id):
     all_class_subjects = list(subjects_query.order_by('subject_type', 'name'))
     subjects = all_class_subjects
 
-    # ── Annotate subjects with exam-specific max marks ──────────────────────────
+    # ── Annotate subjects with exam-specific max & pass marks ──────────────────────────
     # Load ExamSubjectMaxMark overrides for this exam, for all subjects in this class
-    exam_overrides = {
-        esm.subject_id: esm.max_marks
-        for esm in ExamSubjectMaxMark.objects.filter(
-            exam_type=exam_type,
-            subject__in=all_class_subjects
-        )
-    }
+    exam_overrides_max = {}
+    exam_overrides_pass = {}
+    for esm in ExamSubjectMaxMark.objects.filter(
+        exam_type=exam_type,
+        subject__in=all_class_subjects
+    ):
+        exam_overrides_max[esm.subject_id] = esm.max_marks
+        if esm.pass_marks is not None:
+            exam_overrides_pass[esm.subject_id] = esm.pass_marks
+
     for s in all_class_subjects:
-        s.effective_max_marks = exam_overrides.get(s.id, s.max_marks)
+        s.effective_max_marks = exam_overrides_max.get(s.id, s.max_marks)
+        s.effective_pass_marks = exam_overrides_pass.get(s.id, s.pass_marks)
     # ────────────────────────────────────────────────────────────────────────────
 
     selected_subject_id = request.GET.get('subject_id')
     selected_subject = None
-    if selected_subject_id and selected_subject_id != 'all':
-        try:
-            selected_subject_id_int = int(selected_subject_id)
-            selected_subject = next((s for s in all_class_subjects if s.id == selected_subject_id_int), None)
-            if selected_subject:
-                subjects = [selected_subject]
-        except (ValueError, TypeError):
-            pass
-    
+    if selected_subject_id:
+        selected_subject = next((s for s in subjects if str(s.id) == str(selected_subject_id)), None)
+        
     if request.method == 'POST':
+        entered_by = request.POST.get('entered_by', '')
         exam_date = request.POST.get('exam_date')
-        user_full_name = request.user.get_full_name().strip()
-        if not user_full_name and hasattr(request.user, 'profile') and request.user.profile and request.user.profile.student_record:
-            user_full_name = request.user.profile.student_record.full_name
-            
-        entered_by = request.POST.get('entered_by', '').strip()
-        if not entered_by:
-            entered_by = user_full_name
         
         success_count = 0
         
-        # Iterate over all possible inputs
         for student in students:
             for subject in subjects:
-                # Expected input name format: marks_{student_id}_{subject_id}
+                # If subject_id filter is active, only process the selected subject
+                if selected_subject and subject != selected_subject:
+                    continue
+                    
                 input_name = f'marks_{student.id}_{subject.id}'
-                raw_marks = request.POST.getlist(input_name)
-                marks_str = next((m for m in reversed(raw_marks) if m is not None and m.strip() != ''), '')
+                marks_str = request.POST.get(input_name)
                 
                 if marks_str is not None and marks_str.strip() != '':
                     clean_str = marks_str.strip().upper()
@@ -2203,6 +2220,8 @@ def mark_entry_step3(request, exam_type_id):
                         max_marks = float(max_marks_str)
                     else:
                         max_marks = float(subject.effective_max_marks)
+
+                    pass_marks = float(subject.effective_pass_marks) if getattr(subject, 'effective_pass_marks', None) is not None else float(subject.pass_marks)
                         
                     # Find matching enrollment
                     enrollment = next((e for e in enrollments if e.student == student), None)
@@ -2216,6 +2235,7 @@ def mark_entry_step3(request, exam_type_id):
                             'enrollment': enrollment,
                             'marks_obtained': marks_obtained,
                             'max_marks': max_marks,
+                            'pass_marks': pass_marks,
                             'is_absent': is_absent,
                             'exam_date': exam_date if exam_date else None,
                             'entered_by': entered_by,
@@ -2329,15 +2349,24 @@ def mark_save_single_ajax(request):
         except (ValueError, TypeError):
             return JsonResponse({'status': 'error', 'message': 'Invalid mark value. Enter numeric marks or "A" for Absent.'}, status=400)
 
-    # Determine max_marks
+    # Determine max_marks & pass_marks
+    override = ExamSubjectMaxMark.objects.filter(exam_type=exam_type, subject=subject).first()
     if max_marks_str and str(max_marks_str).strip():
         try:
             max_marks = float(max_marks_str)
         except (ValueError, TypeError):
-            max_marks = float(subject.max_marks)
+            max_marks = float(override.max_marks) if override else float(subject.max_marks)
     else:
-        override = ExamSubjectMaxMark.objects.filter(exam_type=exam_type, subject=subject).first()
         max_marks = float(override.max_marks) if override else float(subject.max_marks)
+
+    pass_marks_str = request.POST.get('pass_marks', '')
+    if pass_marks_str and str(pass_marks_str).strip():
+        try:
+            pass_marks = float(pass_marks_str)
+        except (ValueError, TypeError):
+            pass_marks = float(override.pass_marks) if (override and override.pass_marks is not None) else float(subject.pass_marks)
+    else:
+        pass_marks = float(override.pass_marks) if (override and override.pass_marks is not None) else float(subject.pass_marks)
 
     # Active year and enrollment
     active_year = AcademicYear.objects.filter(is_active=True).first()
@@ -2361,6 +2390,7 @@ def mark_save_single_ajax(request):
             'enrollment': enrollment,
             'marks_obtained': marks_obtained,
             'max_marks': max_marks,
+            'pass_marks': pass_marks,
             'is_absent': is_absent,
             'exam_date': exam_date if exam_date else None,
             'entered_by': entered_by,
@@ -2369,6 +2399,7 @@ def mark_save_single_ajax(request):
 
     m_val = float(mark_entry.marks_obtained)
     max_val = float(mark_entry.max_marks)
+    pass_val = float(mark_entry.pass_marks)
     return JsonResponse({
         'status': 'success',
         'action': 'saved' if not created else 'created',
@@ -2377,8 +2408,10 @@ def mark_save_single_ajax(request):
         'subject_name': subject.name,
         'marks_obtained': 'AB' if mark_entry.is_absent else (int(m_val) if m_val.is_integer() else m_val),
         'max_marks': int(max_val) if max_val.is_integer() else max_val,
+        'pass_marks': int(pass_val) if pass_val.is_integer() else pass_val,
         'percentage': round(float(mark_entry.percentage), 1),
         'grade_letter': mark_entry.grade_letter,
+        'is_passed': mark_entry.is_passed,
         'is_absent': mark_entry.is_absent,
     })
 
@@ -2938,9 +2971,13 @@ def get_dynamic_student_progress(student, exam_type=None, academic_year=None):
     overrides_qs = ExamSubjectMaxMark.objects.all()
     if exam_type and exam_type != 'all':
         overrides_qs = overrides_qs.filter(exam_type=exam_type)
-    overrides_map = {
+    overrides_max = {
         (esm.exam_type_id, esm.subject_id): esm.max_marks
         for esm in overrides_qs
+    }
+    overrides_pass = {
+        (esm.exam_type_id, esm.subject_id): esm.pass_marks
+        for esm in overrides_qs if esm.pass_marks is not None
     }
 
     # Consolidate latest mark entry per subject so both Hadiya & Division subjects appear
@@ -2948,18 +2985,38 @@ def get_dynamic_student_progress(student, exam_type=None, academic_year=None):
     for entry in mark_entries_qs.order_by('subject__subject_type', 'subject__name', '-updated_at'):
         if entry.subject_id not in entries_by_subject:
             # Apply overridden maximum mark if configured
-            ov_max = overrides_map.get((entry.exam_type_id, entry.subject_id))
+            ov_max = overrides_max.get((entry.exam_type_id, entry.subject_id))
             if ov_max is not None and ov_max > 0:
                 entry.max_marks = ov_max
             elif entry.subject and entry.subject.max_marks:
                 entry.max_marks = entry.subject.max_marks
+
+            # Apply overridden passing mark if configured
+            ov_pass = overrides_pass.get((entry.exam_type_id, entry.subject_id))
+            if ov_pass is not None and ov_pass >= 0:
+                entry.pass_marks = ov_pass
+            elif entry.subject and entry.subject.pass_marks is not None:
+                entry.pass_marks = entry.subject.pass_marks
+
             entries_by_subject[entry.subject_id] = entry
 
     mark_entries = list(entries_by_subject.values())
 
     total_marks = sum(entry.marks_obtained for entry in mark_entries if not entry.is_absent)
     total_max = sum(entry.max_marks for entry in mark_entries)
+    total_pass = sum(entry.pass_marks for entry in mark_entries if entry.pass_marks)
     percentage = (total_marks / total_max * 100) if total_max > 0 else 0
+
+    passed_count = sum(1 for entry in mark_entries if entry.is_passed)
+    failed_count = sum(1 for entry in mark_entries if not entry.is_passed)
+    all_passed = (failed_count == 0) and len(mark_entries) > 0
+
+    if not all_passed and len(mark_entries) > 0:
+        overall_result = 'FAILED'
+    elif all_passed:
+        overall_result = 'PASSED'
+    else:
+        overall_result = '-'
 
     if percentage >= 90:
         grade_letter = 'A+'
@@ -2974,6 +3031,9 @@ def get_dynamic_student_progress(student, exam_type=None, academic_year=None):
     elif percentage >= 40:
         grade_letter = 'C'
     else:
+        grade_letter = 'F'
+
+    if not all_passed and len(mark_entries) > 0:
         grade_letter = 'F'
 
     hadiya_subjects = [entry for entry in mark_entries if entry.subject and entry.subject.subject_type == 'hadiya']
@@ -2991,6 +3051,11 @@ def get_dynamic_student_progress(student, exam_type=None, academic_year=None):
         'has_marks': has_marks,
         'total_marks_obtained': total_marks,
         'total_max_marks': total_max,
+        'total_pass_marks': total_pass,
+        'passed_count': passed_count,
+        'failed_count': failed_count,
+        'all_passed': all_passed,
+        'overall_result': overall_result,
         'overall_percentage': percentage,
         'overall_grade': grade_letter if has_marks else '-',
         'hadiya_subjects': hadiya_subjects,
@@ -3895,34 +3960,43 @@ def bulk_progress_report_pdf(request):
             if not entries:
                 return y_pos
 
-            c.setFont("Helvetica-Bold", 12)
-            c.drawString(2 * cm, y_pos, title)
+            c.setFont("Helvetica-Bold", 11)
+            c.drawString(1.5 * cm, y_pos, title)
             y_pos -= 0.4 * cm
 
-            data = [["Subject", "Marks Obtained", "Max Marks", "Percentage", "Grade"]]
+            data = [["Subject", "Obtained", "Max", "Pass", "Percentage", "Result", "Grade"]]
 
             for e in entries:
+                m_str = "AB" if getattr(e, 'is_absent', False) or e.grade_letter == 'AB' else f"{e.marks_obtained:.0f}"
+                max_str = f"{e.max_marks:.0f}" if hasattr(e, 'max_marks') else "-"
+                pass_str = f"{e.pass_marks:.0f}" if hasattr(e, 'pass_marks') and e.pass_marks else "-"
+                pct_str = "ABSENT" if getattr(e, 'is_absent', False) or e.grade_letter == 'AB' else f"{e.percentage:.1f}%"
+                res_str = "PASS" if getattr(e, 'is_passed', False) else "FAIL"
+
                 data.append([
                     e.subject.name,
-                    str(e.marks_obtained),
-                    str(e.max_marks),
-                    f"{e.percentage:.2f}%",
+                    m_str,
+                    max_str,
+                    pass_str,
+                    pct_str,
+                    res_str,
                     e.grade_letter
                 ])
 
-            table = Table(data, colWidths=[6*cm, 3*cm, 3*cm, 3*cm, 2*cm])
+            table = Table(data, colWidths=[5.5*cm, 2.2*cm, 2.0*cm, 2.0*cm, 2.6*cm, 2.0*cm, 1.7*cm])
             table.setStyle(TableStyle([
                 ('GRID', (0,0), (-1,-1), 1, colors.black),
                 ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
                 ('ALIGN', (1,0), (-1,-1), 'CENTER'),
                 ('FONT', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0,0), (-1,-1), 9),
             ]))
 
-            table_height = len(data) * 0.6 * cm
+            table_height = len(data) * 0.55 * cm
             table.wrapOn(c, width, height)
-            table.drawOn(c, 2 * cm, y_pos - table_height)
+            table.drawOn(c, 1.5 * cm, y_pos - table_height)
 
-            return y_pos - table_height - 0.8 * cm
+            return y_pos - table_height - 0.6 * cm
 
         y = draw_subject_table("Hadiya (Islamic) Subjects", report['hadiya_subjects'], y)
         y = draw_subject_table("Division Specific Subjects", report['division_subjects'], y)
@@ -4043,43 +4117,43 @@ def single_progress_report_pdf(request, pk):
         if not entries:
             return y_pos
 
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(2 * cm, y_pos, title)
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(1.5 * cm, y_pos, title)
         y_pos -= 0.4 * cm
 
-        data = [["Subject", "Marks Obtained", "Max Marks", "Percentage", "Grade"]]
+        data = [["Subject", "Obtained", "Max", "Pass", "Percentage", "Result", "Grade"]]
 
         for e in entries:
-            if getattr(e, 'is_absent', False) or e.grade_letter == 'AB':
-                data.append([
-                    e.subject.name,
-                    "AB",
-                    str(e.max_marks),
-                    "ABSENT",
-                    "AB"
-                ])
-            else:
-                data.append([
-                    e.subject.name,
-                    str(e.marks_obtained),
-                    str(e.max_marks),
-                    f"{e.percentage:.2f}%",
-                    e.grade_letter
-                ])
+            m_str = "AB" if getattr(e, 'is_absent', False) or e.grade_letter == 'AB' else f"{e.marks_obtained:.0f}"
+            max_str = f"{e.max_marks:.0f}" if hasattr(e, 'max_marks') else "-"
+            pass_str = f"{e.pass_marks:.0f}" if hasattr(e, 'pass_marks') and e.pass_marks else "-"
+            pct_str = "ABSENT" if getattr(e, 'is_absent', False) or e.grade_letter == 'AB' else f"{e.percentage:.1f}%"
+            res_str = "PASS" if getattr(e, 'is_passed', False) else "FAIL"
 
-        table = Table(data, colWidths=[6*cm, 3*cm, 3*cm, 3*cm, 2*cm])
+            data.append([
+                e.subject.name,
+                m_str,
+                max_str,
+                pass_str,
+                pct_str,
+                res_str,
+                e.grade_letter
+            ])
+
+        table = Table(data, colWidths=[5.5*cm, 2.2*cm, 2.0*cm, 2.0*cm, 2.6*cm, 2.0*cm, 1.7*cm])
         table.setStyle(TableStyle([
             ('GRID', (0,0), (-1,-1), 1, colors.black),
             ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
             ('ALIGN', (1,0), (-1,-1), 'CENTER'),
             ('FONT', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
         ]))
 
-        table_height = len(data) * 0.6 * cm
+        table_height = len(data) * 0.55 * cm
         table.wrapOn(c, width, height)
-        table.drawOn(c, 2 * cm, y_pos - table_height)
+        table.drawOn(c, 1.5 * cm, y_pos - table_height)
 
-        return y_pos - table_height - 0.8 * cm
+        return y_pos - table_height - 0.6 * cm
 
     y = draw_subject_table("Hadiya (Islamic) Subjects", report['hadiya_subjects'], y)
     y = draw_subject_table("Division Specific Subjects", report['division_subjects'], y)

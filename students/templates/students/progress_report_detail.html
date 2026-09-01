@@ -57,22 +57,30 @@
     <h2 style="margin-top: 0; font-size: 1.2rem; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem;">
         <i class="fa-solid fa-chart-simple" style="color: #10b981;"></i> Overall Performance Summary
     </h2>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-top: 1rem;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; margin-top: 1rem;">
         <div style="text-align: center; padding: 1.2rem 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
-            <div style="font-size: 1.8rem; font-weight: 800; color: #2563eb;">{{ report.total_marks_obtained }}/{{ report.total_max_marks }}</div>
+            <div style="font-size: 1.6rem; font-weight: 800; color: #2563eb;">{{ report.total_marks_obtained }}/{{ report.total_max_marks }}</div>
             <div style="color: #64748b; font-size: 0.85rem; margin-top: 4px; font-weight: 600;">Total Marks</div>
         </div>
         <div style="text-align: center; padding: 1.2rem 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
-            <div style="font-size: 1.8rem; font-weight: 800; color: #059669;">{{ report.overall_percentage|floatformat:2 }}%</div>
+            <div style="font-size: 1.6rem; font-weight: 800; color: #059669;">{{ report.overall_percentage|floatformat:2 }}%</div>
             <div style="color: #64748b; font-size: 0.85rem; margin-top: 4px; font-weight: 600;">Percentage</div>
         </div>
         <div style="text-align: center; padding: 1.2rem 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
-            <div style="font-size: 1.8rem; font-weight: 800; color: #7c3aed;">{{ report.overall_grade }}</div>
+            <div style="font-size: 1.6rem; font-weight: 800; color: #7c3aed;">{{ report.overall_grade }}</div>
             <div style="color: #64748b; font-size: 0.85rem; margin-top: 4px; font-weight: 600;">Overall Grade</div>
+        </div>
+        <div style="text-align: center; padding: 1.2rem 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+            <div style="font-size: 1.3rem; font-weight: 800; {% if report.all_passed %}color: #16a34a;{% else %}color: #dc2626;{% endif %}">
+                {{ report.overall_result }}
+            </div>
+            <div style="color: #64748b; font-size: 0.85rem; margin-top: 4px; font-weight: 600;">
+                Passed: {{ report.passed_count }}/{{ report.mark_entries|length }}
+            </div>
         </div>
         {% if report.rank %}
         <div style="text-align: center; padding: 1.2rem 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
-            <div style="font-size: 1.8rem; font-weight: 800; color: #dc2626;">#{{ report.rank }}</div>
+            <div style="font-size: 1.6rem; font-weight: 800; color: #ea580c;">#{{ report.rank }}</div>
             <div style="color: #64748b; font-size: 0.85rem; margin-top: 4px; font-weight: 600;">Class Rank</div>
         </div>
         {% endif %}
@@ -89,18 +97,28 @@
                 <th>Subject Name</th>
                 <th style="text-align: center;">Marks Obtained</th>
                 <th style="text-align: center;">Max Marks</th>
+                <th style="text-align: center;">Pass Marks</th>
                 <th style="text-align: center;">Percentage</th>
+                <th style="text-align: center;">Result</th>
                 <th style="text-align: center;">Grade</th>
             </tr>
         </thead>
         <tbody>
             {% for entry in hadiya_subjects %}
-            <tr>
+            <tr {% if not entry.is_passed %}style="background: #fff5f5;"{% endif %}>
                 <td><strong>{{ entry.subject.name }}</strong></td>
-                <td style="text-align: center;">{% if entry.is_absent %}<span style="color: #dc2626; font-weight: bold;">AB</span>{% else %}{{ entry.marks_obtained }}{% endif %}</td>
-                <td style="text-align: center;">{{ entry.max_marks }}</td>
+                <td style="text-align: center;">{% if entry.is_absent %}<span style="color: #dc2626; font-weight: bold;">AB</span>{% else %}<strong>{{ entry.marks_obtained|floatformat:0 }}</strong>{% endif %}</td>
+                <td style="text-align: center;">{{ entry.max_marks|floatformat:0 }}</td>
+                <td style="text-align: center; color: #64748b;">{{ entry.pass_marks|floatformat:0 }}</td>
                 <td style="text-align: center;">{% if entry.is_absent %}ABSENT{% else %}{{ entry.percentage|floatformat:2 }}%{% endif %}</td>
-                <td style="text-align: center;"><span style="background: {% if entry.is_absent %}#fee2e2; color: #dc2626; border: 1px solid #fca5a5;{% else %}#f8fafc; color: #0f172a; border: 1px solid #cbd5e1;{% endif %} padding: 2px 8px; border-radius: 4px; font-weight: bold;">{{ entry.grade_letter }}</span></td>
+                <td style="text-align: center;">
+                    {% if entry.is_passed %}
+                        <span style="background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.78rem;">PASS</span>
+                    {% else %}
+                        <span style="background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.78rem;">FAIL</span>
+                    {% endif %}
+                </td>
+                <td style="text-align: center;"><span style="background: {% if not entry.is_passed %}#fee2e2; color: #dc2626; border: 1px solid #fca5a5;{% else %}#f8fafc; color: #0f172a; border: 1px solid #cbd5e1;{% endif %} padding: 2px 8px; border-radius: 4px; font-weight: bold;">{{ entry.grade_letter }}</span></td>
             </tr>
             {% endfor %}
         </tbody>
@@ -119,18 +137,28 @@
                 <th>Subject Name</th>
                 <th style="text-align: center;">Marks Obtained</th>
                 <th style="text-align: center;">Max Marks</th>
+                <th style="text-align: center;">Pass Marks</th>
                 <th style="text-align: center;">Percentage</th>
+                <th style="text-align: center;">Result</th>
                 <th style="text-align: center;">Grade</th>
             </tr>
         </thead>
         <tbody>
             {% for entry in division_subjects %}
-            <tr>
+            <tr {% if not entry.is_passed %}style="background: #fff5f5;"{% endif %}>
                 <td><strong>{{ entry.subject.name }}</strong></td>
-                <td style="text-align: center;">{% if entry.is_absent %}<span style="color: #dc2626; font-weight: bold;">AB</span>{% else %}{{ entry.marks_obtained }}{% endif %}</td>
-                <td style="text-align: center;">{{ entry.max_marks }}</td>
+                <td style="text-align: center;">{% if entry.is_absent %}<span style="color: #dc2626; font-weight: bold;">AB</span>{% else %}<strong>{{ entry.marks_obtained|floatformat:0 }}</strong>{% endif %}</td>
+                <td style="text-align: center;">{{ entry.max_marks|floatformat:0 }}</td>
+                <td style="text-align: center; color: #64748b;">{{ entry.pass_marks|floatformat:0 }}</td>
                 <td style="text-align: center;">{% if entry.is_absent %}ABSENT{% else %}{{ entry.percentage|floatformat:2 }}%{% endif %}</td>
-                <td style="text-align: center;"><span style="background: {% if entry.is_absent %}#fee2e2; color: #dc2626; border: 1px solid #fca5a5;{% else %}#f8fafc; color: #0f172a; border: 1px solid #cbd5e1;{% endif %} padding: 2px 8px; border-radius: 4px; font-weight: bold;">{{ entry.grade_letter }}</span></td>
+                <td style="text-align: center;">
+                    {% if entry.is_passed %}
+                        <span style="background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.78rem;">PASS</span>
+                    {% else %}
+                        <span style="background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.78rem;">FAIL</span>
+                    {% endif %}
+                </td>
+                <td style="text-align: center;"><span style="background: {% if not entry.is_passed %}#fee2e2; color: #dc2626; border: 1px solid #fca5a5;{% else %}#f8fafc; color: #0f172a; border: 1px solid #cbd5e1;{% endif %} padding: 2px 8px; border-radius: 4px; font-weight: bold;">{{ entry.grade_letter }}</span></td>
             </tr>
             {% endfor %}
         </tbody>
@@ -149,18 +177,28 @@
                 <th>Subject Name</th>
                 <th style="text-align: center;">Marks Obtained</th>
                 <th style="text-align: center;">Max Marks</th>
+                <th style="text-align: center;">Pass Marks</th>
                 <th style="text-align: center;">Percentage</th>
+                <th style="text-align: center;">Result</th>
                 <th style="text-align: center;">Grade</th>
             </tr>
         </thead>
         <tbody>
             {% for entry in all_subjects %}
-            <tr>
+            <tr {% if not entry.is_passed %}style="background: #fff5f5;"{% endif %}>
                 <td><strong>{{ entry.subject.name }}</strong></td>
-                <td style="text-align: center;">{% if entry.is_absent %}<span style="color: #dc2626; font-weight: bold;">AB</span>{% else %}{{ entry.marks_obtained }}{% endif %}</td>
-                <td style="text-align: center;">{{ entry.max_marks }}</td>
+                <td style="text-align: center;">{% if entry.is_absent %}<span style="color: #dc2626; font-weight: bold;">AB</span>{% else %}<strong>{{ entry.marks_obtained|floatformat:0 }}</strong>{% endif %}</td>
+                <td style="text-align: center;">{{ entry.max_marks|floatformat:0 }}</td>
+                <td style="text-align: center; color: #64748b;">{{ entry.pass_marks|floatformat:0 }}</td>
                 <td style="text-align: center;">{% if entry.is_absent %}ABSENT{% else %}{{ entry.percentage|floatformat:2 }}%{% endif %}</td>
-                <td style="text-align: center;"><span style="background: {% if entry.is_absent %}#fee2e2; color: #dc2626; border: 1px solid #fca5a5;{% else %}#f8fafc; color: #0f172a; border: 1px solid #cbd5e1;{% endif %} padding: 2px 8px; border-radius: 4px; font-weight: bold;">{{ entry.grade_letter }}</span></td>
+                <td style="text-align: center;">
+                    {% if entry.is_passed %}
+                        <span style="background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.78rem;">PASS</span>
+                    {% else %}
+                        <span style="background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.78rem;">FAIL</span>
+                    {% endif %}
+                </td>
+                <td style="text-align: center;"><span style="background: {% if not entry.is_passed %}#fee2e2; color: #dc2626; border: 1px solid #fca5a5;{% else %}#f8fafc; color: #0f172a; border: 1px solid #cbd5e1;{% endif %} padding: 2px 8px; border-radius: 4px; font-weight: bold;">{{ entry.grade_letter }}</span></td>
             </tr>
             {% endfor %}
         </tbody>
