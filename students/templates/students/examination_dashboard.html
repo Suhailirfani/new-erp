@@ -128,7 +128,93 @@
     .icon-rankings { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
     .icon-reports { background: linear-gradient(135deg, #10b981 0%, #047857 100%); }
     .icon-analysis { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
+    .icon-certificate { background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); }
     .icon-lookup { background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%); }
+
+    /* Mobile Responsive 3 Cards Per Row & Hidden Description */
+    @media (max-width: 768px) {
+        .action-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 0.5rem !important;
+            margin-top: 1rem !important;
+        }
+
+        .action-card {
+            padding: 0.65rem 0.35rem !important;
+            min-height: unset !important;
+            height: 100% !important;
+            border-radius: 14px !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+            gap: 0.35rem !important;
+        }
+
+        .card-top {
+            margin-bottom: 0 !important;
+            justify-content: center !important;
+            width: auto !important;
+        }
+
+        .card-top .badge {
+            display: none !important;
+        }
+
+        .card-icon {
+            width: 36px !important;
+            height: 36px !important;
+            min-width: 36px !important;
+            border-radius: 10px !important;
+            font-size: 1rem !important;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.06) !important;
+        }
+
+        .card-body {
+            width: 100% !important;
+            text-align: center !important;
+        }
+
+        .card-body h3 {
+            font-size: 0.72rem !important;
+            font-weight: 800 !important;
+            margin-bottom: 0 !important;
+            line-height: 1.2 !important;
+            letter-spacing: normal !important;
+            word-break: break-word !important;
+        }
+
+        .card-body p {
+            display: none !important;
+        }
+
+        .card-footer-link {
+            display: none !important;
+        }
+    }
+
+    @media (max-width: 400px) {
+        .action-grid {
+            gap: 0.35rem !important;
+        }
+
+        .action-card {
+            padding: 0.5rem 0.2rem !important;
+            border-radius: 12px !important;
+        }
+
+        .card-icon {
+            width: 30px !important;
+            height: 30px !important;
+            min-width: 30px !important;
+            border-radius: 8px !important;
+            font-size: 0.85rem !important;
+        }
+
+        .card-body h3 {
+            font-size: 0.65rem !important;
+            line-height: 1.15 !important;
+        }
+    }
 </style>
 
 <!-- Stats Grid -->
@@ -281,7 +367,7 @@
     <!-- Study Acknowledgement Certificate -->
     <a href="{% url 'students:acknowledgement_certificate' %}" class="action-card">
         <div class="card-top">
-            <div class="card-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+            <div class="card-icon icon-certificate">
                 <i class="fa-solid fa-certificate"></i>
             </div>
             <span class="badge bg-light" style="font-size: 0.75rem;">Official</span>

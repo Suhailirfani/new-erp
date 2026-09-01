@@ -214,6 +214,9 @@ def home(request):
             # Pending hostel movements (not returned)
             pending_movements = HostelMovement.objects.filter(is_returned=False).count()
             
+            # Total Exams count
+            total_exams = ExamType.objects.count()
+            
             # Landing page visitor count
             from .models import LandingPageStats
             stats, _ = LandingPageStats.objects.get_or_create(pk=1)
@@ -227,6 +230,7 @@ def home(request):
                 'today_absent': today_absent,
                 'pending_movements': pending_movements,
                 'visitor_count': visitor_count,
+                'total_exams': total_exams,
             })
             
         elif profile.role == 'student' and profile.student_record:
