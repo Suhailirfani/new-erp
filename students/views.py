@@ -7363,9 +7363,8 @@ def pwa_manifest(request):
 def pwa_serviceworker(request):
     """Serve PWA service worker sw.js with root scope for Chrome PWA installation"""
     sw_code = """
-const CACHE_NAME = 'markaz-hadiya-pwa-v3';
+const CACHE_NAME = 'markaz-hadiya-pwa-v4';
 const urlsToCache = [
-  '/home/',
   '/static/images/app_icon.png',
   '/static/img/app_icon.png',
   '/static/img/M_LOGO.png'
@@ -7381,13 +7380,36 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
-  );
+  // Only handle GET requests for static files to prevent blocking network/navigation/API requests
+  if (event.request.method !== 'GET') return;
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.pathname.startsWith('/static/')) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        return cached || fetch(event.request).then(response => {
+          if (response && response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+          }
+          return response;
+        });
+      }).catch(() => fetch(event.request))
+    );
+  }
 });
 """
     return HttpResponse(sw_code.strip(), content_type='application/javascript')
