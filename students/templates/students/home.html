@@ -588,7 +588,7 @@
                     <tr style="background: #fff; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s;">
                         <td style="padding: 1.25rem 1rem; font-weight: 600; border-radius: 12px 0 0 12px;">{{ result.subject.name }}</td>
                         <td style="padding: 1.25rem 1rem; color: var(--gray);">{{ result.exam_type.name }}</td>
-                        <td style="padding: 1.25rem 1rem; font-weight: 800; color: var(--primary);">{{ result.marks_obtained }}/{{ result.exam_type.max_marks }}</td>
+                        <td style="padding: 1.25rem 1rem; font-weight: 800; color: var(--primary);">{{ result.marks_obtained|floatformat:0 }}/{{ result.max_marks|floatformat:0 }}</td>
                         <td style="padding: 1.25rem 1rem; border-radius: 0 12px 12px 0;">
                             <span style="background: #f0fdf4; color: #16a34a; padding: 4px 10px; border-radius: 8px; font-weight: 700; font-size: 0.8rem;">Pass</span>
                         </td>

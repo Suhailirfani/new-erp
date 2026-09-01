@@ -319,11 +319,24 @@ def home(request):
                 enrollment = Enrollment.objects.filter(student=student, academic_year=active_year).first()
                 if enrollment and enrollment.grade:
                     # Fetch MarkEntry where exam_type's academic year is active_year
-                    exam_results = MarkEntry.objects.filter(
+                    exam_results_qs = MarkEntry.objects.filter(
                         student=student, 
                         enrollment__academic_year=active_year,
                         exam_type__is_published=True
                     ).select_related('exam_type', 'subject').order_by('-exam_date', 'subject__name')
+                    
+                    overrides_map = {
+                        (esm.exam_type_id, esm.subject_id): esm.max_marks
+                        for esm in ExamSubjectMaxMark.objects.all()
+                    }
+                    exam_results = []
+                    for r in exam_results_qs:
+                        ov = overrides_map.get((r.exam_type_id, r.subject_id))
+                        if ov is not None and ov > 0:
+                            r.max_marks = ov
+                        elif r.subject and r.subject.max_marks:
+                            r.max_marks = r.subject.max_marks
+                        exam_results.append(r)
             
             # Fetch ProgressReport objects for trend chart
             performance_data = []
@@ -1956,6 +1969,7 @@ def exam_subject_maxmarks(request, exam_type_id):
             if val_str == '':
                 # No value submitted — remove any existing override (revert to subject default)
                 ExamSubjectMaxMark.objects.filter(exam_type=exam_type, subject=subject).delete()
+                MarkEntry.objects.filter(exam_type=exam_type, subject=subject).update(max_marks=subject.max_marks)
             else:
                 try:
                     val = int(float(val_str))
@@ -1965,9 +1979,11 @@ def exam_subject_maxmarks(request, exam_type_id):
                             subject=subject,
                             defaults={'max_marks': val}
                         )
+                        MarkEntry.objects.filter(exam_type=exam_type, subject=subject).update(max_marks=val)
                         saved += 1
                     else:
                         ExamSubjectMaxMark.objects.filter(exam_type=exam_type, subject=subject).delete()
+                        MarkEntry.objects.filter(exam_type=exam_type, subject=subject).update(max_marks=subject.max_marks)
                 except (ValueError, TypeError):
                     pass
         messages.success(request, f'Saved max marks for {saved} subject(s) for "{exam_type.name}".')
@@ -2918,10 +2934,25 @@ def get_dynamic_student_progress(student, exam_type=None, academic_year=None):
         if not exam_type:
             exam_type = ExamType.objects.first()
 
+    # Build overrides lookup from ExamSubjectMaxMark
+    overrides_qs = ExamSubjectMaxMark.objects.all()
+    if exam_type and exam_type != 'all':
+        overrides_qs = overrides_qs.filter(exam_type=exam_type)
+    overrides_map = {
+        (esm.exam_type_id, esm.subject_id): esm.max_marks
+        for esm in overrides_qs
+    }
+
     # Consolidate latest mark entry per subject so both Hadiya & Division subjects appear
     entries_by_subject = {}
     for entry in mark_entries_qs.order_by('subject__subject_type', 'subject__name', '-updated_at'):
         if entry.subject_id not in entries_by_subject:
+            # Apply overridden maximum mark if configured
+            ov_max = overrides_map.get((entry.exam_type_id, entry.subject_id))
+            if ov_max is not None and ov_max > 0:
+                entry.max_marks = ov_max
+            elif entry.subject and entry.subject.max_marks:
+                entry.max_marks = entry.subject.max_marks
             entries_by_subject[entry.subject_id] = entry
 
     mark_entries = list(entries_by_subject.values())
@@ -6242,7 +6273,18 @@ def student_results_public_lookup(request):
                 ).select_related('subject').order_by('subject__subject_type', 'subject__name')
                 
                 if mark_entries.exists():
-                    total_obtained = sum(entry.marks_obtained for entry in mark_entries)
+                    overrides = {
+                        esm.subject_id: esm.max_marks
+                        for esm in ExamSubjectMaxMark.objects.filter(exam_type=exam)
+                    }
+                    for entry in mark_entries:
+                        ov_max = overrides.get(entry.subject_id)
+                        if ov_max is not None and ov_max > 0:
+                            entry.max_marks = ov_max
+                        elif entry.subject and entry.subject.max_marks:
+                            entry.max_marks = entry.subject.max_marks
+
+                    total_obtained = sum(entry.marks_obtained for entry in mark_entries if not entry.is_absent)
                     total_max = sum(entry.max_marks for entry in mark_entries)
                     overall_percentage = (total_obtained / total_max * 100) if total_max > 0 else 0
                     
