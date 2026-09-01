@@ -1806,15 +1806,18 @@ def exam_type_create(request):
         if section_id:
             section = Section.objects.filter(id=section_id).first()
 
-        exam_type = ExamType.objects.create(
-            name=name,
-            description=description,
-            subject_type=subject_type,
-            section=section,
-            order=order,
-            is_published=is_published,
-        )
-        exam_type.subjects.set(subject_ids)
+        from django.db import transaction
+
+        with transaction.atomic():
+            exam_type = ExamType.objects.create(
+                name=name,
+                description=description,
+                subject_type=subject_type,
+                section=section,
+                order=order,
+                is_published=is_published,
+            )
+            exam_type.subjects.set(subject_ids)
         
         messages.success(request, f'Exam type "{exam_type.name}" created successfully!')
         return redirect('students:exam_type_list')
@@ -1862,14 +1865,17 @@ def exam_type_update(request, pk):
         if section_id:
             section = Section.objects.filter(id=section_id).first()
 
-        exam_type.name = name
-        exam_type.description = description
-        exam_type.subject_type = subject_type
-        exam_type.section = section
-        exam_type.order = order
-        exam_type.is_published = is_published
-        exam_type.save()
-        exam_type.subjects.set(subject_ids)
+        from django.db import transaction
+
+        with transaction.atomic():
+            exam_type.name = name
+            exam_type.description = description
+            exam_type.subject_type = subject_type
+            exam_type.section = section
+            exam_type.order = order
+            exam_type.is_published = is_published
+            exam_type.save()
+            exam_type.subjects.set(subject_ids)
 
         messages.success(request, f'Exam type "{exam_type.name}" updated successfully!')
         return redirect('students:exam_type_list')

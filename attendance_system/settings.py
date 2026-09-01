@@ -84,11 +84,25 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
         'OPTIONS': {
-            'timeout': 20,  # Wait up to 20 seconds for DB lock to clear instead of failing immediately
-            'init_command': 'PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;',
+            'timeout': 60,  # Wait up to 60 seconds for DB lock to clear
         }
     }
 }
+
+# SQLite WAL mode and concurrency optimization
+from django.db.backends.signals import connection_created
+from django.dispatch import receiver
+
+@receiver(connection_created)
+def configure_sqlite_pragmas(sender, connection, **kwargs):
+    if connection.vendor == 'sqlite':
+        cursor = connection.cursor()
+        cursor.execute('PRAGMA journal_mode = WAL;')
+        cursor.execute('PRAGMA synchronous = NORMAL;')
+        cursor.execute('PRAGMA busy_timeout = 60000;')  # 60s busy timeout
+        cursor.execute('PRAGMA temp_store = MEMORY;')
+        cursor.execute('PRAGMA cache_size = -64000;')  # 64MB cache
+        cursor.close()
 
 
 # Password validation
