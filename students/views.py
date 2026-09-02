@@ -314,56 +314,120 @@ def home(request):
                 
             # 2. Results / Academics Data
             # All results in the active academic year
+            from collections import OrderedDict
             exam_results = []
-            if active_year:
-                enrollment = Enrollment.objects.filter(student=student, academic_year=active_year).first()
-                if enrollment and enrollment.grade:
-                    # Fetch MarkEntry where exam_type's academic year is active_year
-                    exam_results_qs = MarkEntry.objects.filter(
-                        student=student, 
-                        enrollment__academic_year=active_year,
-                        exam_type__is_published=True
-                    ).select_related('exam_type', 'subject').order_by('-exam_date', 'subject__name')
-                    
-                    overrides_map = {
-                        (esm.exam_type_id, esm.subject_id): esm.max_marks
-                        for esm in ExamSubjectMaxMark.objects.all()
-                    }
-                    overrides_pass = {
-                        (esm.exam_type_id, esm.subject_id): esm.pass_marks
-                        for esm in ExamSubjectMaxMark.objects.filter(pass_marks__isnull=False)
-                    }
-                    exam_results = []
-                    for r in exam_results_qs:
-                        ov = overrides_map.get((r.exam_type_id, r.subject_id))
-                        if ov is not None and ov > 0:
-                            r.max_marks = ov
-                        elif r.subject and r.subject.max_marks:
-                            r.max_marks = r.subject.max_marks
-
-                        ov_p = overrides_pass.get((r.exam_type_id, r.subject_id))
-                        if ov_p is not None and ov_p >= 0:
-                            r.pass_marks = ov_p
-                        elif r.subject and r.subject.pass_marks is not None:
-                            r.pass_marks = r.subject.pass_marks
-
-                        exam_results.append(r)
-            
-            # Fetch ProgressReport objects for trend chart
+            exams_with_results = []
             performance_data = []
+
+            # Build query filter for student mark entries
+            mark_entries_filter = Q(student=student)
             if active_year:
+                mark_entries_filter &= (Q(enrollment__academic_year=active_year) | Q(enrollment__isnull=True))
+
+            # Query published mark entries (or all mark entries if none published)
+            exam_results_qs = MarkEntry.objects.filter(
+                mark_entries_filter,
+                exam_type__is_published=True
+            ).select_related('exam_type', 'subject').order_by('exam_type__order', 'exam_type__id', 'subject__subject_type', 'subject__name')
+            
+            if not exam_results_qs.exists():
+                exam_results_qs = MarkEntry.objects.filter(
+                    mark_entries_filter
+                ).select_related('exam_type', 'subject').order_by('exam_type__order', 'exam_type__id', 'subject__subject_type', 'subject__name')
+
+            overrides_map = {
+                (esm.exam_type_id, esm.subject_id): esm.max_marks
+                for esm in ExamSubjectMaxMark.objects.all()
+            }
+            overrides_pass = {
+                (esm.exam_type_id, esm.subject_id): esm.pass_marks
+                for esm in ExamSubjectMaxMark.objects.filter(pass_marks__isnull=False)
+            }
+            
+            exams_map = OrderedDict()
+            for r in exam_results_qs:
+                ov = overrides_map.get((r.exam_type_id, r.subject_id))
+                if ov is not None and ov > 0:
+                    r.max_marks = ov
+                elif r.subject and r.subject.max_marks:
+                    r.max_marks = r.subject.max_marks
+
+                ov_p = overrides_pass.get((r.exam_type_id, r.subject_id))
+                if ov_p is not None and ov_p >= 0:
+                    r.pass_marks = ov_p
+                elif r.subject and r.subject.pass_marks is not None:
+                    r.pass_marks = r.subject.pass_marks
+
+                exam_results.append(r)
+                if r.exam_type not in exams_map:
+                    exams_map[r.exam_type] = []
+                exams_map[r.exam_type].append(r)
+
+            # Build structured exam list for expandable accordion and trend chart
+            exam_idx = 0
+            for exam_obj, entries in exams_map.items():
+                total_obtained = sum(e.marks_obtained for e in entries if not e.is_absent)
+                total_max = sum(e.max_marks for e in entries)
+                pct = round((float(total_obtained) / float(total_max) * 100), 1) if total_max > 0 else 0
+                has_failed = any(not e.is_passed for e in entries)
+
+                if has_failed:
+                    overall_grade = 'F'
+                    overall_status = 'FAILED'
+                else:
+                    if pct >= 90:
+                        overall_grade = 'A+'
+                    elif pct >= 80:
+                        overall_grade = 'A'
+                    elif pct >= 70:
+                        overall_grade = 'B+'
+                    elif pct >= 60:
+                        overall_grade = 'B'
+                    elif pct >= 50:
+                        overall_grade = 'C+'
+                    elif pct >= 40:
+                        overall_grade = 'C'
+                    else:
+                        overall_grade = 'F'
+                    overall_status = 'PASSED'
+
+                # Check if ProgressReport exists for official rank / percentage
+                rep = ProgressReport.objects.filter(student=student, exam_type=exam_obj).first()
+                chart_pct = float(rep.overall_percentage) if (rep and rep.overall_percentage) else float(pct)
+                rank = rep.rank if rep else None
+
+                exams_with_results.append({
+                    'exam': exam_obj,
+                    'entries': entries,
+                    'total_obtained': total_obtained,
+                    'total_max': total_max,
+                    'percentage': pct,
+                    'overall_grade': overall_grade,
+                    'overall_status': overall_status,
+                    'has_failed': has_failed,
+                    'rank': rank,
+                    'subject_count': len(entries),
+                    'is_first': (exam_idx == 0)
+                })
+
+                performance_data.append({
+                    'exam': exam_obj.name,
+                    'percentage': chart_pct
+                })
+                exam_idx += 1
+
+            # Fallback for trend chart if performance_data is still empty: query ProgressReport directly
+            if not performance_data and active_year:
                 progress_reports = ProgressReport.objects.filter(
                     student=student,
-                    enrollment__academic_year=active_year,
-                    exam_type__is_published=True
+                    enrollment__academic_year=active_year
                 ).select_related('exam_type').order_by('generated_at')
-                
                 for rep in progress_reports:
                     performance_data.append({
                         'exam': rep.exam_type.name,
                         'percentage': float(rep.overall_percentage)
                     })
-            
+
             import json
             performance_data_json = json.dumps(performance_data)
             
@@ -407,6 +471,7 @@ def home(request):
                 'yearly_present': yearly_present,
                 'attendance_yearly_percentage': attendance_yearly_percentage,
                 'exam_results': exam_results,
+                'exams_with_results': exams_with_results,
                 'performance_data_json': performance_data_json,
                 'hostel_status': hostel_status,
                 'fee_total_paid': fee_total_paid,

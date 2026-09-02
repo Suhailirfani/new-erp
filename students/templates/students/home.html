@@ -315,134 +315,504 @@
     {% else %}
     <!-- Student Portal View -->
     <style>
-        .hero-att-card {
+        .student-welcome-header {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--dark);
+            margin-bottom: 0.15rem;
+            letter-spacing: -0.01em;
+            line-height: 1.25;
+        }
+        .student-welcome-sub {
+            color: var(--gray);
+            font-size: 0.82rem;
+            margin-bottom: 0.6rem;
+            font-weight: 500;
+        }
+
+        .hero-status-row {
+            display: flex;
+            gap: 0.55rem;
             width: 100%;
-            max-width: 440px;
-            margin: 0.5rem auto 1.25rem auto;
-            border-radius: 18px;
-            padding: 0.85rem 1.25rem;
+            max-width: 520px;
+            margin: 0 auto 0.75rem auto;
+            align-items: stretch;
+        }
+
+        .hero-status-row .hero-att-card {
+            flex: 2; /* 2/3 size */
+            margin: 0;
+            min-width: 0;
+            border-radius: 14px;
+            padding: 0.65rem 0.8rem;
             text-align: left;
             position: relative;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.04);
             transition: all 0.2s ease;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
         }
-        @media (max-width: 600px) {
-            .hero-att-card {
-                padding: 0.75rem 1rem !important;
-                border-radius: 16px !important;
+
+        .hero-status-row .hero-marklist-btn {
+            flex: 1; /* 1/3 size */
+            margin: 0;
+            min-width: 0;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.6rem 0.4rem;
+            text-align: center;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+
+        .hero-status-row .hero-marklist-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(79, 70, 229, 0.35);
+            background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+        }
+
+        .hero-status-row .hero-marklist-btn:active {
+            transform: translateY(0);
+        }
+
+        /* 2 Cards per Row for Monthly and Yearly Attendance */
+        .attendance-dual-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.65rem;
+            margin-bottom: 1rem;
+            width: 100%;
+        }
+
+        .att-mini-card {
+            border-radius: 16px;
+            padding: 0.75rem 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.03);
+            position: relative;
+            box-sizing: border-box;
+            min-width: 0;
+        }
+
+        .att-mini-card h5 {
+            margin: 0 0 0.35rem 0;
+            font-size: 0.82rem;
+            font-weight: 800;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        .att-mini-ring {
+            position: relative;
+            width: 72px;
+            height: 72px;
+            margin: 0.25rem 0;
+            flex-shrink: 0;
+        }
+
+        .att-mini-ring svg {
+            width: 72px;
+            height: 72px;
+            transform: rotate(-90deg);
+        }
+
+        .att-mini-ring circle {
+            fill: none;
+            stroke-width: 6.5;
+            stroke-linecap: round;
+        }
+
+        .att-mini-ring .progress-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.95rem;
+            font-weight: 800;
+        }
+
+        .att-mini-footer {
+            font-size: 0.72rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-top: 0.35rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        .att-select-compact {
+            padding: 2px 4px;
+            border-radius: 6px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            border: 1px solid rgba(67, 56, 202, 0.25);
+            background: #fff;
+            color: #4338ca;
+            outline: none;
+            cursor: pointer;
+            max-width: 65px;
+        }
+
+        /* Exam Accordion Styles */
+        .exam-acc-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            width: 100%;
+        }
+
+        .exam-acc-item {
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: #fff;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            transition: all 0.25s ease;
+        }
+
+        .exam-acc-item.is-open {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .exam-acc-header {
+            width: 100%;
+            padding: 0.75rem 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            cursor: pointer;
+            border: none;
+            text-align: left;
+            user-select: none;
+            transition: background 0.2s;
+            box-sizing: border-box;
+            gap: 0.5rem;
+        }
+
+        .exam-acc-item.is-open .exam-acc-header {
+            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+        }
+
+        .exam-acc-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .exam-acc-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: #fff;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            flex-shrink: 0;
+        }
+
+        .exam-acc-title {
+            font-size: 0.88rem;
+            font-weight: 800;
+            color: var(--dark);
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .exam-acc-score-pill {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 2px;
+        }
+
+        .exam-acc-right {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .exam-status-badge {
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .exam-status-badge.pass {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .exam-status-badge.fail {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .exam-chevron {
+            font-size: 0.8rem;
+            color: var(--gray);
+            transition: transform 0.25s ease;
+        }
+
+        .exam-acc-item.is-open .exam-chevron {
+            transform: rotate(180deg);
+            color: var(--primary);
+        }
+
+        .exam-acc-body {
+            display: none;
+            padding: 0;
+            border-top: 1px solid rgba(0,0,0,0.05);
+            background: #fff;
+        }
+
+        .exam-acc-item.is-open .exam-acc-body {
+            display: block;
+        }
+
+        /* Single screen compact marks table */
+        .compact-marks-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            table-layout: fixed;
+        }
+
+        .compact-marks-table th {
+            padding: 0.5rem 0.75rem;
+            background: #f8fafc;
+            color: var(--gray);
+            font-weight: 700;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .compact-marks-table td {
+            padding: 0.55rem 0.75rem;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .compact-marks-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .compact-marks-table .subj-name {
+            font-weight: 700;
+            color: var(--dark);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .compact-marks-table .subj-tag {
+            font-size: 0.65rem;
+            color: #6366f1;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        .compact-marks-table .marks-val {
+            font-weight: 800;
+            color: var(--dark);
+        }
+
+        .compact-marks-table .marks-max {
+            font-size: 0.72rem;
+            color: var(--gray);
+            font-weight: 600;
+        }
+
+        .compact-marks-table .grade-pill {
+            display: inline-block;
+            padding: 2px 7px;
+            border-radius: 5px;
+            font-size: 0.72rem;
+            font-weight: 800;
+        }
+
+        .compact-marks-table .grade-pill.pass {
+            background: #f0fdf4;
+            color: #16a34a;
+        }
+
+        .compact-marks-table .grade-pill.fail {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .compact-marks-table tfoot td {
+            padding: 0.6rem 0.75rem;
+            background: #faf5ff;
+            border-top: 1.5px solid #e9d5ff;
+            font-weight: 800;
+            font-size: 0.78rem;
+            color: #6b21a8;
+        }
+
+        @media (max-width: 480px) {
+            .student-welcome-header {
+                font-size: 1.2rem !important;
+            }
+            .att-mini-ring {
+                width: 64px !important;
+                height: 64px !important;
+            }
+            .att-mini-ring svg {
+                width: 64px !important;
+                height: 64px !important;
+            }
+            .att-mini-ring circle {
+                stroke-width: 5.5 !important;
+            }
+            .att-mini-ring .progress-value {
+                font-size: 0.85rem !important;
+            }
+            .compact-marks-table th, .compact-marks-table td {
+                padding: 0.5rem 0.55rem !important;
             }
         }
     </style>
 
-    <div style="text-align: center; padding: 1rem 0 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-        <h2 style="font-size: 2rem; font-weight: 800; color: var(--dark); margin-bottom: 0.2rem;">Hello, {{ student_record.full_name }}!</h2>
-        <p style="color: var(--gray); font-size: 0.95rem; margin-bottom: 0.75rem;">Welcome to your academic portal.</p>
+    <!-- Header Section with Greeting -->
+    <div style="text-align: center; padding: 0.25rem 0 0.75rem; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <h2 class="student-welcome-header">Hello, {{ student_record.full_name }}!</h2>
+        <p class="student-welcome-sub">Welcome to your academic portal</p>
         
-        <!-- TODAY'S ATTENDANCE STATUS CARD (COMPACT ~25% SIZE - PLACED ABOVE BUTTONS) -->
-        <div class="hero-att-card" style="
-            {% if today_holiday %}
-                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1.5px solid #f59e0b; color: #78350f;
-            {% elif today_status == 'present' %}
-                background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #10b981; color: #14532d;
-            {% elif today_status == 'absent' %}
-                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1.5px solid #ef4444; color: #7f1d1d;
-            {% elif today_status == 'late' %}
-                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1.5px solid #f59e0b; color: #78350f;
-            {% elif today_status == 'excused' %}
-                background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #0ea5e9; color: #0c4a6e;
-            {% else %}
-                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1.5px solid #cbd5e1; color: #334155;
-            {% endif %}">
-            
-            <div style="display: flex; align-items: center; gap: 0.85rem;">
-                <div style="width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; background: #ffffff; box-shadow: 0 4px 10px rgba(0,0,0,0.08); flex-shrink: 0;
-                    {% if today_holiday %}color: #d97706;
-                    {% elif today_status == 'present' %}color: #16a34a;
-                    {% elif today_status == 'absent' %}color: #dc2626;
-                    {% elif today_status == 'late' %}color: #d97706;
-                    {% elif today_status == 'excused' %}color: #0284c7;
-                    {% else %}color: #64748b;{% endif %}">
-                    <i class="fa-solid {% if today_holiday %}fa-umbrella-beach{% elif today_status == 'present' %}fa-circle-check{% elif today_status == 'absent' %}fa-circle-xmark{% elif today_status == 'late' %}fa-clock{% elif today_status == 'excused' %}fa-circle-info{% else %}fa-hourglass-half{% endif %}"></i>
-                </div>
+        <!-- HERO STATUS ROW: 2/3 TODAYS ATTENDANCE & 1/3 MARK LIST BUTTON -->
+        <div class="hero-status-row">
+            <!-- TODAY'S ATTENDANCE STATUS CARD (2/3 SIZE) -->
+            <div class="hero-att-card" style="
+                {% if today_holiday %}
+                    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1.5px solid #f59e0b; color: #78350f;
+                {% elif today_status == 'present' %}
+                    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #10b981; color: #14532d;
+                {% elif today_status == 'absent' %}
+                    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1.5px solid #ef4444; color: #7f1d1d;
+                {% elif today_status == 'late' %}
+                    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1.5px solid #f59e0b; color: #78350f;
+                {% elif today_status == 'excused' %}
+                    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #0ea5e9; color: #0c4a6e;
+                {% else %}
+                    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1.5px solid #cbd5e1; color: #334155;
+                {% endif %}">
+                
+                <div style="display: flex; align-items: center; gap: 0.65rem; width: 100%;">
+                    <div style="width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; background: #ffffff; box-shadow: 0 3px 8px rgba(0,0,0,0.06); flex-shrink: 0;
+                        {% if today_holiday %}color: #d97706;
+                        {% elif today_status == 'present' %}color: #16a34a;
+                        {% elif today_status == 'absent' %}color: #dc2626;
+                        {% elif today_status == 'late' %}color: #d97706;
+                        {% elif today_status == 'excused' %}color: #0284c7;
+                        {% else %}color: #64748b;{% endif %}">
+                        <i class="fa-solid {% if today_holiday %}fa-umbrella-beach{% elif today_status == 'present' %}fa-circle-check{% elif today_status == 'absent' %}fa-circle-xmark{% elif today_status == 'late' %}fa-clock{% elif today_status == 'excused' %}fa-circle-info{% else %}fa-hourglass-half{% endif %}"></i>
+                    </div>
 
-                <div style="flex: 1; min-width: 0; text-align: left;">
-                    <div style="font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.8; line-height: 1;">
-                        📅 TODAY'S ATTENDANCE
-                    </div>
-                    <div style="font-size: 1.05rem; font-weight: 800; line-height: 1.25; margin-top: 2px;">
-                        {% if today_holiday %}
-                            HOLIDAY: {{ today_holiday.title }}
-                        {% elif today_status == 'present' %}
-                            PRESENT TODAY ✅
-                        {% elif today_status == 'absent' %}
-                            ABSENT TODAY ❌
-                        {% elif today_status == 'late' %}
-                            MARKED LATE ⏰
-                        {% elif today_status == 'excused' %}
-                            EXCUSED LEAVE ℹ️
-                        {% else %}
-                            NOT MARKED YET ⏳
-                        {% endif %}
-                    </div>
-                    <div style="font-size: 0.78rem; font-weight: 600; opacity: 0.85; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        {% if today_holiday %}
-                            Campus is closed today for {{ today_holiday.title }}
-                        {% elif today_status == 'present' %}
-                            Attendance recorded successfully
-                        {% elif today_status == 'absent' %}
-                            Marked absent for today
-                        {% elif today_status == 'late' %}
-                            Recorded as late today
-                        {% elif today_status == 'excused' %}
-                            Excused leave recorded
-                        {% else %}
-                            Roster not submitted yet
-                        {% endif %}
+                    <div style="flex: 1; min-width: 0; text-align: left;">
+                        <div style="font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.8; line-height: 1;">
+                            📅 ATTENDANCE
+                        </div>
+                        <div style="font-size: 0.88rem; font-weight: 800; line-height: 1.2; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            {% if today_holiday %}
+                                HOLIDAY
+                            {% elif today_status == 'present' %}
+                                PRESENT ✅
+                            {% elif today_status == 'absent' %}
+                                ABSENT ❌
+                            {% elif today_status == 'late' %}
+                                LATE ⏰
+                            {% elif today_status == 'excused' %}
+                                EXCUSED ℹ️
+                            {% else %}
+                                NOT MARKED ⏳
+                            {% endif %}
+                        </div>
+                        <div style="font-size: 0.68rem; font-weight: 600; opacity: 0.85; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            {% if today_holiday %}
+                                {{ today_holiday.title }}
+                            {% elif today_status == 'present' %}
+                                Recorded today
+                            {% elif today_status == 'absent' %}
+                                Marked absent
+                            {% elif today_status == 'late' %}
+                                Recorded late
+                            {% elif today_status == 'excused' %}
+                                Excused leave
+                            {% else %}
+                                Not submitted
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- LINK TO MARK LIST BUTTON (1/3 SIZE) -->
+            <a href="#mark-list-section" onclick="const el = document.getElementById('mark-list-section'); if(el){el.scrollIntoView({behavior: 'smooth', block: 'start'}); return false;}" class="hero-marklist-btn" title="View Exam Mark Lists">
+                <div style="width: 30px; height: 30px; border-radius: 8px; background: rgba(255, 255, 255, 0.22); display: flex; align-items: center; justify-content: center; font-size: 0.95rem; color: #fff; margin-bottom: 3px;">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                </div>
+                <div style="font-size: 0.76rem; font-weight: 800; line-height: 1.15; color: #ffffff;">Mark List</div>
+                <div style="font-size: 0.6rem; font-weight: 700; opacity: 0.9; margin-top: 2px; color: #e0e7ff; display: flex; align-items: center; gap: 3px;">
+                    <span>View</span> <i class="fa-solid fa-arrow-down" style="font-size: 0.55rem;"></i>
+                </div>
+            </a>
         </div>
 
-        <!-- ACTION BUTTONS: REPORT CARD & EDIT PROFILE -->
-        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; width: 100%; max-width: 440px;">
-            {% if request.user.profile.student_record %}
-            <a href="{% url 'students:results_lookup' %}?student_id={{ request.user.profile.student_record.student_id }}" class="quick-action-btn" style="display: inline-flex; flex: 1; min-width: 170px; justify-content: center; align-items: center; gap: 8px; padding: 0.75rem 1.25rem; font-size: 0.9rem;">
-                <i class="fa-solid fa-poll-h"></i> Report Card
+        {% if request.user.profile.student_record %}
+        <!-- Compact Edit Profile link -->
+        <div style="display: flex; justify-content: center; width: 100%; max-width: 520px; margin-bottom: 0.35rem;">
+            <a href="{% url 'students:student_self_profile_update' %}" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 700; color: var(--primary); text-decoration: none; padding: 4px 10px; border-radius: 8px; background: rgba(99, 102, 241, 0.08);">
+                <i class="fa-solid fa-user-pen"></i> Edit Profile
             </a>
-            <a href="{% url 'students:student_self_profile_update' %}" class="quick-action-btn" style="display: inline-flex; flex: 1; min-width: 170px; justify-content: center; align-items: center; gap: 8px; padding: 0.75rem 1.25rem; font-size: 0.9rem; background: #fff; border: 1px solid #cbd5e1; color: #1e293b;">
-                <i class="fa-solid fa-key" style="color: var(--primary);"></i> Edit Profile
-            </a>
-            {% endif %}
         </div>
+        {% endif %}
     </div>
-    <style>
-        .student-dash-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.25rem;
-            margin-bottom: 2rem;
-            width: 100%;
-        }
-        @media (max-width: 768px) {
-            .student-dash-grid {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-        }
-    </style>
 
-    <div class="student-dash-grid">
+    <!-- MONTHLY ATTENDANCE AND YEARLY ATTENDANCE IN ONE ROW (2 CARDS PER ROW) -->
+    <div class="attendance-dual-grid">
         <!-- Monthly Attendance Card -->
-        <div class="card" style="display: flex; flex-direction: column; align-items: center; text-align: center; background: linear-gradient(135deg, #f5f3ff 0%, #e0e7ff 100%); border: 1px solid rgba(99, 102, 241, 0.1);">
-            <div style="width: 100%; display: flex; flex-direction: column; align-items: center; margin-bottom: 1.5rem; gap: 0.5rem;">
-                <h4 style="margin: 0; font-weight: 700; color: #4338ca;">Monthly Attendance</h4>
-                <form method="GET" action="" style="display: flex; gap: 6px; align-items: center; justify-content: center; width: 100%; max-width: 220px;">
-                    <select name="month" onchange="this.form.submit()" style="flex: 1.2; padding: 4px 8px; border-radius: 10px; border: 1px solid rgba(67, 56, 202, 0.2); background: #fff; font-size: 0.8rem; font-weight: 700; color: #4338ca; cursor: pointer; outline: none; box-shadow: var(--shadow-sm);">
+        <div class="att-mini-card" style="background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 1px solid rgba(99, 102, 241, 0.18);">
+            <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                <h5 style="color: #4338ca;">Monthly Att.</h5>
+                <form method="GET" action="" style="display: flex; gap: 4px; align-items: center; justify-content: center; width: 100%;">
+                    <select name="month" onchange="this.form.submit()" class="att-select-compact">
                         {% for m_num, m_name in months_choices %}
-                            <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>{{ m_name }}</option>
+                            <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>{{ m_name|slice:":3" }}</option>
                         {% endfor %}
                     </select>
-                    <select name="year" onchange="this.form.submit()" style="flex: 1; padding: 4px 8px; border-radius: 10px; border: 1px solid rgba(67, 56, 202, 0.2); background: #fff; font-size: 0.8rem; font-weight: 700; color: #4338ca; cursor: pointer; outline: none; box-shadow: var(--shadow-sm);">
+                    <select name="year" onchange="this.form.submit()" class="att-select-compact">
                         {% for y in years_choices %}
                             <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
                         {% endfor %}
@@ -450,105 +820,99 @@
                 </form>
             </div>
             
-            <div class="progress-ring" style="--percent: {{ attendance_monthly_percentage|default:0 }}">
-                <svg>
-                    <circle class="background" cx="60" cy="60" r="50" style="stroke: rgba(67, 56, 202, 0.1);"></circle>
-                    <circle class="indicator" cx="60" cy="60" r="50" style="stroke-dashoffset: calc(314 - (314 * var(--percent)) / 100); stroke: #6366f1;"></circle>
+            <div class="att-mini-ring" style="--percent: {{ attendance_monthly_percentage|default:0 }}">
+                <svg viewBox="0 0 72 72">
+                    <circle cx="36" cy="36" r="30" style="stroke: rgba(67, 56, 202, 0.12);"></circle>
+                    <circle cx="36" cy="36" r="30" style="stroke-dasharray: 188.5; stroke-dashoffset: calc(188.5 - (188.5 * var(--percent)) / 100); stroke: #6366f1;"></circle>
                 </svg>
                 <div class="progress-value" style="color: #4338ca;">{{ attendance_monthly_percentage|floatformat:0 }}%</div>
             </div>
             
-            <p style="margin-top: 1.5rem; color: #4338ca; font-weight: 600; font-size: 0.875rem; line-height: 1.4;">
-                You have attended {{ monthly_present }} of {{ monthly_total }} days in {{ current_month_name }}.
-            </p>
+            <div class="att-mini-footer" style="color: #4338ca;" title="Attended {{ monthly_present }} of {{ monthly_total }} days">
+                {{ monthly_present }} / {{ monthly_total }} Days
+            </div>
         </div>
 
         <!-- Yearly Attendance Card -->
-        <div class="card" style="display: flex; flex-direction: column; align-items: center; text-align: center; background: var(--gradient-sky);">
-            <div style="width: 100%; display: flex; justify-content: space-between; margin-bottom: 2rem;">
-                <h4 style="margin: 0; font-weight: 700; color: #0369a1;">Yearly Attendance</h4>
-                <div style="background: #fff; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; color: #0284c7;">
-                    {% if active_year %}{{ active_year.name }}{% else %}No Active Year{% endif %}
+        <div class="att-mini-card" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid rgba(2, 132, 199, 0.2);">
+            <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                <h5 style="color: #0369a1;">Yearly Att.</h5>
+                <div style="background: #fff; padding: 2px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 800; color: #0284c7; box-shadow: 0 1px 3px rgba(0,0,0,0.05); max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    {% if active_year %}{{ active_year.name }}{% else %}Active Year{% endif %}
                 </div>
             </div>
             
-            <div class="progress-ring" style="--percent: {{ attendance_yearly_percentage|default:0 }}">
-                <svg>
-                    <circle class="background" cx="60" cy="60" r="50" style="stroke: rgba(2, 132, 199, 0.1);"></circle>
-                    <circle class="indicator" cx="60" cy="60" r="50" style="stroke-dashoffset: calc(314 - (314 * var(--percent)) / 100); stroke: #0284c7;"></circle>
+            <div class="att-mini-ring" style="--percent: {{ attendance_yearly_percentage|default:0 }}">
+                <svg viewBox="0 0 72 72">
+                    <circle cx="36" cy="36" r="30" style="stroke: rgba(2, 132, 199, 0.12);"></circle>
+                    <circle cx="36" cy="36" r="30" style="stroke-dasharray: 188.5; stroke-dashoffset: calc(188.5 - (188.5 * var(--percent)) / 100); stroke: #0284c7;"></circle>
                 </svg>
                 <div class="progress-value" style="color: #0369a1;">{{ attendance_yearly_percentage|floatformat:0 }}%</div>
             </div>
             
-            <p style="margin-top: 2rem; color: #0369a1; font-weight: 600; font-size: 0.9rem;">You have attended {{ yearly_present }} of {{ yearly_total }} days this year.</p>
-        </div>
-
-        <!-- Finance Frosted Card / Maintenance State -->
-        {% if suspend_student_fees %}
-        <div class="card" style="background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); border: 2px dashed #f43f5e; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1.5rem;">
-            <div style="width: 56px; height: 56px; border-radius: 50%; background: #ffffff; color: #e11d48; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin-bottom: 0.75rem; box-shadow: 0 4px 12px rgba(244, 63, 94, 0.15);">
-                <i class="fa-solid fa-screwdriver-wrench"></i>
-            </div>
-            <h4 style="margin: 0 0 0.4rem 0; font-weight: 800; color: #9f1239; font-size: 1.15rem;">🚧 Fee Portal Maintenance</h4>
-            <p style="color: #be123c; font-weight: 600; font-size: 0.85rem; margin: 0; line-height: 1.4;">
-                The fee section is currently suspended for scheduled maintenance by Admin. Please check back later.
-            </p>
-        </div>
-        {% else %}
-        <div class="card" style="background: var(--gradient-lavender);">
-            <h4 style="margin-bottom: 1.5rem; font-weight: 700;">Financial Overview</h4>
-            <div style="display: flex; flex-direction: column; gap: 1rem;">
-                <div style="background: rgba(255,255,255,0.6); padding: 1rem 1.25rem; border-radius: 16px; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.7rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em;">Total Paid</div>
-                        <div style="font-size: 1.3rem; font-weight: 800; color: var(--dark);">₹{{ fee_total_paid|floatformat:0 }}</div>
-                    </div>
-                    <i class="fa-solid fa-circle-check" style="font-size: 1.5rem; color: var(--success); opacity: 0.5;"></i>
-                </div>
-                
-                <div style="background: rgba(255,255,255,0.6); padding: 1rem 1.25rem; border-radius: 16px; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.7rem; font-weight: 700; color: var(--danger); text-transform: uppercase; letter-spacing: 0.05em;">Currently Due</div>
-                        <div style="font-size: 1.3rem; font-weight: 800; color: var(--dark);">₹{{ fee_currently_due|floatformat:0 }}</div>
-                    </div>
-                    <i class="fa-solid fa-circle-exclamation" style="font-size: 1.5rem; color: var(--danger); opacity: 0.5;"></i>
-                </div>
-
-                <div style="background: rgba(255,255,255,0.6); padding: 1rem 1.25rem; border-radius: 16px; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.7rem; font-weight: 700; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.05em;">Total Balance</div>
-                        <div style="font-size: 1.3rem; font-weight: 800; color: var(--dark);">₹{{ fee_total_balance|floatformat:0 }}</div>
-                    </div>
-                    <i class="fa-solid fa-hourglass-half" style="font-size: 1.5rem; color: var(--warning); opacity: 0.5;"></i>
-                </div>
+            <div class="att-mini-footer" style="color: #0369a1;" title="Attended {{ yearly_present }} of {{ yearly_total }} days">
+                {{ yearly_present }} / {{ yearly_total }} Days
             </div>
         </div>
-        {% endif %}
     </div>
 
+    <!-- Finance Card -->
+    {% if suspend_student_fees %}
+    <div class="card p-3 mb-3" style="background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); border: 1.5px dashed #f43f5e; text-align: center; border-radius: 14px;">
+        <div style="font-weight: 800; color: #9f1239; font-size: 0.88rem;">🚧 Fee Portal Maintenance</div>
+        <div style="color: #be123c; font-weight: 600; font-size: 0.75rem; margin-top: 2px;">
+            The fee section is currently suspended for maintenance.
+        </div>
+    </div>
+    {% else %}
+    <div class="card p-3 mb-3" style="background: var(--gradient-lavender); border-radius: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <h5 style="margin: 0; font-weight: 800; font-size: 0.9rem; color: var(--dark);">Financial Overview</h5>
+            <span style="font-size: 0.72rem; font-weight: 700; color: var(--primary);">Active Session</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+            <div style="background: rgba(255,255,255,0.7); padding: 0.6rem 0.4rem; border-radius: 12px; text-align: center;">
+                <div style="font-size: 0.62rem; font-weight: 800; color: var(--primary); text-transform: uppercase;">Paid</div>
+                <div style="font-size: 0.95rem; font-weight: 800; color: var(--dark); margin-top: 2px;">₹{{ fee_total_paid|floatformat:0 }}</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.7); padding: 0.6rem 0.4rem; border-radius: 12px; text-align: center;">
+                <div style="font-size: 0.62rem; font-weight: 800; color: var(--danger); text-transform: uppercase;">Due</div>
+                <div style="font-size: 0.95rem; font-weight: 800; color: var(--dark); margin-top: 2px;">₹{{ fee_currently_due|floatformat:0 }}</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.7); padding: 0.6rem 0.4rem; border-radius: 12px; text-align: center;">
+                <div style="font-size: 0.62rem; font-weight: 800; color: #4f46e5; text-transform: uppercase;">Balance</div>
+                <div style="font-size: 0.95rem; font-weight: 800; color: var(--dark); margin-top: 2px;">₹{{ fee_total_balance|floatformat:0 }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Academic Performance Trend Card -->
-    <div class="card" style="margin-bottom: 2rem;">
-        <h4 style="margin-top: 0; margin-bottom: 1.5rem; font-weight: 800;">Academic Performance Trend</h4>
+    <div class="card mb-3" style="border-radius: 16px; padding: 1rem 1.1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+            <h4 style="margin: 0; font-weight: 800; font-size: 0.95rem;">Academic Performance Trend</h4>
+            <span style="font-size: 0.72rem; font-weight: 700; color: var(--gray);">Exams Score %</span>
+        </div>
         
-        <div id="chart-placeholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 220px; color: var(--gray); text-align: center; gap: 0.5rem;">
-            <i class="fa-solid fa-chart-line" style="font-size: 2.5rem; opacity: 0.3;"></i>
-            <span style="font-weight: 600; font-size: 0.95rem;">Not enough progress reports generated yet to show performance trends.</span>
+        <div id="chart-placeholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 160px; color: var(--gray); text-align: center; gap: 0.4rem;">
+            <i class="fa-solid fa-chart-line" style="font-size: 2rem; opacity: 0.3;"></i>
+            <span style="font-weight: 600; font-size: 0.82rem;">No exam performance data recorded yet.</span>
         </div>
 
-        <div id="chart-container" style="display: none; position: relative; height: 220px; width: 100%; box-sizing: border-box; padding: 0.5rem 1rem 0;">
-            <svg id="performance-chart" viewBox="0 0 500 200" preserveAspectRatio="none" style="width: 100%; height: 100%; overflow: visible;">
+        <div id="chart-container" style="display: none; position: relative; height: 160px; width: 100%; box-sizing: border-box; padding: 0.25rem 0.5rem 0;">
+            <svg id="performance-chart" viewBox="0 0 500 160" preserveAspectRatio="none" style="width: 100%; height: 125px; overflow: visible;">
                 <!-- Grid Lines -->
-                <line x1="0" y1="20" x2="500" y2="20" stroke="#f1f5f9" stroke-width="1.5" />
-                <line x1="0" y1="65" x2="500" y2="65" stroke="#f1f5f9" stroke-width="1.5" />
-                <line x1="0" y1="110" x2="500" y2="110" stroke="#f1f5f9" stroke-width="1.5" />
-                <line x1="0" y1="155" x2="500" y2="155" stroke="#f1f5f9" stroke-width="1.5" />
-                <line x1="0" y1="180" x2="500" y2="180" stroke="#e2e8f0" stroke-width="2" />
+                <line x1="0" y1="15" x2="500" y2="15" stroke="#f1f5f9" stroke-width="1.5" />
+                <line x1="0" y1="50" x2="500" y2="50" stroke="#f1f5f9" stroke-width="1.5" />
+                <line x1="0" y1="85" x2="500" y2="85" stroke="#f1f5f9" stroke-width="1.5" />
+                <line x1="0" y1="120" x2="500" y2="120" stroke="#f1f5f9" stroke-width="1.5" />
+                <line x1="0" y1="140" x2="500" y2="140" stroke="#e2e8f0" stroke-width="2" />
                 
                 <!-- SVG Area under curve -->
-                <path id="chart-area" d="" fill="url(#chart-gradient)" opacity="0.12" />
+                <path id="chart-area" d="" fill="url(#chart-gradient)" opacity="0.15" />
                 
                 <!-- SVG Trend Line -->
-                <path id="chart-path" d="" fill="none" stroke="var(--primary)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
+                <path id="chart-path" d="" fill="none" stroke="var(--primary)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
                 
                 <!-- Gradients -->
                 <defs>
@@ -560,54 +924,122 @@
             </svg>
             
             <!-- Labels Container -->
-            <div id="chart-labels" style="display: flex; justify-content: space-between; margin-top: 1rem; color: var(--gray); font-size: 0.8rem; font-weight: 700;">
+            <div id="chart-labels" style="display: flex; justify-content: space-between; margin-top: 0.5rem; color: var(--gray); font-size: 0.72rem; font-weight: 700;">
                 <!-- Dynamically populated by JS -->
             </div>
         </div>
     </div>
 
-    <!-- Academics Table -->
-    <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <h4 style="margin: 0; font-weight: 800;">Recent Academic Performance</h4>
-            <a href="{% url 'students:progress_report' %}" style="font-size: 0.875rem; font-weight: 700; color: var(--primary); text-decoration: none;">Full Transcript <i class="fa-solid fa-chevron-right"></i></a>
+    <!-- Exam Results - Expandable Tabs & Single Screen Marks List -->
+    <div class="card mb-4" id="mark-list-section" style="border-radius: 16px; padding: 1rem 1.1rem; scroll-margin-top: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+            <h4 style="margin: 0; font-weight: 800; font-size: 0.95rem;">Exam Results & Mark Lists</h4>
+            <span style="font-size: 0.72rem; font-weight: 700; color: var(--primary);">{{ exams_with_results|length }} Exam{{ exams_with_results|length|pluralize }}</span>
         </div>
-        
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: separate; border-spacing: 0 0.75rem;">
-                <thead>
-                    <tr style="text-align: left; color: var(--gray); font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">
-                        <th style="padding: 0 1rem;">Subject</th>
-                        <th style="padding: 0 1rem;">Exam</th>
-                        <th style="padding: 0 1rem;">Score</th>
-                        <th style="padding: 0 1rem;">Grade</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for result in exam_results|slice:":5" %}
-                    <tr style="background: #fff; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s;">
-                        <td style="padding: 1.25rem 1rem; font-weight: 600; border-radius: 12px 0 0 12px;">{{ result.subject.name }}</td>
-                        <td style="padding: 1.25rem 1rem; color: var(--gray);">{{ result.exam_type.name }}</td>
-                        <td style="padding: 1.25rem 1rem; font-weight: 800; color: var(--primary);">{{ result.marks_obtained|floatformat:0 }}/{{ result.max_marks|floatformat:0 }}</td>
-                        <td style="padding: 1.25rem 1rem; border-radius: 0 12px 12px 0;">
-                            {% if result.is_passed %}
-                                <span style="background: #f0fdf4; color: #16a34a; padding: 4px 10px; border-radius: 8px; font-weight: 700; font-size: 0.8rem;">Pass</span>
-                            {% else %}
-                                <span style="background: #fef2f2; color: #dc2626; padding: 4px 10px; border-radius: 8px; font-weight: 700; font-size: 0.8rem;">Fail</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="4" style="text-align: center; padding: 3rem; color: var(--gray);">No academic records found for this year.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+
+        {% if exams_with_results %}
+        <div class="exam-acc-container">
+            {% for item in exams_with_results %}
+            <div class="exam-acc-item {% if item.is_first %}is-open{% endif %}" id="exam-acc-{{ forloop.counter }}">
+                <!-- Expandable Tab Header -->
+                <div class="exam-acc-header" onclick="toggleExamAccordion('exam-acc-{{ forloop.counter }}')">
+                    <div class="exam-acc-title-wrap">
+                        <div class="exam-acc-icon">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                        <div style="min-width: 0; flex: 1;">
+                            <div class="exam-acc-title" title="{{ item.exam.name }}">{{ item.exam.name }}</div>
+                            <div class="exam-acc-score-pill">
+                                Total: {{ item.total_obtained|floatformat:0 }}/{{ item.total_max|floatformat:0 }} &bull; {{ item.percentage }}%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="exam-acc-right">
+                        {% if item.has_failed %}
+                            <span class="exam-status-badge fail">FAILED</span>
+                        {% else %}
+                            <span class="exam-status-badge pass">PASSED</span>
+                        {% endif %}
+                        <i class="fa-solid fa-chevron-down exam-chevron"></i>
+                    </div>
+                </div>
+
+                <!-- Expanded Mark List Table (Non-scrollable, fits mobile screen) -->
+                <div class="exam-acc-body">
+                    <table class="compact-marks-table">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left; width: 48%;">Subject</th>
+                                <th style="text-align: center; width: 28%;">Marks</th>
+                                <th style="text-align: right; width: 24%;">Grade</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in item.entries %}
+                            <tr>
+                                <td style="text-align: left;">
+                                    <div class="subj-name" title="{{ entry.subject.name }}">
+                                        {{ entry.subject.name }}
+                                        {% if entry.subject.subject_type == 'hadiya' %}
+                                            <span class="subj-tag">Islamic</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td style="text-align: center;">
+                                    {% if entry.is_absent %}
+                                        <span class="grade-pill fail" style="font-size: 0.65rem;">ABSENT</span>
+                                    {% else %}
+                                        <span class="marks-val">{{ entry.marks_obtained|floatformat:0 }}</span><span class="marks-max">/{{ entry.max_marks|floatformat:0 }}</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: right;">
+                                    {% if entry.is_passed %}
+                                        <span class="grade-pill pass">{{ entry.grade_letter }}</span>
+                                    {% else %}
+                                        <span class="grade-pill fail">{% if entry.is_absent %}AB{% else %}F{% endif %}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" style="text-align: center; color: var(--gray); padding: 1.5rem;">No subjects recorded.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td style="text-align: left;">
+                                    <strong>Total ({{ item.subject_count }} Subj)</strong>
+                                </td>
+                                <td style="text-align: center;">
+                                    <strong>{{ item.total_obtained|floatformat:0 }} / {{ item.total_max|floatformat:0 }}</strong>
+                                </td>
+                                <td style="text-align: right;">
+                                    <strong>{{ item.percentage }}% ({{ item.overall_grade }})</strong>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
         </div>
+        {% else %}
+        <div style="text-align: center; padding: 2rem 1rem; color: var(--gray);">
+            <i class="fa-solid fa-book-open" style="font-size: 2rem; opacity: 0.3; margin-bottom: 0.5rem;"></i>
+            <div style="font-weight: 600; font-size: 0.85rem;">No exam mark records found for this academic year.</div>
+        </div>
+        {% endif %}
     </div>
 
     <script>
+    function toggleExamAccordion(itemId) {
+        const item = document.getElementById(itemId);
+        if (item) {
+            item.classList.toggle('is-open');
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const rawJson = '{{ performance_data_json|escapejs }}';
         let data = [];
@@ -633,33 +1065,33 @@
         if (container) container.style.display = 'block';
         
         const svgWidth = 500;
-        const svgHeight = 200;
-        const paddingY = 20; // safe padding top & bottom
+        const svgHeight = 140;
+        const paddingY = 18;
         
         let points = [];
         labelsContainer.innerHTML = '';
         
         data.forEach((item, index) => {
-            // Calculate X coordinate evenly across space
             let x = 0;
             if (data.length > 1) {
-                x = (index / (data.length - 1)) * svgWidth;
+                x = 40 + (index / (data.length - 1)) * (svgWidth - 80);
             } else {
-                x = svgWidth / 2; // Center single item
+                x = svgWidth / 2;
             }
             
-            // Map percentage (0-100) to Y coordinates (paddingY to svgHeight - paddingY)
-            const percent = item.percentage;
-            // 0% maps to svgHeight - paddingY (bottom), 100% maps to paddingY (top)
+            const percent = Math.min(Math.max(parseFloat(item.percentage) || 0, 0), 100);
             const y = svgHeight - paddingY - (percent / 100) * (svgHeight - 2 * paddingY);
             
             points.push({ x, y, exam: item.exam, percentage: percent });
             
-            // Render labels
             const labelDiv = document.createElement('div');
             labelDiv.textContent = item.exam;
             labelDiv.style.flex = '1';
             labelDiv.style.fontWeight = '700';
+            labelDiv.style.fontSize = '0.72rem';
+            labelDiv.style.overflow = 'hidden';
+            labelDiv.style.textOverflow = 'ellipsis';
+            labelDiv.style.whiteSpace = 'nowrap';
             if (index === 0 && data.length > 1) {
                 labelDiv.style.textAlign = 'left';
             } else if (index === data.length - 1 && data.length > 1) {
@@ -670,7 +1102,6 @@
             labelsContainer.appendChild(labelDiv);
         });
         
-        // Construct trend line path (D attribute)
         let pathD = '';
         points.forEach((p, idx) => {
             if (idx === 0) {
@@ -679,42 +1110,41 @@
                 pathD += ` L ${p.x} ${p.y}`;
             }
         });
-        path.setAttribute('d', pathD);
+        if (path) path.setAttribute('d', pathD);
         
-        // Construct closed filled area path
-        if (points.length > 0) {
+        if (area && points.length > 0) {
             let areaD = pathD;
             if (points.length > 1) {
-                areaD += ` L ${points[points.length - 1].x} 180 L ${points[0].x} 180 Z`;
+                areaD += ` L ${points[points.length - 1].x} 140 L ${points[0].x} 140 Z`;
             } else {
-                areaD = ''; // Single point has no area
+                areaD = '';
             }
             area.setAttribute('d', areaD);
         }
         
-        // Add interactive hover dots with tooltips
+        // Remove existing dots if any
+        svg.querySelectorAll('circle').forEach(c => c.remove());
+        
         points.forEach((p) => {
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             circle.setAttribute('cx', p.x);
             circle.setAttribute('cy', p.y);
-            circle.setAttribute('r', '6');
+            circle.setAttribute('r', '5.5');
             circle.setAttribute('fill', 'var(--primary)');
             circle.setAttribute('stroke', '#fff');
-            circle.setAttribute('stroke-width', '2.5');
+            circle.setAttribute('stroke-width', '2');
             circle.style.cursor = 'pointer';
             circle.style.transition = 'r 0.2s ease';
             
-            // Tooltip title
             const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
             title.textContent = `${p.exam}: ${p.percentage.toFixed(1)}%`;
             circle.appendChild(title);
             
-            // Subtle interactive scaling
             circle.addEventListener('mouseover', function() {
-                this.setAttribute('r', '9');
+                this.setAttribute('r', '8');
             });
             circle.addEventListener('mouseout', function() {
-                this.setAttribute('r', '6');
+                this.setAttribute('r', '5.5');
             });
             
             svg.appendChild(circle);
