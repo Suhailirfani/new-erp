@@ -600,33 +600,47 @@
             display: block;
         }
 
-        /* Single screen compact marks table */
+        /* Single screen compact marks table - OVERRIDES BASE.HTML 600px MIN-WIDTH */
+        table.compact-marks-table,
         .compact-marks-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.8rem;
-            table-layout: fixed;
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 0.78rem !important;
+            table-layout: fixed !important;
+            background: #ffffff !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
         }
 
+        table.compact-marks-table th,
         .compact-marks-table th {
-            padding: 0.5rem 0.75rem;
-            background: #f8fafc;
-            color: var(--gray);
-            font-weight: 700;
-            font-size: 0.68rem;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            border-bottom: 1px solid #e2e8f0;
+            padding: 0.45rem 0.35rem !important;
+            background: #f8fafc !important;
+            color: var(--gray) !important;
+            font-weight: 800 !important;
+            font-size: 0.65rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.03em !important;
+            border-bottom: 1.5px solid #e2e8f0 !important;
+            box-sizing: border-box !important;
+            white-space: nowrap !important;
         }
 
+        table.compact-marks-table td,
         .compact-marks-table td {
-            padding: 0.55rem 0.75rem;
-            border-bottom: 1px solid #f1f5f9;
-            vertical-align: middle;
+            padding: 0.5rem 0.35rem !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+            vertical-align: middle !important;
+            box-sizing: border-box !important;
+            font-size: 0.76rem !important;
         }
 
+        table.compact-marks-table tbody tr:last-child td,
         .compact-marks-table tbody tr:last-child td {
-            border-bottom: none;
+            border-bottom: none !important;
         }
 
         .compact-marks-table .subj-name {
@@ -635,51 +649,64 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            line-height: 1.25;
+            font-size: 0.76rem;
+            max-width: 100%;
+            display: block;
         }
 
         .compact-marks-table .subj-tag {
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             color: #6366f1;
-            font-weight: 600;
-            margin-left: 4px;
+            font-weight: 700;
+            background: rgba(99, 102, 241, 0.1);
+            padding: 1px 4px;
+            border-radius: 4px;
+            margin-left: 2px;
+            display: inline-block;
         }
 
         .compact-marks-table .marks-val {
             font-weight: 800;
             color: var(--dark);
+            font-size: 0.78rem;
         }
 
         .compact-marks-table .marks-max {
-            font-size: 0.72rem;
+            font-size: 0.66rem;
             color: var(--gray);
             font-weight: 600;
         }
 
         .compact-marks-table .grade-pill {
             display: inline-block;
-            padding: 2px 7px;
-            border-radius: 5px;
-            font-size: 0.72rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.68rem;
             font-weight: 800;
+            line-height: 1.2;
+            text-align: center;
         }
 
         .compact-marks-table .grade-pill.pass {
-            background: #f0fdf4;
-            color: #16a34a;
+            background: #dcfce7;
+            color: #15803d;
         }
 
         .compact-marks-table .grade-pill.fail {
-            background: #fef2f2;
-            color: #dc2626;
+            background: #fee2e2;
+            color: #b91c1c;
         }
 
+        table.compact-marks-table tfoot td,
         .compact-marks-table tfoot td {
-            padding: 0.6rem 0.75rem;
-            background: #faf5ff;
-            border-top: 1.5px solid #e9d5ff;
-            font-weight: 800;
-            font-size: 0.78rem;
-            color: #6b21a8;
+            padding: 0.5rem 0.35rem !important;
+            background: #faf5ff !important;
+            border-top: 1.5px solid #e9d5ff !important;
+            font-weight: 800 !important;
+            font-size: 0.74rem !important;
+            color: #6b21a8 !important;
+            box-sizing: border-box !important;
         }
 
         @media (max-width: 480px) {
@@ -700,8 +727,25 @@
             .att-mini-ring .progress-value {
                 font-size: 0.85rem !important;
             }
-            .compact-marks-table th, .compact-marks-table td {
-                padding: 0.5rem 0.55rem !important;
+            #mark-list-section {
+                padding: 0.75rem 0.5rem !important;
+            }
+            .exam-acc-header {
+                padding: 0.65rem 0.6rem !important;
+            }
+            .exam-acc-body {
+                overflow-x: hidden !important;
+                width: 100% !important;
+            }
+            table.compact-marks-table,
+            .compact-marks-table {
+                width: 100% !important;
+                min-width: 100% !important;
+                max-width: 100% !important;
+            }
+            table.compact-marks-table th,
+            table.compact-marks-table td {
+                padding: 0.45rem 0.25rem !important;
             }
         }
     </style>
@@ -964,35 +1008,40 @@
                     </div>
                 </div>
 
-                <!-- Expanded Mark List Table (Non-scrollable, fits mobile screen) -->
-                <div class="exam-acc-body">
-                    <table class="compact-marks-table">
+                <!-- Expanded Mark List Table (Non-scrollable, 100% mobile width) -->
+                <div class="exam-acc-body" style="width: 100% !important; overflow: hidden !important;">
+                    <table class="compact-marks-table" style="width: 100% !important; min-width: 0 !important; max-width: 100% !important; table-layout: fixed !important;">
+                        <colgroup>
+                            <col style="width: 50%;">
+                            <col style="width: 27%;">
+                            <col style="width: 23%;">
+                        </colgroup>
                         <thead>
                             <tr>
-                                <th style="text-align: left; width: 48%;">Subject</th>
-                                <th style="text-align: center; width: 28%;">Marks</th>
-                                <th style="text-align: right; width: 24%;">Grade</th>
+                                <th style="text-align: left; width: 50%; padding: 0.45rem 0.35rem;">Subject</th>
+                                <th style="text-align: center; width: 27%; padding: 0.45rem 0.2rem;">Marks</th>
+                                <th style="text-align: right; width: 23%; padding: 0.45rem 0.35rem;">Grade</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for entry in item.entries %}
                             <tr>
-                                <td style="text-align: left;">
+                                <td style="text-align: left; width: 50%; padding: 0.5rem 0.35rem;">
                                     <div class="subj-name" title="{{ entry.subject.name }}">
                                         {{ entry.subject.name }}
                                         {% if entry.subject.subject_type == 'hadiya' %}
-                                            <span class="subj-tag">Islamic</span>
+                                            <span class="subj-tag">Isl.</span>
                                         {% endif %}
                                     </div>
                                 </td>
-                                <td style="text-align: center;">
+                                <td style="text-align: center; width: 27%; padding: 0.5rem 0.2rem;">
                                     {% if entry.is_absent %}
-                                        <span class="grade-pill fail" style="font-size: 0.65rem;">ABSENT</span>
+                                        <span class="grade-pill fail" style="font-size: 0.6rem;">ABS</span>
                                     {% else %}
                                         <span class="marks-val">{{ entry.marks_obtained|floatformat:0 }}</span><span class="marks-max">/{{ entry.max_marks|floatformat:0 }}</span>
                                     {% endif %}
                                 </td>
-                                <td style="text-align: right;">
+                                <td style="text-align: right; width: 23%; padding: 0.5rem 0.35rem;">
                                     {% if entry.is_passed %}
                                         <span class="grade-pill pass">{{ entry.grade_letter }}</span>
                                     {% else %}
@@ -1008,13 +1057,13 @@
                         </tbody>
                         <tfoot>
                             <tr>
-                                <td style="text-align: left;">
-                                    <strong>Total ({{ item.subject_count }} Subj)</strong>
+                                <td style="text-align: left; width: 50%; padding: 0.5rem 0.35rem;">
+                                    <strong>Total ({{ item.subject_count }})</strong>
                                 </td>
-                                <td style="text-align: center;">
-                                    <strong>{{ item.total_obtained|floatformat:0 }} / {{ item.total_max|floatformat:0 }}</strong>
+                                <td style="text-align: center; width: 27%; padding: 0.5rem 0.2rem;">
+                                    <strong>{{ item.total_obtained|floatformat:0 }}/{{ item.total_max|floatformat:0 }}</strong>
                                 </td>
-                                <td style="text-align: right;">
+                                <td style="text-align: right; width: 23%; padding: 0.5rem 0.35rem;">
                                     <strong>{{ item.percentage }}% ({{ item.overall_grade }})</strong>
                                 </td>
                             </tr>
