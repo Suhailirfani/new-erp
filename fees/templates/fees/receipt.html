@@ -54,8 +54,8 @@
     <div class="row mb-4 mt-3 no-print">
         <div class="col text-end">
             <button onclick="window.print()" class="btn btn-primary"><i class="fas fa-print"></i> Print / Save as PDF</button>
-            <a href="https://wa.me/?text=Fee%20Receipt%20from%20Arifa%20Women%27s%20College.%20Student:%20{{ student.full_name|urlencode }}.%20Amount:%20₹{{ receipt_total }}.%20Receipt%20No:%20{{ receipt_number }}.%20Thank%20you!" target="_blank" class="btn btn-success"><i class="fab fa-whatsapp"></i> Share WhatsApp</a>
-            <a href="mailto:{{ student.email }}?subject=Fee%20Receipt%20-%20Arifa%20Women%27s%20College&body=Dear%20{{ student.full_name|urlencode }},%0D%0A%0D%0APlease%20find%20your%20fee%20receipt%20details%20below:%0D%0AAmount:%20₹{{ receipt_total }}%0D%0AReceipt%20No:%20{{ receipt_number }}%0D%0ADate:%20{{ receipt_date|date:'Y-m-d' }}%0D%0A%0D%0AThank%20you!" class="btn btn-info text-white"><i class="fas fa-envelope"></i> Email Receipt</a>
+            <a href="https://wa.me/?text=Fee%20Receipt%20from%20Markaz%20Hadiya.%20Student:%20{{ student.full_name|urlencode }}.%20Amount:%20₹{{ receipt_total }}.%20Receipt%20No:%20{{ receipt_number }}.%20Thank%20you!" target="_blank" class="btn btn-success"><i class="fab fa-whatsapp"></i> Share WhatsApp</a>
+            <a href="mailto:{{ student.email }}?subject=Fee%20Receipt%20-%20Markaz%20Hadiya&body=Dear%20{{ student.full_name|urlencode }},%0D%0A%0D%0APlease%20find%20your%20fee%20receipt%20details%20below:%0D%0AAmount:%20₹{{ receipt_total }}%0D%0AReceipt%20No:%20{{ receipt_number }}%0D%0ADate:%20{{ receipt_date|date:'Y-m-d' }}%0D%0A%0D%0AThank%20you!" class="btn btn-info text-white"><i class="fas fa-envelope"></i> Email Receipt</a>
             <a href="javascript:history.back()" class="btn btn-secondary">Go Back</a>
         </div>
     </div>
@@ -67,7 +67,7 @@
                 <div class="logo" style="display:flex;align-items:center;gap:10px;">
                     <img src="{% static 'img/M_LOGO.png' %}" alt="Logo" style="height:50px;">
                     <div>
-                        <div style="font-size:15px;font-weight:800;color:#1a1a2e;line-height:1.2;">ARIFA WOMEN'S COLLEGE</div>
+                        <div style="font-size:15px;font-weight:800;color:#1a1a2e;line-height:1.2;">MARKAZ HADIYA</div>
                         <div style="font-size:13px;font-weight:700;color:#6a0606;">WOMEN'S COLLEGE</div>
                     </div>
                 </div>
