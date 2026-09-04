@@ -241,33 +241,7 @@
         </div>
     </div>
 
-    {% if request.user.profile.role == 'admin' or request.user.is_superuser %}
-    <div style="background: #fff; border-radius: 16px; padding: 1.2rem 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.04); border-left: 5px solid {% if suspend_student_fees %}#ef4444{% else %}#10b981{% endif %};">
-        <div>
-            <div style="font-weight: 800; color: #0f172a; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                ⚙️ Student Portal Fee Control (Admin Mode)
-            </div>
-            <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.2rem;">
-                Current Status: 
-                {% if suspend_student_fees %}
-                    <span style="color: #dc2626; font-weight: 800;">🔴 SUSPENDED FOR MAINTENANCE</span> (Students cannot view/access fee section)
-                {% else %}
-                    <span style="color: #16a34a; font-weight: 800;">🟢 ACTIVE</span> (Fee portal is fully functional for students)
-                {% endif %}
-            </div>
-        </div>
-        <form action="{% url 'students:toggle_fee_maintenance' %}" method="post" style="margin: 0;">
-            {% csrf_token %}
-            <button type="submit" class="btn" style="{% if suspend_student_fees %}background: #10b981; color: white;{% else %}background: #ef4444; color: white;{% endif %} border: none; font-weight: 800; border-radius: 10px; padding: 0.6rem 1.4rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: inline-flex; align-items: center; gap: 0.5rem;" onclick="return confirm('Change Student Fee Portal status?')">
-                {% if suspend_student_fees %}
-                    <i class="fa-solid fa-power-off"></i> TURN ON FEE PORTAL
-                {% else %}
-                    <i class="fa-solid fa-ban"></i> SUSPEND FOR MAINTENANCE
-                {% endif %}
-            </button>
-        </form>
-    </div>
-    {% endif %}
+
 
     <div class="card">
         <h3 style="margin-bottom: 2rem; font-weight: 800; display: flex; align-items: center; gap: 0.75rem;">
@@ -303,8 +277,8 @@
                 Exam Dashboard
             </a>
             <a href="{% url 'fees:finance_dashboard' %}" class="quick-action-btn">
-                <i class="fa-solid fa-chart-pie"></i>
-                Financials
+                <i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i>
+                Finance & Fees
             </a>
             <a href="{% url 'students:job_vacancy_list_admin' %}" class="quick-action-btn">
                 <i class="fa-solid fa-briefcase"></i>
@@ -900,36 +874,50 @@
         </div>
     </div>
 
-    <!-- Finance Card -->
-    {% if suspend_student_fees %}
-    <div class="card p-3 mb-3" style="background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); border: 1.5px dashed #f43f5e; text-align: center; border-radius: 14px;">
-        <div style="font-weight: 800; color: #9f1239; font-size: 0.88rem;">🚧 Fee Portal Maintenance</div>
-        <div style="color: #be123c; font-weight: 600; font-size: 0.75rem; margin-top: 2px;">
-            The fee section is currently suspended for maintenance.
-        </div>
-    </div>
-    {% else %}
-    <div class="card p-3 mb-3" style="background: var(--gradient-lavender); border-radius: 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-            <h5 style="margin: 0; font-weight: 800; font-size: 0.9rem; color: var(--dark);">Financial Overview</h5>
-            <span style="font-size: 0.72rem; font-weight: 700; color: var(--primary);">Active Session</span>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
-            <div style="background: rgba(255,255,255,0.7); padding: 0.6rem 0.4rem; border-radius: 12px; text-align: center;">
-                <div style="font-size: 0.62rem; font-weight: 800; color: var(--primary); text-transform: uppercase;">Paid</div>
-                <div style="font-size: 0.95rem; font-weight: 800; color: var(--dark); margin-top: 2px;">₹{{ fee_total_paid|floatformat:0 }}</div>
+    <!-- PENDING FEE / FEE ACCOUNT STATUS CARD -->
+    <a href="{% url 'fees:student_fee_detail' student_record.id %}" style="text-decoration: none; display: block; margin-bottom: 1rem; color: inherit;">
+        <div class="card p-3 shadow-sm" style="border-radius: 16px; border: 1.5px solid {% if has_pending_fees %}#fca5a5{% else %}#bbf7d0{% endif %}; background: {% if has_pending_fees %}linear-gradient(135deg, #fff1f2 0%, #fee2e2 50%, #fef2f2 100%){% else %}linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%){% endif %}; transition: all 0.25s ease; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 22px rgba(0,0,0,0.08)';" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-soft)';">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.85rem; min-width: 0;">
+                    <div style="width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.06); flex-shrink: 0; color: {% if has_pending_fees %}#e11d48{% else %}#16a34a{% endif %};">
+                        <i class="fa-solid {% if has_pending_fees %}fa-file-invoice-dollar{% else %}fa-circle-check{% endif %}"></i>
+                    </div>
+                    <div style="min-width: 0;">
+                        <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+                            <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: {% if has_pending_fees %}#9f1239{% else %}#166534{% endif %};">
+                                Fee Account Status
+                            </span>
+                            {% if has_pending_fees %}
+                            <span class="badge" style="background: #be123c; color: #ffffff; font-size: 0.68rem; font-weight: 800; padding: 2px 7px; border-radius: 6px;">
+                                Due Pending ({{ pending_fee_count }} item{{ pending_fee_count|pluralize }})
+                            </span>
+                            {% else %}
+                            <span class="badge" style="background: #15803d; color: #ffffff; font-size: 0.68rem; font-weight: 800; padding: 2px 7px; border-radius: 6px;">
+                                All Dues Cleared
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div style="font-size: 1.3rem; font-weight: 800; color: {% if has_pending_fees %}#be123c{% else %}#15803d{% endif %}; margin-top: 2px; line-height: 1.2;">
+                            {% if has_pending_fees %}
+                                ₹{{ pending_fee_amount|floatformat:2 }} <span style="font-size: 0.76rem; font-weight: 600; color: #9f1239;">Pending Dues</span>
+                            {% else %}
+                                ₹0.00 <span style="font-size: 0.76rem; font-weight: 600; color: #166534;">No Outstanding Dues</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 0.78rem; font-weight: 700; color: {% if has_pending_fees %}#be123c{% else %}#15803d{% endif %};">
+                        View Detailed Fee Ledger
+                    </span>
+                    <div style="width: 28px; height: 28px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; color: {% if has_pending_fees %}#be123c{% else %}#15803d{% endif %}; box-shadow: 0 2px 6px rgba(0,0,0,0.08); font-size: 0.75rem;">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </div>
+                </div>
             </div>
-            <div style="background: rgba(255,255,255,0.7); padding: 0.6rem 0.4rem; border-radius: 12px; text-align: center;">
-                <div style="font-size: 0.62rem; font-weight: 800; color: var(--danger); text-transform: uppercase;">Due</div>
-                <div style="font-size: 0.95rem; font-weight: 800; color: var(--dark); margin-top: 2px;">₹{{ fee_currently_due|floatformat:0 }}</div>
-            </div>
-            <div style="background: rgba(255,255,255,0.7); padding: 0.6rem 0.4rem; border-radius: 12px; text-align: center;">
-                <div style="font-size: 0.62rem; font-weight: 800; color: #4f46e5; text-transform: uppercase;">Balance</div>
-                <div style="font-size: 0.95rem; font-weight: 800; color: var(--dark); margin-top: 2px;">₹{{ fee_total_balance|floatformat:0 }}</div>
-            </div>
         </div>
-    </div>
-    {% endif %}
+    </a>
 
     <!-- Academic Performance Trend Card -->
     <div class="card mb-3" style="border-radius: 16px; padding: 1rem 1.1rem;">

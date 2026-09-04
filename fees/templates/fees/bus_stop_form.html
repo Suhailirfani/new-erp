@@ -1,62 +1,225 @@
 {% extends 'students/base.html' %}
 
-{% block title %}{{ page_title }}{% endblock %}
+{% block title %}{{ page_title|default:"Bus Stop Form" }} | Office Finance{% endblock %}
 
 {% block content %}
-<div class="row mb-4 align-items-center">
-    <div class="col-md-6">
-        <h2>{{ page_title }}</h2>
-        <p class="text-muted">{% if is_edit %}Update the monthly fee or name for this bus stop.{% else %}Add a new location where the college bus picks up students.{% endif %}</p>
-    </div>
-    <div class="col-md-6 text-end">
-        <a href="{% url 'fees:bus_stop_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left me-1"></i> Back to Bus Stops</a>
-    </div>
-</div>
+<div class="container-fluid" style="padding: 1.25rem 1rem; max-width: {% if bus_stop %}600px{% else %}850px{% endif %}; margin: 0 auto;">
 
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-body p-4">
-                <form method="post" novalidate>
-                    {% csrf_token %}
-                    
-                    {% if form.non_field_errors %}
-                    <div class="alert alert-danger">
-                        {% for error in form.non_field_errors %}
-                            {{ error }}
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-
-                    <div class="row g-3">
-                        <div class="col-md-8">
-                            <label for="{{ form.stop_name.id_for_label }}" class="form-label fw-bold">Bus Stop Name <span class="text-danger">*</span></label>
-                            {{ form.stop_name }}
-                            {% if form.stop_name.errors %}
-                                <div class="text-danger small mt-1">{{ form.stop_name.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <label for="{{ form.fee_amount.id_for_label }}" class="form-label fw-bold">Monthly Fee (₹) <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0">₹</span>
-                                {{ form.fee_amount }}
-                            </div>
-                            {% if form.fee_amount.errors %}
-                                <div class="text-danger small mt-1">{{ form.fee_amount.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="mt-4 pt-3 border-top text-end">
-                        <button type="submit" class="btn btn-primary px-4">
-                            <i class="fas fa-save me-1"></i> {% if is_edit %}Update Bus Stop{% else %}Save Bus Stop{% endif %}
-                        </button>
-                    </div>
-                </form>
+    <!-- Navigation Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <div>
+            <div style="font-size: 0.78rem; color: #64748b; margin-bottom: 0.15rem;">
+                <a href="{% url 'fees:finance_dashboard' %}" style="color: #64748b; text-decoration: none;">Finance</a> / 
+                <a href="{% url 'fees:fee_setup' %}" style="color: #64748b; text-decoration: none;">Fee Setup</a> / 
+                <span>{% if bus_stop %}Edit Bus Stop{% else %}Add Bus Stops Grid{% endif %}</span>
             </div>
+            <h2 style="font-weight: 800; color: #0f172a; margin: 0; font-size: 1.35rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-bus" style="color: #0284c7;"></i>
+                {% if bus_stop %}Edit Bus Stop: {{ bus_stop.stop_name }}{% else %}Add Bus Stops & Fare Rates{% endif %}
+            </h2>
+        </div>
+        <a href="{% url 'fees:fee_setup' %}" class="btn btn-light btn-sm border text-muted" style="font-weight: 700; border-radius: 7px; padding: 0.35rem 0.8rem; font-size: 0.82rem;">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back to Setup
+        </a>
+    </div>
+
+    {% if bus_stop %}
+    <!-- Single Edit Form -->
+    <div class="card border-0 shadow-sm" style="border-radius: 12px; background: white;">
+        <div style="padding: 1.25rem;">
+            <form action="{% url 'fees:bus_stop_update' bus_stop.id %}" method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold" style="font-size: 0.85rem;">Bus Stop Destination Name *</label>
+                    <input type="text" name="stop_name" class="form-control" value="{{ bus_stop.stop_name }}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold" style="font-size: 0.85rem;">Monthly Fare Rate (₹) *</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light fw-bold">₹</span>
+                        <input type="number" step="0.01" min="1" name="fee_amount" class="form-control fw-bold" value="{{ bus_stop.fee_amount }}" required>
+                        <span class="input-group-text bg-light text-muted">/ month</span>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                    <a href="{% url 'fees:fee_setup' %}" class="btn btn-light px-3" style="font-weight: 600; font-size: 0.85rem;">Cancel</a>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold" style="border-radius: 7px; font-size: 0.85rem;">
+                        <i class="fa-solid fa-check me-1"></i> Update Bus Stop
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
+
+    {% else %}
+    <!-- Bulk Dynamic Grid Form -->
+    <div class="card border-0 shadow-sm" style="border-radius: 12px; background: white; overflow: hidden;">
+        <div style="padding: 0.85rem 1.25rem; background: #fafafa; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <span class="fw-bold text-dark" style="font-size: 0.92rem;">
+                    <i class="fa-solid fa-table-list text-primary me-1"></i> Bus Stop Entries
+                </span>
+                <span class="text-muted ms-2" style="font-size: 0.78rem;">Enter multiple stops and their monthly fare rates</span>
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm py-1 px-3 fw-bold" onclick="addGridRow();" style="border-radius: 6px; font-size: 0.78rem;">
+                <i class="fa-solid fa-plus me-1"></i> Add Another Row
+            </button>
+        </div>
+
+        <form action="{% url 'fees:bus_stop_create' %}" method="post" id="busStopsGridForm">
+            {% csrf_token %}
+            
+            <div class="table-responsive" style="margin: 0;">
+                <table class="table table-hover table-sm align-middle mb-0" id="busStopsTable" style="font-size: 0.84rem;">
+                    <thead style="background: #f8fafc; color: #475569; border-bottom: 2px solid #e2e8f0;">
+                        <tr>
+                            <th style="padding: 0.5rem 0.6rem; width: 40px; text-align: center;">#</th>
+                            <th style="padding: 0.5rem 0.6rem;">Stop Destination Name *</th>
+                            <th style="padding: 0.5rem 0.6rem; width: 220px;">Monthly Rate (₹) *</th>
+                            <th style="padding: 0.5rem 0.6rem; width: 50px; text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="busStopsTableBody">
+                        <!-- Initial 5 rows -->
+                        <tr>
+                            <td class="row-num text-center text-muted fw-bold" style="padding: 0.35rem 0.5rem;">1</td>
+                            <td style="padding: 0.35rem 0.5rem;">
+                                <input type="text" name="stop_name" class="form-control form-control-sm" placeholder="e.g. Edavanna" style="border-radius: 5px;" required autofocus>
+                            </td>
+                            <td style="padding: 0.35rem 0.5rem;">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text py-0">₹</span>
+                                    <input type="number" step="0.01" min="0" name="fee_amount" class="form-control form-control-sm fw-bold" placeholder="0.00" style="border-radius: 0 5px 5px 0;" required>
+                                </div>
+                            </td>
+                            <td class="text-center" style="padding: 0.35rem 0.5rem;">
+                                <button type="button" class="btn btn-outline-danger btn-sm p-0 d-inline-flex align-items-center justify-content-center" onclick="removeGridRow(this);" style="width: 26px; height: 26px; border-radius: 4px;" title="Remove row">
+                                    <i class="fa-solid fa-trash-can" style="font-size: 0.75rem;"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="row-num text-center text-muted fw-bold" style="padding: 0.35rem 0.5rem;">2</td>
+                            <td style="padding: 0.35rem 0.5rem;">
+                                <input type="text" name="stop_name" class="form-control form-control-sm" placeholder="e.g. Manjeri" style="border-radius: 5px;">
+                            </td>
+                            <td style="padding: 0.35rem 0.5rem;">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text py-0">₹</span>
+                                    <input type="number" step="0.01" min="0" name="fee_amount" class="form-control form-control-sm fw-bold" placeholder="0.00" style="border-radius: 0 5px 5px 0;">
+                                </div>
+                            </td>
+                            <td class="text-center" style="padding: 0.35rem 0.5rem;">
+                                <button type="button" class="btn btn-outline-danger btn-sm p-0 d-inline-flex align-items-center justify-content-center" onclick="removeGridRow(this);" style="width: 26px; height: 26px; border-radius: 4px;" title="Remove row">
+                                    <i class="fa-solid fa-trash-can" style="font-size: 0.75rem;"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="row-num text-center text-muted fw-bold" style="padding: 0.35rem 0.5rem;">3</td>
+                            <td style="padding: 0.35rem 0.5rem;">
+                                <input type="text" name="stop_name" class="form-control form-control-sm" placeholder="e.g. Kondotty" style="border-radius: 5px;">
+                            </td>
+                            <td style="padding: 0.35rem 0.5rem;">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text py-0">₹</span>
+                                    <input type="number" step="0.01" min="0" name="fee_amount" class="form-control form-control-sm fw-bold" placeholder="0.00" style="border-radius: 0 5px 5px 0;">
+                                </div>
+                            </td>
+                            <td class="text-center" style="padding: 0.35rem 0.5rem;">
+                                <button type="button" class="btn btn-outline-danger btn-sm p-0 d-inline-flex align-items-center justify-content-center" onclick="removeGridRow(this);" style="width: 26px; height: 26px; border-radius: 4px;" title="Remove row">
+                                    <i class="fa-solid fa-trash-can" style="font-size: 0.75rem;"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="row-num text-center text-muted fw-bold" style="padding: 0.35rem 0.5rem;">4</td>
+                            <td style="padding: 0.35rem 0.5rem;">
+                                <input type="text" name="stop_name" class="form-control form-control-sm" placeholder="e.g. Calicut" style="border-radius: 5px;">
+                            </td>
+                            <td style="padding: 0.35rem 0.5rem;">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text py-0">₹</span>
+                                    <input type="number" step="0.01" min="0" name="fee_amount" class="form-control form-control-sm fw-bold" placeholder="0.00" style="border-radius: 0 5px 5px 0;">
+                                </div>
+                            </td>
+                            <td class="text-center" style="padding: 0.35rem 0.5rem;">
+                                <button type="button" class="btn btn-outline-danger btn-sm p-0 d-inline-flex align-items-center justify-content-center" onclick="removeGridRow(this);" style="width: 26px; height: 26px; border-radius: 4px;" title="Remove row">
+                                    <i class="fa-solid fa-trash-can" style="font-size: 0.75rem;"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="padding: 1rem 1.25rem; background: #fafafa; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" class="btn btn-light btn-sm border" onclick="addGridRow();" style="font-weight: 600; border-radius: 6px;">
+                    <i class="fa-solid fa-plus me-1"></i> Add More Rows
+                </button>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'fees:fee_setup' %}" class="btn btn-light btn-sm px-3" style="font-weight: 600; border-radius: 6px;">Cancel</a>
+                    <button type="submit" class="btn btn-primary btn-sm px-4 fw-bold" style="border-radius: 6px;">
+                        <i class="fa-solid fa-check me-1"></i> Save All Bus Stops
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+    function updateRowNumbers() {
+        const rows = document.querySelectorAll('#busStopsTableBody tr');
+        rows.forEach((row, idx) => {
+            const numCell = row.querySelector('.row-num');
+            if (numCell) numCell.innerText = idx + 1;
+        });
+    }
+
+    function addGridRow() {
+        const tbody = document.getElementById('busStopsTableBody');
+        const rowCount = tbody.querySelectorAll('tr').length + 1;
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="row-num text-center text-muted fw-bold" style="padding: 0.35rem 0.5rem;">${rowCount}</td>
+            <td style="padding: 0.35rem 0.5rem;">
+                <input type="text" name="stop_name" class="form-control form-control-sm" placeholder="Destination name..." style="border-radius: 5px;">
+            </td>
+            <td style="padding: 0.35rem 0.5rem;">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text py-0">₹</span>
+                    <input type="number" step="0.01" min="0" name="fee_amount" class="form-control form-control-sm fw-bold" placeholder="0.00" style="border-radius: 0 5px 5px 0;">
+                </div>
+            </td>
+            <td class="text-center" style="padding: 0.35rem 0.5rem;">
+                <button type="button" class="btn btn-outline-danger btn-sm p-0 d-inline-flex align-items-center justify-content-center" onclick="removeGridRow(this);" style="width: 26px; height: 26px; border-radius: 4px;" title="Remove row">
+                    <i class="fa-solid fa-trash-can" style="font-size: 0.75rem;"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+        const input = tr.querySelector('input[name="stop_name"]');
+        if (input) input.focus();
+    }
+
+    function removeGridRow(btn) {
+        const tbody = document.getElementById('busStopsTableBody');
+        const rows = tbody.querySelectorAll('tr');
+        if (rows.length > 1) {
+            btn.closest('tr').remove();
+            updateRowNumbers();
+        } else {
+            // Clear values instead of removing the last row
+            const tr = btn.closest('tr');
+            tr.querySelectorAll('input').forEach(i => i.value = '');
+        }
+    }
+    </script>
+    {% endif %}
+
 </div>
 {% endblock %}

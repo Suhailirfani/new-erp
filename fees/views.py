@@ -1,2094 +1,1027 @@
-from decimal import Decimal
-from django.shortcuts import render, get_object_or_404, redirect
-from students.decorators import role_required
-from django.views.decorators.http import require_POST
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import StudentFee, FeePayment, AccountCategory, Income, Expense, FeeCategory, FeeItem, FeeStructure, FeeInstallmentTemplate
-from students.models import Student, Grade, Division
-from django.db.models import Sum, Case, When, DecimalField, Q
-from .forms import IncomeForm, ExpenseForm
+from django.core.exceptions import PermissionDenied
+from django.http import HttpResponse, JsonResponse
+from django.db.models import Sum, Q, Count
+from django.views.decorators.http import require_POST
+from decimal import Decimal
+from datetime import date, datetime, timedelta
+import calendar
+import json
 
-# We might want to restrict this to 'accountant' or 'admin' later.
+from students.decorators import role_required
+from students.models import Student, Grade, Division, AcademicYear
+from .models import (
+    FeeCategory, FeeItem, FeeStructure, CourseInstallment, StudentFee,
+    ReceiptTransaction, FeePayment, CautionDeposit, CautionDepositRefund,
+    AccountCategory, Income, Expense, BusStop, InstitutionPaymentSetting
+)
+from .services import (
+    sync_student_monthly_dues, batch_generate_monthly_fees,
+    add_adhoc_charge, assign_admission_essentials,
+    record_fee_payment, process_caution_refund,
+    get_financial_summary, get_or_create_default_categories,
+    apply_fee_reduction
+)
+
+
+@login_required
 @role_required(['admin', 'accountant'])
 def finance_dashboard(request):
-    """Accountant Dashboard showing Income and Expense with detailed reporting."""
-    from django.utils import timezone
-    from datetime import timedelta
+    """Clean, high-level control panel for institutional accounts and fee operations."""
+    today = date.today()
+    curr_year = today.year
+    curr_month = today.month
     
-    today = timezone.now().date()
-    start_of_week = today - timedelta(days=today.weekday())
-    start_of_month = today.replace(day=1)
-    start_of_year = today.replace(month=1, day=1)
+    # 1. Today's Collections & Movements
+    today_incomes = Income.objects.filter(date=today)
+    today_income_total = today_incomes.aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+    today_receipts_count = ReceiptTransaction.objects.filter(date=today).count()
     
-    # 1. High-Level Summary
-    total_income = Income.objects.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    total_expense = Expense.objects.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    net_balance = total_income - total_expense
+    today_expenses = Expense.objects.filter(date=today)
+    today_expense_total = today_expenses.aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
     
-    # 2. Time-period statistics
-    daily_income = Income.objects.filter(date=today).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    daily_expense = Expense.objects.filter(date=today).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    # 2. This Month's Figures
+    first_of_month = date(curr_year, curr_month, 1)
+    month_incomes = Income.objects.filter(date__gte=first_of_month, date__lte=today)
+    month_income_total = month_incomes.aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
     
-    monthly_income = Income.objects.filter(date__gte=start_of_month).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    monthly_expense = Expense.objects.filter(date__gte=start_of_month).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-
-    yearly_income = Income.objects.filter(date__gte=start_of_year).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    yearly_expense = Expense.objects.filter(date__gte=start_of_year).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-
-    # 3. Item-wise Collection Breakdown (by AccountCategory)
-    # We focus on Income categories
-    category_collections = AccountCategory.objects.filter(type='income').annotate(
-        total=Sum('incomes__amount')
-    ).filter(total__gt=0).order_by('-total')
-
-    recent_incomes = Income.objects.all().order_by('-date')[:15]
-    recent_expenses = Expense.objects.all().order_by('-date')[:15]
-
+    month_expenses = Expense.objects.filter(date__gte=first_of_month, date__lte=today)
+    month_expense_total = month_expenses.aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+    
+    month_net = month_income_total - month_expense_total
+    
+    # 3. Overall Student Dues Summary
+    total_due_balance = StudentFee.objects.filter(status__in=['due', 'partial']).aggregate(
+        b=Sum('total_amount') - Sum('concession_amount') - Sum('amount_paid')
+    )['b'] or Decimal('0.00')
+    
+    # 4. Recent Transactions
+    recent_receipts = ReceiptTransaction.objects.select_related('student').order_by('-date', '-id')[:6]
+    recent_expenses = Expense.objects.select_related('category').order_by('-date', '-id')[:6]
+    
     context = {
-        'total_income': total_income,
-        'total_expense': total_expense,
-        'net_balance': net_balance,
-        
-        'daily_income': daily_income,
-        'daily_expense': daily_expense,
-        'monthly_income': monthly_income,
-        'monthly_expense': monthly_expense,
-        'yearly_income': yearly_income,
-        'yearly_expense': yearly_expense,
-        
-        'category_collections': category_collections,
-        'recent_incomes': recent_incomes,
-        'recent_expenses': recent_expenses,
-        
+        'page_title': 'Office Finance & Fees',
         'today': today,
-        'page_title': 'Finance Dashboard'
+        'today_income_total': today_income_total,
+        'today_expense_total': today_expense_total,
+        'today_receipts_count': today_receipts_count,
+        'month_income_total': month_income_total,
+        'month_expense_total': month_expense_total,
+        'month_net': month_net,
+        'total_due_balance': max(Decimal('0.00'), total_due_balance),
+        'recent_receipts': recent_receipts,
+        'recent_expenses': recent_expenses,
     }
     return render(request, 'fees/finance_dashboard.html', context)
 
+
+@login_required
 @role_required(['admin', 'accountant'])
-def fees_dashboard(request):
-    """Dashboard focusing on Classroom-wise Fee Summary."""
-    from django.utils import timezone
-    today = timezone.now().date()
+def fee_counter(request):
+    """Instant student search and dues overview for office fee collection counter."""
+    search_query = request.GET.get('q', '').strip()
+    grade_id = request.GET.get('grade')
+    division_id = request.GET.get('division')
+    student_type = request.GET.get('student_type')
     
-    # Get all students with active enrollments
-    active_students = Student.objects.filter(is_active=True, enrollments__academic_year__is_active=True).distinct()
+    students_qs = Student.objects.filter(is_active=True).select_related('bus_stop')
     
-    # Group students by (Grade, Division)
-    classroom_data = {}
-    
-    for student in active_students:
-        enrollment = student.current_enrollment
-        if not enrollment:
-            continue
-            
-        grade = enrollment.grade
-        if not grade:
-            continue
-        division = enrollment.division
-        classroom_key = (grade.id, division.id if division else None)
+    if search_query:
+        students_qs = students_qs.filter(
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(student_id__icontains=search_query) |
+            Q(phone__icontains=search_query)
+        )
         
-        if classroom_key not in classroom_data:
-            classroom_data[classroom_key] = {
-                'grade': grade,
-                'division': division,
-                'currently_due': Decimal('0.00'),
-                'total_balance': Decimal('0.00'),
-                'admission_due': Decimal('0.00'),
-                'course_due': Decimal('0.00'),
-                'hostel_due': Decimal('0.00'),
-                'bus_due': Decimal('0.00'),
-                'student_count': 0,
-                'name': f"{grade.name} - {division.name}" if grade and division else (grade.name if grade else "Unassigned")
-            }
-            
-        # Calculate currently due and total balance for this student
-        student_currently_due = Decimal('0.00')
-        student_total_balance = Decimal('0.00')
-        
-        for f in student.fees.all():
-            if f.balance > 0:
-                student_total_balance += f.balance
-                
-                # Categorize dues
-                ftype = f.fee_item.fee_type if f.fee_item else 'other'
-                if ftype == 'admission':
-                    classroom_data[classroom_key]['admission_due'] += f.balance
-                elif ftype == 'course':
-                    classroom_data[classroom_key]['course_due'] += f.balance
-                elif ftype == 'hostel':
-                    classroom_data[classroom_key]['hostel_due'] += f.balance
-                elif ftype == 'bus':
-                    classroom_data[classroom_key]['bus_due'] += f.balance
-
-                if not f.due_date or f.due_date <= today:
-                    student_currently_due += f.balance
-            
-        classroom_data[classroom_key]['currently_due'] += student_currently_due
-        classroom_data[classroom_key]['total_balance'] += student_total_balance
-        classroom_data[classroom_key]['student_count'] += 1
-            
-    # Convert to list and sort by grade name
-    classrooms = sorted(classroom_data.values(), key=lambda x: x['name'])
-    
-    # Calculate global pseudo-groups for Hostel and Bus
-    hostel_students = [s for s in active_students if s.student_type == 'hostel']
-    bus_students = [s for s in active_students if s.uses_bus]
-    
-    pseudo_groups = []
-    
-    if hostel_students:
-        h_total = Decimal('0.00')
-        h_due = Decimal('0.00')
-        for s in hostel_students:
-            for f in s.fees.all():
-                if f.balance > 0:
-                    h_total += f.balance
-                    if not f.due_date or f.due_date <= today:
-                        h_due += f.balance
-        pseudo_groups.append({
-            'name': 'All Hostel Students',
-            'student_count': len(hostel_students),
-            'currently_due': h_due,
-            'total_balance': h_total,
-            'is_pseudo': True,
-            'filter_type': 'hostel'
-        })
-
-    if bus_students:
-        b_total = Decimal('0.00')
-        b_due = Decimal('0.00')
-        for s in bus_students:
-            for f in s.fees.all():
-                if f.balance > 0:
-                    b_total += f.balance
-                    if not f.due_date or f.due_date <= today:
-                        b_due += f.balance
-        pseudo_groups.append({
-            'name': 'All Bus Students',
-            'student_count': len(bus_students),
-            'currently_due': b_due,
-            'total_balance': b_total,
-            'is_pseudo': True,
-            'filter_type': 'bus'
-        })
-    
-    total_institution_currently_due = sum(c['currently_due'] for c in classrooms)
-    total_institution_total_balance = sum(c['total_balance'] for c in classrooms)
-        
-    context = {
-        'classrooms': classrooms,
-        'pseudo_groups': pseudo_groups,
-        'total_institution_currently_due': total_institution_currently_due,
-        'total_institution_total_balance': total_institution_total_balance,
-        'page_title': 'Fee Dashboard'
-    }
-    return render(request, 'fees/fees_dashboard.html', context)
-
-@role_required(['admin', 'accountant'])
-def classroom_detail(request, grade_id, division_id=None):
-    """Detailed student fee list for a specific classroom."""
-    from django.utils import timezone
-    today = timezone.now().date()
-    
-    grade = get_object_or_404(Grade, id=grade_id)
-    division = None
+    if grade_id:
+        students_qs = students_qs.filter(enrollments__grade_id=grade_id, enrollments__academic_year__is_active=True)
     if division_id:
-        division = get_object_or_404(Division, id=division_id)
-        
-    students = Student.objects.filter(
-        is_active=True,
-        enrollments__academic_year__is_active=True,
-        enrollments__grade=grade,
-        enrollments__division=division
-    ).distinct().order_by('student_id', 'first_name')
-    
-    student_data = []
-    total_class_currently_due = Decimal('0.00')
-    total_class_due = Decimal('0.00')
-    
-    for student in students:
-        currently_due = Decimal('0.00')
-        total_due = Decimal('0.00')
-        
-        for f in student.fees.all():
-            if f.balance > 0:
-                total_due += f.balance
-                if not f.due_date or f.due_date <= today:
-                    currently_due += f.balance
-        
-        total_class_currently_due += currently_due
-        total_class_due += total_due
-        
-        # Determine if this is a new admission (first enrollment ever)
-        current_enrollment = student.current_enrollment
-        is_new_admission = True
-        if current_enrollment and current_enrollment.academic_year:
-            past_enrollments = student.enrollments.filter(academic_year__start_date__lt=current_enrollment.academic_year.start_date)
-            if past_enrollments.exists():
-                is_new_admission = False
-                
-        student_data.append({
-            'student': student,
-            'currently_due': currently_due,
-            'total_due': total_due,
-            'is_new_admission': is_new_admission,
-        })
-        
-    from .models import FeeItem
-    fee_items = FeeItem.objects.all().order_by('category', 'name')
+        students_qs = students_qs.filter(enrollments__division_id=division_id, enrollments__academic_year__is_active=True)
+    if student_type:
+        students_qs = students_qs.filter(student_type=student_type)
 
-    context = {
-        'grade': grade,
-        'division': division,
-        'student_data': student_data,
-        'total_class_currently_due': total_class_currently_due,
-        'total_class_due': total_class_due,
-        'fee_items': fee_items,
-        'class_name': f"{grade.name} - {division.name}" if division else grade.name,
-        'page_title': f"Class Detail: {grade.name}"
-    }
-    return render(request, 'fees/classroom_detail.html', context)
-
-@role_required(['admin', 'accountant'])
-def special_category_detail(request, filter_type):
-    """Detailed student fee list for pseudo-groups like hostel and bus."""
-    from django.utils import timezone
-    today = timezone.now().date()
+    students_qs = students_qs.distinct().order_by('first_name', 'last_name')[:40]
     
-    if filter_type == 'hostel':
-        students = Student.objects.filter(is_active=True, student_type='hostel', enrollments__academic_year__is_active=True).distinct()
-        class_name = "All Hostel Students"
-    elif filter_type == 'bus':
-        students = Student.objects.filter(is_active=True, uses_bus=True, enrollments__academic_year__is_active=True).distinct()
-        class_name = "All Bus Students"
-    else:
-        return redirect('fees:fees_dashboard')
-        
-    student_data = []
-    total_class_currently_due = Decimal('0.00')
-    total_class_due = Decimal('0.00')
-    
-    for student in students:
-        currently_due = Decimal('0.00')
-        total_due = Decimal('0.00')
-        
-        for f in student.fees.all():
-            if f.balance > 0:
-                total_due += f.balance
-                if not f.due_date or f.due_date <= today:
-                    currently_due += f.balance
-        
-        total_class_currently_due += currently_due
-        total_class_due += total_due
-                
-        student_data.append({
-            'student': student,
-            'currently_due': currently_due,
-            'total_due': total_due,
-            'is_new_admission': False, # Not strictly needed here
+    # Annotate total due balance for each student in the list
+    student_list = []
+    for st in students_qs:
+        fees = st.fees.filter(status__in=['due', 'partial'])
+        due_sum = Decimal('0.00')
+        for f in fees:
+            due_sum += f.balance
+        student_list.append({
+            'student': st,
+            'total_due': due_sum,
+            'has_due': due_sum > 0,
+            'enrollment': st.current_enrollment
         })
 
-    context = {
-        'student_data': student_data,
-        'total_class_currently_due': total_class_currently_due,
-        'total_class_due': total_class_due,
-        'class_name': class_name,
-        'page_title': class_name
-    }
-    return render(request, 'fees/classroom_detail.html', context)
+    grades = Grade.objects.all().order_by('order', 'name')
+    divisions = Division.objects.all().order_by('name')
 
-@role_required(['admin', 'accountant', 'student'])
-def student_fees(request, student_id):
-    """View all fees for a specific student with dashboard summaries."""
-    # Data isolation for students & Maintenance Check
-    if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
-        from students.models import GlobalSettings
-        if GlobalSettings.load().suspend_student_fees:
-            return render(request, 'fees/student_fees_maintenance.html', {
-                'student': request.user.profile.student_record
-            })
-        if not request.user.profile.student_record or request.user.profile.student_record.id != int(student_id):
-            messages.error(request, "You do not have permission to view other students' fee details.")
-            return redirect('students:home')
-            
+    context = {
+        'page_title': 'Fee Collection Counter',
+        'student_list': student_list,
+        'search_query': search_query,
+        'grades': grades,
+        'divisions': divisions,
+        'selected_grade': int(grade_id) if grade_id else None,
+        'selected_division': int(division_id) if division_id else None,
+        'selected_type': student_type,
+    }
+    return render(request, 'fees/fee_counter.html', context)
+
+
+@login_required
+def student_fee_detail(request, student_id):
+    """
+    Detailed fee collection & account statement for a specific student.
+    Automatically syncs and accumulates recurring monthly dues (Hostel & Bus).
+    """
     student = get_object_or_404(Student, id=student_id)
-    from django.utils import timezone
-    today = timezone.now().date()
     
-    fees = student.fees.all().order_by('due_date')
-    
-    # Calculate Summaries
-    total_paid = fees.aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')
-    
-    total_due = Decimal('0.00')
-    balance_pending = Decimal('0.00')
-    next_due_date = None
-    current_installment_due = Decimal('0.00')  # balance of only the single current installment
-    current_installment_fee = None             # the fee object for the current installment
-    
-    for fee in fees:
-        if fee.balance > 0:
-            if not next_due_date or (fee.due_date and fee.due_date < next_due_date):
-                if fee.due_date and fee.due_date >= today:
-                    next_due_date = fee.due_date
-            
-            if not fee.due_date or fee.due_date <= today:
-                total_due += fee.balance
+    # Permission check: superuser, admin, accountant, teacher or the student themselves
+    if not request.user.is_superuser:
+        user_profile = getattr(request.user, 'profile', None)
+        user_role = getattr(user_profile, 'role', None) if user_profile else None
+        if user_role not in ['admin', 'accountant', 'teacher']:
+            if user_role == 'student':
+                if not user_profile.student_record or user_profile.student_record.id != student.id:
+                    raise PermissionDenied("You do not have permission to view this fee ledger.")
             else:
-                balance_pending += fee.balance
+                raise PermissionDenied("You do not have permission to view this page.")
 
-    # If no future due dates, and still has balance, find the oldest due date
-    if not next_due_date:
-        overdue_fees = [f for f in fees if f.balance > 0 and f.due_date and f.due_date <= today]
-        if overdue_fees:
-            next_due_date = overdue_fees[0].due_date
-
-    # Find the single "current" installment: the one with the EARLIEST due date <= today (first unpaid installment)
-    overdue_list = [f for f in fees if f.balance > 0 and f.due_date and f.due_date <= today]
-    overdue_count = len(overdue_list)
-    if overdue_list:
-        # Pick the one with the earliest (oldest) due date — the first installment the student needs to pay
-        current_installment_fee = min(overdue_list, key=lambda f: f.due_date)
-        current_installment_due = current_installment_fee.balance
-
-    # Fetch grouped payments to act as combined receipts (Using new ReceiptTransaction model)
-    from .models import ReceiptTransaction
-    receipt_txns = ReceiptTransaction.objects.filter(student=student).order_by('-date')
+    # Automatically synchronize elapsed monthly recurring fees up to today
+    sync_student_monthly_dues(student)
     
-    unified_receipts = []
+    all_fees = student.fees.all().select_related('fee_item', 'fee_item__category', 'installment').order_by('due_date', 'id')
     
-    # 1. Process new Unified ReceiptTransactions
-    for txn in receipt_txns:
-        payments_for_txn = txn.fee_payments.all()
-        allocated = sum(p.amount for p in payments_for_txn)
-        advance = txn.total_amount - allocated
+    # Calculate account aggregates
+    total_billed = Decimal('0.00')
+    total_concessions = Decimal('0.00')
+    total_paid = Decimal('0.00')
+    total_due = Decimal('0.00')
+    
+    # Categorize dues cleanly
+    course_fees = []
+    hostel_fees = []
+    bus_fees = []
+    admission_fees = []
+    caution_fees = []
+    adhoc_fees = []
+    
+    for f in all_fees:
+        total_billed += f.total_amount
+        total_concessions += f.concession_amount
+        total_paid += f.amount_paid
+        total_due += f.balance
         
-        unified_receipts.append({
-            'is_legacy': False,
-            'transaction_id': str(txn.transaction_id),
-            'date': txn.date,
-            'amount': txn.total_amount,
-            'method': txn.get_payment_method_display(),
-            'reference': txn.reference_number,
-            'payments': payments_for_txn,
-            'advance_amount': advance
-        })
-        
-    # 2. Process legacy Income-based receipts
-    legacy_income_ids = FeePayment.objects.filter(
-        student_fee__student=student, 
-        income__isnull=False, 
-        receipt_transaction__isnull=True
-    ).values_list('income__id', flat=True).distinct()
-    
-    incomes = Income.objects.filter(id__in=legacy_income_ids).order_by('-date')
-    
-    for inc in incomes:
-        # Only grab payments not associated with ReceiptTransaction to prevent double counting
-        payments_for_inc = inc.fee_payments.filter(receipt_transaction__isnull=True)
-        allocated = sum(p.amount for p in payments_for_inc)
-        advance = inc.amount - allocated
-        
-        unified_receipts.append({
-            'is_legacy': True,
-            'transaction_id': str(inc.id),
-            'date': inc.date,
-            'amount': inc.amount,
-            'method': inc.get_payment_method_display(),
-            'reference': inc.reference_number,
-            'payments': payments_for_inc,
-                'advance_amount': advance
-        })
-        
-    # Sort unified_receipts by date descending
-    unified_receipts.sort(key=lambda x: x['date'], reverse=True)
-    
-    total_balance = total_due + balance_pending
-    
-    # Categorize fees for cleaner UI
-    fee_categories = {
-        'Admission Fees': [],
-        'Course Fees': [],
-        'Hostel Fees': [],
-        'Bus Fees': [],
-        'Other Fees': []
-    }
-    
-    for fee in fees:
-        ftype = fee.fee_item.fee_type if fee.fee_item else 'other'
-        if ftype == 'admission':
-            fee_categories['Admission Fees'].append(fee)
-        elif ftype == 'course':
-            fee_categories['Course Fees'].append(fee)
-        elif ftype == 'hostel':
-            fee_categories['Hostel Fees'].append(fee)
-        elif ftype == 'bus':
-            fee_categories['Bus Fees'].append(fee)
+        ft = f.fee_item.fee_type if f.fee_item else 'other'
+        if ft == 'hostel':
+            hostel_fees.append(f)
+        elif ft == 'bus':
+            bus_fees.append(f)
+        elif ft == 'course' or f.installment:
+            course_fees.append(f)
+        elif ft == 'admission':
+            admission_fees.append(f)
+        elif ft == 'caution':
+            caution_fees.append(f)
         else:
-            fee_categories['Other Fees'].append(fee)
-    
+            adhoc_fees.append(f)
+
+    # Recent receipts for this student
+    receipts = student.receipt_transactions.all().order_by('-date', '-id')
+
+    fee_groups = [
+        ('Course & Term Fees', course_fees),
+        ('Monthly Hostel Fees', hostel_fees),
+        ('Monthly Bus Fees', bus_fees),
+        ('Admission Essentials', admission_fees),
+        ('Caution Deposit', caution_fees),
+        ('Ad-hoc & Other Dues', adhoc_fees),
+    ]
+
     context = {
+        'page_title': f'Fee Ledger - {student.full_name}',
         'student': student,
-        'fees': fees,
-        'fee_categories': {k: v for k, v in fee_categories.items() if v}, # Only non-empty categories
+        'enrollment': student.current_enrollment,
+        'all_fees': all_fees,
+        'total_billed': total_billed,
+        'total_concessions': total_concessions,
         'total_paid': total_paid,
         'total_due': total_due,
-        'current_installment_due': current_installment_due,
-        'current_installment_fee': current_installment_fee,
-        'overdue_count': overdue_count,
-        'balance_pending': balance_pending,
-        'total_balance': total_balance,
-        'next_due_date': next_due_date,
-        'unified_receipts': unified_receipts,
-        'page_title': f"Fees Dashboard: {student.full_name}"
+        'fee_groups': fee_groups,
+        'course_fees': course_fees,
+        'hostel_fees': hostel_fees,
+        'bus_fees': bus_fees,
+        'admission_fees': admission_fees,
+        'caution_fees': caution_fees,
+        'adhoc_fees': adhoc_fees,
+        'receipts': receipts,
+        'payment_settings': InstitutionPaymentSetting.get_settings(),
+        'today': date.today(),
     }
-    return render(request, 'fees/student_fees.html', context)
+    return render(request, 'fees/student_fee_detail.html', context)
 
+
+@login_required
 @role_required(['admin', 'accountant'])
-def collect_payment(request, student_id):
-    """Collect lumped payment for a student and auto-allocate across pending fees."""
+@require_POST
+def apply_fee_reduction_submit(request, student_id):
+    """Applies a fee reduction/waiver (e.g. not used bus, not used hostel, partial days) to a specific fee."""
     student = get_object_or_404(Student, id=student_id)
-    pending_fees = student.fees.filter(status__in=['due', 'partial']).order_by('due_date')
-    total_due = sum(f.balance for f in pending_fees)
-    
-    if request.method == 'POST':
-        amount = request.POST.get('amount')
-        payment_method = request.POST.get('payment_method', 'cash')
-        reference_number = request.POST.get('reference_number', '')
-        remarks = request.POST.get('remarks', '')
-        
-        selected_fee_ids = request.POST.getlist('selected_fees')
-        
-        try:
-            amount = Decimal(amount)
-            if amount <= 0:
-                raise ValueError("Amount must be positive.")
-                
-            from .models import ReceiptTransaction
-            receipt_tx = ReceiptTransaction.objects.create(
-                student=student,
-                total_amount=amount,
-                payment_method=payment_method,
-                reference_number=reference_number,
-                collected_by=request.user.username,
-                remarks=remarks
-            )
-            
-            all_pending_fees = list(pending_fees)
-            selected_fees = [f for f in all_pending_fees if str(f.id) in selected_fee_ids]
-            unselected_fees = [f for f in all_pending_fees if str(f.id) not in selected_fee_ids]
-            
-            remaining_amount = amount
-            payments_created = []
+    fee_id = request.POST.get('fee_id')
+    reduction_type = request.POST.get('reduction_type', 'fixed')  # full, fixed, percent, days, reset
+    value_str = request.POST.get('reduction_value', '0').strip()
+    reason_preset = request.POST.get('reason_preset', '').strip()
+    reason_custom = request.POST.get('reason_custom', '').strip()
+    present_days_str = request.POST.get('present_days', '').strip()
+    total_days_str = request.POST.get('total_days', '30').strip()
 
-            # Loop 1: Distribute the amount across the selected fees
-            for fee in selected_fees:
-                if remaining_amount <= 0:
-                    break
-                    
-                payment_for_this_fee = min(remaining_amount, fee.balance)
-                
-                payment = FeePayment.objects.create(
-                    student_fee=fee,
-                    amount=payment_for_this_fee,
-                    payment_method=payment_method,
-                    reference_number=reference_number,
-                    remarks=f"User-selected from total payment. " + remarks,
-                    collected_by=request.user.username,
-                    receipt_transaction=receipt_tx
-                )
-                payments_created.append(payment)
-                
-                fee.amount_paid += payment.amount
-                fee.update_status()
-                remaining_amount -= payment_for_this_fee
+    if not fee_id:
+        messages.error(request, "Please select a fee item to apply reduction.")
+        return redirect('fees:student_fee_detail', student_id=student.id)
 
-            # Loop 2: Distribute remaining amount across unselected fees
-            for fee in unselected_fees:
-                if remaining_amount <= 0:
-                    break
-                    
-                payment_for_this_fee = min(remaining_amount, fee.balance)
-                
-                payment = FeePayment.objects.create(
-                    student_fee=fee,
-                    amount=payment_for_this_fee,
-                    payment_method=payment_method,
-                    reference_number=reference_number,
-                    remarks=f"Auto-allocated from remaining lumpsum payment. " + remarks,
-                    collected_by=request.user.username,
-                    receipt_transaction=receipt_tx
-                )
-                payments_created.append(payment)
-                
-                fee.amount_paid += payment.amount
-                fee.update_status()
-                remaining_amount -= payment_for_this_fee
-                
-            # Loop 3: If funds still remain, apply to UPCOMING (future) fees sorted by due date
-            advance_message = ""
-            advance_allocated_messages = []
-            if remaining_amount > 0:
-                # Get all future fees (status 'due', not yet past due, or already partial) sorted by earliest due date
-                future_fees = student.fees.filter(
-                    status__in=['due', 'partial']
-                ).exclude(
-                    id__in=[f.id for f in all_pending_fees]  # exclude already-processed fees
-                ).order_by('due_date')
+    fee = get_object_or_404(StudentFee, id=fee_id, student=student)
+    reason = reason_custom if reason_custom else reason_preset
 
-                for future_fee in future_fees:
-                    if remaining_amount <= 0:
-                        break
-                    payment_for_this_fee = min(remaining_amount, future_fee.balance)
-                    payment = FeePayment.objects.create(
-                        student_fee=future_fee,
-                        amount=payment_for_this_fee,
-                        payment_method=payment_method,
-                        reference_number=reference_number,
-                        remarks=f"Auto-advance allocation from overpayment. " + remarks,
-                        collected_by=request.user.username,
-                        receipt_transaction=receipt_tx
-                    )
-                    payments_created.append(payment)
-                    future_fee.amount_paid += payment.amount
-                    future_fee.update_status()
-                    remaining_amount -= payment_for_this_fee
-                    item_name = future_fee.fee_item.name if future_fee.fee_item else 'Fee'
-                    due_label = future_fee.due_date.strftime('%d/%m/%Y') if future_fee.due_date else 'upcoming'
-                    advance_allocated_messages.append(f"₹{payment.amount:.2f} → {item_name} (due {due_label})")
-
-                if advance_allocated_messages:
-                    advance_message = f" Advance applied: {', '.join(advance_allocated_messages)}."
-
-                # If still leftover after all future fees also settled, store rest as advance
-                if remaining_amount > 0:
-                    student.advance_balance += remaining_amount
-                    student.save()
-                    advance_message += f" ₹{remaining_amount:.2f} stored as Advance Balance."
-
-            # Automatically log this in the Departmental Income ledger
-            from collections import defaultdict
-            dept_totals = defaultdict(Decimal)
-            payments_by_dept = defaultdict(list)
-            
-            for payment in payments_created:
-                # Assuming StudentFee.fee_item is the link to FeeItem
-                # We need to ensure we can access the department
-                dept = getattr(payment.student_fee.fee_item, 'department', 'academic')
-                dept_totals[dept] += payment.amount
-                payments_by_dept[dept].append(payment)
-            
-            if remaining_amount > 0:
-                dept_totals['general'] += remaining_amount
-            
-            for dept, total_dept_amount in dept_totals.items():
-                if total_dept_amount <= 0:
-                    continue
-                    
-                # Get or create a category for this department
-                cat_name = f"Student Fees ({dept.capitalize()})"
-                fee_category, _ = AccountCategory.objects.get_or_create(
-                    name=cat_name, 
-                    type='income',
-                    defaults={
-                        'description': f'Automatically generated category for {dept} student fees',
-                        'department': dept
-                    }
-                )
-                
-                income_record = Income.objects.create(
-                    category=fee_category,
-                    amount=total_dept_amount,
-                    received_from=student.full_name,
-                    payment_method=payment_method,
-                    reference_number=reference_number,
-                    remarks=f"Departmental Collection: {dept}.{advance_message if dept == 'general' else ''} Remarks: {remarks}",
-                    department=dept,
-                    collected_by=request.user.username
-                )
-                
-                # Link related payments to this specific departmental income record
-                for payment in payments_by_dept[dept]:
-                    payment.income = income_record
-                    payment.save()
-            
-            messages.success(request, f"Payment of ₹{amount} collected and allocated successfully across departments.{advance_message}")
-            return redirect('fees:student_fees', student_id=student.id)
-        except ValueError as e:
-            messages.error(request, str(e))
-            
-    context = {
-        'student': student,
-        'pending_fees': pending_fees,
-        'total_due': total_due,
-        'page_title': 'Collect Fee Payment'
-    }
-    return render(request, 'fees/collect_payment.html', context)
-
-@role_required(['admin', 'accountant', 'student'])
-def download_receipt(request, receipt_id):
-    """Generate and return an itemized PDF/HTML receipt for a unified transaction or legacy income record."""
-    from .models import ReceiptTransaction
-    import uuid
-    
-    student = None
-    
-    # Check if receipt_id is a UUID (meaning new ReceiptTransaction)
     try:
-        uuid_obj = uuid.UUID(receipt_id)
-        is_uuid = True
-    except ValueError:
-        is_uuid = False
-        
-    if is_uuid:
-        txn = get_object_or_404(ReceiptTransaction, transaction_id=receipt_id)
-        payments = txn.fee_payments.all()
-        student = txn.student
-        allocated_amount = sum(p.amount for p in payments)
-        advance_amount = txn.total_amount - allocated_amount
-        receipt_obj = txn
-        receipt_number = payments.first().receipt_number if payments.exists() else txn.transaction_id
-        ctx_date = txn.date
-        ctx_total = txn.total_amount
-        ctx_method = txn.get_payment_method_display()
-        ctx_ref = txn.reference_number
-        ctx_collector = txn.collected_by
+        value = Decimal(value_str or '0')
+    except Exception:
+        value = Decimal('0.00')
+
+    present_days = int(present_days_str) if present_days_str.isdigit() else None
+    total_days = int(total_days_str) if total_days_str.isdigit() else 30
+
+    apply_fee_reduction(
+        student_fee=fee,
+        reduction_type=reduction_type,
+        value=value,
+        reason=reason,
+        present_days=present_days,
+        total_days=total_days
+    )
+
+    if reduction_type == 'reset':
+        messages.success(request, f"Fee reduction cleared for '{fee.display_title}'.")
     else:
-        # Legacy fallback
-        income = get_object_or_404(Income, id=receipt_id)
-        payments = income.fee_payments.filter(receipt_transaction__isnull=True)
-        if payments.exists():
-            student = payments.first().student_fee.student
-        allocated_amount = sum(p.amount for p in payments)
-        advance_amount = income.amount - allocated_amount
-        receipt_obj = income
-        receipt_number = payments.first().receipt_number if payments.exists() else income.id
-        ctx_date = income.date
-        ctx_total = income.amount
-        ctx_method = income.get_payment_method_display()
-        ctx_ref = income.reference_number
-        ctx_collector = income.collected_by
+        if fee.billing_month:
+            messages.success(request, f"Fee reduction of ₹{fee.concession_amount:.2f} applied to {fee.fee_item.name if fee.fee_item else 'Fee'} strictly for {fee.billing_month.strftime('%B %Y')} only. Reason: {reason or 'Fee Concession'}")
+        else:
+            messages.success(request, f"Fee reduction of ₹{fee.concession_amount:.2f} applied to '{fee.display_title}'. Reason: {reason or 'Fee Concession'}")
+
+    return redirect('fees:student_fee_detail', student_id=student.id)
+
+
+@login_required
+@role_required(['admin', 'accountant'])
+@require_POST
+def add_adhoc_fee_submit(request, student_id):
+    """Add an ad-hoc charge (medical, outside order, store borrow, etc.) directly to student."""
+    student = get_object_or_404(Student, id=student_id)
+    title = request.POST.get('title', '').strip()
+    amount_str = request.POST.get('amount', '0').strip()
+    remarks = request.POST.get('remarks', '').strip()
+    due_date_str = request.POST.get('due_date')
+    
+    if not title:
+        messages.error(request, "Please enter a charge title or reason.")
+        return redirect('fees:student_fee_detail', student_id=student.id)
         
-    # Data isolation for student/parent role
-    if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
-        if student and (not request.user.profile.student_record or request.user.profile.student_record.id != student.id):
-            messages.error(request, "You do not have permission to view this receipt.")
-            return redirect('students:home')
-            
+    try:
+        amount = Decimal(amount_str)
+        if amount <= 0:
+            raise ValueError()
+    except Exception:
+        messages.error(request, "Please enter a valid positive charge amount.")
+        return redirect('fees:student_fee_detail', student_id=student.id)
+
+    due_d = None
+    if due_date_str:
+        try:
+            due_d = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+
+    add_adhoc_charge(student, title, amount, remarks=remarks, due_date=due_d)
+    messages.success(request, f"Ad-hoc charge '{title}' of ₹{amount} added successfully.")
+    return redirect('fees:student_fee_detail', student_id=student.id)
+
+
+@login_required
+@role_required(['admin', 'accountant'])
+@require_POST
+def collect_payment_submit(request, student_id):
+    """Processes fee collection and generates a printable receipt."""
+    student = get_object_or_404(Student, id=student_id)
+    payment_method = request.POST.get('payment_method', 'cash')
+    reference_number = request.POST.get('reference_number', '').strip()
+    remarks = request.POST.get('remarks', '').strip()
+    collector = request.user.get_full_name() or request.user.username
+    
+    # Read selected items and amounts
+    selected_fee_ids = request.POST.getlist('selected_fees')
+    if not selected_fee_ids:
+        messages.error(request, "No fee items were selected for payment.")
+        return redirect('fees:student_fee_detail', student_id=student.id)
+
+    fee_allocations = []
+    for sf_id in selected_fee_ids:
+        pay_str = request.POST.get(f'pay_amount_{sf_id}', '0').strip()
+        conc_str = request.POST.get(f'concession_{sf_id}', '0').strip()
+        try:
+            pay_amt = Decimal(pay_str or '0')
+            conc_amt = Decimal(conc_str or '0')
+            if pay_amt > 0 or conc_amt > 0:
+                fee_allocations.append({
+                    'fee_id': int(sf_id),
+                    'amount': pay_amt,
+                    'concession': conc_amt
+                })
+        except Exception:
+            continue
+
+    if not fee_allocations:
+        messages.error(request, "Please enter valid payment amounts for the selected items.")
+        return redirect('fees:student_fee_detail', student_id=student.id)
+
+    try:
+        receipt_tx = record_fee_payment(
+            student=student,
+            fee_allocations=fee_allocations,
+            payment_method=payment_method,
+            reference_number=reference_number,
+            collected_by=collector,
+            remarks=remarks
+        )
+        messages.success(request, f"Payment of ₹{receipt_tx.total_amount} recorded successfully. Receipt generated.")
+        return redirect('fees:print_receipt', receipt_id=str(receipt_tx.transaction_id))
+    except Exception as e:
+        messages.error(request, f"Failed to process payment: {str(e)}")
+        return redirect('fees:student_fee_detail', student_id=student.id)
+
+
+@login_required
+def print_receipt(request, receipt_id):
+    """Clean, gentle, printable receipt voucher."""
+    receipt = get_object_or_404(ReceiptTransaction, transaction_id=receipt_id)
+    payments = receipt.fee_payments.all().select_related('student_fee', 'student_fee__fee_item', 'student_fee__installment')
+    student = receipt.student
+    
+    # Calculate student's overall remaining balance after this payment
+    total_remaining = Decimal('0.00')
+    for f in student.fees.filter(status__in=['due', 'partial']):
+        total_remaining += f.balance
+
     context = {
-        'receipt': receipt_obj,
-        'is_legacy': not is_uuid,
+        'receipt': receipt,
         'payments': payments,
         'student': student,
-        'allocated_amount': allocated_amount,
-        'advance_amount': advance_amount,
-        'receipt_number': str(receipt_number)[:12],
-        'receipt_date': ctx_date,
-        'receipt_total': ctx_total,
-        'receipt_method': ctx_method,
-        'receipt_ref': ctx_ref,
-        'receipt_collector': ctx_collector
+        'enrollment': student.current_enrollment,
+        'total_remaining': total_remaining,
+        'page_title': f'Receipt - {receipt.student.full_name}',
     }
-    return render(request, 'fees/receipt.html', context)
+    return render(request, 'fees/receipt_print.html', context)
 
 
+@login_required
 @role_required(['admin', 'accountant'])
-def add_income(request):
+def batch_monthly_billing(request):
+    """Batch generator for monthly hostel and bus dues across all students."""
+    today = date.today()
     if request.method == 'POST':
-        form = IncomeForm(request.POST)
-        if form.is_valid():
-            is_fee_collection = form.cleaned_data.get('is_fee_collection')
-            income = form.save(commit=False)
-            income.collected_by = request.user.username
+        month_val = int(request.POST.get('month', today.month))
+        year_val = int(request.POST.get('year', today.year))
+        billing_date = date(year_val, month_val, 1)
+        
+        result = batch_generate_monthly_fees(billing_date)
+        messages.success(
+            request,
+            f"Generated {result['total_count']} monthly dues for {billing_date.strftime('%B %Y')} "
+            f"(Hostel: {result['hostel_count']}, Bus: {result['bus_count']}) amounting to ₹{result['total_amount']}."
+        )
+        return redirect('fees:batch_monthly_billing')
 
-            if is_fee_collection:
-                student = form.cleaned_data.get('student')
-                amount = form.cleaned_data.get('amount')
-                
-                from .models import ReceiptTransaction
-                receipt_tx = ReceiptTransaction.objects.create(
-                    student=student,
-                    total_amount=amount,
-                    payment_method=income.payment_method,
-                    reference_number=income.reference_number,
-                    collected_by=request.user.username,
-                    remarks=income.remarks
-                )
-                
-                # Fetch selected fees from array
-                selected_fee_ids = request.POST.getlist('selected_fees')
-                
-                # Fetch all pending fees for this student, oldest due date first
-                all_pending_fees = list(student.fees.filter(status__in=['due', 'partial']).order_by('due_date'))
-                
-                # Partition into selected and unselected preserving ordinality
-                selected_fees = [f for f in all_pending_fees if str(f.id) in selected_fee_ids]
-                unselected_fees = [f for f in all_pending_fees if str(f.id) not in selected_fee_ids]
-                
-                remaining_amount = amount
-                payments_created = []
-                
-                # Loop 1: Pay off the selected fees first
-                for fee in selected_fees:
-                    if remaining_amount <= 0:
-                        break
-                        
-                    payment_for_this_fee = min(remaining_amount, fee.balance)
-                    
-                    payment = FeePayment.objects.create(
-                        student_fee=fee,
-                        amount=payment_for_this_fee,
-                        payment_method=income.payment_method,
-                        reference_number=income.reference_number,
-                        remarks=f"User-selected from total payment. " + income.remarks,
-                        collected_by=request.user.username,
-                        receipt_transaction=receipt_tx
-                    )
-                    payments_created.append(payment)
-                    
-                    fee.amount_paid += payment.amount
-                    fee.update_status()
-                    remaining_amount -= payment_for_this_fee
-
-                # Loop 2: Pay off any remaining unselected pending fees chronologically
-                for fee in unselected_fees:
-                    if remaining_amount <= 0:
-                        break
-                        
-                    payment_for_this_fee = min(remaining_amount, fee.balance)
-                    
-                    payment = FeePayment.objects.create(
-                        student_fee=fee,
-                        amount=payment_for_this_fee,
-                        payment_method=income.payment_method,
-                        reference_number=income.reference_number,
-                        remarks=f"Auto-allocated from remaining lumpsum payment. " + income.remarks,
-                        collected_by=request.user.username,
-                        receipt_transaction=receipt_tx
-                    )
-                    payments_created.append(payment)
-                    
-                    fee.amount_paid += payment.amount
-                    fee.update_status()
-                    remaining_amount -= payment_for_this_fee
-                    
-                # Loop 3: If funds still remain, store as advance on student profile
-                advance_message = ""
-                if remaining_amount > 0:
-                    student.advance_balance += remaining_amount
-                    student.save()
-                    advance_message = f" ₹{remaining_amount} added as Advance."
-
-                # Create a single cohesive Income ledger record for the total
-                fee_category = form.cleaned_data.get('category')
-                income_record = Income.objects.create(
-                    category=fee_category,
-                    amount=amount,
-                    received_from=income.received_from,
-                    payment_method=income.payment_method,
-                    reference_number=income.reference_number,
-                    remarks=f"Allocated across {len(payments_created)} fee items.{advance_message} " + income.remarks,
-                    fee_payment_ref=payments_created[0] if payments_created else None,
-                    collected_by=request.user.username
-                )
-                
-                # Link each individual payment piece to the overarching income receipt
-                for payment in payments_created:
-                    payment.income = income_record
-                    payment.save()
-                messages.success(request, f"Total payment of ₹{amount} processed successfully.{advance_message}")
-            else:
-                # Standard pure income
-                income.save()
-                messages.success(request, "Income recorded successfully.")
-            return redirect('fees:dashboard')
-    else:
-        form = IncomeForm()
-
-    # Get distinct active class/division combinations for the filter dropdown
-    class_divisions_query = Student.objects.filter(is_active=True, enrollments__academic_year__is_active=True).values_list('enrollments__grade', 'enrollments__division__name').distinct().order_by('enrollments__grade', 'enrollments__division__name')
-    class_divisions = []
-    for grade, division in class_divisions_query:
-        if division:
-            class_divisions.append(f"{grade} - {division}")
-        else:
-            class_divisions.append(grade)
+    months = [(i, calendar.month_name[i]) for i in range(1, 13)]
+    years = [today.year - 1, today.year, today.year + 1]
 
     context = {
-        'form': form,
-        'class_divisions': class_divisions,
-        'page_title': 'Record Income'
+        'page_title': 'Monthly Fee Batch Generator',
+        'months': months,
+        'years': years,
+        'current_month': today.month,
+        'current_year': today.year,
     }
-    return render(request, 'fees/income_form.html', context)
+    return render(request, 'fees/batch_monthly_billing.html', context)
 
+
+# ==========================================
+# GENERAL INCOMES & EXPENSES (OFFICE FINANCE)
+# ==========================================
+
+@login_required
 @role_required(['admin', 'accountant'])
-def add_expense(request):
-    if request.method == 'POST':
-        form = ExpenseForm(request.POST)
-        if form.is_valid():
-            expense = form.save(commit=False)
-            expense.recorded_by = request.user.username
-            expense.save()
-            messages.success(request, "Expense recorded successfully.")
-            return redirect('fees:dashboard')
-    else:
-        form = ExpenseForm()
+def income_list(request):
+    """List of all office incomes with category & date filters."""
+    incomes = Income.objects.select_related('category').order_by('-date', '-id')
+    
+    cat_id = request.GET.get('category')
+    start_d = request.GET.get('start_date')
+    end_d = request.GET.get('end_date')
+    
+    if cat_id:
+        incomes = incomes.filter(category_id=cat_id)
+    if start_d:
+        incomes = incomes.filter(date__gte=start_d)
+    if end_d:
+        incomes = incomes.filter(date__lte=end_d)
+
+    total_amount = incomes.aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+    categories = AccountCategory.objects.filter(type='income').order_by('name')
 
     context = {
-        'form': form,
-        'page_title': 'Record Expense'
-    }
-    return render(request, 'fees/expense_form.html', context)
-
-
-from django.http import JsonResponse
-from datetime import date
-from .models import FeeCategory, FeeItem
-
-@role_required(['admin', 'accountant'])
-def assign_bulk_admission_fees(request):
-    """Admin/Accountant action to assign admission fees to selected students"""
-    if request.method == 'POST':
-        student_ids = request.POST.getlist('student_ids')
-        if not student_ids:
-            messages.warning(request, "No students selected for fee assignment.")
-            return redirect(request.META.get('HTTP_REFERER', 'fees:fees_dashboard'))
-
-        try:
-            admission_items = FeeItem.objects.filter(fee_type='admission')
-            
-            if not admission_items.exists():
-                messages.warning(request, "No fee items found with type 'Admission Time Fee'.")
-                return redirect('fees:fee_setup_dashboard')
-
-            students = Student.objects.filter(id__in=student_ids, is_active=True).distinct()
-            assigned_count = 0
-            
-            for student in students:
-                enrollment = student.current_enrollment 
-                if not enrollment:
-                    continue
-
-                for item in admission_items:
-                    # Logic: Respect targeting
-                    # 1. Does it target specific grades? If so, student must be in one of them.
-                    if item.applicable_grades.exists() and not item.applicable_grades.filter(id=enrollment.grade.id).exists():
-                        continue
-                        
-                    # 2. Does it target specific divisions? If so, student must be in one of them.
-                    if item.applicable_divisions.exists():
-                        if not enrollment.division or not item.applicable_divisions.filter(id=enrollment.division.id).exists():
-                            continue
-
-                    # 3. Does it target specific student types?
-                    if item.target_student_type != 'all':
-                        if student.student_type != item.target_student_type:
-                            continue
-
-                    # Check for FeeStructure specific amount first
-                    fee_struct = FeeStructure.objects.filter(
-                        academic_year=enrollment.academic_year,
-                        grade=enrollment.grade,
-                        division=enrollment.division,
-                        fee_item=item
-                    ).first()
-
-                    # Fallback to grade-only structure if division-specific not found
-                    if not fee_struct and enrollment.division:
-                        fee_struct = FeeStructure.objects.filter(
-                            academic_year=enrollment.academic_year,
-                            grade=enrollment.grade,
-                            division__isnull=True,
-                            fee_item=item
-                        ).first()
-
-                    amount = fee_struct.amount if fee_struct else item.default_amount
-                    if amount > 0:
-                        # Check for installments
-                        installments = item.installment_templates.all()
-                        
-                        if installments.exists():
-                            # Assign each installment
-                            for inst in installments:
-                                # Check if this specific installment is already assigned
-                                inst_exists = StudentFee.objects.filter(
-                                    student=student,
-                                    fee_item=item,
-                                    remarks__icontains=inst.name
-                                ).exists()
-                                
-                                if not inst_exists:
-                                    StudentFee.objects.create(
-                                        student=student,
-                                        fee_item=item,
-                                        total_amount=inst.amount,
-                                        due_date=inst.due_date,
-                                        remarks=f"Installment: {inst.name}"
-                                    )
-                                    assigned_count += 1
-                        else:
-                            # Standard single fee item assignment
-                            fee_exists = StudentFee.objects.filter(
-                                student=student,
-                                fee_item=item
-                            ).exists()
-                            
-                            if not fee_exists:
-                                StudentFee.objects.create(
-                                    student=student,
-                                    fee_item=item,
-                                    total_amount=amount,
-                                    due_date=date.today()
-                                )
-                                assigned_count += 1
-            
-            if assigned_count > 0:
-                messages.success(request, f"Successfully assigned {assigned_count} admission fee records to existing students.")
-            else:
-                messages.info(request, "All students already have the admission fees assigned.")
-                
-        except FeeCategory.DoesNotExist:
-            messages.error(request, "Admission fee category does not exist. Please create it first.")
-
-    return redirect(request.META.get('HTTP_REFERER', 'fees:fees_dashboard'))
-
-@role_required(['admin', 'accountant'])
-def cancel_selective_admission_fees(request):
-    """Admin/Accountant action to cancel admission fees for selected students"""
-    if request.method == 'POST':
-        student_ids = request.POST.getlist('student_ids')
-        if not student_ids:
-            messages.warning(request, "No students selected for fee cancellation.")
-            return redirect(request.META.get('HTTP_REFERER', 'fees:fees_dashboard'))
-
-        try:
-            admission_category = FeeCategory.objects.get(name__icontains='Admission')
-            admission_items = FeeItem.objects.filter(category=admission_category)
-            
-            if not admission_items.exists():
-                messages.warning(request, "No fee items found in the Admission category.")
-                return redirect('fees:fee_setup_dashboard')
-
-            # Find fees that are unpaid (amount_paid == 0)
-            fees_to_cancel = StudentFee.objects.filter(
-                student_id__in=student_ids,
-                fee_item__in=admission_items,
-                amount_paid=0
-            )
-            
-            cancel_count = fees_to_cancel.count()
-            if cancel_count > 0:
-                fees_to_cancel.delete()
-                messages.success(request, f"Successfully cancelled {cancel_count} admission fee records.")
-            else:
-                messages.info(request, "No eligible unpaid admission fees were found for the selected students.")
-                
-        except FeeCategory.DoesNotExist:
-            messages.error(request, "Admission fee category does not exist.")
-            
-    return redirect(request.META.get('HTTP_REFERER', 'fees:fees_dashboard'))
-
-@role_required(['admin', 'accountant'])
-def bulk_course_fee_update(request):
-    """Bulk update interface for Course Fees across all grades/divisions"""
-    from students.models import AcademicYear, Grade, Division
-    active_year = AcademicYear.objects.filter(is_active=True).first()
-    
-    if not active_year:
-        messages.error(request, "No active academic year found. Please set one up first.")
-        return redirect('fees:fee_setup_dashboard')
-
-    # Get or create the Course Fee category and item
-    category, _ = FeeCategory.objects.get_or_create(name='Course Fee', defaults={'description': 'Main tuition/course fees'})
-    course_fee_item, _ = FeeItem.objects.get_or_create(
-        category=category, 
-        name='Course Fee', 
-        defaults={'default_amount': 0, 'description': 'Standard course fee for the grade'}
-    )
-
-    grades = Grade.objects.all().order_by('order', 'name')
-    divisions = Division.objects.all().order_by('name')
-    
-    # We want a list of (Grade, Division or None)
-    classrooms = []
-    for g in grades:
-        grade_divisions = g.divisions.all().order_by('name')
-        if grade_divisions.exists():
-            for d in grade_divisions:
-                classrooms.append({'grade': g, 'division': d})
-        else:
-            classrooms.append({'grade': g, 'division': None})
-
-    if request.method == 'POST':
-        updates_count = 0
-        for classroom in classrooms:
-            g_id = classroom['grade'].id
-            d_id = classroom['division'].id if classroom['division'] else 'none'
-            input_key = f"fee_{g_id}_{d_id}"
-            amount = request.POST.get(input_key)
-            
-            if amount is not None and amount.strip() != '':
-                try:
-                    amount = float(amount)
-                    FeeStructure.objects.update_or_create(
-                        academic_year=active_year,
-                        grade=classroom['grade'],
-                        division=classroom['division'],
-                        fee_item=course_fee_item,
-                        defaults={'amount': amount}
-                    )
-                    
-                    # Apply this new fee amount to students currently enrolled in this class
-                    from students.models import Enrollment
-                    from datetime import date
-                    
-                    if classroom['division']:
-                        enrollments = Enrollment.objects.filter(academic_year=active_year, grade=classroom['grade'], division=classroom['division'])
-                    else:
-                        enrollments = Enrollment.objects.filter(academic_year=active_year, grade=classroom['grade'], division__isnull=True)
-                        
-                    templates = course_fee_item.installment_templates.all()
-                    if not templates.exists():
-                        for enrollment in enrollments:
-                            student = enrollment.student
-                            fee, created = StudentFee.objects.get_or_create(
-                                student=student,
-                                fee_item=course_fee_item,
-                                defaults={'total_amount': amount, 'due_date': date.today(), 'remarks': 'Automatically allocated from bulk structure update'}
-                            )
-                            if not created and fee.total_amount != amount:
-                                fee.total_amount = amount
-                                fee.update_status()
-                    else:
-                        for enrollment in enrollments:
-                            student = enrollment.student
-                            # If student has a single unpaid lump-sum, remove it
-                            StudentFee.objects.filter(
-                                student=student,
-                                fee_item=course_fee_item,
-                                amount_paid=0
-                            ).exclude(remarks__icontains='Installment:').delete()
-                            
-                            for tmpl in templates:
-                                existing_fee = StudentFee.objects.filter(
-                                    student=student,
-                                    fee_item=course_fee_item,
-                                    remarks__icontains=tmpl.name
-                                ).first()
-                                
-                                if existing_fee:
-                                    if existing_fee.amount_paid == 0 and (existing_fee.total_amount != tmpl.amount or existing_fee.due_date != tmpl.due_date):
-                                        existing_fee.total_amount = tmpl.amount
-                                        existing_fee.due_date = tmpl.due_date
-                                        existing_fee.update_status()
-                                else:
-                                    StudentFee.objects.create(
-                                        student=student,
-                                        fee_item=course_fee_item,
-                                        total_amount=tmpl.amount,
-                                        due_date=tmpl.due_date,
-                                        remarks=f"Installment: {tmpl.name}"
-                                    )
-                    updates_count += 1
-                except (ValueError, TypeError):
-                    continue
-        
-        messages.success(request, f"Successfully updated {updates_count} course fee structures for {active_year.name}.")
-        return redirect('fees:fee_setup_dashboard')
-
-    existing_structures = FeeStructure.objects.filter(academic_year=active_year, fee_item=course_fee_item)
-    fee_map = {(fs.grade_id, fs.division_id): fs.amount for fs in existing_structures}
-
-    from collections import defaultdict
-    sections = defaultdict(list)
-    for c in classrooms:
-        section_name = c['grade'].section.name if c['grade'].section else "General"
-        c['current_amount'] = fee_map.get((c['grade'].id, c['division'].id if c['division'] else None), 0)
-        sections[section_name].append(c)
-
-    context = {
-        'sections': dict(sections),
-        'active_year': active_year,
-        'course_fee_item': course_fee_item,
-        'page_title': 'Bulk Manage Course Fees'
-    }
-    return render(request, 'fees/bulk_course_fee_form.html', context)
-
-@role_required(['admin', 'accountant'])
-def manage_fee_installments(request, item_id):
-    """Manage the breakdown of a FeeItem into multiple installments"""
-    fee_item = get_object_or_404(FeeItem, pk=item_id)
-    
-    if request.method == 'POST':
-        # Clear existing templates to replace them
-        fee_item.installment_templates.all().delete()
-        
-        counts = int(request.POST.get('count', 0))
-        templates_to_create = []
-        
-        for i in range(1, counts + 1):
-            name = request.POST.get(f'name_{i}')
-            date_val = request.POST.get(f'date_{i}')
-            amount = request.POST.get(f'amount_{i}')
-            
-            if name and date_val and amount:
-                templates_to_create.append(FeeInstallmentTemplate(
-                    fee_item=fee_item,
-                    installment_number=i,
-                    name=name,
-                    due_date=date_val,
-                    amount=amount
-                ))
-        
-        if templates_to_create:
-            FeeInstallmentTemplate.objects.bulk_create(templates_to_create)
-            # Retroactively apply installments to students who have an unpaid lump sum for this fee item
-            unpaid_single_fees = StudentFee.objects.filter(
-                fee_item=fee_item,
-                amount_paid=0
-            ).exclude(remarks__icontains='Installment:')
-            
-            students_to_update = set([f.student for f in unpaid_single_fees])
-            unpaid_single_fees.delete()
-            
-            # ALSO find students who already have installments generated for this fee
-            # We will only replace them if the student hasn't paid ANY part of ANY installment yet.
-            existing_installments = StudentFee.objects.filter(
-                fee_item=fee_item,
-                remarks__icontains='Installment:'
-            )
-            
-            student_installment_groups = {}
-            for inst in existing_installments:
-                if inst.student not in student_installment_groups:
-                    student_installment_groups[inst.student] = []
-                student_installment_groups[inst.student].append(inst)
-                
-            installments_to_delete = []
-            for student, inst_list in student_installment_groups.items():
-                # If ALL installments for this fee item are completely unpaid
-                if all(inst.amount_paid == 0 for inst in inst_list):
-                    students_to_update.add(student)
-                    installments_to_delete.extend(inst_list)
-                    
-            if installments_to_delete:
-                StudentFee.objects.filter(id__in=[inst.id for inst in installments_to_delete]).delete()
-            
-            new_fees = []
-            for student in students_to_update:
-                for tmpl in templates_to_create:
-                    new_fees.append(StudentFee(
-                        student=student,
-                        fee_item=fee_item,
-                        total_amount=tmpl.amount,
-                        due_date=tmpl.due_date,
-                        remarks=f"Installment: {tmpl.name}"
-                    ))
-            
-            if new_fees:
-                StudentFee.objects.bulk_create(new_fees)
-                
-            msg = f"Successfully set up {len(templates_to_create)} installments for {fee_item.name}."
-            if students_to_update:
-                msg += f" Applied to {len(students_to_update)} students automatically."
-            messages.success(request, msg)
-        else:
-            messages.info(request, "No installments were created.")
-            
-        return redirect('fees:fee_setup_dashboard')
-
-    existing_templates = fee_item.installment_templates.all()
-    context = {
-        'fee_item': fee_item,
-        'existing_templates': existing_templates,
-        'page_title': f'Manage Installments: {fee_item.name}'
-    }
-    return render(request, 'fees/manage_installments.html', context)
-
-@role_required(['admin', 'accountant'])
-def generate_monthly_fees(request):
-    """Batch generate recurring (monthly) fees for all active students"""
-    from datetime import date
-    from .services import generate_monthly_fees_for_all
-    
-    if request.method == 'POST':
-        month = int(request.POST.get('month'))
-        year = int(request.POST.get('year'))
-        billing_date = date(year, month, 1)
-        
-        created, updated = generate_monthly_fees_for_all(billing_date)
-        
-        messages.success(request, f"Monthly fees processed: {created} new generated, {updated} updated based on attendance.")
-        return redirect('fees:fee_setup_dashboard')
-
-    return redirect('fees:fee_setup_dashboard')
-
-from .forms import FeeStructureForm
-
-@role_required(['admin', 'accountant'])
-def fee_structure_list(request):
-    """List all specific fee variations"""
-    structures = FeeStructure.objects.select_related('academic_year', 'grade', 'division', 'fee_item').all().order_by('-academic_year__name', 'grade', 'division', 'fee_item__name')
-    context = {
-        'structures': structures,
-        'page_title': 'Grade-Specific Fee Structures'
-    }
-    return render(request, 'fees/fee_structure_list.html', context)
-
-@role_required(['admin', 'accountant'])
-def fee_structure_create(request):
-    if request.method == 'POST':
-        form = FeeStructureForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Fee structure created successfully.')
-            return redirect('fees:fee_structure_list')
-    else:
-        initial = {}
-        item_id = request.GET.get('item')
-        if item_id:
-            initial['fee_item'] = item_id
-        form = FeeStructureForm(initial=initial)
-    
-    context = {'form': form, 'page_title': 'Add Fee Structure'}
-    return render(request, 'fees/fee_structure_form.html', context)
-
-@role_required(['admin', 'accountant'])
-def fee_structure_update(request, pk):
-    structure = get_object_or_404(FeeStructure, pk=pk)
-    if request.method == 'POST':
-        form = FeeStructureForm(request.POST, instance=structure)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Fee structure updated successfully.')
-            return redirect('fees:fee_structure_list')
-    else:
-        form = FeeStructureForm(instance=structure)
-        
-    context = {'form': form, 'page_title': 'Edit Fee Structure', 'is_edit': True}
-    return render(request, 'fees/fee_structure_form.html', context)
-
-@role_required(['admin', 'accountant'])
-def fee_structure_delete(request, pk):
-    structure = get_object_or_404(FeeStructure, pk=pk)
-    if request.method == 'POST':
-        structure.delete()
-        messages.success(request, 'Fee structure deleted successfully.')
-        return redirect('fees:fee_structure_list')
-    context = {'object': structure, 'page_title': 'Delete Fee Structure'}
-    return render(request, 'fees/setup_confirm_delete.html', context)
-
-
-@role_required(['admin', 'accountant'])
-def get_student_fees(request, student_id):
-    """API endpoint to get pending fees for a student"""
-    student = get_object_or_404(Student, id=student_id)
-    fees = student.fees.filter(status__in=['due', 'partial'])
-    
-    data = []
-    for fee in fees:
-        item_name = fee.fee_item.name if fee.fee_item else (fee.installment.name if fee.installment else 'General Fee')
-        data.append({
-            'id': fee.id,
-            'name': f"{item_name} (Bal: ₹{fee.balance})",
-            'balance': str(fee.balance)
-        })
-        
-    return JsonResponse({'fees': data})
-
-@role_required(['admin', 'accountant'])
-def get_students_by_grade(request):
-    """API endpoint to get students for a specific grade and division combination"""
-    class_division = request.GET.get('grade')
-    
-    students = Student.objects.filter(is_active=True).order_by('first_name')
-    if class_division:
-        parts = class_division.split(' - ')
-        grade = parts[0]
-        if len(parts) > 1:
-            division_name = parts[1]
-            students = students.filter(enrollments__academic_year__is_active=True, enrollments__grade=grade, enrollments__division__name=division_name).distinct()
-        else:
-            students = students.filter(enrollments__academic_year__is_active=True, enrollments__grade=grade, enrollments__division__isnull=True).distinct()
-            
-    data = []
-    for student in students:
-        data.append({
-            'id': student.id,
-            'name': f"{student.student_id} - {student.full_name}"
-        })
-        
-    return JsonResponse({'students': data})
-
-
-from .forms import FeeCategoryForm, FeeItemForm
-from .models import FeeCategory, FeeItem
-
-@role_required(['admin', 'accountant'])
-def fee_setup_dashboard(request):
-    categories = FeeCategory.objects.prefetch_related('fee_items').all()
-    context = {
+        'page_title': 'Income Register',
+        'incomes': incomes[:100],
+        'total_amount': total_amount,
         'categories': categories,
-        'page_title': 'Fee Setup Dashboard'
+        'selected_category': int(cat_id) if cat_id else None,
+        'start_date': start_d,
+        'end_date': end_d,
     }
-    return render(request, 'fees/setup_dashboard.html', context)
+    return render(request, 'fees/income_list.html', context)
 
-@role_required(['admin', 'accountant'])
-def fee_category_create(request):
-    if request.method == 'POST':
-        form = FeeCategoryForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Fee Category created successfully.')
-            return redirect('fees:fee_setup_dashboard')
-    else:
-        form = FeeCategoryForm()
-    
-    context = {'form': form, 'page_title': 'Add Fee Category'}
-    return render(request, 'fees/setup_form.html', context)
 
+@login_required
 @role_required(['admin', 'accountant'])
-def fee_category_update(request, pk):
-    category = get_object_or_404(FeeCategory, pk=pk)
+def income_create(request):
+    """Create a manual income entry (donations, grants, canteen rent, sponsorships, etc.)."""
+    categories = AccountCategory.objects.filter(type='income').order_by('name')
+    if not categories.exists():
+        AccountCategory.objects.create(name='General Donations', type='income')
+        AccountCategory.objects.create(name='Institutional Grants', type='income')
+        AccountCategory.objects.create(name='Canteen / Store Rent', type='income')
+        categories = AccountCategory.objects.filter(type='income').order_by('name')
+
     if request.method == 'POST':
-        form = FeeCategoryForm(request.POST, instance=category)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Fee Category updated successfully.')
-            return redirect('fees:fee_setup_dashboard')
-    else:
-        form = FeeCategoryForm(instance=category)
+        cat_id = request.POST.get('category')
+        amount_str = request.POST.get('amount', '0')
+        received_from = request.POST.get('received_from', '').strip()
+        payment_method = request.POST.get('payment_method', 'cash')
+        reference_number = request.POST.get('reference_number', '').strip()
+        remarks = request.POST.get('remarks', '').strip()
         
-    context = {'form': form, 'page_title': 'Edit Fee Category', 'is_edit': True}
-    return render(request, 'fees/setup_form.html', context)
+        try:
+            amount = Decimal(amount_str)
+            if amount <= 0:
+                raise ValueError()
+        except Exception:
+            messages.error(request, "Please enter a valid positive income amount.")
+            return render(request, 'fees/income_form.html', {'categories': categories})
 
-@role_required(['admin', 'accountant'])
-def fee_category_delete(request, pk):
-    category = get_object_or_404(FeeCategory, pk=pk)
-    if request.method == 'POST':
-        category.delete()
-        messages.success(request, 'Fee Category deleted successfully.')
-        return redirect('fees:fee_setup_dashboard')
-    context = {'object': category, 'page_title': 'Delete Fee Category'}
-    return render(request, 'fees/setup_confirm_delete.html', context)
-
-@role_required(['admin', 'accountant'])
-def fee_item_create(request):
-    from students.models import AcademicYear, Grade, Division, Enrollment
-    from .models import FeeStructure, StudentFee
-    from datetime import date
-    
-    active_year = AcademicYear.objects.filter(is_active=True).first()
-    
-    grades = Grade.objects.all().order_by('order', 'name')
-    divisions = Division.objects.all().order_by('name')
-    
-    classrooms = []
-    for g in grades:
-        grade_divisions = g.divisions.all().order_by('name')
-        if grade_divisions.exists():
-            for d in grade_divisions:
-                classrooms.append({'grade': g, 'division': d})
-        else:
-            classrooms.append({'grade': g, 'division': None})
-
-    if request.method == 'POST':
-        form = FeeItemForm(request.POST)
-        if form.is_valid():
-            fee_item = form.save()
-            
-            if active_year:
-                for classroom in classrooms:
-                    g_id = classroom['grade'].id
-                    d_id = classroom['division'].id if classroom['division'] else 'none'
-                    input_key = f"fee_{g_id}_{d_id}"
-                    amount = request.POST.get(input_key)
-                    
-                    if amount is not None and amount.strip() != '':
-                        try:
-                            amount = float(amount)
-                            FeeStructure.objects.update_or_create(
-                                academic_year=active_year,
-                                grade=classroom['grade'],
-                                division=classroom['division'],
-                                fee_item=fee_item,
-                                defaults={'amount': amount}
-                            )
-                            
-                            if not fee_item.installment_templates.exists() and not fee_item.is_monthly:
-                                if classroom['division']:
-                                    enrollments = Enrollment.objects.filter(academic_year=active_year, grade=classroom['grade'], division=classroom['division'])
-                                else:
-                                    enrollments = Enrollment.objects.filter(academic_year=active_year, grade=classroom['grade'], division__isnull=True)
-                                
-                                for enrollment in enrollments:
-                                    # Target student type check
-                                    if fee_item.target_student_type != 'all' and enrollment.student.student_type != fee_item.target_student_type:
-                                        continue
-
-                                    fee, created = StudentFee.objects.get_or_create(
-                                        student=enrollment.student,
-                                        fee_item=fee_item,
-                                        defaults={'total_amount': amount, 'due_date': date.today(), 'remarks': 'Automatically allocated from fee setup'}
-                                    )
-                                    if not created and fee.total_amount != amount and fee.amount_paid == 0:
-                                        fee.total_amount = amount
-                                        fee.update_status()
-                                        fee.save()
-                        except (ValueError, TypeError):
-                            pass
-
-            messages.success(request, 'Fee Item and structures created successfully.')
-            return redirect('fees:fee_setup_dashboard')
-    else:
-        initial = {}
-        category_id = request.GET.get('category')
-        if category_id:
-            initial['category'] = category_id
-        form = FeeItemForm(initial=initial)
+        cat = get_object_or_404(AccountCategory, id=cat_id, type='income')
+        collector = request.user.get_full_name() or request.user.username
         
-    from collections import defaultdict
-    sections = defaultdict(list)
-    for c in classrooms:
-        section_name = c['grade'].section.name if c['grade'].section else "General"
-        c['current_amount'] = ''
-        sections[section_name].append(c)
+        Income.objects.create(
+            category=cat,
+            amount=amount,
+            received_from=received_from or "Direct Deposit",
+            payment_method=payment_method,
+            reference_number=reference_number,
+            remarks=remarks,
+            collected_by=collector,
+            department=cat.department
+        )
+        messages.success(request, f"Income of ₹{amount} recorded successfully under {cat.name}.")
+        return redirect('fees:income_list')
+
+    return render(request, 'fees/income_form.html', {'categories': categories, 'page_title': 'Add Income Entry'})
+
+
+@login_required
+@role_required(['admin', 'accountant'])
+def expense_list(request):
+    """List of all office expenses with category & date filters."""
+    expenses = Expense.objects.select_related('category').order_by('-date', '-id')
+    
+    cat_id = request.GET.get('category')
+    start_d = request.GET.get('start_date')
+    end_d = request.GET.get('end_date')
+    
+    if cat_id:
+        expenses = expenses.filter(category_id=cat_id)
+    if start_d:
+        expenses = expenses.filter(date__gte=start_d)
+    if end_d:
+        expenses = expenses.filter(date__lte=end_d)
+
+    total_amount = expenses.aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+    categories = AccountCategory.objects.filter(type='expense').order_by('name')
 
     context = {
-        'form': form, 
-        'page_title': 'Add Fee Item',
-        'sections': dict(sections),
-        'active_year': active_year
+        'page_title': 'Expense Register',
+        'expenses': expenses[:100],
+        'total_amount': total_amount,
+        'categories': categories,
+        'selected_category': int(cat_id) if cat_id else None,
+        'start_date': start_d,
+        'end_date': end_d,
     }
-    return render(request, 'fees/fee_item_form.html', context)
+    return render(request, 'fees/expense_list.html', context)
 
+
+@login_required
 @role_required(['admin', 'accountant'])
-def fee_item_update(request, pk):
-    item = get_object_or_404(FeeItem, pk=pk)
-    from students.models import AcademicYear, Grade, Division, Enrollment
-    from .models import FeeStructure, StudentFee
-    from datetime import date
-    
-    active_year = AcademicYear.objects.filter(is_active=True).first()
-    
-    grades = Grade.objects.all().order_by('order', 'name')
-    divisions = Division.objects.all().order_by('name')
-    
-    classrooms = []
-    for g in grades:
-        grade_divisions = g.divisions.all().order_by('name')
-        if grade_divisions.exists():
-            for d in grade_divisions:
-                classrooms.append({'grade': g, 'division': d})
-        else:
-            classrooms.append({'grade': g, 'division': None})
+def expense_create(request):
+    """Create a manual office expense voucher."""
+    categories = AccountCategory.objects.filter(type='expense').order_by('name')
+    if not categories.exists():
+        AccountCategory.objects.create(name='Staff Salaries', type='expense')
+        AccountCategory.objects.create(name='Hostel Food & Mess Grocery', type='expense', department='hostel')
+        AccountCategory.objects.create(name='Electricity & Water Bills', type='expense')
+        AccountCategory.objects.create(name='Diesel & Vehicle Maintenance', type='expense')
+        AccountCategory.objects.create(name='Stationery & Printing', type='expense')
+        AccountCategory.objects.create(name='Building Repairs & Maintenance', type='expense')
+        categories = AccountCategory.objects.filter(type='expense').order_by('name')
 
     if request.method == 'POST':
-        form = FeeItemForm(request.POST, instance=item)
-        if form.is_valid():
-            fee_item = form.save()
-            
-            if active_year:
-                for classroom in classrooms:
-                    g_id = classroom['grade'].id
-                    d_id = classroom['division'].id if classroom['division'] else 'none'
-                    input_key = f"fee_{g_id}_{d_id}"
-                    amount = request.POST.get(input_key)
-                    
-                    if amount is not None and amount.strip() != '':
-                        try:
-                            amount = float(amount)
-                            FeeStructure.objects.update_or_create(
-                                academic_year=active_year,
-                                grade=classroom['grade'],
-                                division=classroom['division'],
-                                fee_item=fee_item,
-                                defaults={'amount': amount}
-                            )
-                            
-                            if not fee_item.installment_templates.exists() and not fee_item.is_monthly:
-                                if classroom['division']:
-                                    enrollments = Enrollment.objects.filter(academic_year=active_year, grade=classroom['grade'], division=classroom['division'])
-                                else:
-                                    enrollments = Enrollment.objects.filter(academic_year=active_year, grade=classroom['grade'], division__isnull=True)
-                                
-                                for enrollment in enrollments:
-                                    # Target student type check
-                                    if fee_item.target_student_type != 'all' and enrollment.student.student_type != fee_item.target_student_type:
-                                        continue
-
-                                    fee, created = StudentFee.objects.get_or_create(
-                                        student=enrollment.student,
-                                        fee_item=fee_item,
-                                        defaults={'total_amount': amount, 'due_date': date.today(), 'remarks': 'Automatically allocated from fee setup update'}
-                                    )
-                                    if not created and fee.total_amount != amount and fee.amount_paid == 0:
-                                        fee.total_amount = amount
-                                        fee.update_status()
-                                        fee.save()
-                        except (ValueError, TypeError):
-                            pass
-
-            messages.success(request, 'Fee Item and structures updated successfully.')
-            return redirect('fees:fee_setup_dashboard')
-    else:
-        form = FeeItemForm(instance=item)
+        cat_id = request.POST.get('category')
+        amount_str = request.POST.get('amount', '0')
+        paid_to = request.POST.get('paid_to', '').strip()
+        payment_method = request.POST.get('payment_method', 'cash')
+        reference_number = request.POST.get('reference_number', '').strip()
+        remarks = request.POST.get('remarks', '').strip()
         
-    existing_structures = FeeStructure.objects.filter(academic_year=active_year, fee_item=item) if active_year else []
-    fee_map = {(fs.grade_id, fs.division_id): fs.amount for fs in existing_structures}
+        try:
+            amount = Decimal(amount_str)
+            if amount <= 0:
+                raise ValueError()
+        except Exception:
+            messages.error(request, "Please enter a valid positive expense amount.")
+            return render(request, 'fees/expense_form.html', {'categories': categories})
 
-    from collections import defaultdict
-    sections = defaultdict(list)
-    for c in classrooms:
-        section_name = c['grade'].section.name if c['grade'].section else "General"
-        c['current_amount'] = fee_map.get((c['grade'].id, c['division'].id if c['division'] else None), '')
-        sections[section_name].append(c)
+        cat = get_object_or_404(AccountCategory, id=cat_id, type='expense')
+        recorder = request.user.get_full_name() or request.user.username
         
-    context = {
-        'form': form, 
-        'page_title': 'Edit Fee Item', 
-        'is_edit': True,
-        'sections': dict(sections),
-        'active_year': active_year
-    }
-    return render(request, 'fees/fee_item_form.html', context)
+        Expense.objects.create(
+            category=cat,
+            amount=amount,
+            paid_to=paid_to or "Vendor / Payee",
+            payment_method=payment_method,
+            reference_number=reference_number,
+            remarks=remarks,
+            recorded_by=recorder,
+            department=cat.department
+        )
+        messages.success(request, f"Expense voucher of ₹{amount} recorded successfully under {cat.name}.")
+        return redirect('fees:expense_list')
 
-@role_required(['admin', 'accountant'])
-def fee_item_update(request, pk):
-    item = get_object_or_404(FeeItem, pk=pk)
-    if request.method == 'POST':
-        form = FeeItemForm(request.POST, instance=item)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Fee Item updated successfully.')
-            return redirect('fees:fee_setup_dashboard')
-    else:
-        form = FeeItemForm(instance=item)
-        
-    context = {'form': form, 'page_title': 'Edit Fee Item', 'is_edit': True}
-    return render(request, 'fees/setup_form.html', context)
+    return render(request, 'fees/expense_form.html', {'categories': categories, 'page_title': 'Add Expense Voucher'})
 
-@role_required(['admin', 'accountant'])
-def fee_item_delete(request, pk):
-    item = get_object_or_404(FeeItem, pk=pk)
-    if request.method == 'POST':
-        item.delete()
-        messages.success(request, 'Fee Item deleted successfully.')
-        return redirect('fees:fee_setup_dashboard')
-    context = {'object': item, 'page_title': 'Delete Fee Item'}
-    return render(request, 'fees/setup_confirm_delete.html', context)
 
+# ==========================================
+# DAY BOOK, LEDGER BOOK & FINANCE REPORTS
+# ==========================================
+
+@login_required
 @role_required(['admin', 'accountant'])
 def day_book(request):
-    """Chronological list of all financial transactions."""
-    from django.db.models import Value, CharField
-    from django.utils import timezone
-    
-    start_date = request.GET.get('start_date', timezone.now().date().isoformat())
-    end_date = request.GET.get('end_date', timezone.now().date().isoformat())
-    
-    incomes = Income.objects.filter(date__range=[start_date, end_date]).annotate(
-        trans_type=Value('income', output_field=CharField())
-    )
-    expenses = Expense.objects.filter(date__range=[start_date, end_date]).annotate(
-        trans_type=Value('expense', output_field=CharField())
-    )
-    
-    # Combine and sort
-    from itertools import chain
-    transactions = sorted(
-        chain(incomes, expenses),
-        key=lambda x: (x.date, x.id),
-        reverse=True
-    )
-    
-    total_in = Sum(i.amount for i in incomes) # Note: Sum aggregation on queryset is faster but this works for context
-    total_in = incomes.aggregate(Sum('amount'))['amount__sum'] or 0
-    total_out = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
-    
+    """Daily cash & bank movement day-book with chronological credit/debit transaction log."""
+    date_str = request.GET.get('date')
+    if date_str:
+        try:
+            selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            selected_date = date.today()
+    else:
+        selected_date = date.today()
+
+    # Opening balance prior to this date
+    prior_income = Income.objects.filter(date__lt=selected_date).aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+    prior_expense = Expense.objects.filter(date__lt=selected_date).aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+    opening_balance = prior_income - prior_expense
+
+    # Incomes (Credits) of the day
+    incomes = Income.objects.filter(date=selected_date).select_related('category').order_by('id')
+    total_day_income = incomes.aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+
+    # Expenses (Debits) of the day
+    expenses = Expense.objects.filter(date=selected_date).select_related('category').order_by('id')
+    total_day_expense = expenses.aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+
+    closing_balance = opening_balance + total_day_income - total_day_expense
+
     context = {
-        'transactions': transactions,
-        'start_date': start_date,
-        'end_date': end_date,
-        'total_in': total_in,
-        'total_out': total_out,
-        'net': total_in - total_out,
-        'page_title': 'Day Book'
+        'page_title': f'Day Book - {selected_date.strftime("%d %b %Y")}',
+        'selected_date': selected_date,
+        'opening_balance': opening_balance,
+        'incomes': incomes,
+        'expenses': expenses,
+        'total_day_income': total_day_income,
+        'total_day_expense': total_day_expense,
+        'day_net': total_day_income - total_day_expense,
+        'closing_balance': closing_balance,
     }
     return render(request, 'fees/day_book.html', context)
 
+
+@login_required
 @role_required(['admin', 'accountant'])
 def ledger_book(request):
-    """Ledger view: Financials grouped by AccountCategory."""
-    categories = AccountCategory.objects.annotate(
-        total_amount=Sum(
-            Case(
-                When(type='income', then='incomes__amount'),
-                When(type='expense', then='expenses__amount'),
-                output_field=DecimalField()
-            )
-        )
-    ).filter(total_amount__isnull=False).order_by('type', 'name')
-    
-    # Detail view if category is selected
-    selected_cat_id = request.GET.get('category')
-    selected_cat = None
-    ledger_entries = []
-    if selected_cat_id:
-        # Use the annotated queryset so total_amount is available in the template
-        selected_cat = categories.filter(id=selected_cat_id).first()
-        if not selected_cat:
-            selected_cat = AccountCategory.objects.filter(id=selected_cat_id).first()
-        if selected_cat:
-            if selected_cat.type == 'income':
-                ledger_entries = selected_cat.incomes.all().order_by('-date')
-            else:
-                ledger_entries = selected_cat.expenses.all().order_by('-date')
-            
+    """Account & Category-wise ledger statement with running balance."""
+    categories = AccountCategory.objects.all().order_by('type', 'name')
+    cat_id = request.GET.get('category')
+    start_d = request.GET.get('start_date')
+    end_d = request.GET.get('end_date')
+
+    entries = []
+    selected_category = None
+    total_credit = Decimal('0.00')
+    total_debit = Decimal('0.00')
+
+    if cat_id:
+        selected_category = get_object_or_404(AccountCategory, id=cat_id)
+        if selected_category.type == 'income':
+            qs = Income.objects.filter(category=selected_category)
+            if start_d:
+                qs = qs.filter(date__gte=start_d)
+            if end_d:
+                qs = qs.filter(date__lte=end_d)
+            for inc in qs.order_by('date', 'id'):
+                entries.append({
+                    'date': inc.date,
+                    'particulars': f"{inc.received_from} - {inc.remarks}".strip(' -'),
+                    'ref': inc.reference_number,
+                    'credit': inc.amount,
+                    'debit': Decimal('0.00'),
+                })
+                total_credit += inc.amount
+        else:
+            qs = Expense.objects.filter(category=selected_category)
+            if start_d:
+                qs = qs.filter(date__gte=start_d)
+            if end_d:
+                qs = qs.filter(date__lte=end_d)
+            for exp in qs.order_by('date', 'id'):
+                entries.append({
+                    'date': exp.date,
+                    'particulars': f"{exp.paid_to} - {exp.remarks}".strip(' -'),
+                    'ref': exp.reference_number,
+                    'credit': Decimal('0.00'),
+                    'debit': exp.amount,
+                })
+                total_debit += exp.amount
+
     context = {
+        'page_title': 'General Ledger Book',
         'categories': categories,
-        'selected_cat': selected_cat,
-        'ledger_entries': ledger_entries,
-        'page_title': 'Ledger Book'
+        'selected_category': selected_category,
+        'entries': entries,
+        'total_credit': total_credit,
+        'total_debit': total_debit,
+        'start_date': start_d,
+        'end_date': end_d,
     }
     return render(request, 'fees/ledger_book.html', context)
 
-@role_required(['admin', 'accountant'])
-def finance_report(request):
-    """Profit and Loss / Monthly Performance Report."""
-    from django.utils import timezone
-    month = int(request.GET.get('month', timezone.now().month))
-    year = int(request.GET.get('year', timezone.now().year))
-    
-    incomes = Income.objects.filter(date__month=month, date__year=year)
-    expenses = Expense.objects.filter(date__month=month, date__year=year)
-    
-    inc_total = incomes.aggregate(Sum('amount'))['amount__sum'] or 0
-    exp_total = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
-    
-    # Categorized breakdown for P&L
-    inc_breakdown = AccountCategory.objects.filter(type='income').annotate(
-        total=Sum('incomes__amount', filter=Q(incomes__date__month=month, incomes__date__year=year))
-    ).filter(total__gt=0)
-    
-    exp_breakdown = AccountCategory.objects.filter(type='expense').annotate(
-        total=Sum('expenses__amount', filter=Q(expenses__date__month=month, expenses__date__year=year))
-    ).filter(total__gt=0)
-    
-    context = {
-        'month': month,
-        'year': year,
-        'inc_total': inc_total,
-        'exp_total': exp_total,
-        'profit': inc_total - exp_total,
-        'inc_breakdown': inc_breakdown,
-        'exp_breakdown': exp_breakdown,
-        'page_title': 'Finance Performance Report'
-    }
-    return render(request, 'fees/finance_report.html', context)
 
+@login_required
 @role_required(['admin', 'accountant'])
-def departmental_dashboard(request):
-    """Comparative Profit & Loss dashboard for Academic vs Hostel departments."""
-    from django.db.models import Sum, Q, DecimalField, Case, When
+def finance_reports(request):
+    """Gentle financial statements: Daily, Monthly, and Annual summaries."""
+    report_type = request.GET.get('type', 'monthly')
+    today = date.today()
+    curr_year = int(request.GET.get('year', today.year))
     
-    # Financial aggregate by department
-    def get_dept_financials(dept):
-        inc = Income.objects.filter(department=dept).aggregate(total=Sum('amount'))['total'] or 0
-        exp = Expense.objects.filter(department=dept).aggregate(total=Sum('amount'))['total'] or 0
-        return {
+    # 1. Monthly Breakdown for the selected year
+    months_data = []
+    annual_income = Decimal('0.00')
+    annual_expense = Decimal('0.00')
+    
+    for m in range(1, 13):
+        m_start = date(curr_year, m, 1)
+        last_day = calendar.monthrange(curr_year, m)[1]
+        m_end = date(curr_year, m, last_day)
+        
+        inc = Income.objects.filter(date__gte=m_start, date__lte=m_end).aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+        exp = Expense.objects.filter(date__gte=m_start, date__lte=m_end).aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+        net = inc - exp
+        
+        months_data.append({
+            'month_number': m,
+            'month_name': calendar.month_name[m],
             'income': inc,
             'expense': exp,
-            'profit': inc - exp
-        }
-    
-    academic = get_dept_financials('academic')
-    hostel = get_dept_financials('hostel')
-    general = get_dept_financials('general')
-    
-    # Total institution-wide
-    total_income = academic['income'] + hostel['income'] + general['income']
-    total_expense = academic['expense'] + hostel['expense'] + general['expense']
-    
-    # Category break down by department
-    cat_summary = AccountCategory.objects.annotate(
-        inc_total=Sum('incomes__amount'),
-        exp_total=Sum('expenses__amount')
-    ).filter(Q(inc_total__gt=0) | Q(exp_total__gt=0)).order_by('department', 'name')
-    
-    context = {
-        'academic': academic,
-        'hostel': hostel,
-        'general': general,
-        'total_income': total_income,
-        'total_expense': total_expense,
-        'overall_profit': total_income - total_expense,
-        'cat_summary': cat_summary,
-        'page_title': 'Departmental Accounting'
-    }
-    return render(request, 'fees/departmental_dashboard.html', context)
-
-from .forms import BusStopForm
-from .models import BusStop
-
-@role_required(['admin', 'accountant'])
-def bus_stop_list(request):
-    """List all bus stops."""
-    bus_stops = BusStop.objects.all().order_by('stop_name')
-    context = {'bus_stops': bus_stops, 'page_title': 'Manage Bus Stops'}
-    return render(request, 'fees/bus_stop_list.html', context)
-
-@role_required(['admin', 'accountant'])
-def bus_stop_create(request):
-    """Create a new bus stop."""
-    if request.method == 'POST':
-        form = BusStopForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Bus stop created successfully.')
-            return redirect('fees:bus_stop_list')
-    else:
-        form = BusStopForm()
-    
-    context = {'form': form, 'page_title': 'Add Bus Stop'}
-    return render(request, 'fees/bus_stop_form.html', context)
-
-@role_required(['admin', 'accountant'])
-def bus_stop_update(request, pk):
-    """Edit an existing bus stop."""
-    bus_stop = get_object_or_404(BusStop, pk=pk)
-    if request.method == 'POST':
-        form = BusStopForm(request.POST, instance=bus_stop)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Bus stop updated successfully.')
-            return redirect('fees:bus_stop_list')
-    else:
-        form = BusStopForm(instance=bus_stop)
-        
-    context = {'form': form, 'page_title': 'Edit Bus Stop', 'is_edit': True}
-    return render(request, 'fees/bus_stop_form.html', context)
-
-@role_required(['admin', 'accountant'])
-def bus_stop_delete(request, pk):
-    """Delete a bus stop."""
-    bus_stop = get_object_or_404(BusStop, pk=pk)
-    if request.method == 'POST':
-        bus_stop.delete()
-        messages.success(request, 'Bus stop deleted successfully.')
-        return redirect('fees:bus_stop_list')
-        
-    context = {'object': bus_stop, 'page_title': 'Delete Bus Stop'}
-    return render(request, 'fees/setup_confirm_delete.html', context)
-
-@role_required(['admin', 'accountant'])
-def monthly_fee_adjustment(request):
-    """Interface to list generated monthly fees and allow manual adjustment based on present days."""
-    from students.models import AcademicYear
-    from .models import StudentFee
-    import datetime
-    
-    active_year = AcademicYear.objects.filter(is_active=True).first()
-    
-    # Process AJAX update
-    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        fee_id = request.POST.get('fee_id')
-        present_days = request.POST.get('present_days')
-        
-        try:
-            fee = StudentFee.objects.get(id=fee_id)
-            if fee.fee_item and fee.fee_item.is_monthly:
-                present_days = int(present_days)
-                fee.present_days = present_days
-                
-                # Apply the 40/80/100 logic (matching services.py logic or user request)
-                from .services import calculate_prorated_percentage
-                # If the user enters present days manually, we can use the same calculation
-                percentage = calculate_prorated_percentage(present_days)
-                fee.prorated_percentage = percentage
-                
-                # Default amount calculation points to what the item initially cost
-                base_amount = fee.fee_item.default_amount
-                if fee.remarks.startswith("Vehicle Fee") and fee.student.bus_stop:
-                    base_amount = fee.student.bus_stop.fee_amount
-                
-                from decimal import Decimal
-                new_total = (base_amount * percentage) / Decimal('100.00')
-                
-                fee.total_amount = new_total
-                fee.update_status()
-                fee.save()
-                
-                return JsonResponse({'success': True, 'new_total': float(new_total), 'percentage': float(percentage)})
-            else:
-                return JsonResponse({'success': False, 'message': 'Not a monthly fee.'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)})
-
-    # GET request - list fees
-    month = request.GET.get('month', datetime.date.today().month)
-    year = request.GET.get('year', datetime.date.today().year)
-    
-    try:
-        month = int(month)
-        year = int(year)
-    except ValueError:
-        month = datetime.date.today().month
-        year = datetime.date.today().year
-        
-    target_date = datetime.date(year, month, 1)
-    
-    monthly_fees = StudentFee.objects.filter(
-        billing_month=target_date,
-        fee_item__is_monthly=True
-    ).select_related('student', 'fee_item')
-    
-    # Filter by category if requested
-    fee_type = request.GET.get('type')
-    if fee_type == 'hostel':
-        monthly_fees = monthly_fees.filter(fee_item__name__icontains='Hostel')
-    elif fee_type == 'vehicle':
-        monthly_fees = monthly_fees.filter(fee_item__name__icontains='Bus')
-        
-    context = {
-        'page_title': 'Monthly Fee Adjustments',
-        'monthly_fees': monthly_fees,
-        'current_month': month,
-        'current_year': year,
-        'fee_type': fee_type
-    }
-    return render(request, 'fees/monthly_adjustment.html', context)
-
-@role_required(['admin', 'accountant'])
-def add_custom_fee(request, student_id):
-    """Manually assign any custom fee to a student."""
-    student = get_object_or_404(Student, id=student_id)
-    # Get all non-monthly fee items that can be assigned manually
-    fee_items = FeeItem.objects.filter(is_monthly=False).order_by('category__name', 'name')
-    
-    if request.method == 'POST':
-        item_id = request.POST.get('fee_item')
-        amount = request.POST.get('amount')
-        remarks = request.POST.get('remarks', '')
-        due_date = request.POST.get('due_date') or timezone.now().date()
-        
-        try:
-            fee_item = get_object_or_404(FeeItem, id=item_id)
-            amount = Decimal(amount)
-            if amount < 0:
-                raise ValueError("Amount cannot be negative.")
-                
-            StudentFee.objects.create(
-                student=student,
-                fee_item=fee_item,
-                total_amount=amount,
-                due_date=due_date,
-                remarks=remarks
-            )
-            messages.success(request, f"{fee_item.name} of ₹{amount} assigned to {student.full_name}.")
-            return redirect('fees:student_fees', student_id=student.id)
-        except (ValueError, Decimal.InvalidOperation) as e:
-            messages.error(request, f"Invalid data: {str(e)}")
-            
-    context = {
-        'student': student,
-        'fee_items': fee_items,
-        'page_title': f"Add Custom Fee: {student.full_name}"
-    }
-    return render(request, 'fees/custom_fee_form.html', context)
-
-
-@role_required(['admin', 'accountant', 'student'])
-def print_payment_history(request, student_id):
-    """Printable complete payment history for a student."""
-    # Data isolation for student role
-    if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
-        if not request.user.profile.student_record or request.user.profile.student_record.id != int(student_id):
-            messages.error(request, "You do not have permission to view other students' details.")
-            return redirect('students:home')
-
-    student = get_object_or_404(Student, id=student_id)
-    from django.utils import timezone
-    today = timezone.now().date()
-
-    # All fees ever assigned to this student
-    fees = student.fees.all().order_by('due_date')
-
-    # All payment transactions
-    income_ids = FeePayment.objects.filter(
-        student_fee__student=student, income__isnull=False
-    ).values_list('income__id', flat=True).distinct()
-    incomes = Income.objects.filter(id__in=income_ids).order_by('date')
-
-    receipts = []
-    for inc in incomes:
-        payments_for_inc = inc.fee_payments.all()
-        allocated = sum(p.amount for p in payments_for_inc)
-        advance = inc.amount - allocated
-        receipts.append({
-            'income': inc,
-            'payments': payments_for_inc,
-            'advance_amount': advance,
+            'net': net,
+            'is_current': (m == today.month and curr_year == today.year)
         })
+        annual_income += inc
+        annual_expense += exp
 
-    total_charged = fees.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
-    total_paid = fees.aggregate(total=Sum('amount_paid'))['total'] or Decimal('0.00')
-    total_balance = sum(f.balance for f in fees)
+    # 2. Category-wise Breakdown for the year
+    year_start = date(curr_year, 1, 1)
+    year_end = date(curr_year, 12, 31)
+    
+    income_by_category = Income.objects.filter(date__gte=year_start, date__lte=year_end).values('category__name').annotate(total=Sum('amount')).order_by('-total')
+    expense_by_category = Expense.objects.filter(date__gte=year_start, date__lte=year_end).values('category__name').annotate(total=Sum('amount')).order_by('-total')
 
     context = {
-        'student': student,
-        'fees': fees,
-        'receipts': receipts,
-        'total_charged': total_charged,
-        'total_paid': total_paid,
-        'total_balance': total_balance,
-        'today': today,
-        'page_title': f"Payment History: {student.full_name}",
+        'page_title': f'Financial Reports ({curr_year})',
+        'report_type': report_type,
+        'curr_year': curr_year,
+        'years_list': [today.year - 2, today.year - 1, today.year, today.year + 1],
+        'months_data': months_data,
+        'annual_income': annual_income,
+        'annual_expense': annual_expense,
+        'annual_net': annual_income - annual_expense,
+        'income_by_category': income_by_category,
+        'expense_by_category': expense_by_category,
     }
-    return render(request, 'fees/payment_history_print.html', context)
+    return render(request, 'fees/finance_reports.html', context)
 
-@role_required(['admin', 'accountant'])
-def add_arrears(request):
-    """Add a manual arrears fee for a student."""
-    if request.method == 'POST':
-        student_id = request.POST.get('student_id')
-        fee_item_id = request.POST.get('fee_item_id')
-        amount = request.POST.get('amount')
-        remarks = request.POST.get('remarks', 'Last Year Pending')
-        
-        if student_id and fee_item_id and amount:
-            try:
-                student = get_object_or_404(Student, id=student_id)
-                fee_item = get_object_or_404(FeeItem, id=fee_item_id)
-                from datetime import date
-                amount = Decimal(amount)
-                
-                if amount <= 0:
-                    messages.error(request, 'Amount must be greater than zero.')
-                else:
-                    StudentFee.objects.create(
-                        student=student,
-                        fee_item=fee_item,
-                        total_amount=amount,
-                        due_date=date.today(),
-                        remarks=remarks
-                    )
-                    messages.success(request, f'Added arrears of ₹{amount} for {student.full_name}.')
-            except ValueError:
-                messages.error(request, 'Invalid amount format.')
-        else:
-            messages.error(request, 'Please fill in all required fields.')
-            
-    return redirect(request.META.get('HTTP_REFERER', 'fees:fees_dashboard'))
 
-@role_required(['admin', 'accountant'])
-def delete_student_fee(request, fee_id):
-    """Deletes an assigned fee from a student ONLY if no payments have been made."""
-    from django.shortcuts import get_object_or_404, redirect
-    from django.contrib import messages
-    from .models import StudentFee
-    
-    fee = get_object_or_404(StudentFee, id=fee_id)
-    student_id = fee.student.id
-    
-    if request.method == 'POST':
-        if fee.amount_paid > 0:
-            messages.error(request, "Cannot delete a fee that has already been partially or fully paid.")
-        else:
-            fee_name = fee.fee_item.name if fee.fee_item else (fee.installment.name if hasattr(fee, 'installment') and fee.installment else fee.remarks)
-            fee.delete()
-            messages.success(request, f"Fee '{fee_name}' was successfully deleted.")
-            
-    return redirect('fees:student_fees', student_id=student_id)
+# ==========================================
+# CAUTION DEPOSITS & REFUNDS
+# ==========================================
 
+@login_required
 @role_required(['admin', 'accountant'])
-def caution_deposit_list(request):
-    """View all caution deposits across the institution"""
-    deposits = CautionDeposit.objects.all().select_related('student', 'refund').order_by('-date_collected')
+def caution_deposits(request):
+    """Register of all student caution deposits and refund statuses."""
+    deposits = CautionDeposit.objects.select_related('student').order_by('-date_collected')
     
+    status_filter = request.GET.get('status')
+    if status_filter == 'active':
+        deposits = deposits.filter(is_refunded=False)
+    elif status_filter == 'refunded':
+        deposits = deposits.filter(is_refunded=True)
+
+    total_deposited = deposits.aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+    active_sum = CautionDeposit.objects.filter(is_refunded=False).aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+
     context = {
+        'page_title': 'Caution Deposits Register',
         'deposits': deposits,
-        'page_title': 'Caution Deposits'
+        'total_deposited': total_deposited,
+        'active_sum': active_sum,
+        'status_filter': status_filter,
     }
-    return render(request, 'fees/caution_deposit_list.html', context)
-
-@role_required(['admin', 'accountant'])
-def refund_caution_deposit(request, deposit_id):
-    """Process a refund for a caution deposit"""
-    deposit = get_object_or_404(CautionDeposit, id=deposit_id)
-    
-    if deposit.is_refunded:
-        messages.warning(request, "This deposit has already been refunded.")
-        return redirect('fees:caution_deposit_list')
-        
-    if request.method == 'POST':
-        refund_amount = request.POST.get('refund_amount')
-        remarks = request.POST.get('remarks', '')
-        
-        try:
-            refund_amount = Decimal(refund_amount)
-            if refund_amount <= 0 or refund_amount > deposit.amount:
-                raise ValueError("Invalid refund amount. Must be positive and not exceed original deposit.")
-                
-            CautionDepositRefund.objects.create(
-                deposit=deposit,
-                amount_refunded=refund_amount,
-                processed_by=request.user.username,
-                remarks=remarks
-            )
-            
-            messages.success(request, f"Refund of ₹{refund_amount} processed successfully for {deposit.student.full_name}.")
-            return redirect('fees:caution_deposit_list')
-            
-        except ValueError as e:
-            messages.error(request, str(e))
-            
-    context = {
-        'deposit': deposit,
-        'page_title': 'Process Refund'
-    }
-    return render(request, 'fees/caution_deposit_refund.html', context)
+    return render(request, 'fees/caution_deposits.html', context)
 
 
+@login_required
 @role_required(['admin', 'accountant'])
 @require_POST
-def delete_payment_transaction(request, transaction_id):
-    """Deletes a payment transaction (unified or legacy) and restores student balances."""
-    from .models import ReceiptTransaction, Income, FeePayment
-    from django.shortcuts import get_object_or_404, redirect
-    from django.contrib import messages
-    import uuid
+def caution_deposit_refund_submit(request, deposit_id):
+    """Execute refund of a caution deposit."""
+    deposit = get_object_or_404(CautionDeposit, id=deposit_id)
+    if deposit.is_refunded:
+        messages.error(request, "This deposit has already been refunded.")
+        return redirect('fees:caution_deposits')
 
-    # Try to find a ReceiptTransaction (new style)
+    amount_str = request.POST.get('amount', str(deposit.amount))
+    remarks = request.POST.get('remarks', '').strip()
+    processor = request.user.get_full_name() or request.user.username
+
     try:
-        uuid.UUID(str(transaction_id))
-        txn = ReceiptTransaction.objects.filter(transaction_id=transaction_id).first()
-        if txn:
-            student_id = txn.student.id
-            txn.delete()
-            messages.success(request, "Payment transaction deleted successfully. Student balances have been updated.")
-            return redirect('fees:student_fees', student_id=student_id)
-    except ValueError:
-        pass # Not a valid UUID, fall through to legacy check
+        amount = Decimal(amount_str)
+        if amount <= 0 or amount > deposit.amount:
+            raise ValueError()
+    except Exception:
+        messages.error(request, "Please enter a valid refund amount not exceeding the deposit amount.")
+        return redirect('fees:caution_deposits')
 
-    # Legacy check: try to find Income by integer primary key
-    try:
-        income_id = int(transaction_id)
-        income = Income.objects.filter(id=income_id).first()
-        if income:
-            # Find any associated student (via fee payments) to redirect back to
-            first_payment = income.fee_payments.first()
-            student_id = first_payment.student_fee.student.id if first_payment else None
+    process_caution_refund(deposit, amount, processed_by=processor, remarks=remarks)
+    messages.success(request, f"Refund of ₹{amount} processed for {deposit.student.full_name}.")
+    return redirect('fees:caution_deposits')
 
-            income.delete()
-            messages.success(request, "Legacy payment transaction deleted successfully. Student balances have been updated.")
-            if student_id:
-                return redirect('fees:student_fees', student_id=student_id)
-            return redirect('fees:fees_dashboard')
-    except ValueError:
-        pass
 
-    messages.error(request, "Payment transaction not found.")
-    return redirect('fees:fees_dashboard')
+# ==========================================
+# FEE SETUP & CONFIGURATION
+# ==========================================
+
+@login_required
+@role_required(['admin', 'accountant'])
+def fee_setup(request):
+    """Clean configuration hub for Fee Categories, Fee Items, and Bus Stops."""
+    get_or_create_default_categories()
+    
+    categories = FeeCategory.objects.prefetch_related('fee_items').order_by('name')
+    fee_items = FeeItem.objects.select_related('category').order_by('category__name', 'name')
+    bus_stops = BusStop.objects.all().order_by('stop_name')
+    payment_settings = InstitutionPaymentSetting.get_settings()
+    
+    context = {
+        'page_title': 'Fee Structure & Rates Setup',
+        'categories': categories,
+        'fee_items': fee_items,
+        'bus_stops': bus_stops,
+        'payment_settings': payment_settings,
+    }
+    return render(request, 'fees/fee_setup.html', context)
+
+
+@login_required
+@role_required(['admin', 'accountant'])
+@require_POST
+def payment_settings_update(request):
+    """Updates institution bank account details, UPI VPA, and uploads payment QR code image."""
+    settings_obj = InstitutionPaymentSetting.get_settings()
+    
+    settings_obj.institution_name = request.POST.get('institution_name', '').strip() or "Markaz Hadiya Women's College"
+    settings_obj.account_holder_name = request.POST.get('account_holder_name', '').strip()
+    settings_obj.bank_name = request.POST.get('bank_name', '').strip()
+    settings_obj.account_number = request.POST.get('account_number', '').strip()
+    settings_obj.ifsc_code = request.POST.get('ifsc_code', '').strip().upper()
+    settings_obj.branch_name = request.POST.get('branch_name', '').strip()
+    settings_obj.account_type = request.POST.get('account_type', '').strip() or "Current Account"
+    settings_obj.upi_id = request.POST.get('upi_id', '').strip()
+    settings_obj.upi_number = request.POST.get('upi_number', '').strip()
+    settings_obj.helpline_phone = request.POST.get('helpline_phone', '').strip()
+    settings_obj.payment_instructions = request.POST.get('payment_instructions', '').strip()
+    
+    if 'qr_code_image' in request.FILES:
+        settings_obj.qr_code_image = request.FILES['qr_code_image']
+    elif request.POST.get('clear_qr') == 'true':
+        settings_obj.qr_code_image = None
+        
+    settings_obj.save()
+    messages.success(request, "Institution bank account details and UPI QR code have been updated successfully.")
+    return redirect('fees:fee_setup')
+
+
+
+
+@login_required
+@role_required(['admin', 'accountant'])
+def bus_stop_create(request):
+    """Add one or multiple bus stop destinations in a grid."""
+    if request.method == 'POST':
+        stop_names = request.POST.getlist('stop_name')
+        fee_amounts = request.POST.getlist('fee_amount')
+        
+        created_stops = []
+        for name, amount_str in zip(stop_names, fee_amounts):
+            name = name.strip()
+            amount_str = str(amount_str).strip()
+            if not name:
+                continue
+            try:
+                amount = Decimal(amount_str)
+                if amount <= 0:
+                    amount = Decimal('0.00')
+            except Exception:
+                amount = Decimal('0.00')
+                
+            stop = BusStop.objects.create(stop_name=name, fee_amount=amount)
+            created_stops.append(f"{stop.stop_name} (₹{stop.fee_amount:.0f}/mo)")
+            
+        if created_stops:
+            messages.success(request, f"Successfully added {len(created_stops)} bus stop(s): {', '.join(created_stops[:4])}{'...' if len(created_stops) > 4 else ''}.")
+            return redirect('fees:fee_setup')
+        else:
+            messages.error(request, "Please enter at least one valid bus stop destination name.")
+            return render(request, 'fees/bus_stop_form.html', {'page_title': 'Add Bus Stops'})
+
+    return render(request, 'fees/bus_stop_form.html', {'page_title': 'Add Bus Stops'})
+
+
+
+@login_required
+@role_required(['admin', 'accountant'])
+def fee_item_create(request):
+    """Add a new fee item under a category."""
+    categories = FeeCategory.objects.all().order_by('name')
+    if request.method == 'POST':
+        cat_id = request.POST.get('category_id')
+        name = request.POST.get('name', '').strip()
+        amount_str = request.POST.get('default_amount', '0').strip()
+        fee_type = request.POST.get('fee_type', 'other')
+        is_monthly = request.POST.get('is_monthly') == 'on' or fee_type in ['hostel', 'bus']
+        target_type = request.POST.get('target_student_type', 'all')
+        
+        category = get_object_or_404(FeeCategory, id=cat_id)
+        if not name:
+            messages.error(request, "Fee item name is required.")
+            return render(request, 'fees/fee_item_form.html', {'categories': categories, 'page_title': 'Add Fee Item'})
+
+        try:
+            amount = Decimal(amount_str or '0')
+        except Exception:
+            amount = Decimal('0.00')
+
+        FeeItem.objects.create(
+            category=category,
+            name=name,
+            default_amount=amount,
+            fee_type=fee_type,
+            is_monthly=is_monthly,
+            target_student_type=target_type
+        )
+        messages.success(request, f"Fee item '{name}' added under {category.name}.")
+        return redirect('fees:fee_setup')
+
+    return render(request, 'fees/fee_item_form.html', {'categories': categories, 'page_title': 'Add Fee Item'})
+
+
+@login_required
+@role_required(['admin', 'accountant'])
+def fee_item_update(request, item_id):
+    """Edit an existing fee item on a dedicated form page."""
+    item = get_object_or_404(FeeItem, id=item_id)
+    categories = FeeCategory.objects.all().order_by('name')
+    
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        amount_str = request.POST.get('default_amount', '0').strip()
+        fee_type = request.POST.get('fee_type', item.fee_type)
+        is_monthly = request.POST.get('is_monthly') == 'on' or fee_type in ['hostel', 'bus']
+        target_type = request.POST.get('target_student_type', 'all')
+        
+        if not name:
+            messages.error(request, "Fee item name cannot be empty.")
+            return render(request, 'fees/fee_item_form.html', {'item': item, 'categories': categories, 'page_title': f'Edit Fee Item - {item.name}'})
+
+        try:
+            amount = Decimal(amount_str or '0')
+        except Exception:
+            amount = Decimal('0.00')
+
+        item.name = name
+        item.default_amount = amount
+        item.fee_type = fee_type
+        item.is_monthly = is_monthly
+        item.target_student_type = target_type
+        item.save()
+        
+        messages.success(request, f"Fee item '{name}' updated successfully.")
+        return redirect('fees:fee_setup')
+
+    return render(request, 'fees/fee_item_form.html', {
+        'item': item,
+        'categories': categories,
+        'page_title': f'Edit Fee Item - {item.name}'
+    })
+
+
+@login_required
+@role_required(['admin', 'accountant'])
+@require_POST
+def fee_item_delete(request, item_id):
+    """Delete a fee item."""
+    item = get_object_or_404(FeeItem, id=item_id)
+    name = item.name
+    item.delete()
+    messages.success(request, f"Fee item '{name}' removed.")
+    return redirect('fees:fee_setup')
+
+
+@login_required
+@role_required(['admin', 'accountant'])
+def bus_stop_update(request, stop_id):
+    """Edit a bus stop destination and its rate on a dedicated form page."""
+    bus_stop = get_object_or_404(BusStop, id=stop_id)
+
+    if request.method == 'POST':
+        stop_name = request.POST.get('stop_name', '').strip()
+        amount_str = request.POST.get('fee_amount', '0').strip()
+
+        if not stop_name:
+            messages.error(request, "Bus stop name is required.")
+            return render(request, 'fees/bus_stop_form.html', {'bus_stop': bus_stop, 'page_title': f'Edit Bus Stop - {bus_stop.stop_name}'})
+
+        try:
+            amount = Decimal(amount_str)
+            if amount <= 0:
+                raise ValueError()
+        except Exception:
+            messages.error(request, "Please enter a valid positive bus fare amount.")
+            return render(request, 'fees/bus_stop_form.html', {'bus_stop': bus_stop, 'page_title': f'Edit Bus Stop - {bus_stop.stop_name}'})
+
+        bus_stop.stop_name = stop_name
+        bus_stop.fee_amount = amount
+        bus_stop.save()
+        messages.success(request, f"Bus stop '{stop_name}' updated (₹{amount}/month).")
+        return redirect('fees:fee_setup')
+
+    return render(request, 'fees/bus_stop_form.html', {
+        'bus_stop': bus_stop,
+        'page_title': f'Edit Bus Stop - {bus_stop.stop_name}'
+    })
+
+
+@login_required
+@role_required(['admin', 'accountant'])
+@require_POST
+def bus_stop_delete(request, stop_id):
+    """Delete a bus stop."""
+    bus_stop = get_object_or_404(BusStop, id=stop_id)
+    name = bus_stop.stop_name
+    bus_stop.delete()
+    messages.success(request, f"Bus stop '{name}' removed.")
+    return redirect('fees:fee_setup')
+
 

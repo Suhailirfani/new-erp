@@ -1796,7 +1796,7 @@
                 </div>
             </div>
             <a href="{% url 'fees:finance_dashboard' %}" class="nav-item">
-                <i class="fa-solid fa-wallet"></i>
+                <i class="fa-solid fa-building-columns"></i>
                 <span>Finance</span>
             </a>
             <a href="{% url 'students:hostel_movement_list' %}" class="nav-item">
@@ -2025,12 +2025,6 @@
             <span>Report</span>
         </a>
         
-        {% if not suspend_student_fees %}
-        <a href="{% url 'fees:student_fees' request.user.profile.student_record.id %}" class="mobile-nav-tab {% if request.resolver_match.url_name == 'student_fees' %}active{% endif %}">
-            <div class="mobile-nav-icon"><i class="fa-solid fa-wallet"></i></div>
-            <span>Fees</span>
-        </a>
-        {% endif %}
         {% endif %}
 
         {% if request.user.profile.role == 'student' %}

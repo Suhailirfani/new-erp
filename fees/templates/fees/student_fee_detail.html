@@ -1,0 +1,1029 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Fee Ledger - {{ student.full_name }}{% endblock %}
+
+{% block content %}
+<style>
+/* Custom Modal Overlay & Box */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.72);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 2147483647;
+    padding: 4.5rem 1rem 1.5rem;
+    overflow-y: auto;
+}
+
+.modal-box {
+    background: #ffffff;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 680px;
+    padding: 0.9rem 1.35rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+    position: relative;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+    animation: modalPop 0.18s ease-out;
+    margin-bottom: 2rem;
+}
+
+.modal-form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+@media (max-width: 640px) {
+    .modal-form-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+@keyframes modalPop {
+    from { opacity: 0; transform: scale(0.96) translateY(-10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-header-custom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 0.45rem;
+    margin-bottom: 0.6rem;
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    line-height: 1;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0 0.2rem;
+}
+
+.modal-close-btn:hover {
+    color: #0f172a;
+}
+
+</style>
+
+<div class="container-fluid" style="padding: 1.25rem 1rem; max-width: 1300px; margin: 0 auto;">
+
+    <!-- Breadcrumb & Header -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+        <div>
+            <div style="font-size: 0.78rem; color: #64748b; margin-bottom: 0.15rem;">
+                <a href="{% url 'fees:finance_dashboard' %}" style="color: #64748b; text-decoration: none;">Finance</a> / 
+                <a href="{% url 'fees:fee_counter' %}" style="color: #64748b; text-decoration: none;">Fee Counter</a> / 
+                <span>{{ student.full_name }}</span>
+            </div>
+            <h2 style="font-weight: 800; color: #0f172a; margin: 0; font-size: 1.4rem;">
+                {{ student.full_name }} <span style="font-size: 0.85rem; color: #64748b; font-weight: 600;">({{ student.student_id }})</span>
+            </h2>
+            <div style="font-size: 0.82rem; color: #475569; margin-top: 0.2rem; display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center;">
+                <span><strong>Class:</strong> {{ enrollment.grade.name }}{% if enrollment.division %} - {{ enrollment.division.name }}{% endif %}</span>
+                <span>•</span>
+                <span><strong>Type:</strong> {% if student.student_type == 'hostel' %}<span class="badge bg-primary-subtle text-primary fw-bold">Hostel Boarder</span>{% else %}<span class="badge bg-light text-dark border">Day Scholar</span>{% endif %}</span>
+                {% if student.bus_stop %}
+                <span>•</span>
+                <span><strong>Bus Stop:</strong> {{ student.bus_stop.stop_name }} (₹{{ student.bus_stop.fee_amount|floatformat:0 }}/mo)</span>
+                {% endif %}
+            </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+            {% if request.user.profile.role == 'student' %}
+            <a href="{% url 'students:home' %}" class="btn btn-light btn-sm border text-muted" style="font-weight: 700; border-radius: 7px; padding: 0.35rem 0.8rem; font-size: 0.82rem;">
+                <i class="fa-solid fa-arrow-left me-1"></i> Dashboard
+            </a>
+            <a href="{% url 'students:student_self_profile_update' %}" class="btn btn-light btn-sm border text-muted" style="font-weight: 600; border-radius: 7px; padding: 0.35rem 0.8rem; font-size: 0.82rem;">
+                <i class="fa-solid fa-user me-1"></i> My Profile
+            </a>
+            {% else %}
+            <a href="{% url 'fees:fee_counter' %}" class="btn btn-light btn-sm border text-muted" style="font-weight: 700; border-radius: 7px; padding: 0.35rem 0.8rem; font-size: 0.82rem;">
+                <i class="fa-solid fa-arrow-left me-1"></i> Fee Counter
+            </a>
+            <button type="button" class="btn btn-sm fw-bold shadow-sm" style="border-radius: 7px; padding: 0.35rem 0.85rem; font-size: 0.82rem; background: #7c3aed; color: #ffffff; border: 1px solid #6d28d9;" onclick="openFeeReductionModal();">
+                <i class="fa-solid fa-tag me-1"></i> Fee Reduction / Waiver
+            </button>
+            <button type="button" class="btn btn-primary btn-sm fw-bold shadow-sm" style="border-radius: 7px; padding: 0.35rem 0.85rem; font-size: 0.82rem;" onclick="openModal('adhocFeeModal');">
+                <i class="fa-solid fa-plus-circle me-1"></i> Add Ad-hoc Fee
+            </button>
+            <a href="{% url 'students:student_profile' student.id %}" class="btn btn-light btn-sm border text-muted" style="font-weight: 600; border-radius: 7px; padding: 0.35rem 0.8rem; font-size: 0.82rem;">
+                <i class="fa-solid fa-user me-1"></i> Profile
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Account Summary Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem;">
+        <div class="card border-0 shadow-sm" style="border-radius: 10px; padding: 0.85rem 1rem; background: white; border-left: 3px solid #64748b !important;">
+            <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Billed</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-top: 0.15rem;">₹{{ total_billed|floatformat:2 }}</div>
+        </div>
+        <div class="card border-0 shadow-sm" style="border-radius: 10px; padding: 0.85rem 1rem; background: white; border-left: 3px solid #10b981 !important;">
+            <div style="font-size: 0.7rem; font-weight: 700; color: #10b981; text-transform: uppercase;">Total Paid</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #10b981; margin-top: 0.15rem;">₹{{ total_paid|floatformat:2 }}</div>
+        </div>
+        <div class="card border-0 shadow-sm" style="border-radius: 10px; padding: 0.85rem 1rem; background: white; border-left: 3px solid #7c3aed !important;">
+            <div style="font-size: 0.7rem; font-weight: 700; color: #7c3aed; text-transform: uppercase;">Reductions / Concessions</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #7c3aed; margin-top: 0.15rem;">₹{{ total_concessions|floatformat:2 }}</div>
+        </div>
+        <div class="card border-0 shadow-sm" style="border-radius: 10px; padding: 0.85rem 1rem; background: white; border-left: 3px solid #ef4444 !important;">
+            <div style="font-size: 0.7rem; font-weight: 700; color: #ef4444; text-transform: uppercase;">Current Due Balance</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #dc2626; margin-top: 0.15rem;">₹{{ total_due|floatformat:2 }}</div>
+        </div>
+    </div>
+
+    <!-- Fee Collection Form Wrapper -->
+    <form action="{% url 'fees:collect_payment_submit' student.id %}" method="post" id="feeCollectionForm">
+        {% csrf_token %}
+
+        <div class="row g-3">
+            <!-- Left Column: Itemized Dues Table -->
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm" style="border-radius: 12px; background: white; overflow: hidden; margin-bottom: 1.25rem;">
+                    <div style="padding: 0.75rem 1rem; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                        <h5 style="margin: 0; font-weight: 800; font-size: 0.92rem; color: #0f172a; display: flex; align-items: center; gap: 0.4rem;">
+                            <i class="fa-solid fa-list-check text-primary"></i> Itemized Fee Dues & Charges
+                        </h5>
+                        {% if request.user.profile.role != 'student' %}
+                        <div class="d-flex align-items-center gap-2" style="font-size: 0.78rem;">
+                            <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none fw-bold" onclick="toggleSelectAll(true)">Select All</button>
+                            <span class="text-muted">|</span>
+                            <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none text-muted" onclick="toggleSelectAll(false)">Deselect</button>
+                            <span class="text-muted">|</span>
+                            <button type="button" class="btn btn-sm py-0 px-2 fw-bold" onclick="openFeeReductionModal();" style="font-size: 0.75rem; border-radius: 5px; background: #f5f3ff; color: #7c3aed; border: 1.5px solid #c4b5fd;">
+                                <i class="fa-solid fa-tag me-1" style="color: #7c3aed;"></i> Reduce / Waive
+                            </button>
+                            <span class="text-muted">|</span>
+                            <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold" onclick="openModal('adhocFeeModal');" style="font-size: 0.75rem; border-radius: 5px;">
+                                <i class="fa-solid fa-plus me-1"></i> Add Fee
+                            </button>
+                        </div>
+                        {% else %}
+                        <div class="d-flex align-items-center gap-2" style="font-size: 0.78rem;">
+                            <span class="badge bg-primary-subtle text-primary fw-bold" style="font-size: 0.74rem;">
+                                <i class="fa-solid fa-file-invoice me-1"></i> Student Fee Statement
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="table-responsive" style="margin: 0;">
+                        <table class="table table-hover table-sm align-middle mb-0" style="font-size: 0.82rem;" id="duesTable">
+                            <thead style="background: #f1f5f9; color: #475569;">
+                                <tr>
+                                    <th style="width: 35px; text-align: center;">Pay</th>
+                                    <th>Fee Particulars</th>
+                                    <th>Due Date</th>
+                                    <th style="text-align: right;">Billed (₹)</th>
+                                    <th style="text-align: right;">Reduction / Waiver</th>
+                                    <th style="text-align: right;">Net Due (₹)</th>
+                                    <th style="width: 105px; text-align: right;">Paying Now (₹)</th>
+                                    <th style="width: 45px; text-align: center;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for group_name, group_items in fee_groups %}
+                                    {% if group_items %}
+                                        <tr style="background: #f8fafc; font-weight: 800; color: #334155; font-size: 0.74rem; text-transform: uppercase;">
+                                            <td colspan="8" style="padding: 0.35rem 0.75rem; background: #f8fafc;">
+                                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                    <span><i class="fa-solid fa-folder me-1 text-muted"></i> {{ group_name }}</span>
+                                                    {% if group_name == 'Ad-hoc & Other Dues' %}
+                                                     <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2 fw-semibold" onclick="openModal('adhocFeeModal');" style="font-size: 0.7rem; border-radius: 4px;">
+                                                        + Add Charge
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% for fee in group_items %}
+                                        <tr class="fee-row {% if fee.status == 'paid' %}table-light opacity-75{% endif %}">
+                                            <td style="text-align: center; padding: 0.3rem;">
+                                                {% if fee.status != 'paid' %}
+                                                <input type="checkbox" name="selected_fees" value="{{ fee.id }}" class="form-check-input fee-checkbox" data-balance="{{ fee.balance }}" onchange="updateTotalPayable();" checked>
+                                                {% else %}
+                                                <i class="fa-solid fa-check text-success"></i>
+                                                {% endif %}
+                                            </td>
+                                            <td style="padding: 0.3rem 0.5rem;">
+                                                <div style="font-weight: 700; color: #0f172a;">{{ fee.display_title }}</div>
+                                                {% if fee.concession_amount > 0 %}
+                                                <div style="margin-top: 2px;">
+                                                    <span class="badge" style="background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; font-size: 0.68rem; font-weight: 600;">
+                                                        <i class="fa-solid fa-tag me-1" style="color: #7c3aed;"></i> -₹{{ fee.concession_amount|floatformat:2 }} Off: {{ fee.concession_remark|default:"Reduction Applied" }}
+                                                    </span>
+                                                </div>
+                                                {% elif fee.remarks %}
+                                                <div style="font-size: 0.7rem; color: #64748b;">{{ fee.remarks }}</div>
+                                                {% endif %}
+                                            </td>
+                                            <td style="color: #64748b; font-size: 0.78rem; padding: 0.3rem 0.5rem;">
+                                                {{ fee.due_date|date:"d M Y"|default:"-" }}
+                                            </td>
+                                            <td style="text-align: right; color: #334155; padding: 0.3rem 0.5rem;">
+                                                ₹{{ fee.total_amount|floatformat:2 }}
+                                            </td>
+                                            <td style="text-align: right; padding: 0.3rem 0.5rem;">
+                                                {% if fee.concession_amount > 0 %}
+                                                    <span class="badge fw-bold" style="background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; font-size: 0.72rem;">
+                                                        -₹{{ fee.concession_amount|floatformat:2 }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="text-muted" style="font-size: 0.74rem;">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td style="text-align: right; font-weight: 800; color: {% if fee.balance > 0 %}#dc2626{% else %}#10b981{% endif %}; padding: 0.3rem 0.5rem;">
+                                                {% if fee.status == 'paid' %}
+                                                    <span class="badge bg-success-subtle text-success" style="font-size: 0.7rem;">Settled</span>
+                                                {% else %}
+                                                    ₹{{ fee.balance|floatformat:2 }}
+                                                {% endif %}
+                                            </td>
+                                            <td style="text-align: right; padding: 0.3rem 0.5rem;">
+                                                {% if fee.status != 'paid' %}
+                                                    {% if request.user.profile.role != 'student' %}
+                                                    <input type="number" step="0.01" min="0" max="{{ fee.balance }}" name="pay_amount_{{ fee.id }}" value="{{ fee.balance }}" class="form-control form-control-sm text-end fw-bold fee-pay-input py-0 px-1" oninput="updateTotalPayable();" style="border-radius: 5px; font-size: 0.8rem; height: 26px;">
+                                                    {% else %}
+                                                    <span class="fw-bold text-danger" style="font-size: 0.8rem;">₹{{ fee.balance|floatformat:2 }}</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                <span class="text-muted" style="font-size: 0.72rem;">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td style="text-align: center; padding: 0.3rem 0.2rem;">
+                                                {% if request.user.profile.role != 'student' %}
+                                                <button type="button" class="btn p-0" title="Apply Reduction / Waiver (Not used bus/hostel, partial days, etc.)" onclick="openFeeReductionModal({{ fee.id }}, '{{ fee.display_title|escapejs }}', {{ fee.total_amount }}, {{ fee.concession_amount }}, '{{ fee.concession_remark|escapejs }}', {{ fee.present_days|default:'null' }}, {{ fee.amount_paid }});" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 0.72rem; background: #f5f3ff; border: 1.5px solid #c4b5fd; color: #7c3aed;">
+                                                    <i class="fa-solid fa-tag"></i>
+                                                </button>
+                                                {% else %}
+                                                <span class="text-muted" style="font-size: 0.7rem;">-</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% endif %}
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-4 text-muted">No fee records found for this student.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Payment History Card -->
+                <div class="card border-0 shadow-sm" style="border-radius: 12px; background: white;">
+                    <div style="padding: 0.75rem 1rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+                        <h5 style="margin: 0; font-weight: 800; font-size: 0.92rem; color: #0f172a;">
+                            <i class="fa-solid fa-clock-rotate-left text-muted me-2"></i> Payment History & Receipts
+                        </h5>
+                    </div>
+                    <div class="table-responsive" style="margin: 0;">
+                        <table class="table table-hover table-sm align-middle mb-0" style="font-size: 0.82rem;">
+                            <thead style="background: #f8fafc; color: #64748b;">
+                                <tr>
+                                    <th style="padding: 0.45rem 0.75rem;">Receipt #</th>
+                                    <th>Date</th>
+                                    <th>Payment Mode</th>
+                                    <th>Reference / Txn</th>
+                                    <th>Collected By</th>
+                                    <th style="text-align: right;">Amount</th>
+                                    <th style="text-align: center;">Voucher</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rec in receipts %}
+                                <tr>
+                                    <td style="padding: 0.45rem 0.75rem; font-weight: 700; color: #4f46e5;">
+                                        #{{ rec.transaction_id|stringformat:".8s" }}
+                                    </td>
+                                    <td style="color: #64748b;">{{ rec.date|date:"d M Y" }}</td>
+                                    <td>
+                                        <span class="badge" style="background: #e0f2fe; color: #0369a1; text-transform: uppercase; font-size: 0.7rem;">{{ rec.payment_method }}</span>
+                                    </td>
+                                    <td style="color: #64748b; font-family: monospace; font-size: 0.78rem;">{{ rec.reference_number|default:"-" }}</td>
+                                    <td style="color: #334155;">{{ rec.collected_by }}</td>
+                                    <td style="text-align: right; font-weight: 800; color: #10b981;">₹{{ rec.total_amount|floatformat:2 }}</td>
+                                    <td style="text-align: center;">
+                                        <a href="{% url 'fees:print_receipt' rec.transaction_id %}" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.74rem; border-radius: 5px;">
+                                            <i class="fa-solid fa-print me-1"></i> Print
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-3 text-muted">No prior payments recorded.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Collection Checkout Panel (for Staff) or Account Info (for Student) -->
+            <div class="col-lg-4">
+                {% if request.user.profile.role != 'student' %}
+                <div class="card border-0 shadow-sm sticky-top" style="border-radius: 12px; background: white; padding: 1.1rem; top: 1rem;">
+                    <h5 style="font-weight: 800; color: #0f172a; margin-bottom: 0.85rem; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem;">
+                        <i class="fa-solid fa-wallet text-success"></i> Collect Payment
+                    </h5>
+
+                    <!-- Total Payable Box -->
+                    <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.85rem; text-align: center; margin-bottom: 1rem;">
+                        <div style="font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Collection Amount</div>
+                        <div style="font-size: 1.6rem; font-weight: 800; color: #10b981; margin-top: 0.15rem;" id="checkoutTotalDisplay">₹0.00</div>
+                        <div style="font-size: 0.72rem; color: #64748b;" id="selectedCountDisplay">0 items selected</div>
+                    </div>
+
+                    <!-- Payment Details Form Fields -->
+                    <div class="mb-2">
+                        <label class="form-label fw-bold mb-1" style="font-size: 0.78rem; color: #334155;">Payment Mode</label>
+                        <select name="payment_method" class="form-select form-select-sm" style="border-radius: 6px; font-size: 0.82rem;" required>
+                            <option value="cash" selected>💵 Cash Payment</option>
+                            <option value="upi">📱 UPI / GooglePay / PhonePe</option>
+                            <option value="bank_transfer">🏛️ Bank Transfer / NEFT</option>
+                            <option value="cheque">📝 Cheque</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label fw-bold mb-1" style="font-size: 0.78rem; color: #334155;">Reference / Transaction ID</label>
+                        <input type="text" name="reference_number" class="form-control form-control-sm" placeholder="UPI Ref, Cheque No, Bank Trx ID" style="border-radius: 6px; font-size: 0.82rem;">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold mb-1" style="font-size: 0.78rem; color: #334155;">Receipt Remarks / Note</label>
+                        <textarea name="remarks" class="form-control form-control-sm" rows="2" placeholder="Optional notes on receipt..." style="border-radius: 6px; font-size: 0.82rem;"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100 py-2" style="font-weight: 800; font-size: 0.92rem; border-radius: 8px; background: #10b981; border: none;" id="btnSubmitPayment" onclick="return confirm('Confirm payment receipt generation?');">
+                        <i class="fa-solid fa-check-circle me-1"></i> Confirm & Generate Receipt
+                    </button>
+                </div>
+                {% else %}
+                <div class="card border-0 shadow-sm sticky-top" style="border-radius: 14px; background: white; padding: 1.1rem; top: 1rem;">
+                    <!-- Student Due Notice Header -->
+                    <div style="background: {% if total_due > 0 %}linear-gradient(135deg, #fff1f2 0%, #fee2e2 100%); border: 1.5px solid #fecdd3;{% else %}linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #bbf7d0;{% endif %} border-radius: 12px; padding: 0.9rem; text-align: center; margin-bottom: 1rem;">
+                        <div style="font-size: 0.72rem; font-weight: 800; color: {% if total_due > 0 %}#9f1239{% else %}#166534{% endif %}; text-transform: uppercase; letter-spacing: 0.05em;">
+                            Total Outstanding Due
+                        </div>
+                        <div style="font-size: 1.75rem; font-weight: 900; color: {% if total_due > 0 %}#be123c{% else %}#15803d{% endif %}; margin: 0.15rem 0; line-height: 1.15;">
+                            ₹{{ total_due|floatformat:2 }}
+                        </div>
+                        <div style="font-size: 0.74rem; font-weight: 700; color: {% if total_due > 0 %}#9f1239{% else %}#166534{% endif %};">
+                            {% if total_due > 0 %}Payment Required{% else %}All Dues Cleared & Settled 🎉{% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Online Payment & UPI QR Card -->
+                    <div style="background: #faf5ff; border: 1.5px solid #e9d5ff; border-radius: 12px; padding: 0.9rem; margin-bottom: 0.85rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+                            <span style="font-weight: 800; font-size: 0.86rem; color: #581c87; display: flex; align-items: center; gap: 0.35rem;">
+                                <i class="fa-solid fa-qrcode text-primary" style="color: #7c3aed !important;"></i> Pay via UPI / QR Code
+                            </span>
+                            <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.65rem; font-weight: 700;">Instant Pay</span>
+                        </div>
+
+                        {% if payment_settings.qr_code_image %}
+                        <div style="text-align: center; margin-bottom: 0.65rem;">
+                            <div style="display: inline-block; padding: 6px; background: #ffffff; border-radius: 10px; border: 2px solid #ddd6fe; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.08);">
+                                <img src="{{ payment_settings.qr_code_image.url }}" alt="Official Payment QR Code" style="width: 155px; height: 155px; object-fit: contain; border-radius: 6px; display: block;">
+                            </div>
+                            <div style="font-size: 0.68rem; font-weight: 700; color: #6b21a8; margin-top: 0.3rem;">
+                                <i class="fa-solid fa-camera me-1"></i> Scan with GPay / PhonePe / Paytm / BHIM
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if payment_settings.upi_id %}
+                        <div style="background: #ffffff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 0.45rem 0.65rem; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.45rem;">
+                            <div style="min-width: 0;">
+                                <div style="font-size: 0.64rem; font-weight: 700; color: #6b21a8; text-transform: uppercase;">UPI ID / VPA</div>
+                                <div style="font-weight: 800; font-size: 0.82rem; color: #1e1b4b; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    {{ payment_settings.upi_id }}
+                                </div>
+                            </div>
+                            <button type="button" id="btnCopyUpi" class="btn btn-xs py-1 px-2 fw-bold" onclick="copyToClipboard('{{ payment_settings.upi_id }}', 'btnCopyUpi');" style="font-size: 0.72rem; border-radius: 6px; background: #f5f3ff; color: #7c3aed; border: 1px solid #c4b5fd; white-space: nowrap;">
+                                <i class="fa-solid fa-copy me-1"></i> Copy
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Direct Bank Transfer Details Card -->
+                    <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 0.85rem; margin-bottom: 0.85rem;">
+                        <h6 style="font-weight: 800; font-size: 0.84rem; color: #0f172a; margin-bottom: 0.55rem; display: flex; align-items: center; gap: 0.35rem;">
+                            <i class="fa-solid fa-building-columns text-primary"></i> Bank Account Transfer
+                        </h6>
+
+                        <div style="font-size: 0.76rem; display: flex; flex-direction: column; gap: 0.35rem;">
+                            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.25rem;">
+                                <span class="text-muted">Account Holder:</span>
+                                <strong style="color: #0f172a; text-align: right;">{{ payment_settings.account_holder_name|default:payment_settings.institution_name }}</strong>
+                            </div>
+
+                            {% if payment_settings.bank_name %}
+                            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.25rem;">
+                                <span class="text-muted">Bank Name:</span>
+                                <strong style="color: #0f172a;">{{ payment_settings.bank_name }}</strong>
+                            </div>
+                            {% endif %}
+
+                            {% if payment_settings.account_number %}
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.25rem;">
+                                <span class="text-muted">Account No:</span>
+                                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                    <strong style="color: #0f172a; font-family: monospace; font-size: 0.82rem;">{{ payment_settings.account_number }}</strong>
+                                    <button type="button" id="btnCopyAcc" class="btn btn-xs p-0 text-primary border-0 bg-transparent" title="Copy Account Number" onclick="copyToClipboard('{{ payment_settings.account_number }}', 'btnCopyAcc');" style="font-size: 0.75rem;">
+                                        <i class="fa-solid fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if payment_settings.ifsc_code %}
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #e2e8f0; padding-bottom: 0.25rem;">
+                                <span class="text-muted">IFSC Code:</span>
+                                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                    <strong style="color: #0f172a; font-family: monospace; font-size: 0.82rem;">{{ payment_settings.ifsc_code }}</strong>
+                                    <button type="button" id="btnCopyIfsc" class="btn btn-xs p-0 text-primary border-0 bg-transparent" title="Copy IFSC" onclick="copyToClipboard('{{ payment_settings.ifsc_code }}', 'btnCopyIfsc');" style="font-size: 0.75rem;">
+                                        <i class="fa-solid fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if payment_settings.branch_name %}
+                            <div style="display: flex; justify-content: space-between;">
+                                <span class="text-muted">Branch:</span>
+                                <strong style="color: #0f172a;">{{ payment_settings.branch_name }}</strong>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Payment Note & WhatsApp Send Screenshot -->
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.65rem 0.75rem; margin-bottom: 0.85rem; font-size: 0.74rem; color: #14532d;">
+                        <div style="font-weight: 700; margin-bottom: 0.2rem; display: flex; align-items: center; gap: 0.3rem;">
+                            <i class="fa-solid fa-circle-check text-success"></i> Payment Confirmation
+                        </div>
+                        <p style="margin: 0; line-height: 1.35;">
+                            {{ payment_settings.payment_instructions|default:"After payment, please send the transaction screenshot with Student Name & ID to the college WhatsApp."|linebreaksbr }}
+                        </p>
+                    </div>
+
+                    {% if payment_settings.helpline_phone %}
+                    <a href="https://wa.me/91{{ payment_settings.helpline_phone }}?text=Hello%20Accounts,%20I%20have%20transferred%20the%20fee%20for%20{{ student.full_name|urlencode }}%20(ID:%20{{ student.student_id|urlencode }}).%20Please%20find%20attached%20payment%20proof." target="_blank" class="btn btn-success w-100 py-2 fw-bold mb-2 shadow-sm" style="font-size: 0.82rem; border-radius: 8px; background: #16a34a; border: none;">
+                        <i class="fa-brands fa-whatsapp me-1" style="font-size: 1rem;"></i> Send Screenshot on WhatsApp
+                    </a>
+                    {% endif %}
+
+                    <a href="{% url 'students:home' %}" class="btn btn-light w-100 py-2 border text-muted fw-bold" style="font-size: 0.82rem; border-radius: 8px;">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Back to Dashboard
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+
+</div>
+
+{% if request.user.profile.role != 'student' %}
+<!-- Pure CSS/JS Modal 1: Fee Reduction / Waiver Modal -->
+<div class="modal-overlay" id="feeReductionModal">
+    <div class="modal-box" style="max-width: 700px;">
+        <div class="modal-header-custom">
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 0.4rem;">
+                <i class="fa-solid fa-tags text-primary" style="color: #7c3aed !important;"></i> Fee Reduction & Waiver
+            </h3>
+            <button type="button" class="modal-close-btn" onclick="closeModal('feeReductionModal');">&times;</button>
+        </div>
+        <form action="{% url 'fees:apply_fee_reduction_submit' student.id %}" method="post">
+            {% csrf_token %}
+            
+            <div style="font-size: 0.76rem; color: #64748b; margin-bottom: 0.5rem;">
+                Adjust fee for <strong style="color: #0f172a;">{{ student.full_name }}</strong> due to un-used facilities, partial attendance, scholarship, etc.
+            </div>
+
+            <!-- Row 1: 2 inputs per row (Fee Item / Month & Reason) -->
+            <div class="modal-form-grid-2" style="margin-bottom: 0.6rem;">
+                <div>
+                    <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #334155; margin-bottom: 0.15rem;">
+                        Select Fee Item / Specific Month *
+                    </label>
+                    <select name="fee_id" id="reductionFeeSelect" class="form-control form-control-sm fw-bold" style="border-radius: 6px; font-size: 0.82rem;" onchange="onReductionFeeChanged();" required>
+                        {% if bus_fees %}
+                        <optgroup label="🚌 Monthly Bus Fees (Select Month to Deduct)">
+                            {% for f in bus_fees %}
+                            <option value="{{ f.id }}" data-is-monthly="true" data-type="bus" data-month="{{ f.billing_month|date:'F Y' }}" data-title="{{ f.display_title }}" data-total="{{ f.total_amount }}" data-paid="{{ f.amount_paid }}" data-concession="{{ f.concession_amount }}" data-remark="{{ f.concession_remark }}" data-days="{{ f.present_days|default:'' }}">
+                                {{ f.display_title }} — Rate: ₹{{ f.total_amount|floatformat:0 }}{% if f.concession_amount > 0 %} (Reduced: -₹{{ f.concession_amount|floatformat:0 }}){% endif %}{% if f.status == 'paid' %} [Paid]{% endif %}
+                            </option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
+
+                        {% if hostel_fees %}
+                        <optgroup label="🏢 Monthly Hostel Fees (Select Month to Deduct)">
+                            {% for f in hostel_fees %}
+                            <option value="{{ f.id }}" data-is-monthly="true" data-type="hostel" data-month="{{ f.billing_month|date:'F Y' }}" data-title="{{ f.display_title }}" data-total="{{ f.total_amount }}" data-paid="{{ f.amount_paid }}" data-concession="{{ f.concession_amount }}" data-remark="{{ f.concession_remark }}" data-days="{{ f.present_days|default:'' }}">
+                                {{ f.display_title }} — Rate: ₹{{ f.total_amount|floatformat:0 }}{% if f.concession_amount > 0 %} (Reduced: -₹{{ f.concession_amount|floatformat:0 }}){% endif %}{% if f.status == 'paid' %} [Paid]{% endif %}
+                            </option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
+
+                        {% if course_fees %}
+                        <optgroup label="🎓 Course & Term Installments">
+                            {% for f in course_fees %}
+                            <option value="{{ f.id }}" data-is-monthly="false" data-type="course" data-month="" data-title="{{ f.display_title }}" data-total="{{ f.total_amount }}" data-paid="{{ f.amount_paid }}" data-concession="{{ f.concession_amount }}" data-remark="{{ f.concession_remark }}" data-days="{{ f.present_days|default:'' }}">
+                                {{ f.display_title }} — Rate: ₹{{ f.total_amount|floatformat:0 }}{% if f.concession_amount > 0 %} (Reduced: -₹{{ f.concession_amount|floatformat:0 }}){% endif %}
+                            </option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
+
+                        {% if admission_fees %}
+                        <optgroup label="📦 Admission Essentials">
+                            {% for f in admission_fees %}
+                            <option value="{{ f.id }}" data-is-monthly="false" data-type="admission" data-month="" data-title="{{ f.display_title }}" data-total="{{ f.total_amount }}" data-paid="{{ f.amount_paid }}" data-concession="{{ f.concession_amount }}" data-remark="{{ f.concession_remark }}" data-days="{{ f.present_days|default:'' }}">
+                                {{ f.display_title }} — Rate: ₹{{ f.total_amount|floatformat:0 }}{% if f.concession_amount > 0 %} (Reduced: -₹{{ f.concession_amount|floatformat:0 }}){% endif %}
+                            </option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
+
+                        {% if adhoc_fees %}
+                        <optgroup label="📝 Ad-hoc & Other Dues">
+                            {% for f in adhoc_fees %}
+                            <option value="{{ f.id }}" data-is-monthly="false" data-type="adhoc" data-month="" data-title="{{ f.display_title }}" data-total="{{ f.total_amount }}" data-paid="{{ f.amount_paid }}" data-concession="{{ f.concession_amount }}" data-remark="{{ f.concession_remark }}" data-days="{{ f.present_days|default:'' }}">
+                                {{ f.display_title }} — Rate: ₹{{ f.total_amount|floatformat:0 }}{% if f.concession_amount > 0 %} (Reduced: -₹{{ f.concession_amount|floatformat:0 }}){% endif %}
+                            </option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
+                    </select>
+
+                    <!-- Month-Specific Single Target Alert -->
+                    <div id="monthlyNoticeBanner" style="display: none; background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 6px; padding: 0.35rem 0.6rem; margin-top: 0.35rem; font-size: 0.73rem; color: #5b21b6;">
+                        <i class="fa-solid fa-calendar-check me-1" style="color: #7c3aed;"></i> 
+                        <span>Deduction applies <strong>ONLY to <span id="targetMonthLabel">this month</span></strong>. Other months remain unchanged.</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #334155; margin-bottom: 0.15rem;">
+                        Reason / Explanation *
+                    </label>
+                    <input type="text" name="reason_custom" id="reductionReasonInput" class="form-control form-control-sm" placeholder="e.g. Not used bus for this month, left hostel" style="font-size: 0.82rem;" required>
+                    
+                    <!-- Quick Suggestions under Reason -->
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.35rem;">
+                        <button type="button" class="btn btn-xs btn-light border py-0 px-2" style="font-size: 0.68rem; border-radius: 4px; font-weight: 600;" onclick="setReductionPreset('Did not use Bus', 'full')">🚌 Not Used Bus</button>
+                        <button type="button" class="btn btn-xs btn-light border py-0 px-2" style="font-size: 0.68rem; border-radius: 4px; font-weight: 600;" onclick="setReductionPreset('Did not use Hostel / Mess', 'full')">🏢 Not Used Hostel</button>
+                        <button type="button" class="btn btn-xs btn-light border py-0 px-2" style="font-size: 0.68rem; border-radius: 4px; font-weight: 600;" onclick="setReductionPreset('Partial attendance / days prorated', 'days', 15)">📅 Partial Days</button>
+                        <button type="button" class="btn btn-xs btn-light border py-0 px-2" style="font-size: 0.68rem; border-radius: 4px; font-weight: 600;" onclick="setReductionPreset('Scholarship Concession', 'fixed', 1000)">🎓 Scholarship</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: 2 columns (Calculation Mode on Left, Inputs & Preview on Right) -->
+            <div class="modal-form-grid-2" style="margin-bottom: 0.6rem; align-items: start;">
+                <!-- Left: Calculation Type Radios -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.55rem 0.75rem;">
+                    <label style="display: block; font-size: 0.74rem; font-weight: 700; color: #334155; margin-bottom: 0.3rem;">
+                        Reduction Calculation Mode
+                    </label>
+                    <div style="display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.76rem;">
+                        <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; margin: 0;">
+                            <input type="radio" name="reduction_type" value="full" id="type_full" onchange="calcReductionPreview();">
+                            <span><strong>100% Full Waiver</strong> (Free for month)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; margin: 0;">
+                            <input type="radio" name="reduction_type" value="days" id="type_days" onchange="calcReductionPreview();">
+                            <span><strong>Prorated by Days</strong> (e.g. 15/30 days)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; margin: 0;">
+                            <input type="radio" name="reduction_type" value="percent" id="type_percent" onchange="calcReductionPreview();">
+                            <span><strong>Percentage (%)</strong> (e.g. 50% off)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; margin: 0;">
+                            <input type="radio" name="reduction_type" value="fixed" id="type_fixed" checked onchange="calcReductionPreview();">
+                            <span><strong>Fixed Amount (₹)</strong> (e.g. ₹500 off)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; margin: 0;">
+                            <input type="radio" name="reduction_type" value="reset" id="type_reset" onchange="calcReductionPreview();">
+                            <span style="color: #dc2626;"><strong>Clear Reduction</strong> (Restore full)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Right: Value/Days Inputs & Live Calculation Preview -->
+                <div>
+                    <!-- Days Inputs -->
+                    <div id="daysInputsBox" style="display: none; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.45rem;">
+                        <div>
+                            <label style="display: block; font-size: 0.74rem; font-weight: 700; color: #334155; margin-bottom: 0.15rem;">Days Present *</label>
+                            <input type="number" step="1" min="0" max="31" name="present_days" id="presentDaysInput" value="15" class="form-control form-control-sm" oninput="calcReductionPreview();">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.74rem; font-weight: 700; color: #334155; margin-bottom: 0.15rem;">Total Days</label>
+                            <input type="number" step="1" min="1" max="31" name="total_days" id="totalDaysInput" value="30" class="form-control form-control-sm" oninput="calcReductionPreview();">
+                        </div>
+                    </div>
+
+                    <!-- Value Input -->
+                    <div id="valueInputBox" style="margin-bottom: 0.45rem;">
+                        <label id="valueInputLabel" style="display: block; font-size: 0.74rem; font-weight: 700; color: #334155; margin-bottom: 0.15rem;">
+                            Reduction Amount (₹) *
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text py-0" id="valueInputPrefix" style="font-size: 0.8rem;">₹</span>
+                            <input type="number" step="0.01" min="0" name="reduction_value" id="reductionValueInput" class="form-control form-control-sm fw-bold" placeholder="0.00" oninput="calcReductionPreview();">
+                        </div>
+                    </div>
+
+                    <!-- Live Preview Box -->
+                    <div style="background: #faf5ff; border: 1.5px dashed #c084fc; border-radius: 8px; padding: 0.45rem 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.74rem; color: #475569; margin-bottom: 0.1rem;">
+                            <span>Original Rate:</span>
+                            <span id="prevOriginalAmount" style="font-weight: 700; color: #0f172a;">₹0.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.74rem; color: #9333ea; font-weight: 700; margin-bottom: 0.1rem;">
+                            <span>Waiver / Discount:</span>
+                            <span id="prevReductionAmount">-₹0.00</span>
+                        </div>
+                        <div style="border-top: 1px solid #e9d5ff; padding-top: 0.2rem; margin-top: 0.2rem; display: flex; justify-content: space-between; font-size: 0.82rem; font-weight: 800; color: #0f172a;">
+                            <span>Net Payable:</span>
+                            <span id="prevFinalPayable" style="color: #10b981;">₹0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.4rem; padding-top: 0.45rem; border-top: 1px solid #f1f5f9;">
+                <button type="button" class="btn btn-light btn-sm py-1 px-3" onclick="closeModal('feeReductionModal');" style="font-weight: 600; font-size: 0.8rem; border-radius: 6px;">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-primary btn-sm py-1 px-3 fw-bold" style="font-size: 0.8rem; border-radius: 6px; background: #7c3aed; border: none;">
+                    <i class="fa-solid fa-check me-1"></i> Apply Month Reduction
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Pure CSS/JS Modal 2: Add Ad-hoc / Custom Charge -->
+<div class="modal-overlay" id="adhocFeeModal">
+    <div class="modal-box" style="max-width: 620px;">
+        <div class="modal-header-custom">
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 0.4rem;">
+                <i class="fa-solid fa-plus-circle text-primary"></i> Add Ad-hoc Fee
+            </h3>
+            <button type="button" class="modal-close-btn" onclick="closeModal('adhocFeeModal');">&times;</button>
+        </div>
+        <form action="{% url 'fees:add_adhoc_fee_submit' student.id %}" method="post">
+            {% csrf_token %}
+            
+            <div style="font-size: 0.78rem; color: #64748b; margin-bottom: 0.45rem;">
+                Charge for <strong style="color: #0f172a;">{{ student.full_name }}</strong>
+            </div>
+
+            <!-- Quick Suggestions -->
+            <div style="margin-bottom: 0.55rem;">
+                <div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
+                    <button type="button" class="btn btn-xs btn-light border py-0 px-2" style="font-size: 0.7rem; border-radius: 4px; font-weight: 600;" onclick="setPreset('Outside Food Order', 'Food order delivered to hostel')">🍔 Food Order</button>
+                    <button type="button" class="btn btn-xs btn-light border py-0 px-2" style="font-size: 0.7rem; border-radius: 4px; font-weight: 600;" onclick="setPreset('Store / Canteen Borrow', 'Store borrow')">🛒 Store Borrow</button>
+                    <button type="button" class="btn btn-xs btn-light border py-0 px-2" style="font-size: 0.7rem; border-radius: 4px; font-weight: 600;" onclick="setPreset('Medical & Medicine Charges', 'Medical bill')">💊 Medical</button>
+                    <button type="button" class="btn btn-xs btn-light border py-0 px-2" style="font-size: 0.7rem; border-radius: 4px; font-weight: 600;" onclick="setPreset('Lost ID Card / Book Fine', 'Replacement fine')">📚 Fine</button>
+                </div>
+            </div>
+
+            <!-- Row 1: 2 inputs per row (Charge Title & Amount) -->
+            <div class="modal-form-grid-2" style="margin-bottom: 0.5rem;">
+                <div>
+                    <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #334155; margin-bottom: 0.15rem;">
+                        Charge Title / Reason *
+                    </label>
+                    <input type="text" name="title" id="adhocTitleInput" class="form-control form-control-sm" placeholder="e.g. Outside Food Order, Medical Bill" style="border-radius: 6px; font-size: 0.82rem;" required>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #334155; margin-bottom: 0.15rem;">
+                        Amount (₹) *
+                    </label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text py-0" style="font-size: 0.8rem;">₹</span>
+                        <input type="number" step="0.01" min="1" name="amount" id="adhocAmountInput" class="form-control form-control-sm fw-bold" placeholder="0.00" style="font-size: 0.82rem;" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: 2 inputs per row (Due Date & Remarks) -->
+            <div class="modal-form-grid-2" style="margin-bottom: 0.65rem;">
+                <div>
+                    <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #334155; margin-bottom: 0.15rem;">
+                        Due Date
+                    </label>
+                    <input type="date" name="due_date" value="{{ today|date:'Y-m-d' }}" class="form-control form-control-sm" style="border-radius: 6px; font-size: 0.82rem;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #334155; margin-bottom: 0.15rem;">
+                        Remarks
+                    </label>
+                    <input type="text" name="remarks" id="adhocRemarksInput" class="form-control form-control-sm" placeholder="Optional notes..." style="border-radius: 6px; font-size: 0.8rem;">
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.4rem; padding-top: 0.45rem; border-top: 1px solid #f1f5f9;">
+                <button type="button" class="btn btn-light btn-sm py-1 px-3" onclick="closeModal('adhocFeeModal');" style="font-weight: 600; font-size: 0.8rem; border-radius: 6px;">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-primary btn-sm py-1 px-3 fw-bold" style="font-size: 0.8rem; border-radius: 6px;">
+                    <i class="fa-solid fa-check me-1"></i> Add Fee
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function copyToClipboard(text, btnId) {
+    if (!navigator.clipboard) {
+        const temp = document.createElement('input');
+        temp.value = text;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+    } else {
+        navigator.clipboard.writeText(text);
+    }
+    const btn = document.getElementById(btnId);
+    if (btn) {
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check text-success"></i> Copied!';
+        setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+    }
+}
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.style.display = 'flex';
+        const firstInput = modal.querySelector('#adhocTitleInput');
+        if (firstInput) {
+            setTimeout(() => firstInput.focus(), 50);
+        }
+    }
+}
+
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Fee Reduction Modal Handler
+function openFeeReductionModal(feeId, title, total, concession, remark, days, paid) {
+    const modal = document.getElementById('feeReductionModal');
+    if (!modal) return;
+    
+    modal.style.display = 'flex';
+    const select = document.getElementById('reductionFeeSelect');
+    if (select && feeId) {
+        select.value = feeId;
+    }
+    
+    onReductionFeeChanged();
+
+    if (concession && concession > 0) {
+        document.getElementById('type_fixed').checked = true;
+        document.getElementById('reductionValueInput').value = concession;
+        if (remark) document.getElementById('reductionReasonInput').value = remark;
+        if (days) {
+            document.getElementById('type_days').checked = true;
+            document.getElementById('presentDaysInput').value = days;
+        }
+    }
+    
+    calcReductionPreview();
+}
+
+function onReductionFeeChanged() {
+    const select = document.getElementById('reductionFeeSelect');
+    if (!select || !select.selectedOptions.length) return;
+    
+    const opt = select.selectedOptions[0];
+    const isMonthly = opt.getAttribute('data-is-monthly') === 'true';
+    const monthName = opt.getAttribute('data-month') || '';
+    const total = parseFloat(opt.getAttribute('data-total')) || 0;
+    const concession = parseFloat(opt.getAttribute('data-concession')) || 0;
+    const remark = opt.getAttribute('data-remark') || '';
+    const days = opt.getAttribute('data-days') || '';
+
+    const noticeBanner = document.getElementById('monthlyNoticeBanner');
+    const targetMonthLabel = document.getElementById('targetMonthLabel');
+    if (isMonthly && monthName) {
+        if (noticeBanner) noticeBanner.style.display = 'block';
+        if (targetMonthLabel) targetMonthLabel.innerText = monthName;
+    } else {
+        if (noticeBanner) noticeBanner.style.display = 'none';
+    }
+
+    if (concession > 0) {
+        document.getElementById('reductionReasonInput').value = remark;
+        document.getElementById('reductionValueInput').value = concession;
+        if (days) {
+            document.getElementById('type_days').checked = true;
+            document.getElementById('presentDaysInput').value = days;
+        } else {
+            document.getElementById('type_fixed').checked = true;
+        }
+    } else {
+        if (isMonthly && monthName) {
+            const title = opt.getAttribute('data-title') || 'Monthly Fee';
+            if (title.toLowerCase().includes('bus')) {
+                document.getElementById('reductionReasonInput').value = 'Did not use Bus for ' + monthName;
+                document.getElementById('type_full').checked = true;
+            } else if (title.toLowerCase().includes('hostel')) {
+                document.getElementById('reductionReasonInput').value = 'Did not use Hostel for ' + monthName;
+                document.getElementById('type_full').checked = true;
+            } else {
+                document.getElementById('reductionReasonInput').value = 'Fee reduction for ' + monthName;
+            }
+        }
+    }
+
+    calcReductionPreview();
+}
+
+function setReductionPreset(baseReason, type, val) {
+    const select = document.getElementById('reductionFeeSelect');
+    let monthName = '';
+    if (select && select.selectedOptions.length) {
+        monthName = select.selectedOptions[0].getAttribute('data-month') || '';
+    }
+
+    let finalReason = baseReason;
+    if (monthName && !finalReason.includes(monthName)) {
+        finalReason += ' for ' + monthName;
+    }
+    
+    document.getElementById('reductionReasonInput').value = finalReason;
+    
+    if (type === 'full') {
+        document.getElementById('type_full').checked = true;
+    } else if (type === 'days') {
+        document.getElementById('type_days').checked = true;
+        if (val) document.getElementById('presentDaysInput').value = val;
+    } else if (type === 'percent') {
+        document.getElementById('type_percent').checked = true;
+        if (val) document.getElementById('reductionValueInput').value = val;
+    } else if (type === 'fixed') {
+        document.getElementById('type_fixed').checked = true;
+        if (val) document.getElementById('reductionValueInput').value = val;
+    }
+    
+    calcReductionPreview();
+}
+
+function calcReductionPreview() {
+    const select = document.getElementById('reductionFeeSelect');
+    if (!select || !select.selectedOptions.length) return;
+    
+    const opt = select.selectedOptions[0];
+    const total = parseFloat(opt.getAttribute('data-total')) || 0;
+    const paid = parseFloat(opt.getAttribute('data-paid')) || 0;
+    
+    const typeRadios = document.getElementsByName('reduction_type');
+    let selectedType = 'fixed';
+    typeRadios.forEach(r => { if (r.checked) selectedType = r.value; });
+
+    const daysBox = document.getElementById('daysInputsBox');
+    const valBox = document.getElementById('valueInputBox');
+    const valLabel = document.getElementById('valueInputLabel');
+    const valPrefix = document.getElementById('valueInputPrefix');
+    const valInput = document.getElementById('reductionValueInput');
+
+    let reductionAmt = 0;
+
+    if (selectedType === 'full') {
+        daysBox.style.display = 'none';
+        valBox.style.display = 'none';
+        reductionAmt = Math.max(0, total - paid);
+    } else if (selectedType === 'days') {
+        daysBox.style.display = 'grid';
+        valBox.style.display = 'none';
+        const pDays = parseInt(document.getElementById('presentDaysInput').value) || 0;
+        const tDays = parseInt(document.getElementById('totalDaysInput').value) || 30;
+        const payable = Math.round((total / Math.max(1, tDays)) * Math.min(tDays, Math.max(0, pDays)) * 100) / 100;
+        reductionAmt = Math.max(0, total - payable);
+    } else if (selectedType === 'percent') {
+        daysBox.style.display = 'none';
+        valBox.style.display = 'block';
+        valLabel.innerText = 'Reduction Percentage (%) *';
+        valPrefix.innerText = '%';
+        const pct = parseFloat(valInput.value) || 0;
+        reductionAmt = (total * Math.min(100, Math.max(0, pct))) / 100;
+    } else if (selectedType === 'fixed') {
+        daysBox.style.display = 'none';
+        valBox.style.display = 'block';
+        valLabel.innerText = 'Reduction Amount (₹) *';
+        valPrefix.innerText = '₹';
+        reductionAmt = parseFloat(valInput.value) || 0;
+    } else if (selectedType === 'reset') {
+        daysBox.style.display = 'none';
+        valBox.style.display = 'none';
+        reductionAmt = 0;
+    }
+
+    reductionAmt = Math.min(reductionAmt, Math.max(0, total - paid));
+    const finalPayable = Math.max(0, total - reductionAmt - paid);
+
+    document.getElementById('prevOriginalAmount').innerText = '₹' + total.toFixed(2);
+    document.getElementById('prevReductionAmount').innerText = '-₹' + reductionAmt.toFixed(2);
+    document.getElementById('prevFinalPayable').innerText = '₹' + finalPayable.toFixed(2);
+}
+
+// Close when clicking outside modal box
+window.addEventListener('click', function(e) {
+    if (e.target && e.target.classList.contains('modal-overlay')) {
+        e.target.style.display = 'none';
+    }
+});
+
+// Close with Escape key
+window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const openModals = document.querySelectorAll('.modal-overlay');
+        openModals.forEach(m => m.style.display = 'none');
+    }
+});
+
+function setPreset(title, remarks) {
+    const titleInput = document.getElementById('adhocTitleInput');
+    const remarksInput = document.getElementById('adhocRemarksInput');
+    const amountInput = document.getElementById('adhocAmountInput');
+    if (titleInput) titleInput.value = title;
+    if (remarksInput) remarksInput.value = remarks;
+    if (amountInput) amountInput.focus();
+}
+
+function updateTotalPayable() {
+    let total = 0;
+    let count = 0;
+    const checkboxes = document.querySelectorAll('.fee-checkbox');
+    checkboxes.forEach(cb => {
+        const row = cb.closest('tr');
+        const payInput = row.querySelector('.fee-pay-input');
+        if (cb.checked && payInput) {
+            const val = parseFloat(payInput.value) || 0;
+            total += val;
+            count++;
+            payInput.disabled = false;
+        } else if (payInput) {
+            payInput.disabled = true;
+        }
+    });
+
+    document.getElementById('checkoutTotalDisplay').innerText = '₹' + total.toFixed(2);
+    document.getElementById('selectedCountDisplay').innerText = count + ' items selected';
+    
+    const submitBtn = document.getElementById('btnSubmitPayment');
+    if (total <= 0) {
+        submitBtn.disabled = true;
+    } else {
+        submitBtn.disabled = false;
+    }
+}
+
+function toggleSelectAll(selectAll) {
+    const checkboxes = document.querySelectorAll('.fee-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = selectAll;
+    });
+    updateTotalPayable();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateTotalPayable();
+});
+</script>
+{% endblock %}

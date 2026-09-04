@@ -183,8 +183,8 @@
         <a href="{% url 'students:student_edit' student.id %}" class="btn btn-xs btn-primary" style="background: var(--primary); border: none; font-size: 0.75rem; padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 600;">
             <i class="fas fa-edit"></i> Edit Student
         </a>
-        <a href="{% url 'fees:student_fees' student.id %}" class="btn btn-xs btn-success" style="background: var(--success); border: none; font-size: 0.75rem; padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 600;">
-            <i class="fas fa-wallet"></i> Fee Dashboard
+        <a href="{% url 'fees:student_fee_detail' student.id %}" class="btn btn-xs btn-success" style="background: #10b981; border: none; font-size: 0.75rem; padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 600;">
+            <i class="fas fa-wallet"></i> Fee Ledger
         </a>
         {% endif %}
     </div>

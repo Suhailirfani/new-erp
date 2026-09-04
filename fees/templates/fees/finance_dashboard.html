@@ -1,206 +1,235 @@
 {% extends 'students/base.html' %}
 
-{% block title %}Finance & Accounts Dashboard{% endblock %}
-
-{% block extra_css %}
-<style>
-    @media print {
-        @page {
-            size: A4 portrait;
-            margin: 1cm;
-        }
-        body * {
-            visibility: hidden;
-        }
-        #print-day-book, #print-day-book * {
-            visibility: visible;
-        }
-        #print-day-book {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100% !important;
-            box-shadow: none !important;
-            border: none !important;
-        }
-        /* Hide actions and unnecessary elements */
-        #print-day-book button, .navbar, .sidebar {
-            display: none !important;
-        }
-    }
-</style>
-{% endblock %}
+{% block title %}Finance & Accounts | Control Panel{% endblock %}
 
 {% block content %}
-<div class="row mb-5 align-items-end">
-    <div class="col-md-7">
-        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
-            <div style="width: 48px; height: 48px; background: var(--gradient-lavender); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; box-shadow: var(--shadow-soft);">
-                <i class="fas fa-chart-line"></i>
-            </div>
-            <h2 style="font-size: 2.25rem; font-weight: 800; color: var(--dark); margin: 0; letter-spacing: -0.02em;">Finance Dashboard</h2>
-        </div>
-        <p style="color: var(--gray); font-size: 1.1rem; font-weight: 500; margin-left: 3.5rem;">
-            Institutional Financial Health & Transactions | <span style="color: var(--primary); font-weight: 700;">{{ today|date:"D, d M Y" }}</span>
-        </p>
-    </div>
-    <div class="col-md-5">
-        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; flex-wrap: wrap;">
-            <a href="{% url 'fees:fees_dashboard' %}" class="btn btn-gradient" style="padding: 0.8rem 1.6rem; order: -1;">
-                <i class="fas fa-hand-holding-rupee me-1"></i> Collect Fee
-            </a>
-            <a href="{% url 'fees:add_income' %}" class="btn btn-success" style="padding: 0.75rem 1.25rem; font-size: 0.95rem;">
-                <i class="fas fa-plus me-1"></i> Other Income
-            </a>
-            <a href="{% url 'fees:add_expense' %}" class="btn btn-danger" style="padding: 0.75rem 1.25rem; font-size: 0.95rem;">
-                <i class="fas fa-minus me-1"></i> Add Expense
-            </a>
-            <div style="width: 100%; height: 0.5rem; display: block;"></div> <!-- Spacer -->
-            <a href="{% url 'fees:departmental_dashboard' %}" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
-                <i class="fas fa-chart-pie me-1"></i> Dept. Analytics
-            </a>
-            <a href="{% url 'fees:day_book' %}" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
-                <i class="fas fa-book me-1"></i> Day Book
-            </a>
-            <a href="{% url 'fees:finance_report' %}" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
-                <i class="fas fa-file-invoice me-1"></i> Reports
-            </a>
-        </div>
-    </div>
-</div>
+<div class="container-fluid" style="padding: 1.5rem 1rem; max-width: 1300px; margin: 0 auto;">
 
-<!-- Key Metrics Grid -->
-<div class="dashboard-grid">
-    <!-- Daily Report -->
-    <div class="stat-card-new">
-        <div class="icon-box" style="background: #ecfdf5; color: #10b981;">
-            <i class="fas fa-wallet"></i>
-        </div>
-        <div class="stat-info">
-            <div class="label">Today's Collection</div>
-            <div class="value">₹{{ daily_income|floatformat:2 }}</div>
-            <div style="font-size: 0.85rem; color: #10b981; font-weight: 700;">
-                <i class="fas fa-arrow-down me-1"></i> Expense: ₹{{ daily_expense|floatformat:2 }}
+    <!-- Page Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.75rem;">
+        <div>
+            <h2 style="font-weight: 800; color: #0f172a; margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 0.6rem;">
+                <i class="fa-solid fa-building-columns" style="color: var(--primary);"></i> Office Finance & Accounts
+            </h2>
+            <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.25rem;">
+                Fee collection counter, daily cashbook, student ledgers, and financial reports.
             </div>
         </div>
-    </div>
-
-    <!-- Monthly Report -->
-    <div class="stat-card-new">
-        <div class="icon-box" style="background: #eef2ff; color: #6366f1;">
-            <i class="fas fa-calendar-check"></i>
-        </div>
-        <div class="stat-info">
-            <div class="label">Monthly Summary</div>
-            <div class="value">₹{{ monthly_income|floatformat:2 }}</div>
-            <div style="font-size: 0.85rem; color: #6366f1; font-weight: 700;">
-                Net: ₹{{ monthly_income|add:monthly_expense|floatformat:2 }}
-            </div>
+        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+            <a href="{% url 'fees:fee_counter' %}" class="btn btn-primary" style="font-weight: 700; border-radius: 10px; padding: 0.55rem 1.25rem; display: inline-flex; align-items: center; gap: 0.5rem; background: #4f46e5; border: none;">
+                <i class="fa-solid fa-cash-register"></i> Fee Counter
+            </a>
+            <a href="{% url 'fees:day_book' %}" class="btn btn-outline-secondary" style="font-weight: 700; border-radius: 10px; padding: 0.55rem 1.1rem; background: white;">
+                <i class="fa-solid fa-book-open"></i> Day Book
+            </a>
+            <a href="{% url 'fees:finance_reports' %}" class="btn btn-outline-secondary" style="font-weight: 700; border-radius: 10px; padding: 0.55rem 1.1rem; background: white;">
+                <i class="fa-solid fa-chart-line"></i> Reports
+            </a>
         </div>
     </div>
 
-    <!-- Yearly Report -->
-    <div class="stat-card-new">
-        <div class="icon-box" style="background: #fffbeb; color: #f59e0b;">
-            <i class="fas fa-vault"></i>
-        </div>
-        <div class="stat-info">
-            <div class="label">Yearly Total</div>
-            <div class="value">₹{{ yearly_income|floatformat:2 }}</div>
-            <div style="font-size: 0.85rem; color: var(--gray); font-weight: 600;">Academic Year Performance</div>
-        </div>
-    </div>
-
-    <!-- Overall Balance -->
-    <div class="stat-card-new" style="background: var(--gradient-lavender); color: white;">
-        <div class="icon-box" style="background: rgba(29, 1, 88, 0.2); color: white;">
-            <i class="fas fa-piggy-bank"></i>
-        </div>
-        <div class="stat-info">
-            <div class="label" style="color: rgba(194, 46, 46, 0.8);">Projected Balance</div>
-            <div class="value" style="color: rgb(79, 9, 9);">₹{{ net_balance|floatformat:2 }}</div>
-            <div style="font-size: 0.85rem; color: rgba(62, 1, 1, 0.9); font-weight: 600;">Grand Total Liquidity</div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <!-- Item-wise collection -->
-    <div class="col-lg-5 mb-4">
-        <div class="card shadow-soft border-0" style="border-radius: 24px; background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--border);">
-            <div class="card-header bg-transparent py-4 border-0">
-                <h5 class="mb-0 fw-bold" style="color: var(--dark); font-size: 1.25rem;">
-                    <i class="fas fa-tags me-2" style="color: var(--primary);"></i> Collection by Category
-                </h5>
-            </div>
-            <div class="card-body px-4 pb-4">
-                {% for cat in category_collections %}
-                <div class="mb-4">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span style="font-weight: 600; color: var(--dark-secondary); font-size: 0.95rem;">{{ cat.name }}</span>
-                        <span style="font-weight: 800; color: var(--primary);">₹{{ cat.total|floatformat:0 }}</span>
-                    </div>
-                    <div class="progress" style="height: 10px; border-radius: 5px; background: rgba(0,0,0,0.05);">
-                        <div class="progress-bar" role="progressbar" style="width: {% widthratio cat.total total_income 100 %}%; background: var(--gradient-lavender); border-radius: 5px;"></div>
+    <!-- Summary KPI Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1.75rem;">
+        <!-- Today Collections -->
+        <div class="card border-0 shadow-sm" style="border-radius: 14px; padding: 1.25rem; background: white; border-left: 4px solid #10b981 !important;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Today's Income</div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-top: 0.25rem;">₹{{ today_income_total|floatformat:2 }}</div>
+                    <div style="font-size: 0.78rem; color: #10b981; font-weight: 600; margin-top: 0.25rem;">
+                        <i class="fa-solid fa-receipt"></i> {{ today_receipts_count }} receipts collected
                     </div>
                 </div>
-                {% empty %}
-                <p class="text-center text-muted">No data available.</p>
-                {% endfor %}
+                <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                    <i class="fa-solid fa-arrow-down-left"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today Expenses -->
+        <div class="card border-0 shadow-sm" style="border-radius: 14px; padding: 1.25rem; background: white; border-left: 4px solid #ef4444 !important;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Today's Expense</div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-top: 0.25rem;">₹{{ today_expense_total|floatformat:2 }}</div>
+                    <div style="font-size: 0.78rem; color: #64748b; font-weight: 600; margin-top: 0.25rem;">
+                        Outflow vouchers
+                    </div>
+                </div>
+                <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(239, 68, 68, 0.1); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                    <i class="fa-solid fa-arrow-up-right"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Month Net Flow -->
+        <div class="card border-0 shadow-sm" style="border-radius: 14px; padding: 1.25rem; background: white; border-left: 4px solid #4f46e5 !important;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">This Month Net</div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: {% if month_net >= 0 %}#4f46e5{% else %}#ef4444{% endif %}; margin-top: 0.25rem;">
+                        ₹{{ month_net|floatformat:2 }}
+                    </div>
+                    <div style="font-size: 0.78rem; color: #64748b; font-weight: 600; margin-top: 0.25rem;">
+                        In: ₹{{ month_income_total|floatformat:0 }} | Out: ₹{{ month_expense_total|floatformat:0 }}
+                    </div>
+                </div>
+                <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(79, 70, 229, 0.1); color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Student Dues Outstanding -->
+        <div class="card border-0 shadow-sm" style="border-radius: 14px; padding: 1.25rem; background: white; border-left: 4px solid #f59e0b !important;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Total Pending Dues</div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: #d97706; margin-top: 0.25rem;">₹{{ total_due_balance|floatformat:2 }}</div>
+                    <div style="font-size: 0.78rem; color: #64748b; font-weight: 600; margin-top: 0.25rem;">
+                        Across all active students
+                    </div>
+                </div>
+                <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(245, 158, 11, 0.1); color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Day Book / Recent Transactions -->
-    <div class="col-lg-7" id="print-day-book">
-        <div class="card shadow-soft border-0" style="border-radius: 24px; overflow: hidden; background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--border);">
-            <div class="card-header bg-transparent py-4 border-0 d-flex justify-content-between align-items-center px-4">
-                <h5 class="mb-0 fw-bold" style="color: var(--dark); font-size: 1.25rem;">
-                    <i class="fas fa-book me-2" style="color: #10b981;"></i> Recent Day Book
-                </h5>
-                <button class="btn btn-secondary btn-xs" onclick="window.print()" style="padding: 0.5rem 0.8rem !important; border-radius: 8px !important;">
-                    <i class="fas fa-print me-1"></i> Print
-                </button>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead>
-                            <tr style="background: rgba(0,0,0,0.02);">
-                                <th class="ps-4 border-0" style="color: var(--gray); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; padding: 1.25rem 1rem;">Date/Ref</th>
-                                <th class="border-0" style="color: var(--gray); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; padding: 1.25rem 1rem;">Category / Description</th>
-                                <th class="text-end pe-4 border-0" style="color: var(--gray); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; padding: 1.25rem 1rem;">Amount</th>
+    <!-- Quick Operations Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 2rem;">
+        <a href="{% url 'fees:fee_counter' %}" class="card border-0 shadow-sm text-decoration-none" style="border-radius: 12px; padding: 1rem; background: white; color: #0f172a; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+            <div style="font-size: 1.4rem; color: #4f46e5; margin-bottom: 0.5rem;"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+            <div style="font-weight: 700; font-size: 0.95rem;">Fee Counter</div>
+            <div style="font-size: 0.75rem; color: #64748b;">Collect student fees</div>
+        </a>
+        <a href="{% url 'fees:batch_monthly_billing' %}" class="card border-0 shadow-sm text-decoration-none" style="border-radius: 12px; padding: 1rem; background: white; color: #0f172a; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+            <div style="font-size: 1.4rem; color: #0284c7; margin-bottom: 0.5rem;"><i class="fa-solid fa-calendar-plus"></i></div>
+            <div style="font-weight: 700; font-size: 0.95rem;">Monthly Billing</div>
+            <div style="font-size: 0.75rem; color: #64748b;">Batch Hostel & Bus dues</div>
+        </a>
+        <a href="{% url 'fees:income_create' %}" class="card border-0 shadow-sm text-decoration-none" style="border-radius: 12px; padding: 1rem; background: white; color: #0f172a; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+            <div style="font-size: 1.4rem; color: #10b981; margin-bottom: 0.5rem;"><i class="fa-solid fa-circle-plus"></i></div>
+            <div style="font-weight: 700; font-size: 0.95rem;">Add Income</div>
+            <div style="font-size: 0.75rem; color: #64748b;">Donations, grants, etc.</div>
+        </a>
+        <a href="{% url 'fees:expense_create' %}" class="card border-0 shadow-sm text-decoration-none" style="border-radius: 12px; padding: 1rem; background: white; color: #0f172a; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+            <div style="font-size: 1.4rem; color: #ef4444; margin-bottom: 0.5rem;"><i class="fa-solid fa-circle-minus"></i></div>
+            <div style="font-weight: 700; font-size: 0.95rem;">Add Expense</div>
+            <div style="font-size: 0.75rem; color: #64748b;">Salaries, mess, bills</div>
+        </a>
+        <a href="{% url 'fees:ledger_book' %}" class="card border-0 shadow-sm text-decoration-none" style="border-radius: 12px; padding: 1rem; background: white; color: #0f172a; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+            <div style="font-size: 1.4rem; color: #8b5cf6; margin-bottom: 0.5rem;"><i class="fa-solid fa-table-list"></i></div>
+            <div style="font-weight: 700; font-size: 0.95rem;">Ledger Book</div>
+            <div style="font-size: 0.75rem; color: #64748b;">Category accounts</div>
+        </a>
+        <a href="{% url 'fees:caution_deposits' %}" class="card border-0 shadow-sm text-decoration-none" style="border-radius: 12px; padding: 1rem; background: white; color: #0f172a; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+            <div style="font-size: 1.4rem; color: #f59e0b; margin-bottom: 0.5rem;"><i class="fa-solid fa-shield-halved"></i></div>
+            <div style="font-weight: 700; font-size: 0.95rem;">Caution Deposits</div>
+            <div style="font-size: 0.75rem; color: #64748b;">Deposits & refunds</div>
+        </a>
+        <a href="{% url 'fees:fee_setup' %}" class="card border-0 shadow-sm text-decoration-none" style="border-radius: 12px; padding: 1rem; background: white; color: #0f172a; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+            <div style="font-size: 1.4rem; color: #64748b; margin-bottom: 0.5rem;"><i class="fa-solid fa-sliders"></i></div>
+            <div style="font-weight: 700; font-size: 0.95rem;">Fee Setup</div>
+            <div style="font-size: 0.75rem; color: #64748b;">Items & bus stops</div>
+        </a>
+    </div>
+
+    <!-- Recent Feeds: Receipts & Expenses -->
+    <div class="row g-3">
+        <!-- Recent Fee Receipts -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm" style="border-radius: 14px; background: white; height: 100%;">
+                <div style="padding: 1.25rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+                    <h5 style="margin: 0; font-weight: 800; font-size: 1rem; color: #0f172a;">
+                        <i class="fa-solid fa-receipt text-success me-2"></i> Recent Fee Collections
+                    </h5>
+                    <a href="{% url 'fees:fee_counter' %}" style="font-size: 0.8rem; font-weight: 700; color: #4f46e5; text-decoration: none;">View Counter &rarr;</a>
+                </div>
+                <div class="table-responsive" style="margin: 0;">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                        <thead style="background: #f8fafc; color: #64748b;">
+                            <tr>
+                                <th style="padding: 0.6rem 1rem;">Receipt</th>
+                                <th>Student</th>
+                                <th>Date</th>
+                                <th>Method</th>
+                                <th style="text-align: right; padding-right: 1rem;">Amount</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for inc in recent_incomes %}
+                            {% for r in recent_receipts %}
                             <tr>
-                                <td class="ps-4" style="padding: 1rem;">
-                                    <div style="font-weight: 700; color: var(--dark);">{{ inc.date|date:"d M" }}</div>
-                                    <div style="color: var(--gray); font-size: 0.8rem;">#{{ inc.reference_number|default:inc.id }}</div>
+                                <td style="padding: 0.6rem 1rem; font-weight: 700;">
+                                    <a href="{% url 'fees:print_receipt' r.transaction_id %}" target="_blank" style="color: #4f46e5; text-decoration: none;">
+                                        #{{ r.transaction_id|stringformat:".8s" }}
+                                    </a>
                                 </td>
+                                <td style="font-weight: 600;">
+                                    <a href="{% url 'fees:student_fee_detail' r.student.id %}" style="color: #0f172a; text-decoration: none;">
+                                        {{ r.student.full_name }}
+                                    </a>
+                                </td>
+                                <td style="color: #64748b;">{{ r.date|date:"d M Y" }}</td>
                                 <td>
-                                    <div style="font-weight: 700; color: #10b981;"><i class="fas fa-plus-circle me-1 small"></i> {{ inc.category.name }}</div>
-                                    <div style="color: var(--dark-secondary); font-size: 0.85rem;">{{ inc.received_from|truncatechars:40 }}</div>
+                                    <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 0.72rem; text-transform: uppercase;">
+                                        {{ r.payment_method }}
+                                    </span>
                                 </td>
-                                <td class="text-end pe-4" style="font-weight: 800; color: #10b981; font-size: 1.1rem;">
-                                    + ₹{{ inc.amount }}
+                                <td style="text-align: right; padding-right: 1rem; font-weight: 800; color: #10b981;">
+                                    ₹{{ r.total_amount|floatformat:2 }}
                                 </td>
                             </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">No fee receipts recorded yet.</td>
+                            </tr>
                             {% endfor %}
-                            {% for exp in recent_expenses %}
-                            <tr style="background-color: rgba(239, 68, 68, 0.02);">
-                                <td class="ps-4" style="padding: 1rem;">
-                                    <div style="font-weight: 700; color: var(--dark);">{{ exp.date|date:"d M" }}</div>
-                                    <div style="color: var(--gray); font-size: 0.8rem;">#{{ exp.reference_number|default:exp.id }}</div>
-                                </td>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Office Expenses -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm" style="border-radius: 14px; background: white; height: 100%;">
+                <div style="padding: 1.25rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+                    <h5 style="margin: 0; font-weight: 800; font-size: 1rem; color: #0f172a;">
+                        <i class="fa-solid fa-file-invoice-dollar text-danger me-2"></i> Recent Expenses
+                    </h5>
+                    <a href="{% url 'fees:expense_list' %}" style="font-size: 0.8rem; font-weight: 700; color: #4f46e5; text-decoration: none;">View All &rarr;</a>
+                </div>
+                <div class="table-responsive" style="margin: 0;">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                        <thead style="background: #f8fafc; color: #64748b;">
+                            <tr>
+                                <th style="padding: 0.6rem 1rem;">Category</th>
+                                <th>Paid To</th>
+                                <th>Date</th>
+                                <th>Method</th>
+                                <th style="text-align: right; padding-right: 1rem;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for e in recent_expenses %}
+                            <tr>
+                                <td style="padding: 0.6rem 1rem; font-weight: 600; color: #334155;">{{ e.category.name }}</td>
+                                <td style="color: #0f172a;">{{ e.paid_to|truncatechars:20 }}</td>
+                                <td style="color: #64748b;">{{ e.date|date:"d M Y" }}</td>
                                 <td>
-                                    <div style="font-weight: 700; color: #ef4444;"><i class="fas fa-minus-circle me-1 small"></i> {{ exp.category.name }}</div>
-                                    <div style="color: var(--dark-secondary); font-size: 0.85rem;">{{ exp.paid_to|truncatechars:40 }}</div>
+                                    <span class="badge" style="background: #f1f5f9; color: #475569; font-size: 0.72rem; text-transform: uppercase;">
+                                        {{ e.payment_method }}
+                                    </span>
                                 </td>
-                                <td class="text-end pe-4" style="font-weight: 800; color: #ef4444; font-size: 1.1rem;">
-                                    - ₹{{ exp.amount }}
+                                <td style="text-align: right; padding-right: 1rem; font-weight: 800; color: #ef4444;">
+                                    ₹{{ e.amount|floatformat:2 }}
                                 </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">No expense vouchers recorded yet.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -209,5 +238,6 @@
             </div>
         </div>
     </div>
+
 </div>
 {% endblock %}

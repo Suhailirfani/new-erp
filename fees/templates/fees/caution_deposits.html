@@ -1,0 +1,203 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Caution Deposits Register | Office Finance{% endblock %}
+
+{% block content %}
+<style>
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    padding: 1rem;
+}
+.modal-box {
+    background: #ffffff;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 480px;
+    padding: 1.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+    position: relative;
+}
+.modal-header-custom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+}
+.modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    line-height: 1;
+    color: #94a3b8;
+    cursor: pointer;
+}
+.modal-close-btn:hover { color: #0f172a; }
+</style>
+
+<div class="container-fluid" style="padding: 1.5rem 1rem; max-width: 1200px; margin: 0 auto;">
+
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+        <div>
+            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.2rem;">
+                <a href="{% url 'fees:finance_dashboard' %}" style="color: #64748b; text-decoration: none;">Finance</a> / Caution Deposits
+            </div>
+            <h2 style="font-weight: 800; color: #0f172a; margin: 0; font-size: 1.45rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-shield-halved" style="color: #f59e0b;"></i> Refundable Caution Deposits
+            </h2>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'fees:finance_dashboard' %}" class="btn btn-light btn-sm border text-muted" style="font-weight: 700; border-radius: 8px; padding: 0.45rem 0.9rem;">
+                <i class="fa-solid fa-arrow-left me-1"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Summary Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm" style="border-radius: 14px; background: white; padding: 1.25rem; border-left: 4px solid #f59e0b !important;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Active Holding Deposits</div>
+                <div style="font-size: 1.6rem; font-weight: 800; color: #b45309; margin-top: 0.25rem;">
+                    ₹{{ active_sum|floatformat:2 }}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm" style="border-radius: 14px; background: white; padding: 1.25rem; border-left: 4px solid #64748b !important;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Historical Deposits</div>
+                <div style="font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-top: 0.25rem;">
+                    ₹{{ total_deposited|floatformat:2 }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deposits Table -->
+    <div class="card border-0 shadow-sm" style="border-radius: 14px; background: white; overflow: hidden;">
+        <div style="padding: 1rem 1.25rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="font-weight: 800; font-size: 1rem; color: #0f172a;">Student Caution Deposits</div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'fees:caution_deposits' %}" class="btn btn-sm {% if not status_filter %}btn-dark{% else %}btn-light border{% endif %}" style="font-size: 0.8rem; font-weight: 600;">All</a>
+                <a href="{% url 'fees:caution_deposits' %}?status=active" class="btn btn-sm {% if status_filter == 'active' %}btn-dark{% else %}btn-light border{% endif %}" style="font-size: 0.8rem; font-weight: 600;">Active Only</a>
+                <a href="{% url 'fees:caution_deposits' %}?status=refunded" class="btn btn-sm {% if status_filter == 'refunded' %}btn-dark{% else %}btn-light border{% endif %}" style="font-size: 0.8rem; font-weight: 600;">Refunded</a>
+            </div>
+        </div>
+
+        <div class="table-responsive" style="margin: 0;">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                <thead style="background: #f8fafc; color: #64748b;">
+                    <tr>
+                        <th style="padding: 0.6rem 1rem;">Student</th>
+                        <th>Student ID</th>
+                        <th>Date Deposited</th>
+                        <th>Deposit Amount</th>
+                        <th>Refund Status</th>
+                        <th style="text-align: center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cd in deposits %}
+                    <tr>
+                        <td style="padding: 0.6rem 1rem; font-weight: 700; color: #0f172a;">
+                            <a href="{% url 'fees:student_fee_detail' cd.student.id %}" style="color: #0f172a; text-decoration: none;">
+                                {{ cd.student.full_name }}
+                            </a>
+                        </td>
+                        <td style="color: #64748b; font-weight: 600;">{{ cd.student.student_id }}</td>
+                        <td style="color: #64748b;">{{ cd.date_collected|date:"d M Y" }}</td>
+                        <td style="font-weight: 800; color: #0f172a;">₹{{ cd.amount|floatformat:2 }}</td>
+                        <td>
+                            {% if cd.is_refunded %}
+                                <span class="badge" style="background: #fee2e2; color: #b91c1c; font-weight: 700;">Refunded (₹{{ cd.refund_amount }})</span>
+                            {% else %}
+                                <span class="badge" style="background: #fef3c7; color: #b45309; font-weight: 700;">Active Holding</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            {% if not cd.is_refunded %}
+                            <button type="button" class="btn btn-xs btn-outline-danger" style="font-size: 0.78rem; font-weight: 700; border-radius: 6px; padding: 0.25rem 0.65rem;" onclick="openModal('refundModal{{ cd.id }}');">
+                                <i class="fa-solid fa-arrow-rotate-left me-1"></i> Refund
+                            </button>
+
+                            <!-- Refund Modal -->
+                            <div class="modal-overlay" id="refundModal{{ cd.id }}">
+                                <div class="modal-box text-start">
+                                    <div class="modal-header-custom">
+                                        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #0f172a;">
+                                            <i class="fa-solid fa-shield-halved text-warning me-2"></i> Refund Caution Deposit
+                                        </h3>
+                                        <button type="button" class="modal-close-btn" onclick="closeModal('refundModal{{ cd.id }}');">&times;</button>
+                                    </div>
+                                    <form action="{% url 'fees:caution_deposit_refund_submit' cd.id %}" method="post">
+                                        {% csrf_token %}
+                                        <p style="font-size: 0.85rem; color: #475569; margin-bottom: 0.75rem;">
+                                            Refunding caution deposit of <strong>{{ cd.student.full_name }}</strong> (Max ₹{{ cd.amount }}).
+                                        </p>
+                                        <div style="margin-bottom: 0.75rem;">
+                                            <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 0.25rem;">Refund Amount (₹) *</label>
+                                            <input type="number" step="0.01" min="1" max="{{ cd.amount }}" name="amount" value="{{ cd.amount }}" class="form-control fw-bold" required>
+                                        </div>
+                                        <div style="margin-bottom: 1rem;">
+                                            <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 0.25rem;">Refund Reason / Remarks</label>
+                                            <textarea name="remarks" class="form-control" rows="2" placeholder="e.g. Course completion / Leaving institution..."></textarea>
+                                        </div>
+                                        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; pt-2 border-top: 1px solid #f1f5f9;">
+                                            <button type="button" class="btn btn-light btn-sm px-3" onclick="closeModal('refundModal{{ cd.id }}');">Cancel</button>
+                                            <button type="submit" class="btn btn-danger btn-sm px-4 fw-bold" style="border-radius: 6px;">Process Refund</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            {% else %}
+                            <span style="font-size: 0.75rem; color: #64748b;">Processed</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">No caution deposit records found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.style.display = 'none';
+}
+
+window.addEventListener('click', function(e) {
+    if (e.target && e.target.classList.contains('modal-overlay')) {
+        e.target.style.display = 'none';
+    }
+});
+
+window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const openModals = document.querySelectorAll('.modal-overlay');
+        openModals.forEach(m => m.style.display = 'none');
+    }
+});
+</script>
+{% endblock %}

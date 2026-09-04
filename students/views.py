@@ -22,7 +22,6 @@ from .models import (
     PeriodTiming, TeacherSubjectAssignment, TimetableSlot
 )
 from .forms import SectionForm, AcademicYearForm, EnquiryForm, GradeForm, DivisionForm, SubjectForm
-from fees.models import FeeStructure, FeeItem
 
 
 def get_holiday_dates(start_date, end_date, grade=None):
@@ -109,66 +108,12 @@ def course_fee_calculator(request, course_id):
     admission_type = request.GET.get('admission_type', 'day_scholar')
     
     fee_breakdown = []
-    unified_fees = []
-    seen_items = set()
-    
-    # Get relevant grades to find general structures if needed
-    relevant_grades = Grade.objects.filter(
-        enrollments__division=selected_division
-    ).distinct()
-    
-    if not relevant_grades.exists():
-        relevant_grades = Grade.objects.all().order_by('order')[:3]
-
-    # Fetch applicable fee items (Logic B Base)
-    fee_items = FeeItem.objects.filter(
-        Q(applicable_divisions=selected_division) | Q(applicable_divisions__isnull=True)
-    ).distinct().select_related('category')
-
-    # Fetch overriding structures (Logic A Override)
-    structures = FeeStructure.objects.filter(
-        academic_year=active_year,
-        fee_item__in=fee_items
-    ).filter(
-        Q(division=selected_division) | 
-        Q(division__isnull=True, grade__in=relevant_grades)
-    ).select_related('fee_item')
-
-    # Map structures by fee_item to easily override amounts
-    structure_map = {}
-    for fs in structures:
-        # Prefer division-specific over general grade-level structure
-        if fs.division == selected_division:
-            structure_map[fs.fee_item.id] = fs
-        elif fs.fee_item.id not in structure_map:
-            structure_map[fs.fee_item.id] = fs
-
-    for item in fee_items:
-        if item.target_student_type != 'all' and item.target_student_type != admission_type:
-            continue
-            
-        fee_key = item.name.lower().strip()
-        if fee_key not in seen_items:
-            seen_items.add(fee_key)
-            frequency = "One Time" if item.fee_type == 'admission' else ("/ month" if item.is_monthly else "/ year")
-            
-            # Use structure amount if available, else default
-            amount = structure_map[item.id].amount if item.id in structure_map else item.default_amount
-            
-            unified_fees.append({
-                'name': item.name,
-                'amount': amount,
-                'category': item.category.name if item.category else 'General',
-                'frequency': frequency
-            })
-        
-    fee_breakdown = sorted(unified_fees, key=lambda x: x['name'])
     
     context = {
         'selected_division': selected_division,
         'fee_breakdown': fee_breakdown,
         'admission_type': admission_type,
-        'page_title': f'Fee Calculator - {selected_division.name}',
+        'page_title': f'Course Details - {selected_division.name}',
         'active_year': active_year,
     }
     return render(request, 'students/course_fee_calculator.html', context)
@@ -196,8 +141,6 @@ def home(request):
         context['today_holiday'] = today_holiday
         active_year = AcademicYear.objects.filter(is_active=True).first()
         context['active_year'] = active_year
-        from .models import GlobalSettings
-        context['suspend_student_fees'] = GlobalSettings.load().suspend_student_fees
         
         # Only calculate administrative statistics if the user is not a student
         if profile.role != 'student':
@@ -437,24 +380,31 @@ def home(request):
                 # Check for an open 'Away' record
                 open_movement = HostelMovement.objects.filter(student=student, is_returned=False).first()
                 hostel_status = 'away' if open_movement else 'present'
-                
-            # 4. Fee Data
-            student_fees = []
-            fee_total_paid = 0
-            fee_currently_due = 0
-            fee_total_balance = 0
+
+            # 4. Fee & Dues Summary Data for Student
+            from decimal import Decimal
+            pending_fee_amount = Decimal('0.00')
+            total_fee_billed = Decimal('0.00')
+            total_fee_paid = Decimal('0.00')
+            total_fee_concessions = Decimal('0.00')
+            pending_fee_count = 0
+            has_pending_fees = False
+
             try:
-                from fees.models import StudentFee
-                fees_list = StudentFee.objects.filter(student=student)
-                for fee in fees_list:
-                    student_fees.append(fee)
-                    fee_total_paid += fee.amount_paid
-                    if fee.balance > 0:
-                        fee_total_balance += fee.balance
-                        if fee.due_date and fee.due_date <= today:
-                            fee_currently_due += fee.balance
-            except ImportError:
-                pass # If fees module is missing or disconnected
+                from fees.services import sync_student_monthly_dues
+                sync_student_monthly_dues(student)
+                
+                st_fees = student.fees.all()
+                for sf in st_fees:
+                    total_fee_billed += sf.total_amount
+                    total_fee_concessions += sf.concession_amount
+                    total_fee_paid += sf.amount_paid
+                    if sf.balance > 0:
+                        pending_fee_amount += sf.balance
+                        pending_fee_count += 1
+                has_pending_fees = (pending_fee_amount > 0)
+            except Exception:
+                pass
                 
             context.update({
                 'student_record': student,
@@ -474,9 +424,12 @@ def home(request):
                 'exams_with_results': exams_with_results,
                 'performance_data_json': performance_data_json,
                 'hostel_status': hostel_status,
-                'fee_total_paid': fee_total_paid,
-                'fee_currently_due': fee_currently_due,
-                'fee_total_balance': fee_total_balance,
+                'pending_fee_amount': pending_fee_amount,
+                'has_pending_fees': has_pending_fees,
+                'pending_fee_count': pending_fee_count,
+                'total_fee_billed': total_fee_billed,
+                'total_fee_paid': total_fee_paid,
+                'total_fee_concessions': total_fee_concessions,
             })
         
     return render(request, 'students/home.html', context)

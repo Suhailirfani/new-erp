@@ -1,107 +1,136 @@
 {% extends 'students/base.html' %}
 
-{% block title %}Day Book | {{ start_date }}{% endblock %}
+{% block title %}Day Book | Office Finance{% endblock %}
 
 {% block content %}
-<div class="row mb-5 align-items-center d-print-none">
-    <div class="col-md-6">
-        <h2 style="font-size: 2rem; font-weight: 800; color: var(--dark) !important; margin: 0;">
-            <i class="fas fa-book me-2" style="color: var(--primary);"></i>Day Book
-        </h2>
-        <p class="text-muted">Combined Transaction History</p>
-    </div>
-    <div class="col-md-6 text-end">
-        <form class="d-flex gap-2 justify-content-end align-items-end">
-            <div>
-                <label class="text-dark small fw-bold mb-1">From</label>
-                <input type="date" name="start_date" value="{{ start_date }}" class="form-control form-control-sm">
-            </div>
-            <div>
-                <label class="text-dark small fw-bold mb-1">To</label>
-                <input type="date" name="end_date" value="{{ end_date }}" class="form-control form-control-sm">
-            </div>
-            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter me-1"></i> Filter</button>
-            <button type="button" class="btn btn-light btn-sm" onclick="window.print()"><i class="fas fa-print me-1"></i> Print</button>
-        </form>
-    </div>
-</div>
+<div class="container-fluid" style="padding: 1.5rem 1rem; max-width: 1200px; margin: 0 auto;">
 
-<div class="glass-card p-0 overflow-hidden" style="background: white; color: black;">
-    <div class="p-4 bg-light border-bottom d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-bold">Transactions: {{ start_date }} to {{ end_date }}</h5>
-        <div class="d-flex gap-4">
-            <div class="text-success text-end">
-                <small class="text-muted d-block font-monospace">TOTAL IN</small>
-                <span class="fw-bold fs-5">₹{{ total_in|floatformat:2 }}</span>
+    <!-- Header & Date Picker -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+        <div>
+            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.2rem;">
+                <a href="{% url 'fees:finance_dashboard' %}" style="color: #64748b; text-decoration: none;">Finance</a> / Day Book
             </div>
-            <div class="text-danger text-end">
-                <small class="text-muted d-block font-monospace">TOTAL OUT</small>
-                <span class="fw-bold fs-5">₹{{ total_out|floatformat:2 }}</span>
+            <h2 style="font-weight: 800; color: #0f172a; margin: 0; font-size: 1.45rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-book-open" style="color: #4f46e5;"></i> Daily Cash & Bank Day-Book
+            </h2>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'fees:finance_dashboard' %}" class="btn btn-light btn-sm border text-muted" style="font-weight: 700; border-radius: 8px; padding: 0.45rem 0.9rem;">
+                <i class="fa-solid fa-arrow-left me-1"></i> Dashboard
+            </a>
+            <form method="get" class="d-flex align-items-center gap-2">
+                <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}" class="form-control form-control-sm" style="border-radius: 8px; font-weight: 600;" onchange="this.form.submit()">
+                <button type="submit" class="btn btn-sm btn-primary" style="border-radius: 8px; font-weight: 700;">View Day</button>
+                <button type="button" onclick="window.print()" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px;"><i class="fa-solid fa-print"></i></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Day Summary Header Card -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem;">
+        <div class="card border-0 shadow-sm" style="border-radius: 12px; padding: 1rem; background: white;">
+            <div style="font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Opening Balance</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: #0f172a; margin-top: 0.2rem;">₹{{ opening_balance|floatformat:2 }}</div>
+        </div>
+        <div class="card border-0 shadow-sm" style="border-radius: 12px; padding: 1rem; background: white;">
+            <div style="font-size: 0.72rem; font-weight: 700; color: #10b981; text-transform: uppercase;">Day Total In (Credit)</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: #10b981; margin-top: 0.2rem;">+₹{{ total_day_income|floatformat:2 }}</div>
+        </div>
+        <div class="card border-0 shadow-sm" style="border-radius: 12px; padding: 1rem; background: white;">
+            <div style="font-size: 0.72rem; font-weight: 700; color: #ef4444; text-transform: uppercase;">Day Total Out (Debit)</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: #ef4444; margin-top: 0.2rem;">-₹{{ total_day_expense|floatformat:2 }}</div>
+        </div>
+        <div class="card border-0 shadow-sm" style="border-radius: 12px; padding: 1rem; background: white; border-left: 3px solid #4f46e5 !important;">
+            <div style="font-size: 0.72rem; font-weight: 700; color: #4f46e5; text-transform: uppercase;">Closing Balance</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: #4f46e5; margin-top: 0.2rem;">₹{{ closing_balance|floatformat:2 }}</div>
+        </div>
+    </div>
+
+    <!-- Day Book Ledger Grid: Two Columns (Receipts / Inflows vs Payments / Outflows) -->
+    <div class="row g-3">
+        <!-- Inflows (Credits) -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm" style="border-radius: 14px; background: white; height: 100%;">
+                <div style="padding: 1rem 1.25rem; background: #f0fdf4; border-bottom: 1px solid #bbf7d0; display: flex; justify-content: space-between; align-items: center;">
+                    <h5 style="margin: 0; font-weight: 800; font-size: 0.95rem; color: #166534;">
+                        <i class="fa-solid fa-arrow-down-left me-1"></i> Receipts & Inflows (Credits)
+                    </h5>
+                    <span style="font-weight: 800; color: #166534;">₹{{ total_day_income|floatformat:2 }}</span>
+                </div>
+                <div class="table-responsive" style="margin: 0;">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.84rem;">
+                        <thead style="background: #f8fafc; color: #64748b;">
+                            <tr>
+                                <th style="padding: 0.5rem 0.75rem;">Category</th>
+                                <th>Particulars / Source</th>
+                                <th>Mode</th>
+                                <th style="text-align: right; padding-right: 0.75rem;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inc in incomes %}
+                            <tr>
+                                <td style="padding: 0.5rem 0.75rem; font-weight: 600; color: #334155;">{{ inc.category.name }}</td>
+                                <td>
+                                    <div style="font-weight: 600; color: #0f172a;">{{ inc.received_from }}</div>
+                                    {% if inc.remarks %}<div style="font-size: 0.72rem; color: #64748b;">{{ inc.remarks }}</div>{% endif %}
+                                </td>
+                                <td><span class="badge bg-light text-dark border text-uppercase" style="font-size: 0.7rem;">{{ inc.payment_method }}</span></td>
+                                <td style="text-align: right; padding-right: 0.75rem; font-weight: 800; color: #10b981;">₹{{ inc.amount|floatformat:2 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">No receipts on this date.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <div class="border-start ps-4 text-primary text-end">
-                <small class="text-muted d-block font-monospace">NET CHANGE</small>
-                <span class="fw-bold fs-5">₹{{ net|floatformat:2 }}</span>
+        </div>
+
+        <!-- Outflows (Debits) -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm" style="border-radius: 14px; background: white; height: 100%;">
+                <div style="padding: 1rem 1.25rem; background: #fff1f2; border-bottom: 1px solid #fecdd3; display: flex; justify-content: space-between; align-items: center;">
+                    <h5 style="margin: 0; font-weight: 800; font-size: 0.95rem; color: #9f1239;">
+                        <i class="fa-solid fa-arrow-up-right me-1"></i> Payments & Outflows (Debits)
+                    </h5>
+                    <span style="font-weight: 800; color: #9f1239;">₹{{ total_day_expense|floatformat:2 }}</span>
+                </div>
+                <div class="table-responsive" style="margin: 0;">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.84rem;">
+                        <thead style="background: #f8fafc; color: #64748b;">
+                            <tr>
+                                <th style="padding: 0.5rem 0.75rem;">Category</th>
+                                <th>Particulars / Payee</th>
+                                <th>Mode</th>
+                                <th style="text-align: right; padding-right: 0.75rem;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for exp in expenses %}
+                            <tr>
+                                <td style="padding: 0.5rem 0.75rem; font-weight: 600; color: #334155;">{{ exp.category.name }}</td>
+                                <td>
+                                    <div style="font-weight: 600; color: #0f172a;">{{ exp.paid_to }}</div>
+                                    {% if exp.remarks %}<div style="font-size: 0.72rem; color: #64748b;">{{ exp.remarks }}</div>{% endif %}
+                                </td>
+                                <td><span class="badge bg-light text-dark border text-uppercase" style="font-size: 0.7rem;">{{ exp.payment_method }}</span></td>
+                                <td style="text-align: right; padding-right: 0.75rem; font-weight: 800; color: #ef4444;">₹{{ exp.amount|floatformat:2 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">No payments on this date.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th class="ps-4">Date</th>
-                    <th>Reference</th>
-                    <th>Category & Remarks</th>
-                    <th class="text-end">Credit (In)</th>
-                    <th class="text-end pe-4">Debit (Out)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for tx in transactions %}
-                <tr>
-                    <td class="ps-4">
-                        <div class="fw-bold text-dark">{{ tx.date|date:"d M Y" }}</div>
-                    </td>
-                    <td><span class="badge bg-light text-dark border">{{ tx.reference_number|default:tx.id }}</span></td>
-                    <td>
-                        <div class="fw-bold {% if tx.trans_type == 'income' %}text-success{% else %}text-danger{% endif %}">
-                            {{ tx.category.name }}
-                        </div>
-                        <div class="text-muted small">
-                            {% if tx.trans_type == 'income' %}From: {{ tx.received_from }}{% else %}To: {{ tx.paid_to }}{% endif %}
-                            {% if tx.remarks %} | {{ tx.remarks }}{% endif %}
-                        </div>
-                    </td>
-                    <td class="text-end text-success fw-bold">
-                        {% if tx.trans_type == 'income' %}₹{{ tx.amount }}{% else %}-{% endif %}
-                    </td>
-                    <td class="text-end pe-4 text-danger fw-bold">
-                        {% if tx.trans_type == 'expense' %}₹{{ tx.amount }}{% else %}-{% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center py-5 text-muted italic">No transactions found for this period.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
 
-<style>
-@media print {
-    body { background: white !important; padding: 0 !important; margin: 0 !important; }
-    .sidebar, .navbar, .menu-toggle, footer, .btn, .d-print-none, form { display: none !important; }
-    .main-workspace { margin-left: 0 !important; width: 100% !important; padding: 0 !important; }
-    .glass-card, .card { border: 1px solid #ddd !important; box-shadow: none !important; break-inside: avoid; }
-    .container { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
-    h2, h5 { color: black !important; }
-    .table-light { background-color: #f8f9fa !important; }
-    .text-white { color: black !important; }
-    .text-success { color: #198754 !important; }
-    .text-danger { color: #dc3545 !important; }
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-}
-</style>
+</div>
 {% endblock %}

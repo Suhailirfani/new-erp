@@ -1,0 +1,135 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Fee Counter | Office Collection{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="padding: 1.5rem 1rem; max-width: 1300px; margin: 0 auto;">
+
+    <!-- Header & Breadcrumbs -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+        <div>
+            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.2rem;">
+                <a href="{% url 'fees:finance_dashboard' %}" style="color: #64748b; text-decoration: none;">Finance</a> / Fee Counter
+            </div>
+            <h2 style="font-weight: 800; color: #0f172a; margin: 0; font-size: 1.45rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-cash-register" style="color: #4f46e5;"></i> Student Fee Counter
+            </h2>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <a href="{% url 'fees:finance_dashboard' %}" class="btn btn-light btn-sm border text-muted" style="font-weight: 700; border-radius: 8px; padding: 0.45rem 0.9rem;">
+                <i class="fa-solid fa-arrow-left me-1"></i> Dashboard
+            </a>
+            <a href="{% url 'fees:batch_monthly_billing' %}" class="btn btn-outline-primary btn-sm" style="font-weight: 700; border-radius: 8px; padding: 0.45rem 1rem;">
+                <i class="fa-solid fa-calendar-plus me-1"></i> Generate Monthly Fees
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter & Search Card -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 14px; padding: 1.25rem; background: white;">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control border-start-0 ps-0" placeholder="Search by Student Name, ID, or Phone..." autofocus>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="grade" class="form-select">
+                    <option value="">All Grades</option>
+                    {% for g in grades %}
+                    <option value="{{ g.id }}" {% if selected_grade == g.id %}selected{% endif %}>{{ g.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="student_type" class="form-select">
+                    <option value="">All Types</option>
+                    <option value="hostel" {% if selected_type == 'hostel' %}selected{% endif %}>Hostel</option>
+                    <option value="day_scholar" {% if selected_type == 'day_scholar' %}selected{% endif %}>Day Scholar</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1" style="font-weight: 700; border-radius: 8px;">
+                    <i class="fa-solid fa-filter me-1"></i> Filter
+                </button>
+                <a href="{% url 'fees:fee_counter' %}" class="btn btn-light border text-muted" style="border-radius: 8px;" title="Reset Filters">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Student Table -->
+    <div class="card border-0 shadow-sm" style="border-radius: 14px; background: white; overflow: hidden;">
+        <div class="table-responsive" style="margin: 0;">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+                <thead style="background: #f8fafc; color: #475569; border-bottom: 2px solid #e2e8f0;">
+                    <tr>
+                        <th style="padding: 0.75rem 1rem; width: 60px;">#</th>
+                        <th>Student ID</th>
+                        <th>Student Name</th>
+                        <th>Class & Division</th>
+                        <th>Category</th>
+                        <th style="text-align: right;">Total Pending Due</th>
+                        <th style="text-align: center; width: 140px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in student_list %}
+                    <tr style="cursor: pointer;" onclick="window.location='{% url 'fees:student_fee_detail' row.student.id %}';">
+                        <td style="padding: 0.75rem 1rem; color: #94a3b8; font-weight: 600;">{{ forloop.counter }}</td>
+                        <td style="font-weight: 700; color: #334155;">{{ row.student.student_id }}</td>
+                        <td>
+                            <div style="font-weight: 700; color: #0f172a;">{{ row.student.full_name }}</div>
+                            <div style="font-size: 0.75rem; color: #64748b;">{{ row.student.phone|default:"No phone" }}</div>
+                        </td>
+                        <td style="color: #334155;">
+                            {% if row.enrollment %}
+                                {{ row.enrollment.grade.name }}{% if row.enrollment.division %} - {{ row.enrollment.division.name }}{% endif %}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if row.student.student_type == 'hostel' %}
+                                <span class="badge" style="background: #ede9fe; color: #6d28d9; font-weight: 700;">🏠 Hostel</span>
+                            {% else %}
+                                <span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 700;">☀️ Day Scholar</span>
+                            {% endif %}
+                            {% if row.student.bus_stop %}
+                                <span class="badge bg-light text-dark border ms-1" title="Bus Stop: {{ row.student.bus_stop.stop_name }}">
+                                    🚌 {{ row.student.bus_stop.stop_name }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right; font-weight: 800;">
+                            {% if row.has_due %}
+                                <span style="color: #dc2626; font-size: 1rem;">₹{{ row.total_due|floatformat:2 }}</span>
+                            {% else %}
+                                <span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 700; font-size: 0.8rem;">
+                                    <i class="fa-solid fa-check me-1"></i> Paid / Cleared
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;" onclick="event.stopPropagation();">
+                            <a href="{% url 'fees:student_fee_detail' row.student.id %}" class="btn btn-sm {% if row.has_due %}btn-success{% else %}btn-outline-primary{% endif %}" style="font-weight: 700; border-radius: 8px; padding: 0.35rem 0.85rem; font-size: 0.8rem;">
+                                {% if row.has_due %}<i class="fa-solid fa-coins me-1"></i> Collect{% else %}<i class="fa-solid fa-eye me-1"></i> View Ledger{% endif %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-user-xmark" style="font-size: 2rem; color: #cbd5e1; margin-bottom: 0.5rem; display: block;"></i>
+                            No students found matching your search.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

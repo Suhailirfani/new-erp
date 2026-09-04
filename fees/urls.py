@@ -4,66 +4,44 @@ from . import views
 app_name = 'fees'
 
 urlpatterns = [
-    path('setup/add-arrears/', views.add_arrears, name='add_arrears'),
-    path('finance-dashboard/', views.finance_dashboard, name='finance_dashboard'),
-    path('fees-dashboard/', views.fees_dashboard, name='fees_dashboard'),
-    path('fees-dashboard/category/<str:filter_type>/', views.special_category_detail, name='special_category_detail'),
-    path('fees-dashboard/classroom/<int:grade_id>/', views.classroom_detail, name='classroom_detail'),
-    path('fees-dashboard/classroom/<int:grade_id>/<int:division_id>/', views.classroom_detail, name='classroom_detail_with_division'),
-    # Redirect legacy dashboard to finance dashboard for now if needed, or just remove it
-    path('dashboard/', views.finance_dashboard, name='dashboard'), # Keep legacy name for now to prevent breaks
-    path('student/<int:student_id>/', views.student_fees, name='student_fees'),
-    path('student/<int:student_id>/add-custom-fee/', views.add_custom_fee, name='add_custom_fee'),
-    path('student/fee/<int:fee_id>/delete/', views.delete_student_fee, name='delete_student_fee'),
-    path('collect/<int:student_id>/', views.collect_payment, name='collect_payment'),
-    # Finance & Reports
-    path('finance/day-book/', views.day_book, name='day_book'),
-    path('finance/ledger/', views.ledger_book, name='ledger_book'),
-    path('finance/reports/', views.finance_report, name='finance_report'),
-    path('finance/departments/', views.departmental_dashboard, name='departmental_dashboard'),
+    # Control Panel / Dashboard
+    path('', views.finance_dashboard, name='finance_dashboard'),
+    path('dashboard/', views.finance_dashboard, name='dashboard'),
+    path('fees-dashboard/', views.finance_dashboard, name='fees_dashboard'),
     
-    # Income & Expense Routes
-    path('income/add/', views.add_income, name='add_income'),
-    path('expense/add/', views.add_expense, name='add_expense'),
-    path('api/student-fees/<int:student_id>/', views.get_student_fees, name='api_student_fees'),
-    path('api/students-by-grade/', views.get_students_by_grade, name='api_students_by_grade'),
+    # Fee Collection Counter & Student Ledger
+    path('counter/', views.fee_counter, name='fee_counter'),
+    path('student/<int:student_id>/', views.student_fee_detail, name='student_fees'),
+    path('student/<int:student_id>/ledger/', views.student_fee_detail, name='student_fee_detail'),
+    path('student/<int:student_id>/apply-reduction/', views.apply_fee_reduction_submit, name='apply_fee_reduction_submit'),
+    path('student/<int:student_id>/add-adhoc/', views.add_adhoc_fee_submit, name='add_adhoc_fee_submit'),
+    path('student/<int:student_id>/collect/', views.collect_payment_submit, name='collect_payment_submit'),
+    path('receipt/<str:receipt_id>/', views.print_receipt, name='print_receipt'),
+    path('batch-monthly-billing/', views.batch_monthly_billing, name='batch_monthly_billing'),
     
-    # Bulk actions
-    path('setup/assign-admission-fees/', views.assign_bulk_admission_fees, name='assign_bulk_admission_fees'),
-    path('setup/cancel-admission-fees/', views.cancel_selective_admission_fees, name='cancel_selective_admission_fees'),
+    # Office Incomes & Expenses
+    path('incomes/', views.income_list, name='income_list'),
+    path('incomes/add/', views.income_create, name='income_create'),
+    path('expenses/', views.expense_list, name='expense_list'),
+    path('expenses/add/', views.expense_create, name='expense_create'),
     
-    # Fee Setup Management
-    path('setup/bulk-course-fees/', views.bulk_course_fee_update, name='bulk_course_fee_update'),
-    path('setup/generate-monthly/', views.generate_monthly_fees, name='generate_monthly_fees'),
-    path('setup/', views.fee_setup_dashboard, name='fee_setup_dashboard'),
-    path('receipt/<str:receipt_id>/', views.download_receipt, name='download_receipt'),
-    path('setup/item/<int:item_id>/installments/', views.manage_fee_installments, name='manage_fee_installments'),
-    path('setup/category/add/', views.fee_category_create, name='fee_category_create'),
-    path('setup/category/<int:pk>/edit/', views.fee_category_update, name='fee_category_update'),
-    path('setup/category/<int:pk>/delete/', views.fee_category_delete, name='fee_category_delete'),
-    path('setup/item/add/', views.fee_item_create, name='fee_item_create'),
-    path('setup/item/<int:pk>/edit/', views.fee_item_update, name='fee_item_update'),
-    path('setup/item/<int:pk>/delete/', views.fee_item_delete, name='fee_item_delete'),
+    # Accounting Books & Reports
+    path('day-book/', views.day_book, name='day_book'),
+    path('ledger-book/', views.ledger_book, name='ledger_book'),
+    path('reports/', views.finance_reports, name='finance_reports'),
     
-    # Bus Stop Management
-    path('setup/bus-stops/', views.bus_stop_list, name='bus_stop_list'),
-    path('setup/bus-stops/add/', views.bus_stop_create, name='bus_stop_create'),
-    path('setup/bus-stops/<int:pk>/edit/', views.bus_stop_update, name='bus_stop_update'),
-    path('setup/bus-stops/<int:pk>/delete/', views.bus_stop_delete, name='bus_stop_delete'),
-    
-    # Fee Adjustment
-    path('adjustments/', views.monthly_fee_adjustment, name='monthly_fee_adjustment'),
-    
-    # Fee Structure (Grade/Division variations)
-    path('setup/structures/', views.fee_structure_list, name='fee_structure_list'),
-    path('setup/structures/add/', views.fee_structure_create, name='fee_structure_create'),
-    path('setup/structures/<int:pk>/edit/', views.fee_structure_update, name='fee_structure_update'),
-    path('setup/structures/<int:pk>/delete/', views.fee_structure_delete, name='fee_structure_delete'),
     # Caution Deposits
-    path('caution-deposits/', views.caution_deposit_list, name='caution_deposit_list'),
-    path('caution-deposits/<int:deposit_id>/refund/', views.refund_caution_deposit, name='refund_caution_deposit'),
+    path('caution-deposits/', views.caution_deposits, name='caution_deposits'),
+    path('caution-deposits/<int:deposit_id>/refund/', views.caution_deposit_refund_submit, name='caution_deposit_refund_submit'),
     
-    path('student/<int:student_id>/payment-history/', views.print_payment_history, name='print_payment_history'),
-    path('transaction/<str:transaction_id>/delete/', views.delete_payment_transaction, name='delete_payment_transaction'),
+    # Setup & Configurations
+    path('setup/', views.fee_setup, name='fee_setup'),
+    path('setup/payment-settings/', views.payment_settings_update, name='payment_settings_update'),
+    path('setup/bus-stops/add/', views.bus_stop_create, name='bus_stop_create'),
+    path('setup/bus-stops/<int:stop_id>/edit/', views.bus_stop_update, name='bus_stop_update'),
+    path('setup/bus-stops/<int:stop_id>/delete/', views.bus_stop_delete, name='bus_stop_delete'),
+    path('setup/items/add/', views.fee_item_create, name='fee_item_create'),
+    path('setup/items/<int:item_id>/edit/', views.fee_item_update, name='fee_item_update'),
+    path('setup/items/<int:item_id>/delete/', views.fee_item_delete, name='fee_item_delete'),
 ]
 

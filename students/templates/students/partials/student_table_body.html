@@ -37,13 +37,6 @@
                    title="Edit Student">
                     <i class="fa-solid fa-pen-to-square"></i>
                 </a>
-                <a href="{% url 'fees:student_fees' enrollment.student.id %}" 
-                   class="action-icon-btn" 
-                   onclick="event.stopPropagation();" 
-                   style="background-color: rgba(39, 174, 96, 0.1); color: #27ae60;" 
-                   title="Manage Fees">
-                    <i class="fa-solid fa-indian-rupee-sign"></i>
-                </a>
                 <a href="{% url 'students:transfer_to_alumni' enrollment.student.id %}" 
                    class="action-icon-btn" 
                    onclick="event.stopPropagation();" 
@@ -100,7 +93,7 @@
                         <div style="display: flex; justify-content: center; gap: 0.35rem;">
                             <a href="{% url 'students:student_profile' enrollment.student.id %}" class="btn btn-sm btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; background: #f1f5f9; color: #0f172a !important; border: 1px solid #cbd5e1;" title="View"><i class="fa-solid fa-eye"></i></a>
                             <a href="{% url 'students:student_edit' enrollment.student.id %}" class="btn btn-sm btn-primary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a>
-                            <a href="{% url 'fees:student_fees' enrollment.student.id %}" class="btn btn-sm btn-success" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Fees"><i class="fa-solid fa-indian-rupee-sign"></i></a>
+                            <a href="{% url 'fees:student_fee_detail' enrollment.student.id %}" class="btn btn-sm btn-success" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; background: #10b981; border: none;" title="Fee Ledger"><i class="fa-solid fa-coins"></i></a>
                             <a href="{% url 'students:transfer_to_alumni' enrollment.student.id %}" class="btn btn-sm btn-info" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Alumni"><i class="fa-solid fa-user-graduate"></i></a>
                             <a href="{% url 'students:student_delete' enrollment.student.id %}" class="btn btn-sm btn-danger" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" onclick="return confirm('Delete {{ enrollment.student.full_name }}?');" title="Delete"><i class="fa-solid fa-trash-can"></i></a>
                         </div>

@@ -108,6 +108,7 @@ class StudentFee(models.Model):
     student = models.ForeignKey('students.Student', on_delete=models.CASCADE, related_name='fees')
     fee_item = models.ForeignKey(FeeItem, on_delete=models.CASCADE, null=True, blank=True)
     installment = models.ForeignKey(CourseInstallment, on_delete=models.CASCADE, null=True, blank=True)
+    custom_title = models.CharField(max_length=200, blank=True, help_text="Custom name for ad-hoc or custom student fees")
     
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -122,7 +123,7 @@ class StudentFee(models.Model):
     # Prorating for Monthly Fees (Hostel/Vehicle)
     prorated_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=100, help_text="e.g., 40, 80, 100")
     present_days = models.PositiveIntegerField(null=True, blank=True, help_text="Manual adjustment of days present in the billing month")
-    billing_month = models.DateField(null=True, blank=True, help_text="The month this recurring fee covers")
+    billing_month = models.DateField(null=True, blank=True, help_text="The month this recurring fee covers (1st of month)")
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -131,17 +132,30 @@ class StudentFee(models.Model):
         ordering = ['-created_at', 'status']
 
     def __str__(self):
-        item_name = self.fee_item.name if self.fee_item else (self.installment.name if self.installment else 'Fee')
-        return f"{self.student} - {item_name} - {self.status}"
+        return f"{self.student} - {self.display_title} - {self.status}"
+
+    @property
+    def display_title(self):
+        if self.custom_title:
+            return self.custom_title
+        if self.installment:
+            return f"{self.installment.name}"
+        if self.fee_item:
+            if self.billing_month:
+                return f"{self.fee_item.name} ({self.billing_month.strftime('%b %Y')})"
+            return self.fee_item.name
+        return "Fee Item"
+
+    @property
+    def net_total(self):
+        return max(Decimal('0.00'), self.total_amount - self.concession_amount)
 
     @property
     def balance(self):
-        # Effective total is amount minus any concession
-        effective_total = self.total_amount - self.concession_amount
-        return max(Decimal('0.00'), effective_total - self.amount_paid)
+        return max(Decimal('0.00'), self.net_total - self.amount_paid)
 
     def update_status(self):
-        if self.amount_paid >= self.total_amount:
+        if self.amount_paid >= self.net_total:
             self.status = 'paid'
         elif self.amount_paid > 0:
             self.status = 'partial'
@@ -340,3 +354,39 @@ class CautionDepositRefund(models.Model):
 
     def __str__(self):
         return f"Refund for {self.deposit.student} - ₹{self.amount_refunded}"
+
+
+class InstitutionPaymentSetting(models.Model):
+    """Institution bank details & QR code for student fee payment"""
+    institution_name = models.CharField(max_length=150, default="Markaz Hadiya Women's College")
+    account_holder_name = models.CharField(max_length=150, blank=True, help_text="Beneficiary Name")
+    bank_name = models.CharField(max_length=100, blank=True, help_text="e.g. State Bank of India, Federal Bank")
+    account_number = models.CharField(max_length=50, blank=True, help_text="Bank Account Number")
+    ifsc_code = models.CharField(max_length=30, blank=True, help_text="IFSC Code")
+    branch_name = models.CharField(max_length=100, blank=True, help_text="Branch Name")
+    account_type = models.CharField(max_length=50, default="Current Account", blank=True)
+    upi_id = models.CharField(max_length=100, blank=True, help_text="UPI ID / VPA (e.g. markazhadiya@sbi)")
+    upi_number = models.CharField(max_length=30, blank=True, help_text="GPay / PhonePe Mobile Number")
+    qr_code_image = models.ImageField(upload_to='fee_qr_codes/', null=True, blank=True, help_text="Upload official UPI QR code image")
+    payment_instructions = models.TextField(
+        blank=True,
+        default="1. Pay using any UPI app (GPay, PhonePe, Paytm) or Bank Transfer.\n2. In payment remarks/notes, mention Student Name & Admission ID.\n3. Send payment screenshot to the college accounts desk."
+    )
+    helpline_phone = models.CharField(max_length=30, blank=True, default="9947924613")
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Institution Payment Setting"
+        verbose_name_plural = "Institution Payment Settings"
+
+    def __str__(self):
+        return f"{self.institution_name} Payment Setup"
+
+    @classmethod
+    def get_settings(cls):
+        obj = cls.objects.filter(is_active=True).first()
+        if not obj:
+            obj, _ = cls.objects.get_or_create(id=1)
+        return obj
+

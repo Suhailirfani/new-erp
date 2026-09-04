@@ -1,0 +1,579 @@
+{% extends 'students/base.html' %}
+
+{% block title %}Fee Setup & Rates | Office Finance{% endblock %}
+
+{% block content %}
+<style>
+.two-col-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.6rem;
+}
+
+@media (max-width: 768px) {
+    .two-col-form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+.form-control-custom {
+    display: block;
+    width: 100%;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.82rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #0f172a;
+    background-color: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control-custom:focus {
+    border-color: #6366f1;
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.form-label-custom {
+    display: block;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 0.2rem;
+}
+</style>
+
+<div class="container-fluid px-3 py-3" style="max-width: 100%;">
+
+    <!-- Compact Top Bar -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; padding-bottom: 0.6rem; border-bottom: 1px solid #e2e8f0;">
+        <div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.1rem;">
+                <a href="{% url 'fees:finance_dashboard' %}" style="color: #64748b; text-decoration: none;">Finance</a> / Fee Setup
+            </div>
+            <h1 style="font-size: 1.3rem; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-sliders text-primary"></i> Fee Setup & Rates
+            </h1>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <a href="{% url 'fees:finance_dashboard' %}" class="btn btn-light btn-sm border text-muted py-1 px-2" style="font-size: 0.8rem; font-weight: 600; border-radius: 6px;">
+                <i class="fa-solid fa-arrow-left me-1"></i> Dashboard
+            </a>
+            <button type="button" id="topBtnFeeItem" class="btn btn-primary btn-sm py-1 px-3 fw-bold" onclick="toggleFeeItemForm(); scrollToSection('sectionFeeItems');" style="font-size: 0.8rem; border-radius: 6px;">
+                <i class="fa-solid fa-plus me-1" id="topIconFeeItem"></i> <span id="topTextFeeItem">Add Fee Item</span>
+            </button>
+            <button type="button" id="topBtnBusStop" class="btn btn-outline-primary btn-sm py-1 px-3 fw-bold" onclick="toggleBusStopForm(); scrollToSection('sectionBusStops');" style="font-size: 0.8rem; border-radius: 6px;">
+                <i class="fa-solid fa-bus me-1" id="topIconBusStop"></i> <span id="topTextBusStop">Add Bus Stop</span>
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-3 fw-bold" onclick="scrollToSection('sectionPaymentSettings');" style="font-size: 0.8rem; border-radius: 6px;">
+                <i class="fa-solid fa-qrcode me-1 text-primary"></i> Bank & QR Setup
+            </button>
+        </div>
+    </div>
+
+    <!-- Section 1: Full-Width Fee Items Table -->
+    <div id="sectionFeeItems" style="margin-bottom: 1.5rem;">
+        <div class="card border shadow-sm" style="border-radius: 8px; background: white; overflow: hidden;">
+            <div style="padding: 0.5rem 1rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
+                <span style="font-weight: 700; font-size: 0.9rem; color: #0f172a;">
+                    <i class="fa-solid fa-receipt text-primary me-1"></i> Fee Items & Rates ({{ fee_items.count }})
+                </span>
+                <span class="text-muted" style="font-size: 0.75rem;">Course, Hostel, Bus, Admission & Ad-hoc Fees</span>
+            </div>
+            
+            <div class="table-responsive" style="margin: 0;">
+                <table class="table table-hover table-sm align-middle mb-0" style="font-size: 0.82rem;">
+                    <thead class="table-light text-secondary border-bottom">
+                        <tr style="line-height: 1.1;">
+                            <th style="padding: 0.4rem 0.6rem; width: 40px; text-align: center;">#</th>
+                            <th style="padding: 0.4rem 0.6rem;">Fee Item Name</th>
+                            <th style="padding: 0.4rem 0.6rem;">Category</th>
+                            <th style="padding: 0.4rem 0.6rem;">Billing Frequency</th>
+                            <th style="padding: 0.4rem 0.6rem;">Target Student Type</th>
+                            <th style="padding: 0.4rem 0.6rem; text-align: right;">Default Rate (₹)</th>
+                            <th style="padding: 0.4rem 0.6rem; text-align: center; width: 90px; min-width: 90px; white-space: nowrap;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in fee_items %}
+                        <tr style="line-height: 1.2;">
+                            <td style="padding: 0.3rem 0.6rem; text-align: center; color: #94a3b8; font-weight: 600;">{{ forloop.counter }}</td>
+                            <td style="padding: 0.3rem 0.6rem; font-weight: 700; color: #0f172a;">{{ item.name }}</td>
+                            <td style="padding: 0.3rem 0.6rem;">
+                                <span class="badge bg-light text-dark border py-0 px-2" style="font-size: 0.72rem; font-weight: 500;">{{ item.category.name }}</span>
+                            </td>
+                            <td style="padding: 0.3rem 0.6rem;">
+                                {% if item.is_monthly %}
+                                    <span class="badge bg-info-subtle text-info py-0 px-2" style="font-size: 0.72rem;">Monthly Recurring</span>
+                                {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary py-0 px-2" style="font-size: 0.72rem;">One-time / Term</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 0.3rem 0.6rem; color: #475569; font-size: 0.78rem;">
+                                {{ item.get_target_student_type_display }}
+                            </td>
+                            <td style="padding: 0.3rem 0.6rem; text-align: right; font-weight: 800; color: #334155;">
+                                ₹{{ item.default_amount|floatformat:2 }}
+                            </td>
+                            <td style="padding: 0.3rem 0.6rem; text-align: center; white-space: nowrap;">
+                                <div style="display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 4px;">
+                                    <a href="{% url 'fees:fee_item_update' item.id %}" class="btn btn-outline-primary p-0" title="Edit" style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; font-size: 0.72rem; border-radius: 4px; line-height: 1;">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </a>
+                                    <form action="{% url 'fees:fee_item_delete' item.id %}" method="post" onsubmit="return confirm('Delete fee item {{ item.name }}?');" style="display: inline-flex; margin: 0; padding: 0;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger p-0" title="Delete" style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; font-size: 0.72rem; border-radius: 4px; line-height: 1;">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted" style="font-size: 0.8rem;">No fee items configured yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Instant Add Fee Item Trigger Button (Toggles between '+ Add Fee Item' and '✕ Cancel Add Fee Item') -->
+            <div id="btnAddFeeItemTrigger" style="border-top: 1px solid #f1f5f9;">
+                <button type="button" id="btnFeeItemAction" class="btn btn-light w-100 fw-bold py-2" onclick="toggleFeeItemForm();" style="font-size: 0.82rem; color: #0f172a; border-radius: 0; background: #f8fafc; border: none; transition: all 0.2s ease;">
+                    <i class="fa-solid fa-plus text-primary me-1" id="iconFeeItemAction"></i> <span id="textFeeItemAction">+ Add Fee Item</span>
+                </button>
+            </div>
+
+            <!-- Instant Add Fee Item Inline Form (TWO FIELDS PER ROW) -->
+            <div id="inlineAddFeeItemBox" style="display: none; background: #f8fafc; border-top: 2px solid #e2e8f0; padding: 1rem 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <span style="font-weight: 700; color: #0f172a; font-size: 0.88rem;">
+                        <i class="fa-solid fa-plus-circle text-primary me-1"></i> Instant New Fee Item
+                    </span>
+                    <button type="button" class="btn-close" style="font-size: 0.65rem;" onclick="toggleAddFeeItem(false);" aria-label="Close"></button>
+                </div>
+                <form action="{% url 'fees:fee_item_create' %}" method="post">
+                    {% csrf_token %}
+                    
+                    <!-- Row 1: Category & Name (2 columns) -->
+                    <div class="two-col-form-row">
+                        <div>
+                            <label class="form-label-custom">Category *</label>
+                            <select name="category_id" class="form-control-custom" required>
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}">{{ cat.name }} ({{ cat.get_department_display }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label-custom">Fee Item Name *</label>
+                            <input type="text" name="name" id="inlineFeeItemName" class="form-control-custom" placeholder="e.g. Uniform Set, Term 1 Tuition" required>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Type & Default Amount (2 columns) -->
+                    <div class="two-col-form-row">
+                        <div>
+                            <label class="form-label-custom">Fee Type *</label>
+                            <select name="fee_type" class="form-control-custom" required>
+                                <option value="course">Course / Tuition Fee</option>
+                                <option value="hostel">Hostel & Mess Fee</option>
+                                <option value="bus">Bus & Transport Fee</option>
+                                <option value="admission">Admission Essentials</option>
+                                <option value="caution">Caution Deposit (Refundable)</option>
+                                <option value="adhoc" selected>Other / Ad-hoc</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label-custom">Default Amount (₹)</label>
+                            <div style="display: flex; align-items: center;">
+                                <span style="background: #f1f5f9; border: 1px solid #cbd5e1; border-right: none; padding: 0.35rem 0.6rem; font-size: 0.82rem; border-radius: 6px 0 0 6px; color: #475569;">₹</span>
+                                <input type="number" step="0.01" min="0" name="default_amount" class="form-control-custom fw-bold" placeholder="0.00" style="border-radius: 0 6px 6px 0;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Target Student Type & Monthly Checkbox (2 columns) -->
+                    <div class="two-col-form-row" style="align-items: end;">
+                        <div>
+                            <label class="form-label-custom">Target Student Type</label>
+                            <select name="target_student_type" class="form-control-custom">
+                                <option value="all">All Students</option>
+                                <option value="hostel">Hostel Students Only</option>
+                                <option value="day_scholar">Day Scholars Only</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style="height: 33px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.35rem 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
+                                <input type="checkbox" name="is_monthly" id="inlineIsMonthly" style="cursor: pointer; width: 15px; height: 15px;">
+                                <label for="inlineIsMonthly" style="font-size: 0.78rem; font-weight: 600; color: #1e293b; margin: 0; cursor: pointer;">
+                                    Recurring Monthly Billing (Billed Every Month)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 0.5rem; padding-top: 0.6rem; border-top: 1px solid #e2e8f0;">
+                        <button type="button" class="btn btn-light border btn-sm py-1 px-3 fw-bold" onclick="toggleAddFeeItem(false);" style="font-size: 0.8rem; border-radius: 6px; color: #475569;">
+                            <i class="fa-solid fa-xmark me-1"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary btn-sm py-1 px-4 fw-bold" style="font-size: 0.8rem; border-radius: 6px;">
+                            <i class="fa-solid fa-check me-1"></i> Save Fee Item
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Section 2: Full-Width Bus Stops Table (Underneath Section 1) -->
+    <div id="sectionBusStops" style="margin-bottom: 2rem;">
+        <div class="card border shadow-sm" style="border-radius: 8px; background: white; overflow: hidden;">
+            <div style="padding: 0.5rem 1rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
+                <div>
+                    <span style="font-weight: 700; font-size: 0.9rem; color: #0f172a;">
+                        <i class="fa-solid fa-bus text-primary me-1"></i> Bus Stops & Monthly Transport Rates ({{ bus_stops.count }})
+                    </span>
+                    <span class="text-muted ms-2" style="font-size: 0.75rem;">Assigned to students on enrollment</span>
+                </div>
+                <a href="{% url 'fees:bus_stop_create' %}" class="btn btn-sm btn-outline-dark py-0 px-2 fw-bold" style="font-size: 0.74rem; border-radius: 5px;" title="Batch Grid Entry">
+                    <i class="fa-solid fa-table me-1"></i> Multi-Row Grid
+                </a>
+            </div>
+            
+            <div class="table-responsive" style="margin: 0;">
+                <table class="table table-hover table-sm align-middle mb-0" style="font-size: 0.82rem;">
+                    <thead class="table-light text-secondary border-bottom">
+                        <tr style="line-height: 1.1;">
+                            <th style="padding: 0.4rem 0.6rem; width: 40px; text-align: center;">#</th>
+                            <th style="padding: 0.4rem 0.6rem;">Stop Destination Name</th>
+                            <th style="padding: 0.4rem 0.6rem; text-align: right;">Monthly Fare Rate (₹)</th>
+                            <th style="padding: 0.4rem 0.6rem; text-align: center; width: 90px; min-width: 90px; white-space: nowrap;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bs in bus_stops %}
+                        <tr style="line-height: 1.2;">
+                            <td style="padding: 0.3rem 0.6rem; text-align: center; color: #94a3b8; font-weight: 600;">{{ forloop.counter }}</td>
+                            <td style="padding: 0.3rem 0.6rem; font-weight: 700; color: #0f172a;">{{ bs.stop_name }}</td>
+                            <td style="padding: 0.3rem 0.6rem; text-align: right; font-weight: 800; color: #0284c7;">
+                                ₹{{ bs.fee_amount|floatformat:2 }} / month
+                            </td>
+                            <td style="padding: 0.3rem 0.6rem; text-align: center; white-space: nowrap;">
+                                <div style="display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 4px;">
+                                    <a href="{% url 'fees:bus_stop_update' bs.id %}" class="btn btn-outline-primary p-0" title="Edit" style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; font-size: 0.72rem; border-radius: 4px; line-height: 1;">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </a>
+                                    <form action="{% url 'fees:bus_stop_delete' bs.id %}" method="post" onsubmit="return confirm('Delete bus stop {{ bs.stop_name }}?');" style="display: inline-flex; margin: 0; padding: 0;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger p-0" title="Delete" style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; font-size: 0.72rem; border-radius: 4px; line-height: 1;">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted" style="font-size: 0.8rem;">No bus stops configured yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Instant Add Bus Stop Trigger Button (Toggles between '+ Add Bus Stop' and '✕ Cancel Add Bus Stop') -->
+            <div id="btnAddBusStopTrigger" style="border-top: 1px solid #f1f5f9;">
+                <button type="button" id="btnBusStopAction" class="btn btn-light w-100 fw-bold py-2" onclick="toggleBusStopForm();" style="font-size: 0.82rem; color: #0f172a; border-radius: 0; background: #f8fafc; border: none; transition: all 0.2s ease;">
+                    <i class="fa-solid fa-plus text-primary me-1" id="iconBusStopAction"></i> <span id="textBusStopAction">+ Add Bus Stop</span>
+                </button>
+            </div>
+
+            <!-- Instant Add Bus Stop Inline Form (TWO FIELDS IN ONE ROW) -->
+            <div id="inlineAddBusStopBox" style="display: none; background: #f8fafc; border-top: 2px solid #e2e8f0; padding: 1rem 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <span style="font-weight: 700; color: #0f172a; font-size: 0.88rem;">
+                        <i class="fa-solid fa-bus text-primary me-1"></i> Instant New Bus Stop
+                    </span>
+                    <button type="button" class="btn-close" style="font-size: 0.65rem;" onclick="toggleAddBusStop(false);" aria-label="Close"></button>
+                </div>
+                <form action="{% url 'fees:bus_stop_create' %}" method="post">
+                    {% csrf_token %}
+                    <div class="two-col-form-row">
+                        <div>
+                            <label class="form-label-custom">Destination Stop Name *</label>
+                            <input type="text" name="stop_name" id="inlineBusStopName" class="form-control-custom" placeholder="e.g. Edavanna, Manjeri, Calicut" required>
+                        </div>
+                        <div>
+                            <label class="form-label-custom">Monthly Fare Rate (₹) *</label>
+                            <div style="display: flex; align-items: center;">
+                                <span style="background: #f1f5f9; border: 1px solid #cbd5e1; border-right: none; padding: 0.35rem 0.6rem; font-size: 0.82rem; border-radius: 6px 0 0 6px; color: #475569;">₹</span>
+                                <input type="number" step="0.01" min="0" name="fee_amount" class="form-control-custom fw-bold" placeholder="0.00" style="border-radius: 0 6px 6px 0;" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.5rem; border-top: 1px solid #e2e8f0;">
+                        <a href="{% url 'fees:bus_stop_create' %}" style="font-size: 0.74rem; color: #4f46e5; text-decoration: none; font-weight: 600;">
+                            <i class="fa-solid fa-table me-1"></i> Open Multi-Row Batch Grid
+                        </a>
+                        <div style="display: flex; gap: 0.4rem;">
+                            <button type="button" class="btn btn-light border btn-sm py-1 px-3 fw-bold" onclick="toggleAddBusStop(false);" style="font-size: 0.8rem; border-radius: 6px; color: #475569;">
+                                <i class="fa-solid fa-xmark me-1"></i> Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-sm py-1 px-4 fw-bold" style="font-size: 0.8rem; border-radius: 6px;">
+                                <i class="fa-solid fa-check me-1"></i> Save Stop
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Section 3: Bank Account & Payment QR Code Setup (Admin Configuration) -->
+    <div id="sectionPaymentSettings" style="margin-bottom: 2rem;">
+        <div class="card border shadow-sm" style="border-radius: 8px; background: white; overflow: hidden;">
+            <div style="padding: 0.65rem 1rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+                <div>
+                    <span style="font-weight: 800; font-size: 0.95rem; color: #0f172a; display: flex; align-items: center; gap: 0.4rem;">
+                        <i class="fa-solid fa-building-columns text-primary"></i> Institution Bank Account & Online Payment QR Code
+                    </span>
+                    <div style="font-size: 0.74rem; color: #64748b; margin-top: 1px;">
+                        Students and parents will see these bank credentials & UPI QR code on their fee portal to pay dues.
+                    </div>
+                </div>
+                <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.72rem; font-weight: 700;">
+                    <i class="fa-solid fa-shield-check me-1"></i> Student Portal Active
+                </span>
+            </div>
+
+            <div style="padding: 1.25rem;">
+                <form action="{% url 'fees:payment_settings_update' %}" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="row g-3">
+                        <!-- Left Sub-column: Bank Account Details -->
+                        <div class="col-lg-7">
+                            <h6 style="font-weight: 800; font-size: 0.85rem; color: #1e293b; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+                                <i class="fa-solid fa-university text-muted"></i> Bank Transfer Information
+                            </h6>
+
+                            <div class="two-col-form-row">
+                                <div>
+                                    <label class="form-label-custom">Beneficiary / Account Holder Name *</label>
+                                    <input type="text" name="account_holder_name" value="{{ payment_settings.account_holder_name|default:'' }}" class="form-control-custom" placeholder="e.g. Markaz Hadiya Women's College" required>
+                                </div>
+                                <div>
+                                    <label class="form-label-custom">Bank Name *</label>
+                                    <input type="text" name="bank_name" value="{{ payment_settings.bank_name|default:'' }}" class="form-control-custom" placeholder="e.g. State Bank of India, Federal Bank" required>
+                                </div>
+                            </div>
+
+                            <div class="two-col-form-row">
+                                <div>
+                                    <label class="form-label-custom">Account Number *</label>
+                                    <input type="text" name="account_number" value="{{ payment_settings.account_number|default:'' }}" class="form-control-custom fw-bold" placeholder="e.g. 123456789012" required>
+                                </div>
+                                <div>
+                                    <label class="form-label-custom">IFSC Code *</label>
+                                    <input type="text" name="ifsc_code" value="{{ payment_settings.ifsc_code|default:'' }}" class="form-control-custom fw-bold" placeholder="e.g. SBIN0001234" style="text-transform: uppercase;" required>
+                                </div>
+                            </div>
+
+                            <div class="two-col-form-row">
+                                <div>
+                                    <label class="form-label-custom">Branch Name</label>
+                                    <input type="text" name="branch_name" value="{{ payment_settings.branch_name|default:'' }}" class="form-control-custom" placeholder="e.g. Edavanna Branch">
+                                </div>
+                                <div>
+                                    <label class="form-label-custom">Account Type</label>
+                                    <select name="account_type" class="form-control-custom">
+                                        <option value="Current Account" {% if payment_settings.account_type == 'Current Account' %}selected{% endif %}>Current Account</option>
+                                        <option value="Savings Account" {% if payment_settings.account_type == 'Savings Account' %}selected{% endif %}>Savings Account</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <h6 style="font-weight: 800; font-size: 0.85rem; color: #1e293b; margin-top: 1rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+                                <i class="fa-solid fa-mobile-screen text-muted"></i> UPI & Contact Info
+                            </h6>
+
+                            <div class="two-col-form-row">
+                                <div>
+                                    <label class="form-label-custom">Official UPI ID / VPA</label>
+                                    <input type="text" name="upi_id" value="{{ payment_settings.upi_id|default:'' }}" class="form-control-custom fw-bold" placeholder="e.g. markazhadiya@sbi">
+                                </div>
+                                <div>
+                                    <label class="form-label-custom">Helpline / Accounts WhatsApp Number</label>
+                                    <input type="text" name="helpline_phone" value="{{ payment_settings.helpline_phone|default:'9947924613' }}" class="form-control-custom" placeholder="e.g. 9947924613">
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom: 0.6rem;">
+                                <label class="form-label-custom">Payment Instructions / Notes for Students</label>
+                                <textarea name="payment_instructions" rows="2" class="form-control-custom" placeholder="Instructions for transferring fees and sending receipts...">{{ payment_settings.payment_instructions|default:'' }}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Right Sub-column: UPI QR Code Upload & Preview -->
+                        <div class="col-lg-5">
+                            <h6 style="font-weight: 800; font-size: 0.85rem; color: #1e293b; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+                                <i class="fa-solid fa-qrcode text-primary"></i> Official UPI Payment QR Code
+                            </h6>
+
+                            <div style="background: #fafafa; border: 1.5px dashed #cbd5e1; border-radius: 8px; padding: 1rem; text-align: center; margin-bottom: 0.75rem;">
+                                {% if payment_settings.qr_code_image %}
+                                <div style="margin-bottom: 0.75rem;">
+                                    <img src="{{ payment_settings.qr_code_image.url }}" alt="UPI QR Code" style="max-width: 170px; max-height: 170px; object-fit: contain; border-radius: 8px; border: 1px solid #e2e8f0; background: white; padding: 4px;">
+                                </div>
+                                <div class="form-check d-inline-block text-start mb-2">
+                                    <input class="form-check-input" type="checkbox" name="clear_qr" value="true" id="clearQrCheckbox">
+                                    <label class="form-check-label text-danger fw-bold" for="clearQrCheckbox" style="font-size: 0.75rem;">
+                                        Remove current QR Code image
+                                    </label>
+                                </div>
+                                {% else %}
+                                <div style="padding: 1.5rem 0.5rem; color: #64748b;">
+                                    <i class="fa-solid fa-qrcode" style="font-size: 3rem; opacity: 0.25; margin-bottom: 0.5rem; display: block;"></i>
+                                    <span style="font-size: 0.8rem; font-weight: 600;">No QR code image uploaded yet.</span>
+                                </div>
+                                {% endif %}
+
+                                <div>
+                                    <label class="form-label-custom" style="text-align: left;">Upload New QR Code Image</label>
+                                    <input type="file" name="qr_code_image" accept="image/*" class="form-control-custom" style="font-size: 0.78rem;">
+                                    <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.25rem; text-align: left;">
+                                        Supports JPG, PNG, WEBP from your bank app or GPay/PhonePe business account.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 0.5rem; padding-top: 0.75rem; margin-top: 0.5rem; border-top: 1px solid #e2e8f0;">
+                        <button type="submit" class="btn btn-primary btn-sm py-2 px-4 fw-bold" style="font-size: 0.85rem; border-radius: 6px;">
+                            <i class="fa-solid fa-cloud-arrow-up me-1"></i> Save Bank & QR Code Details
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+let isFeeItemOpen = false;
+let isBusStopOpen = false;
+
+function scrollToSection(id) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function toggleFeeItemForm() {
+    toggleAddFeeItem(!isFeeItemOpen);
+}
+
+function toggleAddFeeItem(show) {
+    isFeeItemOpen = show;
+    const box = document.getElementById('inlineAddFeeItemBox');
+    const textSpan = document.getElementById('textFeeItemAction');
+    const icon = document.getElementById('iconFeeItemAction');
+    const btn = document.getElementById('btnFeeItemAction');
+    const topBtn = document.getElementById('topBtnFeeItem');
+    const topText = document.getElementById('topTextFeeItem');
+    const topIcon = document.getElementById('topIconFeeItem');
+
+    if (show) {
+        box.style.display = 'block';
+        if (textSpan) textSpan.innerText = 'Cancel Add Fee Item';
+        if (btn) {
+            btn.style.setProperty('color', '#b91c1c', 'important');
+            btn.style.backgroundColor = '#fef2f2';
+        }
+        if (icon) icon.className = 'fa-solid fa-xmark text-danger me-1';
+        
+        if (topBtn && topText && topIcon) {
+            topBtn.className = 'btn btn-danger btn-sm py-1 px-3 fw-bold';
+            topText.innerText = 'Cancel Add Fee';
+            topIcon.className = 'fa-solid fa-xmark me-1';
+        }
+
+        const nameInput = document.getElementById('inlineFeeItemName');
+        if (nameInput) setTimeout(() => nameInput.focus(), 50);
+    } else {
+        box.style.display = 'none';
+        if (textSpan) textSpan.innerText = '+ Add Fee Item';
+        if (btn) {
+            btn.style.setProperty('color', '#0f172a', 'important');
+            btn.style.backgroundColor = '#f8fafc';
+        }
+        if (icon) icon.className = 'fa-solid fa-plus text-primary me-1';
+        
+        if (topBtn && topText && topIcon) {
+            topBtn.className = 'btn btn-primary btn-sm py-1 px-3 fw-bold';
+            topText.innerText = 'Add Fee Item';
+            topIcon.className = 'fa-solid fa-plus me-1';
+        }
+    }
+}
+
+function toggleBusStopForm() {
+    toggleAddBusStop(!isBusStopOpen);
+}
+
+function toggleAddBusStop(show) {
+    isBusStopOpen = show;
+    const box = document.getElementById('inlineAddBusStopBox');
+    const textSpan = document.getElementById('textBusStopAction');
+    const icon = document.getElementById('iconBusStopAction');
+    const btn = document.getElementById('btnBusStopAction');
+    const topBtn = document.getElementById('topBtnBusStop');
+    const topText = document.getElementById('topTextBusStop');
+    const topIcon = document.getElementById('topIconBusStop');
+
+    if (show) {
+        box.style.display = 'block';
+        if (textSpan) textSpan.innerText = 'Cancel Add Bus Stop';
+        if (btn) {
+            btn.style.setProperty('color', '#b91c1c', 'important');
+            btn.style.backgroundColor = '#fef2f2';
+        }
+        if (icon) icon.className = 'fa-solid fa-xmark text-danger me-1';
+        
+        if (topBtn && topText && topIcon) {
+            topBtn.className = 'btn btn-danger btn-sm py-1 px-3 fw-bold';
+            topText.innerText = 'Cancel Add Bus Stop';
+            topIcon.className = 'fa-solid fa-xmark me-1';
+        }
+
+        const nameInput = document.getElementById('inlineBusStopName');
+        if (nameInput) setTimeout(() => nameInput.focus(), 50);
+    } else {
+        box.style.display = 'none';
+        if (textSpan) textSpan.innerText = '+ Add Bus Stop';
+        if (btn) {
+            btn.style.setProperty('color', '#0f172a', 'important');
+            btn.style.backgroundColor = '#f8fafc';
+        }
+        if (icon) icon.className = 'fa-solid fa-plus text-primary me-1';
+        
+        if (topBtn && topText && topIcon) {
+            topBtn.className = 'btn btn-outline-primary btn-sm py-1 px-3 fw-bold';
+            topText.innerText = 'Add Bus Stop';
+            topIcon.className = 'fa-solid fa-bus me-1';
+        }
+    }
+}
+</script>
+{% endblock %}
+
