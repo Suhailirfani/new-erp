@@ -66,6 +66,7 @@ urlpatterns = [
     path('attendance/class/<int:grade_id>/<int:division_id>/pdf/', views.cumulative_attendance_pdf, name='cumulative_attendance_pdf'),
     path('attendance/all-classes/pdf/', views.all_classes_cumulative_pdf, name='all_classes_cumulative_pdf'),
     path('attendance/student/<int:student_id>/', views.attendance_student_detail, name='attendance_student_detail'),
+    path('progress-reports/bulk-print/', views.bulk_progress_report_print, name='bulk_progress_report_print'),
     path('progress-reports/bulk-pdf/', views.bulk_progress_report_pdf, name='bulk_progress_report_pdf'),
     path('attendance/update-tracking/', views.attendance_update_tracking, name='attendance_update_tracking'),
     path('attendance/monthly/', views.monthly_attendance_select, name='monthly_attendance_select'),

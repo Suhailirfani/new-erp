@@ -3934,6 +3934,72 @@ from django.db.models.functions import Cast
 
 
 @role_required(['admin', 'teacher'])
+def bulk_progress_report_print(request):
+    """Render full multi-page printable progress reports for filtered or selected students"""
+    student_ids_param = request.GET.get('student_ids')
+    student_id = request.GET.get('student_id')
+    exam_type_id = request.GET.get('exam_type')
+    section_id = request.GET.get('section')
+    grade_id = request.GET.get('grade')
+    division_id = request.GET.get('division')
+    academic_year_name = request.GET.get('academic_year', '')
+
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    if academic_year_name:
+        year_obj = AcademicYear.objects.filter(name=academic_year_name).first()
+        if year_obj:
+            active_year = year_obj
+
+    enrollments_query = Enrollment.objects.filter(academic_year=active_year, student__is_active=True).select_related('student', 'grade', 'division', 'section')
+
+    if student_ids_param:
+        ids_list = [int(s.strip()) for s in student_ids_param.split(',') if s.strip().isdigit()]
+        if ids_list:
+            enrollments_query = enrollments_query.filter(student_id__in=ids_list)
+    elif student_id:
+        enrollments_query = enrollments_query.filter(
+            Q(student__student_id__icontains=student_id) |
+            Q(student__first_name__icontains=student_id) |
+            Q(student__last_name__icontains=student_id)
+        )
+
+    if section_id:
+        enrollments_query = enrollments_query.filter(section_id=section_id)
+    if grade_id:
+        enrollments_query = enrollments_query.filter(grade_id=grade_id)
+    if division_id:
+        enrollments_query = enrollments_query.filter(division_id=division_id)
+
+    enrollments = enrollments_query.order_by('grade__order', 'grade__name', 'division__name', 'student__first_name')
+
+    if exam_type_id and exam_type_id != 'all':
+        selected_exam_type = ExamType.objects.filter(id=exam_type_id).first()
+    else:
+        selected_exam_type = ExamType.objects.first()
+
+    reports = []
+    for enrollment in enrollments:
+        rep_data = get_dynamic_student_progress(enrollment.student, selected_exam_type, active_year)
+        reports.append(rep_data)
+
+    context = {
+        'reports': reports,
+        'selected_exam_type': selected_exam_type,
+        'active_year': active_year,
+        'current_filters': {
+            'student_id': student_id or '',
+            'student_ids': student_ids_param or '',
+            'exam_type': str(selected_exam_type.id) if selected_exam_type else (exam_type_id or 'all'),
+            'section': section_id or '',
+            'grade': grade_id or '',
+            'division': division_id or '',
+            'academic_year': active_year.name if active_year else '',
+        }
+    }
+    return render(request, 'students/bulk_progress_report_print.html', context)
+
+
+@role_required(['admin', 'teacher'])
 def bulk_progress_report_pdf(request):
     """Generate multi-page PDF progress report booklet live for filtered students"""
     exam_type_id = request.GET.get('exam_type')
