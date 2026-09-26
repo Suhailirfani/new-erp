@@ -179,11 +179,23 @@
 
 <div class="header-container no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
     <div>
-        <h1 style="font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 0.75rem;">
-            <i class="fa-solid fa-calendar-user" style="color: #0ea5e9;"></i> 
-            Weekly Schedule: {{ teacher.get_full_name|default:teacher.username }}
-        </h1>
-        <p style="color: #64748b; margin: 0.35rem 0 0 0;">Total Allocated Teaching Periods: <strong style="color: #0ea5e9;">{{ total_periods }} Periods/Week</strong></p>
+        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <h1 style="font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 0.75rem;">
+                <i class="fa-solid fa-calendar-user" style="color: #0ea5e9;"></i> 
+                Weekly Schedule: {{ teacher.get_full_name|default:teacher.username }}
+            </h1>
+            {% if is_admin %}
+            <span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 800; font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 6px;">
+                👨‍💼 Admin Inspector Mode
+            </span>
+            {% endif %}
+        </div>
+        <p style="color: #64748b; margin: 0.35rem 0 0 0;">
+            {% if is_admin %}
+            Viewing weekly teaching timetable for <strong>{{ teacher.get_full_name|default:teacher.username }}</strong> &bull;
+            {% endif %}
+            Total Allocated Teaching Periods: <strong style="color: #0ea5e9;">{{ total_periods }} Periods/Week</strong>
+        </p>
     </div>
     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
         <a href="{% url 'students:timetable_dashboard' %}" class="btn btn-secondary">
@@ -196,31 +208,58 @@
 </div>
 
 <!-- Toolbar / Filter Bar with Layout Switcher -->
-<div class="card no-print" style="background: #f8fafc; padding: 1rem 1.25rem; border-radius: 12px; border: 1px solid #cbd5e1; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-    {% if request.user.profile.role == 'admin' %}
-    <form method="get" id="teacher_select_form" style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 250px;">
-        <label style="font-weight: 800; color: #334155; white-space: nowrap;">Teacher:</label>
-        <select name="teacher_id" onchange="document.getElementById('teacher_select_form').submit();" style="padding: 0.53rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; width: 100%; max-width: 320px;">
-            {% for t in all_teachers %}
-            <option value="{{ t.id }}" {% if teacher.id == t.id %}selected{% endif %}>{{ t.get_full_name|default:t.username }}</option>
-            {% endfor %}
-        </select>
-    </form>
-    {% else %}
-    <div style="font-weight: 700; color: #475569;">
-        <i class="fa-solid fa-calendar-check" style="color: #0ea5e9;"></i> My Weekly Schedule
+<div class="card no-print" style="background: #f8fafc; padding: 1rem 1.25rem; border-radius: 12px; border: 1px solid #cbd5e1; margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: {% if is_admin and all_teachers %}0.75rem{% else %}0{% endif %};">
+        {% if is_admin %}
+        <form method="get" id="teacher_select_form" style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 260px;">
+            <label style="font-weight: 800; color: #334155; white-space: nowrap;">
+                <i class="fa-solid fa-user-tie" style="color: #0ea5e9;"></i> Select Teacher:
+            </label>
+            <select name="teacher_id" onchange="document.getElementById('teacher_select_form').submit();" style="padding: 0.53rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; width: 100%; max-width: 380px; background: white;">
+                {% for t in all_teachers %}
+                <option value="{{ t.id }}" {% if teacher.id == t.id %}selected{% endif %}>
+                    {{ t.get_full_name|default:t.username }} ({{ t.total_allocated_slots|default:0 }} periods/wk)
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+        {% else %}
+        <div style="font-weight: 700; color: #475569;">
+            <i class="fa-solid fa-calendar-check" style="color: #0ea5e9;"></i> My Weekly Schedule
+        </div>
+        {% endif %}
+
+        <!-- Layout Switcher Controls -->
+        <div class="layout-toggle-btns" style="display: inline-flex; background: #e2e8f0; padding: 3px; border-radius: 12px; border: 1px solid #cbd5e1; margin-left: auto;">
+            <button type="button" class="layout-btn active" id="btn_schedule_days_col" onclick="switchScheduleLayout('days_col')" style="border: none; background: #ffffff; color: #0284c7; padding: 0.45rem 0.85rem; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; box-shadow: 0 2px 4px rgba(0,0,0,0.06); transition: all 0.2s;">
+                <i class="fa-solid fa-table-columns"></i> Days as Columns
+            </button>
+            <button type="button" class="layout-btn" id="btn_schedule_periods_col" onclick="switchScheduleLayout('periods_col')" style="border: none; background: transparent; color: #64748b; padding: 0.45rem 0.85rem; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; transition: all 0.2s;">
+                <i class="fa-solid fa-table-cells"></i> Periods as Columns (Days as Rows)
+            </button>
+        </div>
+    </div>
+
+    {% if is_admin and all_teachers %}
+    <!-- Quick Teacher Tabs Strip for Admins -->
+    <div style="display: flex; gap: 0.4rem; overflow-x: auto; padding-top: 0.5rem; border-top: 1px dashed #cbd5e1; align-items: center; scrollbar-width: thin;">
+        <span style="font-size: 0.75rem; font-weight: 800; color: #64748b; white-space: nowrap; margin-right: 0.25rem;">
+            Quick Switch:
+        </span>
+        {% for t in all_teachers %}
+        <a href="?teacher_id={{ t.id }}" 
+           style="text-decoration: none; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; transition: all 0.15s ease;
+                  {% if teacher.id == t.id %}
+                  background: #0284c7; color: white; box-shadow: 0 2px 4px rgba(2, 132, 199, 0.3);
+                  {% else %}
+                  background: white; color: #334155; border: 1px solid #cbd5e1;
+                  {% endif %}">
+            👨‍🏫 {{ t.get_full_name|default:t.username }}
+            <span style="font-size: 0.7rem; opacity: 0.85; margin-left: 2px;">({{ t.total_allocated_slots|default:0 }})</span>
+        </a>
+        {% endfor %}
     </div>
     {% endif %}
-
-    <!-- Layout Switcher Controls -->
-    <div class="layout-toggle-btns" style="display: inline-flex; background: #e2e8f0; padding: 3px; border-radius: 12px; border: 1px solid #cbd5e1; margin-left: auto;">
-        <button type="button" class="layout-btn active" id="btn_schedule_days_col" onclick="switchScheduleLayout('days_col')" style="border: none; background: #ffffff; color: #0284c7; padding: 0.45rem 0.85rem; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; box-shadow: 0 2px 4px rgba(0,0,0,0.06); transition: all 0.2s;">
-            <i class="fa-solid fa-table-columns"></i> Days as Columns
-        </button>
-        <button type="button" class="layout-btn" id="btn_schedule_periods_col" onclick="switchScheduleLayout('periods_col')" style="border: none; background: transparent; color: #64748b; padding: 0.45rem 0.85rem; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; transition: all 0.2s;">
-            <i class="fa-solid fa-table-cells"></i> Periods as Columns (Days as Rows)
-        </button>
-    </div>
 </div>
 
 {% if period_timings %}

@@ -8211,11 +8211,40 @@ def timetable_save_slot_ajax(request):
 
 @login_required
 def teacher_my_schedule(request):
-    """View for logged-in teacher or selected teacher to view their weekly teaching schedule"""
-    teacher = request.user
+    """View for logged-in teacher or admin to inspect each teacher's weekly teaching schedule"""
+    is_admin = (
+        getattr(getattr(request.user, 'profile', None), 'role', None) in ['admin', 'superadmin'] 
+        or request.user.is_superuser 
+        or request.user.is_staff
+    )
+
+    # Get all teachers (users with teacher role, or who have timetable slots/assignments)
+    all_teachers_qs = User.objects.filter(
+        Q(profile__role='teacher') | Q(timetableslot__isnull=False) | Q(teacher_assignments__isnull=False)
+    ).distinct().order_by('first_name', 'last_name', 'username')
+    
+    if not all_teachers_qs.exists():
+        all_teachers_qs = User.objects.filter(is_active=True).order_by('first_name', 'last_name', 'username')
+
+    # Precalculate total allocated slots per teacher for quick admin display
+    slot_counts = dict(
+        TimetableSlot.objects.values('teacher_id').annotate(count=Count('id')).values_list('teacher_id', 'count')
+    )
+
+    all_teachers = []
+    for t in all_teachers_qs:
+        t.total_allocated_slots = slot_counts.get(t.id, 0)
+        all_teachers.append(t)
+
     teacher_id = request.GET.get('teacher_id')
-    if teacher_id and request.user.profile.role == 'admin':
-        teacher = get_object_or_404(User, pk=teacher_id)
+    if is_admin:
+        if teacher_id:
+            teacher = get_object_or_404(User, pk=teacher_id)
+        else:
+            # Default to the first available teacher for admin, fallback to current user
+            teacher = all_teachers_qs.first() or request.user
+    else:
+        teacher = request.user
 
     period_timings = PeriodTiming.objects.all().order_by('period_order')
     days_of_week = [
@@ -8234,10 +8263,9 @@ def teacher_my_schedule(request):
         key = f"{slot.day_of_week}_{slot.period_timing_id}"
         schedule_map[key] = slot
 
-    all_teachers = User.objects.filter(profile__role='teacher').order_by('first_name', 'last_name')
-
     context = {
         'teacher': teacher,
+        'is_admin': is_admin,
         'period_timings': period_timings,
         'days_of_week': days_of_week,
         'schedule_map': schedule_map,
