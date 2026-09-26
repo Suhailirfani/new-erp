@@ -134,35 +134,35 @@
 
     /* Compressed break column styling */
     .col-break-header {
-        width: 34px !important;
-        min-width: 30px !important;
-        max-width: 38px !important;
-        padding: 0.25rem 0.1rem !important;
+        width: 42px !important;
+        min-width: 36px !important;
+        max-width: 48px !important;
+        padding: 0.4rem 0.15rem !important;
         background: #1e293b !important;
         color: #fef08a !important;
         text-align: center !important;
         vertical-align: middle !important;
         border-radius: 6px !important;
-        line-height: 1 !important;
+        line-height: 1.1 !important;
     }
     .col-break-cell {
-        width: 34px !important;
-        min-width: 30px !important;
-        max-width: 38px !important;
-        padding: 0.25rem 0.1rem !important;
+        width: 42px !important;
+        min-width: 36px !important;
+        max-width: 48px !important;
+        padding: 0.4rem 0.15rem !important;
         background: #fef3c7 !important;
         color: #92400e !important;
         border: 1px dashed #f59e0b !important;
         border-radius: 6px !important;
         text-align: center !important;
         vertical-align: middle !important;
-        line-height: 1 !important;
+        line-height: 1.1 !important;
     }
 
     @media print {
         @page {
             size: landscape;
-            margin: 5mm 6mm;
+            margin: 8mm 8mm 6mm 8mm;
         }
         .no-print, .navbar, .sidebar, footer, .btn, .mobile-day-tabs-bar, .layout-toggle-btns, .header-container, #class_filter_form {
             display: none !important;
@@ -193,29 +193,45 @@
             page-break-inside: avoid !important;
         }
         th {
-            border: 1px solid #334155 !important;
-            font-size: 8.5px !important;
-            padding: 2px 1px !important;
-            line-height: 1.1 !important;
-            height: auto !important;
+            border: 1.5px solid #0f172a !important;
+            font-size: 10.5px !important;
+            padding: 5px 3px !important;
+            line-height: 1.15 !important;
+            background: #0f172a !important;
+            color: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
         }
         td {
-            border: 1px solid #475569 !important;
-            font-size: 8.5px !important;
-            padding: 2px 1px !important;
-            line-height: 1.1 !important;
+            border: 1px solid #64748b !important;
+            font-size: 10px !important;
+            padding: 5px 3px !important;
+            line-height: 1.15 !important;
             word-break: break-word !important;
-            height: auto !important;
+            vertical-align: middle !important;
         }
-        .col-break-header, .col-break-cell {
-            width: 22px !important;
-            min-width: 18px !important;
-            max-width: 24px !important;
-            padding: 1px !important;
+        .col-break-header {
+            width: 32px !important;
+            min-width: 28px !important;
+            max-width: 36px !important;
+            padding: 3px 1px !important;
+            background: #0f172a !important;
+            color: #fef08a !important;
+        }
+        .col-break-cell {
+            width: 32px !important;
+            min-width: 28px !important;
+            max-width: 36px !important;
+            padding: 3px 1px !important;
+            background: #fef3c7 !important;
+            color: #92400e !important;
+            -webkit-print-color-adjust: exact !important;
         }
         .badge {
-            font-size: 6.5px !important;
-            padding: 0.5px 2px !important;
+            font-size: 8px !important;
+            padding: 1px 3px !important;
+            border-radius: 3px !important;
+            font-weight: 700 !important;
+            -webkit-print-color-adjust: exact !important;
         }
         tr {
             page-break-inside: avoid !important;
@@ -297,11 +313,11 @@
         <table class="table-custom" style="width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed;">
             <thead>
                 <tr style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white;">
-                    <th style="padding: 0.4rem 0.25rem; text-align: center; border-radius: 6px; width: 110px; font-weight: 800; font-size: 0.82rem;">
+                    <th style="padding: 0.6rem 0.35rem; text-align: center; border-radius: 6px; width: 115px; font-weight: 800; font-size: 0.88rem;">
                         Period / Day
                     </th>
                     {% for day_key, day_label in days_of_week %}
-                    <th style="padding: 0.4rem 0.25rem; text-align: center; border-radius: 6px; font-weight: 800; font-size: 0.82rem; letter-spacing: 0.5px;">
+                    <th style="padding: 0.6rem 0.35rem; text-align: center; border-radius: 6px; font-weight: 800; font-size: 0.88rem; letter-spacing: 0.5px;">
                         {{ day_label }}
                     </th>
                     {% endfor %}
@@ -310,15 +326,15 @@
             <tbody>
                 {% for pt in period_timings %}
                 <tr>
-                    <td style="background: #f1f5f9; padding: 0.35rem 0.25rem; border-radius: 6px; text-align: center; border: 1px solid #cbd5e1; vertical-align: middle;">
-                        <div style="font-weight: 800; color: #1e293b; font-size: 0.82rem; line-height: 1.1;">{{ pt.name }}</div>
-                        <div style="font-size: 0.65rem; color: #64748b; font-weight: 700; line-height: 1; margin-top: 1px;">
+                    <td style="background: #f1f5f9; padding: 0.5rem 0.35rem; border-radius: 6px; text-align: center; border: 1px solid #cbd5e1; vertical-align: middle;">
+                        <div style="font-weight: 800; color: #1e293b; font-size: 0.88rem; line-height: 1.15;">{{ pt.name }}</div>
+                        <div style="font-size: 0.72rem; color: #64748b; font-weight: 700; line-height: 1; margin-top: 2px;">
                             {{ pt.start_time|time:"H:i" }}-{{ pt.end_time|time:"H:i" }}
                         </div>
                     </td>
 
                     {% if pt.is_break %}
-                    <td colspan="6" style="background: #fef3c7; color: #92400e; font-weight: 800; text-align: center; padding: 0.25rem; border-radius: 6px; border: 1px dashed #f59e0b; font-size: 0.78rem; letter-spacing: 1px;">
+                    <td colspan="6" style="background: #fef3c7; color: #92400e; font-weight: 800; text-align: center; padding: 0.45rem; border-radius: 6px; border: 1px dashed #f59e0b; font-size: 0.85rem; letter-spacing: 0.5px;">
                         ☕ {{ pt.name|upper }} INTERVAL
                     </td>
                     {% else %}
@@ -340,30 +356,30 @@
                         onclick="openSlotModal('{{ day_key }}', '{{ pt.id }}', '{{ day_label }}', '{{ pt.name }}')"
                         style="background: {% if slot %}#f0fdf4{% else %}#ffffff{% endif %}; 
                                border: 1.5px dashed {% if slot %}#86efac{% else %}#cbd5e1{% endif %}; 
-                               border-radius: 6px; padding: 0.35rem 0.25rem; text-align: center; vertical-align: middle; cursor: pointer; transition: all 0.2s ease;">
+                               border-radius: 6px; padding: 0.5rem 0.35rem; text-align: center; vertical-align: middle; cursor: pointer; transition: all 0.2s ease;">
                         
                         {% if slot %}
-                        <div style="font-weight: 800; color: #15803d; font-size: 0.82rem; line-height: 1.15;">
+                        <div style="font-weight: 800; color: #15803d; font-size: 0.88rem; line-height: 1.2;">
                             {{ slot.subject.name }}
                         </div>
-                        <div style="font-size: 0.7rem; color: #334155; font-weight: 700; margin-top: 2px; display: flex; align-items: center; justify-content: center; gap: 0.2rem; line-height: 1.1;">
+                        <div style="font-size: 0.76rem; color: #334155; font-weight: 700; margin-top: 2px; display: flex; align-items: center; justify-content: center; gap: 0.2rem; line-height: 1.1;">
                             <i class="fa-solid fa-user-tie" style="color: #6366f1;"></i> {{ slot.teacher.get_full_name|default:slot.teacher.username }}
                         </div>
-                        <div style="display: flex; gap: 0.15rem; justify-content: center; flex-wrap: wrap; margin-top: 2px;">
+                        <div style="display: flex; gap: 0.2rem; justify-content: center; flex-wrap: wrap; margin-top: 2px;">
                             {% if not slot.division %}
-                            <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.6rem; padding: 0.05rem 0.25rem; border-radius: 3px; font-weight: 700;">📌 Fixed</span>
+                            <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.65rem; padding: 0.08rem 0.3rem; border-radius: 3px; font-weight: 700;">📌 Fixed</span>
                             {% endif %}
                             {% if slot.is_combined %}
-                            <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.6rem; padding: 0.05rem 0.25rem; border-radius: 3px; font-weight: 700;">🔗 Joint</span>
+                            <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.65rem; padding: 0.08rem 0.3rem; border-radius: 3px; font-weight: 700;">🔗 Joint</span>
                             {% endif %}
                         </div>
                         {% if slot.room_number %}
-                        <div style="font-size: 0.65rem; color: #64748b; line-height: 1; margin-top: 1px;">
-                            📍 {{ slot.room_number }}
+                        <div style="font-size: 0.7rem; color: #64748b; line-height: 1; margin-top: 1px;">
+                            📍 Rm {{ slot.room_number }}
                         </div>
                         {% endif %}
                         {% else %}
-                        <div style="color: #94a3b8; font-size: 0.75rem; font-weight: 600;">
+                        <div style="color: #94a3b8; font-size: 0.82rem; font-weight: 600;">
                             <i class="fa-solid fa-plus" style="margin-right: 0.15rem;"></i> Assign
                         </div>
                         {% endif %}
@@ -381,24 +397,24 @@
         </table>
     </div>
 
-    <!-- LAYOUT 2: Periods as Columns (Days as Rows) - Ultra-Compact Header & Heights -->
+    <!-- LAYOUT 2: Periods as Columns (Days as Rows) - Proportioned Header & Heights -->
     <div id="builder_periods_col_container" style="overflow-x: auto; display: none;">
         <table class="table-custom" style="width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed;">
             <thead>
                 <tr style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white;">
-                    <th style="padding: 0.35rem 0.25rem; text-align: center; border-radius: 6px; width: 85px; font-weight: 800; font-size: 0.78rem;">
+                    <th style="padding: 0.55rem 0.35rem; text-align: center; border-radius: 6px; width: 95px; font-weight: 800; font-size: 0.85rem;">
                         Day \ Period
                     </th>
                     {% for pt in period_timings %}
                         {% if pt.is_break %}
                         <th class="col-break-header">
-                            <div style="font-size: 0.7rem; line-height: 1;">☕</div>
-                            <div style="font-size: 0.58rem; font-weight: 800; text-transform: uppercase; line-height: 1; margin-top: 1px;">Break</div>
+                            <div style="font-size: 0.8rem; line-height: 1;">☕</div>
+                            <div style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; line-height: 1; margin-top: 1px;">Break</div>
                         </th>
                         {% else %}
-                        <th style="padding: 0.35rem 0.2rem; text-align: center; border-radius: 6px; font-weight: 800; font-size: 0.78rem;">
-                            <div style="line-height: 1.1;">{{ pt.name }}</div>
-                            <div style="font-size: 0.65rem; opacity: 0.85; font-weight: 600; line-height: 1; margin-top: 1px;">{{ pt.start_time|time:"H:i" }}-{{ pt.end_time|time:"H:i" }}</div>
+                        <th style="padding: 0.55rem 0.3rem; text-align: center; border-radius: 6px; font-weight: 800; font-size: 0.85rem;">
+                            <div style="line-height: 1.15;">{{ pt.name }}</div>
+                            <div style="font-size: 0.7rem; opacity: 0.9; font-weight: 600; line-height: 1; margin-top: 2px;">{{ pt.start_time|time:"H:i" }}-{{ pt.end_time|time:"H:i" }}</div>
                         </th>
                         {% endif %}
                     {% endfor %}
@@ -407,14 +423,14 @@
             <tbody>
                 {% for day_key, day_label in days_of_week %}
                 <tr>
-                    <td style="background: #f1f5f9; padding: 0.35rem 0.25rem; border-radius: 6px; text-align: center; border: 1px solid #cbd5e1; font-weight: 800; color: #1e293b; font-size: 0.8rem; vertical-align: middle; white-space: nowrap;">
+                    <td style="background: #f1f5f9; padding: 0.55rem 0.35rem; border-radius: 6px; text-align: center; border: 1px solid #cbd5e1; font-weight: 800; color: #1e293b; font-size: 0.88rem; vertical-align: middle; white-space: nowrap;">
                         {{ day_label }}
                     </td>
                     {% for pt in period_timings %}
                         {% if pt.is_break %}
                         <td class="col-break-cell">
-                            <div style="font-size: 0.72rem; line-height: 1;">☕</div>
-                            <div style="font-size: 0.55rem; font-weight: 800; text-transform: uppercase; line-height: 1; margin-top: 1px;">Break</div>
+                            <div style="font-size: 0.8rem; line-height: 1;">☕</div>
+                            <div style="font-size: 0.62rem; font-weight: 800; text-transform: uppercase; line-height: 1; margin-top: 1px;">Break</div>
                         </td>
                         {% else %}
                         {% with slot_key=day_key|slot_key:pt.id %}
@@ -432,30 +448,30 @@
                             onclick="openSlotModal('{{ day_key }}', '{{ pt.id }}', '{{ day_label }}', '{{ pt.name }}')"
                             style="background: {% if slot %}#f0fdf4{% else %}#ffffff{% endif %}; 
                                    border: 1.5px dashed {% if slot %}#86efac{% else %}#cbd5e1{% endif %}; 
-                                   border-radius: 6px; padding: 0.35rem 0.2rem; text-align: center; vertical-align: middle; cursor: pointer; transition: all 0.2s ease;">
+                                   border-radius: 6px; padding: 0.55rem 0.3rem; text-align: center; vertical-align: middle; cursor: pointer; transition: all 0.2s ease;">
                             
                             {% if slot %}
-                            <div style="font-weight: 800; color: #15803d; font-size: 0.82rem; line-height: 1.15;">
+                            <div style="font-weight: 800; color: #15803d; font-size: 0.88rem; line-height: 1.2;">
                                 {{ slot.subject.name }}
                             </div>
-                            <div style="font-size: 0.7rem; color: #334155; font-weight: 700; margin-top: 2px; display: flex; align-items: center; justify-content: center; gap: 0.2rem; line-height: 1.1;">
+                            <div style="font-size: 0.76rem; color: #334155; font-weight: 700; margin-top: 2px; display: flex; align-items: center; justify-content: center; gap: 0.2rem; line-height: 1.1;">
                                 <i class="fa-solid fa-user-tie" style="color: #6366f1;"></i> {{ slot.teacher.get_full_name|default:slot.teacher.username }}
                             </div>
-                            <div style="display: flex; gap: 0.15rem; justify-content: center; flex-wrap: wrap; margin-top: 2px;">
+                            <div style="display: flex; gap: 0.2rem; justify-content: center; flex-wrap: wrap; margin-top: 2px;">
                                 {% if not slot.division %}
-                                <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.6rem; padding: 0.05rem 0.25rem; border-radius: 3px; font-weight: 700;">📌 Fixed</span>
+                                <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.65rem; padding: 0.08rem 0.3rem; border-radius: 3px; font-weight: 700;">📌 Fixed</span>
                                 {% endif %}
                                 {% if slot.is_combined %}
-                                <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.6rem; padding: 0.05rem 0.25rem; border-radius: 3px; font-weight: 700;">🔗 Joint</span>
+                                <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.65rem; padding: 0.08rem 0.3rem; border-radius: 3px; font-weight: 700;">🔗 Joint</span>
                                 {% endif %}
                             </div>
                             {% if slot.room_number %}
-                            <div style="font-size: 0.65rem; color: #64748b; line-height: 1; margin-top: 1px;">
-                                📍 {{ slot.room_number }}
+                            <div style="font-size: 0.7rem; color: #64748b; line-height: 1; margin-top: 1px;">
+                                📍 Rm {{ slot.room_number }}
                             </div>
                             {% endif %}
                             {% else %}
-                            <div style="color: #94a3b8; font-size: 0.75rem; font-weight: 600;">
+                            <div style="color: #94a3b8; font-size: 0.82rem; font-weight: 600;">
                                 <i class="fa-solid fa-plus" style="margin-right: 0.15rem;"></i> Assign
                             </div>
                             {% endif %}
