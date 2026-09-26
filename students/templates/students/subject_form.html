@@ -1,84 +1,157 @@
 {% extends 'students/base.html' %}
 
 {% block title %}
-    {% if is_update %}Edit Subject{% else %}Add New Subject{% endif %} - Student Management System
+    {% if is_update %}Edit Subject{% else %}Add New Subject{% endif %} - MARKAZ HADIYA
 {% endblock %}
 
 {% block content %}
-<div class="header-actions" style="margin-bottom: 20px;">
-    <a href="{% url 'students:subject_list' %}" class="btn">← Back to Subjects</a>
+<div class="header-actions" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h1 style="margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--dark);">
+            {% if is_update %}<i class="fa-solid fa-pen-to-square" style="color: var(--primary);"></i> Edit Subject{% else %}<i class="fa-solid fa-plus-circle" style="color: var(--primary);"></i> Add New Subject{% endif %}
+        </h1>
+        <p style="margin: 4px 0 0 0; color: var(--gray); font-size: 0.9rem;">Configure curriculum subject details, grade association, and passing marks</p>
+    </div>
+    <a href="{% url 'students:subject_list' %}" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem;">
+        <i class="fa-solid fa-arrow-left"></i> Back to Subjects
+    </a>
 </div>
 
-<div class="card">
-    <h2>{% if is_update %}Edit Subject{% else %}Add New Subject{% endif %}</h2>
-    
+<div class="card" style="max-width: 900px; margin: 0 auto; border-radius: 16px; box-shadow: var(--shadow-md); padding: 2rem;">
     <form method="post" class="standard-form">
         {% csrf_token %}
         
-        <div class="form-row">
+        <div class="form-row" style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
             <div class="form-group">
-                <label for="{{ form.name.id_for_label }}">Subject Name *</label>
+                <label for="{{ form.name.id_for_label }}" style="font-weight: 700;">Subject Name *</label>
                 {{ form.name }}
                 {{ form.name.errors }}
             </div>
             
             <div class="form-group">
-                <label for="{{ form.code.id_for_label }}">Subject Code</label>
+                <label for="{{ form.code.id_for_label }}" style="font-weight: 700;">Subject Code</label>
                 {{ form.code }}
-                <small class="help-text">Optional short code e.g., "MATH101"</small>
+                <small class="help-text" style="color: var(--gray); font-size: 0.78rem;">Optional code e.g., "ACC101", "ISL-01"</small>
                 {{ form.code.errors }}
             </div>
         </div>
         
-        <div class="form-row">
+        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
             <div class="form-group">
-                <label for="{{ form.subject_type.id_for_label }}">Subject Type *</label>
+                <label for="{{ form.subject_type.id_for_label }}" style="font-weight: 700;">Subject Type *</label>
                 {{ form.subject_type }}
-                <small class="help-text">Hadiya or Division Specific</small>
+                <small class="help-text" style="color: var(--gray); font-size: 0.78rem;">Hadiya (Islamic) or Division Specific</small>
                 {{ form.subject_type.errors }}
             </div>
             
             <div class="form-group">
-                <label for="{{ form.max_marks.id_for_label }}">Max Marks</label>
+                <label for="{{ form.max_marks.id_for_label }}" style="font-weight: 700;">Max Marks</label>
                 {{ form.max_marks }}
+                <small class="help-text" style="color: var(--gray); font-size: 0.78rem;">Default maximum mark (e.g. 100)</small>
                 {{ form.max_marks.errors }}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.pass_marks.id_for_label }}" style="font-weight: 700;">Pass Marks</label>
+                {{ form.pass_marks }}
+                <small class="help-text" style="color: var(--gray); font-size: 0.78rem;">Minimum passing mark (e.g. 30)</small>
+                {{ form.pass_marks.errors }}
             </div>
         </div>
 
-        <div class="form-row">
+        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
             <div class="form-group">
-                <label for="{{ form.section.id_for_label }}">Section</label>
-                {{ form.section }}
-                {{ form.section.errors }}
-            </div>
-            
-            <div class="form-group">
-                <label for="{{ form.grade.id_for_label }}">Grade</label>
+                <label for="{{ form.grade.id_for_label }}" style="font-weight: 700;">Grade / Class *</label>
                 {{ form.grade }}
                 {{ form.grade.errors }}
             </div>
-            
-            <div class="form-group">
-                <label for="{{ form.division.id_for_label }}">Division</label>
+
+            <div class="form-group" id="divisionGroup">
+                <label for="{{ form.division.id_for_label }}" style="font-weight: 700;">Division</label>
                 {{ form.division }}
-                <small class="help-text">Required if type is Division Specific</small>
+                <small class="help-text" style="color: var(--gray); font-size: 0.78rem;">Select stream for Division-Specific</small>
                 {{ form.division.errors }}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.section.id_for_label }}" style="font-weight: 700;">Section (Optional)</label>
+                {{ form.section }}
+                {{ form.section.errors }}
             </div>
         </div>
 
-        <div class="form-group">
-            <label for="{{ form.description.id_for_label }}">Description</label>
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+            <label for="{{ form.description.id_for_label }}" style="font-weight: 700;">Description</label>
             {{ form.description }}
             {{ form.description.errors }}
         </div>
         
-        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-            <label for="{{ form.is_active.id_for_label }}">Is Active?</label>
-            {{ form.is_active }}
-            {{ form.is_active.errors }}
+        <div style="display: flex; gap: 2rem; align-items: center; background: #f8fafc; padding: 1rem 1.25rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid #e2e8f0;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                {{ form.is_common_subject }}
+                <label for="{{ form.is_common_subject.id_for_label }}" style="margin: 0; font-weight: 600; cursor: pointer;">
+                    Common Subject across Divisions?
+                </label>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 8px;">
+                {{ form.is_active }}
+                <label for="{{ form.is_active.id_for_label }}" style="margin: 0; font-weight: 600; cursor: pointer;">
+                    Is Active Subject?
+                </label>
+            </div>
         </div>
         
-        <button type="submit" class="btn btn-success">Save Subject</button>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <button type="submit" class="btn btn-success" style="padding: 0.75rem 2rem; font-weight: 700;">
+                <i class="fa-solid fa-check"></i> Save Subject
+            </button>
+            <a href="{% url 'students:subject_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
     </form>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const gradeSelect = document.getElementById('id_grade');
+        const divisionSelect = document.getElementById('id_division');
+        const subjectTypeSelect = document.getElementById('id_subject_type');
+        const divisionGroup = document.getElementById('divisionGroup');
+
+        function toggleDivisionVisibility() {
+            if (subjectTypeSelect && subjectTypeSelect.value === 'hadiya') {
+                if (divisionGroup) divisionGroup.style.opacity = '0.6';
+            } else {
+                if (divisionGroup) divisionGroup.style.opacity = '1';
+            }
+        }
+
+        if (subjectTypeSelect) {
+            subjectTypeSelect.addEventListener('change', toggleDivisionVisibility);
+            toggleDivisionVisibility();
+        }
+
+        if (gradeSelect && divisionSelect) {
+            gradeSelect.addEventListener('change', function() {
+                const gradeId = this.value;
+                if (!gradeId) return;
+
+                const currentDivVal = divisionSelect.value;
+                fetch(`/api/divisions-by-grade/?grade_id=${gradeId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        divisionSelect.innerHTML = '<option value="">---------</option>';
+                        data.divisions.forEach(d => {
+                            const opt = document.createElement('option');
+                            opt.value = d.id;
+                            opt.textContent = d.name;
+                            if (d.id == currentDivVal) opt.selected = true;
+                            divisionSelect.appendChild(opt);
+                        });
+                    })
+                    .catch(err => console.error('Error fetching divisions:', err));
+            });
+        }
+    });
+</script>
 {% endblock %}

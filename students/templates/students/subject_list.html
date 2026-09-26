@@ -4,65 +4,1018 @@
 
 {% block extra_css %}
 <style>
+    /* Subject Management Design System */
+    .subject-page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .subject-title-area h1 {
+        margin: 0;
+        font-size: 1.65rem;
+        font-weight: 800;
+        color: var(--dark);
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+    }
+
+    .subject-title-area p {
+        margin: 0.25rem 0 0 0;
+        color: var(--gray);
+        font-size: 0.88rem;
+    }
+
+    /* Filter & Controls Toolbar */
+    .subject-controls-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        margin-bottom: 1.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .grade-tabs-container {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.35rem;
+        scrollbar-width: thin;
+    }
+
+    .grade-tab-btn {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+        padding: 0.55rem 1.15rem;
+        border-radius: 30px;
+        font-weight: 600;
+        font-size: 0.86rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        white-space: nowrap;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .grade-tab-btn:hover {
+        background: #e2e8f0;
+        color: var(--dark);
+        transform: translateY(-1px);
+    }
+
+    .grade-tab-btn.active {
+        background: var(--gradient-1);
+        color: #ffffff;
+        border-color: transparent;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+    }
+
+    .grade-tab-btn .tab-count {
+        background: rgba(0, 0, 0, 0.08);
+        color: inherit;
+        padding: 0.15rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .grade-tab-btn.active .tab-count {
+        background: rgba(255, 255, 255, 0.25);
+        color: #ffffff;
+    }
+
+    .sub-filters-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+        border-top: 1px solid #f1f5f9;
+        padding-top: 0.85rem;
+    }
+
+    .search-input-wrapper {
+        position: relative;
+        flex: 1;
+        min-width: 240px;
+    }
+
+    .search-input-wrapper i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: 0.9rem;
+    }
+
+    .search-input-wrapper input {
+        width: 100%;
+        padding: 0.6rem 1rem 0.6rem 2.5rem;
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        font-size: 0.88rem;
+        transition: all 0.2s;
+    }
+
+    .search-input-wrapper input:focus {
+        background: #ffffff;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        outline: none;
+    }
+
+    .filter-select {
+        padding: 0.6rem 1rem;
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        font-size: 0.86rem;
+        font-weight: 500;
+        color: var(--dark);
+        outline: none;
+        cursor: pointer;
+    }
+
+    .filter-select:focus {
+        border-color: var(--primary);
+        background: #ffffff;
+    }
+
+    .view-toggle-btns {
+        display: flex;
+        background: #f1f5f9;
+        padding: 3px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .view-toggle-btn {
+        border: none;
+        background: transparent;
+        padding: 0.45rem 0.85rem;
+        border-radius: 9px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #64748b;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.2s;
+    }
+
+    .view-toggle-btn.active {
+        background: #ffffff;
+        color: var(--primary);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    /* Class Subject Card */
+    .class-subject-card {
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 2rem;
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .class-card-header {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 1.15rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .class-info-badge {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+    }
+
+    .class-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: var(--gradient-1);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+        font-weight: 800;
+        box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+    }
+
+    .class-name-title {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: var(--dark);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .class-stats-pills {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 0.2rem;
+    }
+
+    .stat-mini-pill {
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.15rem 0.55rem;
+        border-radius: 8px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        color: #475569;
+    }
+
+    /* Subject Section Inside Class Card */
+    .class-card-body {
+        padding: 1.25rem 1.5rem;
+    }
+
+    .subject-section-group {
+        margin-bottom: 1.75rem;
+    }
+
+    .subject-section-group:last-child {
+        margin-bottom: 0;
+    }
+
+    .subject-section-header {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.4rem;
+        border-bottom: 2px solid #f1f5f9;
+    }
+
+    .subject-section-header.hadiya-header {
+        color: #4f46e5;
+        border-bottom-color: #e0e7ff;
+    }
+
+    .subject-section-header.division-header {
+        color: #0d9488;
+        border-bottom-color: #ccfbf1;
+    }
+
+    /* Modern Table Inside Cards */
+    .clean-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #f1f5f9;
+    }
+
+    .clean-table th {
+        background: #f8fafc;
+        color: #475569;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        text-align: left;
+    }
+
+    .clean-table td {
+        padding: 0.85rem 1rem;
+        font-size: 0.9rem;
+        color: #334155;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+        background: #ffffff;
+    }
+
+    .clean-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .clean-table tr:hover td {
+        background: #f8fafc;
+    }
+
+    /* Badges */
+    .badge-code {
+        font-family: monospace;
+        font-weight: 700;
+        font-size: 0.8rem;
+        background: #f1f5f9;
+        color: #334155;
+        padding: 0.2rem 0.5rem;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .badge-type-hadiya {
+        background: #ede9fe;
+        color: #6366f1;
+        font-weight: 700;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .badge-type-div {
+        background: #e0f2fe;
+        color: #0284c7;
+        font-weight: 700;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .badge-stream {
+        background: #fef3c7;
+        color: #d97706;
+        font-weight: 700;
+        font-size: 0.78rem;
+        padding: 0.25rem 0.65rem;
+        border-radius: 8px;
+        border: 1px solid #fde68a;
+    }
+
+    .badge-common {
+        background: #fdf2f8;
+        color: #db2777;
+        font-weight: 700;
+        font-size: 0.72rem;
+        padding: 0.15rem 0.45rem;
+        border-radius: 6px;
+        border: 1px solid #fbcfe8;
+        margin-left: 0.4rem;
+    }
+
+    .badge-active {
+        background: #dcfce7;
+        color: #15803d;
+        font-weight: 700;
+        font-size: 0.75rem;
+        padding: 0.2rem 0.55rem;
+        border-radius: 20px;
+    }
+
+    .badge-inactive {
+        background: #fee2e2;
+        color: #b91c1c;
+        font-weight: 700;
+        font-size: 0.75rem;
+        padding: 0.2rem 0.55rem;
+        border-radius: 20px;
+    }
+
+    /* Action Buttons */
+    .btn-action-edit {
+        background: #eff6ff;
+        color: #2563eb;
+        border: 1px solid #bfdbfe;
+        padding: 0.35rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        transition: all 0.2s;
+    }
+
+    .btn-action-edit:hover {
+        background: #2563eb;
+        color: #ffffff;
+    }
+
+    .btn-action-delete {
+        background: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #fecaca;
+        padding: 0.35rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        transition: all 0.2s;
+        margin-left: 0.35rem;
+    }
+
+    .btn-action-delete:hover {
+        background: #dc2626;
+        color: #ffffff;
+    }
+
+    .empty-placeholder {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        background: #ffffff;
+        border-radius: 16px;
+        border: 2px dashed #cbd5e1;
+        color: #64748b;
+    }
+
     @media (max-width: 768px) {
-        .header-actions { flex-direction: column !important; align-items: flex-start !important; gap: 0.75rem; }
-        .header-actions .btn { width: 100%; text-align: center; }
-        .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        table { min-width: 600px; }
-        table th, table td { white-space: nowrap; font-size: 0.82rem; padding: 6px 8px; }
+        .subject-page-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .class-card-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .clean-table {
+            min-width: 580px;
+        }
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="header-actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-    <h1>Manage Subjects</h1>
-    <a href="{% url 'students:subject_create' %}" class="btn btn-success">+ Add New Subject</a>
-</div>
-
-<div class="card">
-    <div class="table-wrapper">
-        <table>
-            <thead>
-            <tr>
-                <th>Subject Name</th>
-                <th>Code</th>
-                <th>Type</th>
-                <th>Grade</th>
-                <th>Division</th>
-                <th>Section</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for subject in subjects %}
-            <tr>
-                <td><strong>{{ subject.name }}</strong></td>
-                <td>{{ subject.code|default:"-" }}</td>
-                <td>{{ subject.get_subject_type_display }}</td>
-                <td>{{ subject.grade|default:"-" }}</td>
-                <td>{{ subject.division|default:"-" }}</td>
-                <td>{{ subject.section|default:"-" }}</td>
-                <td>
-                    {% if subject.is_active %}
-                        <span style="color: green;">Active</span>
-                    {% else %}
-                        <span style="color: red;">Inactive</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="{% url 'students:subject_update' subject.id %}" class="btn">Edit</a>
-                    <a href="{% url 'students:subject_delete' subject.id %}" class="btn btn-danger">Delete</a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="8" style="text-align: center;">No subjects found. Create your first subject.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<!-- Main Header -->
+<div class="subject-page-header">
+    <div class="subject-title-area">
+        <h1>
+            <i class="fa-solid fa-book-bookmark" style="color: var(--primary);"></i>
+            Manage Subjects
+        </h1>
+        <p>Curriculum repository organized class-wise, Islamic studies & division streams ({{ total_subjects_count }} Total Subjects)</p>
+    </div>
+    
+    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+        <a href="{% url 'students:subject_create' %}" class="btn btn-success" style="display: flex; align-items: center; gap: 0.5rem; font-weight: 700; padding: 0.65rem 1.25rem;">
+            <i class="fa-solid fa-plus-circle"></i> + Add New Subject
+        </a>
+        <a href="{% url 'students:examination_dashboard' %}" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem;">
+            <i class="fa-solid fa-sliders"></i> Exam Max Marks
+        </a>
     </div>
 </div>
+
+<!-- Smart Filter Toolbar -->
+<div class="subject-controls-card">
+    <!-- Grade Filter Tabs -->
+    <div class="grade-tabs-container" id="gradeTabs">
+        <button type="button" class="grade-tab-btn active" data-grade-id="all">
+            <i class="fa-solid fa-layer-group"></i> All Classes
+            <span class="tab-count">{{ total_subjects_count }}</span>
+        </button>
+        {% for group in grade_groups %}
+        <button type="button" class="grade-tab-btn" data-grade-id="{{ group.grade.id }}">
+            <i class="fa-solid fa-graduation-cap"></i> Class {{ group.grade.name }}
+            <span class="tab-count">{{ group.total_count }}</span>
+        </button>
+        {% endfor %}
+    </div>
+
+    <!-- Secondary Filters (Search, Type, Division, View Toggle) -->
+    <div class="sub-filters-row">
+        <!-- Live Search -->
+        <div class="search-input-wrapper">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="subjectSearch" placeholder="Instant search by subject name, code, division..." autocomplete="off">
+        </div>
+
+        <!-- Subject Type Filter -->
+        <select class="filter-select" id="typeFilter">
+            <option value="all">All Subject Types</option>
+            <option value="hadiya">Hadiya (Islamic) Only</option>
+            <option value="division">Division Specific Only</option>
+        </select>
+
+        <!-- Division Stream Filter -->
+        <select class="filter-select" id="divisionFilter">
+            <option value="all">All Stream Divisions</option>
+            {% for div in divisions %}
+            <option value="{{ div.name }}">{{ div.name }} ({{ div.grade.name }})</option>
+            {% endfor %}
+        </select>
+
+        <!-- Sort Filter -->
+        <select class="filter-select" id="sortFilter">
+            <option value="default">Default Order</option>
+            <option value="name_asc">Subject Name (A → Z)</option>
+            <option value="name_desc">Subject Name (Z → A)</option>
+            <option value="marks_desc">Highest Max Marks</option>
+        </select>
+
+        <!-- View Switcher -->
+        <div class="view-toggle-btns">
+            <button type="button" class="view-toggle-btn active" id="btnGroupedView" title="Class Grouped Cards View">
+                <i class="fa-solid fa-table-cells-large"></i> Class Grouped
+            </button>
+            <button type="button" class="view-toggle-btn" id="btnMasterView" title="Master Table View">
+                <i class="fa-solid fa-table-list"></i> Master Table
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- VIEW 1: CLASS-WISE GROUPED CARDS (DEFAULT) -->
+<!-- ======================================================== -->
+<div id="classGroupedContainer">
+    {% for group in grade_groups %}
+    <div class="class-subject-card" data-grade-id="{{ group.grade.id }}" data-grade-name="{{ group.grade.name|lower }}">
+        <!-- Class Card Header -->
+        <div class="class-card-header">
+            <div class="class-info-badge">
+                <div class="class-avatar">{{ group.grade.name }}</div>
+                <div>
+                    <h2 class="class-name-title">
+                        Class {{ group.grade.name }}
+                        {% if group.grade.section %}<span class="stat-mini-pill" style="color: var(--primary);">{{ group.grade.section.name }}</span>{% endif %}
+                    </h2>
+                    <div class="class-stats-pills">
+                        <span class="stat-mini-pill"><i class="fa-solid fa-book"></i> {{ group.total_count }} Subjects</span>
+                        <span class="stat-mini-pill" style="color: #6366f1;"><i class="fa-solid fa-moon"></i> {{ group.hadiya_count }} Islamic</span>
+                        <span class="stat-mini-pill" style="color: #0d9488;"><i class="fa-solid fa-cubes"></i> {{ group.division_groups|length }} Divisions</span>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <a href="{% url 'students:subject_create' %}?grade={{ group.grade.id }}" class="btn btn-secondary" style="font-size: 0.84rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <i class="fa-solid fa-plus"></i> Add Subject for Class {{ group.grade.name }}
+                </a>
+            </div>
+        </div>
+
+        <!-- Class Card Body -->
+        <div class="class-card-body">
+            <!-- 1. Hadiya Islamic Curriculum -->
+            {% if group.hadiya_subjects %}
+            <div class="subject-section-group hadiya-section" data-section-type="hadiya">
+                <div class="subject-section-header hadiya-header">
+                    <i class="fa-solid fa-moon"></i> Hadiya (Islamic Studies) Curriculum ({{ group.hadiya_subjects|length }})
+                </div>
+                <div class="table-responsive">
+                    <table class="clean-table">
+                        <thead>
+                            <tr>
+                                <th>Subject Name</th>
+                                <th>Code</th>
+                                <th>Type</th>
+                                <th>Max / Pass Marks</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for subj in group.hadiya_subjects %}
+                            <tr class="subject-row" data-name="{{ subj.name|lower }}" data-code="{{ subj.code|default:''|lower }}" data-type="hadiya" data-division="none" data-marks="{{ subj.max_marks }}">
+                                <td>
+                                    <strong>{{ subj.name }}</strong>
+                                    {% if subj.is_common_subject %}<span class="badge-common">Common</span>{% endif %}
+                                    {% if subj.description %}<div style="font-size: 0.78rem; color: #64748b; margin-top: 2px;">{{ subj.description|truncatewords:10 }}</div>{% endif %}
+                                </td>
+                                <td>
+                                    {% if subj.code %}
+                                    <span class="badge-code">{{ subj.code }}</span>
+                                    {% else %}
+                                    <span style="color: #94a3b8;">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge-type-hadiya"><i class="fa-solid fa-book-open"></i> Hadiya</span>
+                                </td>
+                                <td>
+                                    <span style="font-weight: 700; color: #1e293b;">{{ subj.max_marks }}</span> 
+                                    <span style="color: #94a3b8; font-size: 0.8rem;">/ Pass: {{ subj.pass_marks }}</span>
+                                </td>
+                                <td>
+                                    {% if subj.is_active %}
+                                    <span class="badge-active"><i class="fa-solid fa-circle-check"></i> Active</span>
+                                    {% else %}
+                                    <span class="badge-inactive"><i class="fa-solid fa-circle-xmark"></i> Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: right;">
+                                    <a href="{% url 'students:subject_update' subj.id %}" class="btn-action-edit" title="Edit Subject">
+                                        <i class="fa-solid fa-pen"></i> Edit
+                                    </a>
+                                    <a href="{% url 'students:subject_delete' subj.id %}" class="btn-action-delete" title="Delete Subject">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 2. Division Streams (Commerce, Humanities, Science, etc.) -->
+            {% for div_group in group.division_groups %}
+            <div class="subject-section-group division-section" data-section-type="division" data-division-name="{{ div_group.division.name|lower }}">
+                <div class="subject-section-header division-header">
+                    <i class="fa-solid fa-layer-group"></i> {{ div_group.division.name }} Stream ({{ div_group.subjects|length }} Subjects)
+                </div>
+                <div class="table-responsive">
+                    <table class="clean-table">
+                        <thead>
+                            <tr>
+                                <th>Subject Name</th>
+                                <th>Code</th>
+                                <th>Stream / Division</th>
+                                <th>Max / Pass Marks</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for subj in div_group.subjects %}
+                            <tr class="subject-row" data-name="{{ subj.name|lower }}" data-code="{{ subj.code|default:''|lower }}" data-type="division" data-division="{{ div_group.division.name|lower }}" data-marks="{{ subj.max_marks }}">
+                                <td>
+                                    <strong>{{ subj.name }}</strong>
+                                    {% if subj.is_common_subject %}<span class="badge-common">Common</span>{% endif %}
+                                    {% if subj.description %}<div style="font-size: 0.78rem; color: #64748b; margin-top: 2px;">{{ subj.description|truncatewords:10 }}</div>{% endif %}
+                                </td>
+                                <td>
+                                    {% if subj.code %}
+                                    <span class="badge-code">{{ subj.code }}</span>
+                                    {% else %}
+                                    <span style="color: #94a3b8;">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge-stream">{{ div_group.division.name }}</span>
+                                </td>
+                                <td>
+                                    <span style="font-weight: 700; color: #1e293b;">{{ subj.max_marks }}</span> 
+                                    <span style="color: #94a3b8; font-size: 0.8rem;">/ Pass: {{ subj.pass_marks }}</span>
+                                </td>
+                                <td>
+                                    {% if subj.is_active %}
+                                    <span class="badge-active"><i class="fa-solid fa-circle-check"></i> Active</span>
+                                    {% else %}
+                                    <span class="badge-inactive"><i class="fa-solid fa-circle-xmark"></i> Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: right;">
+                                    <a href="{% url 'students:subject_update' subj.id %}" class="btn-action-edit" title="Edit Subject">
+                                        <i class="fa-solid fa-pen"></i> Edit
+                                    </a>
+                                    <a href="{% url 'students:subject_delete' subj.id %}" class="btn-action-delete" title="Delete Subject">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- 3. Division specific subjects without division assigned -->
+            {% if group.no_div_subjects %}
+            <div class="subject-section-group" data-section-type="division" data-division-name="none">
+                <div class="subject-section-header" style="color: #64748b;">
+                    <i class="fa-solid fa-circle-question"></i> General Division Subjects ({{ group.no_div_subjects|length }})
+                </div>
+                <div class="table-responsive">
+                    <table class="clean-table">
+                        <thead>
+                            <tr>
+                                <th>Subject Name</th>
+                                <th>Code</th>
+                                <th>Max / Pass Marks</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for subj in group.no_div_subjects %}
+                            <tr class="subject-row" data-name="{{ subj.name|lower }}" data-code="{{ subj.code|default:''|lower }}" data-type="division" data-division="none" data-marks="{{ subj.max_marks }}">
+                                <td>
+                                    <strong>{{ subj.name }}</strong>
+                                    {% if subj.is_common_subject %}<span class="badge-common">Common</span>{% endif %}
+                                </td>
+                                <td>{{ subj.code|default:"-" }}</td>
+                                <td>{{ subj.max_marks }} / {{ subj.pass_marks }}</td>
+                                <td>
+                                    {% if subj.is_active %}<span class="badge-active">Active</span>{% else %}<span class="badge-inactive">Inactive</span>{% endif %}
+                                </td>
+                                <td style="text-align: right;">
+                                    <a href="{% url 'students:subject_update' subj.id %}" class="btn-action-edit"><i class="fa-solid fa-pen"></i> Edit</a>
+                                    <a href="{% url 'students:subject_delete' subj.id %}" class="btn-action-delete"><i class="fa-solid fa-trash"></i></a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if not group.hadiya_subjects and not group.division_groups and not group.no_div_subjects %}
+            <div style="text-align: center; padding: 2rem; color: #94a3b8;">
+                <i class="fa-solid fa-book-open" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                <p>No subjects configured for Class {{ group.grade.name }} yet.</p>
+                <a href="{% url 'students:subject_create' %}?grade={{ group.grade.id }}" class="btn btn-secondary" style="font-size: 0.85rem;">+ Add First Subject</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="empty-placeholder">
+        <i class="fa-solid fa-folder-open" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
+        <h3 style="color: #475569; font-weight: 700;">No Subjects Found</h3>
+        <p style="margin-bottom: 1.5rem;">There are no subjects matching your filters or database records.</p>
+        <a href="{% url 'students:subject_create' %}" class="btn btn-success">+ Add New Subject</a>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- ======================================================== -->
+<!-- VIEW 2: MASTER FLAT TABLE (FOR QUICK GLOBAL SEARCH) -->
+<!-- ======================================================== -->
+<div id="masterTableContainer" style="display: none;">
+    <div class="card" style="border-radius: 16px; padding: 1.25rem;">
+        <div class="table-responsive">
+            <table class="clean-table" id="masterTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable(0)" style="cursor: pointer;">Grade & Stream <i class="fa-solid fa-sort" style="font-size: 0.75rem;"></i></th>
+                        <th onclick="sortTable(1)" style="cursor: pointer;">Subject Name <i class="fa-solid fa-sort" style="font-size: 0.75rem;"></i></th>
+                        <th onclick="sortTable(2)" style="cursor: pointer;">Code <i class="fa-solid fa-sort" style="font-size: 0.75rem;"></i></th>
+                        <th>Type</th>
+                        <th onclick="sortTable(4)" style="cursor: pointer;">Max / Pass <i class="fa-solid fa-sort" style="font-size: 0.75rem;"></i></th>
+                        <th>Status</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="masterTableBody">
+                    {% for subj in subjects %}
+                    <tr class="master-row" data-grade-id="{{ subj.grade.id|default:'none' }}" data-name="{{ subj.name|lower }}" data-code="{{ subj.code|default:''|lower }}" data-type="{{ subj.subject_type }}" data-division="{{ subj.division.name|default:'none'|lower }}" data-marks="{{ subj.max_marks }}">
+                        <td>
+                            <strong style="color: var(--primary);">Class {{ subj.grade.name|default:"General" }}</strong>
+                            {% if subj.division %}
+                            <div style="font-size: 0.78rem; color: #0d9488; font-weight: 600;">{{ subj.division.name }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ subj.name }}</strong>
+                            {% if subj.is_common_subject %}<span class="badge-common">Common</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if subj.code %}
+                            <span class="badge-code">{{ subj.code }}</span>
+                            {% else %}
+                            <span style="color: #94a3b8;">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if subj.subject_type == 'hadiya' %}
+                            <span class="badge-type-hadiya"><i class="fa-solid fa-moon"></i> Hadiya</span>
+                            {% else %}
+                            <span class="badge-type-div"><i class="fa-solid fa-layer-group"></i> Division</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span style="font-weight: 700;">{{ subj.max_marks }}</span> / <span style="color: #64748b;">{{ subj.pass_marks }}</span>
+                        </td>
+                        <td>
+                            {% if subj.is_active %}
+                            <span class="badge-active"><i class="fa-solid fa-circle-check"></i> Active</span>
+                            {% else %}
+                            <span class="badge-inactive"><i class="fa-solid fa-circle-xmark"></i> Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right;">
+                            <a href="{% url 'students:subject_update' subj.id %}" class="btn-action-edit"><i class="fa-solid fa-pen"></i></a>
+                            <a href="{% url 'students:subject_delete' subj.id %}" class="btn-action-delete"><i class="fa-solid fa-trash"></i></a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 2rem; color: #94a3b8;">No subjects found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Interactive Client-Side Search, Grade Filter & Sort Logic -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const gradeTabs = document.querySelectorAll('.grade-tab-btn');
+        const searchInput = document.getElementById('subjectSearch');
+        const typeFilter = document.getElementById('typeFilter');
+        const divisionFilter = document.getElementById('divisionFilter');
+        const sortFilter = document.getElementById('sortFilter');
+        const btnGroupedView = document.getElementById('btnGroupedView');
+        const btnMasterView = document.getElementById('btnMasterView');
+        const classGroupedContainer = document.getElementById('classGroupedContainer');
+        const masterTableContainer = document.getElementById('masterTableContainer');
+
+        let activeGradeId = 'all';
+
+        // 1. Grade Tab Switching
+        gradeTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                gradeTabs.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                activeGradeId = this.getAttribute('data-grade-id');
+                applyFilters();
+            });
+        });
+
+        // 2. Search & Filter Event Listeners
+        if (searchInput) searchInput.addEventListener('input', applyFilters);
+        if (typeFilter) typeFilter.addEventListener('change', applyFilters);
+        if (divisionFilter) divisionFilter.addEventListener('change', applyFilters);
+        if (sortFilter) sortFilter.addEventListener('change', applySorting);
+
+        // 3. View Switcher
+        if (btnGroupedView && btnMasterView) {
+            btnGroupedView.addEventListener('click', function() {
+                btnGroupedView.classList.add('active');
+                btnMasterView.classList.remove('active');
+                classGroupedContainer.style.display = 'block';
+                masterTableContainer.style.display = 'none';
+            });
+
+            btnMasterView.addEventListener('click', function() {
+                btnMasterView.classList.add('active');
+                btnGroupedView.classList.remove('active');
+                classGroupedContainer.style.display = 'none';
+                masterTableContainer.style.display = 'block';
+            });
+        }
+
+        function applyFilters() {
+            const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+            const selectedType = typeFilter ? typeFilter.value : 'all';
+            const selectedDiv = (divisionFilter ? divisionFilter.value : 'all').toLowerCase().trim();
+
+            // Filter Class Grouped View
+            const classCards = document.querySelectorAll('.class-subject-card');
+            classCards.forEach(card => {
+                const cardGradeId = card.getAttribute('data-grade-id');
+                const gradeMatches = (activeGradeId === 'all' || activeGradeId === cardGradeId);
+
+                if (!gradeMatches) {
+                    card.style.display = 'none';
+                    return;
+                }
+
+                let visibleRowsInCard = 0;
+                const subjectRows = card.querySelectorAll('.subject-row');
+                subjectRows.forEach(row => {
+                    const name = row.getAttribute('data-name') || '';
+                    const code = row.getAttribute('data-code') || '';
+                    const type = row.getAttribute('data-type') || '';
+                    const div = row.getAttribute('data-division') || '';
+
+                    const matchesSearch = !query || name.includes(query) || code.includes(query) || div.includes(query);
+                    const matchesType = (selectedType === 'all' || type === selectedType);
+                    const matchesDiv = (selectedDiv === 'all' || div.includes(selectedDiv) || (selectedDiv === 'none' && div === 'none'));
+
+                    if (matchesSearch && matchesType && matchesDiv) {
+                        row.style.display = '';
+                        visibleRowsInCard++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                // Hide empty subject sub-sections
+                const sections = card.querySelectorAll('.subject-section-group');
+                sections.forEach(sec => {
+                    const visibleRowsInSec = sec.querySelectorAll('.subject-row:not([style*="display: none"])').length;
+                    sec.style.display = visibleRowsInSec > 0 ? '' : 'none';
+                });
+
+                // If whole card has no visible rows and a search/filter is active
+                if ((query || selectedType !== 'all' || selectedDiv !== 'all') && visibleRowsInCard === 0) {
+                    card.style.display = 'none';
+                } else {
+                    card.style.display = '';
+                }
+            });
+
+            // Filter Master Table View
+            const masterRows = document.querySelectorAll('.master-row');
+            masterRows.forEach(row => {
+                const gradeId = row.getAttribute('data-grade-id');
+                const name = row.getAttribute('data-name') || '';
+                const code = row.getAttribute('data-code') || '';
+                const type = row.getAttribute('data-type') || '';
+                const div = row.getAttribute('data-division') || '';
+
+                const matchesGrade = (activeGradeId === 'all' || activeGradeId === gradeId);
+                const matchesSearch = !query || name.includes(query) || code.includes(query) || div.includes(query);
+                const matchesType = (selectedType === 'all' || type === selectedType);
+                const matchesDiv = (selectedDiv === 'all' || div.includes(selectedDiv));
+
+                if (matchesGrade && matchesSearch && matchesType && matchesDiv) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        function applySorting() {
+            const sortMode = sortFilter.value;
+            
+            // Sort Master Table
+            const tbody = document.getElementById('masterTableBody');
+            if (tbody) {
+                const rows = Array.from(tbody.querySelectorAll('.master-row'));
+                rows.sort((a, b) => {
+                    if (sortMode === 'name_asc') {
+                        return a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
+                    } else if (sortMode === 'name_desc') {
+                        return b.getAttribute('data-name').localeCompare(a.getAttribute('data-name'));
+                    } else if (sortMode === 'marks_desc') {
+                        return (parseInt(b.getAttribute('data-marks')) || 0) - (parseInt(a.getAttribute('data-marks')) || 0);
+                    }
+                    return 0;
+                });
+                rows.forEach(r => tbody.appendChild(r));
+            }
+
+            // Also sort rows inside each section table in grouped cards
+            document.querySelectorAll('.clean-table tbody').forEach(tbody => {
+                const rows = Array.from(tbody.querySelectorAll('.subject-row'));
+                if (rows.length > 1) {
+                    rows.sort((a, b) => {
+                        if (sortMode === 'name_asc') {
+                            return a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
+                        } else if (sortMode === 'name_desc') {
+                            return b.getAttribute('data-name').localeCompare(a.getAttribute('data-name'));
+                        } else if (sortMode === 'marks_desc') {
+                            return (parseInt(b.getAttribute('data-marks')) || 0) - (parseInt(a.getAttribute('data-marks')) || 0);
+                        }
+                        return 0;
+                    });
+                    rows.forEach(r => tbody.appendChild(r));
+                }
+            });
+        }
+    });
+
+    // Helper for table column clicking
+    function sortTable(columnIndex) {
+        const table = document.getElementById('masterTable');
+        const tbody = document.getElementById('masterTableBody');
+        const rows = Array.from(tbody.querySelectorAll('tr.master-row'));
+        const isAscending = table.getAttribute('data-sort-dir') !== 'asc';
+
+        rows.sort((a, b) => {
+            const cellA = a.cells[columnIndex].innerText.trim().toLowerCase();
+            const cellB = b.cells[columnIndex].innerText.trim().toLowerCase();
+            return isAscending ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+        });
+
+        table.setAttribute('data-sort-dir', isAscending ? 'asc' : 'desc');
+        rows.forEach(r => tbody.appendChild(r));
+    }
+</script>
 {% endblock %}

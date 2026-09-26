@@ -72,15 +72,16 @@ class DivisionForm(forms.ModelForm):
 class SubjectForm(forms.ModelForm):
     class Meta:
         model = Subject
-        fields = ['name', 'code', 'subject_type', 'section', 'grade', 'division', 'max_marks', 'description', 'is_active']
+        fields = ['name', 'code', 'subject_type', 'section', 'grade', 'division', 'max_marks', 'pass_marks', 'description', 'is_common_subject', 'is_active']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'code': forms.TextInput(attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Accountancy, Arabic'}),
+            'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., ACC-101'}),
             'subject_type': forms.Select(attrs={'class': 'form-control'}),
             'section': forms.Select(attrs={'class': 'form-control'}),
             'grade': forms.Select(attrs={'class': 'form-control'}),
             'division': forms.Select(attrs={'class': 'form-control'}),
-            'max_marks': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'max_marks': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
+            'pass_marks': forms.NumberInput(attrs={'class': 'form-control', 'step': '1'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
@@ -94,6 +95,12 @@ class SubjectForm(forms.ModelForm):
                 pass
         elif self.instance and self.instance.grade_id:
             self.fields['division'].queryset = Division.objects.filter(grade_id=self.instance.grade_id).order_by('name')
+        elif self.initial and self.initial.get('grade'):
+            try:
+                grade_id = int(self.initial.get('grade'))
+                self.fields['division'].queryset = Division.objects.filter(grade_id=grade_id).order_by('name')
+            except (ValueError, TypeError):
+                pass
 
 
 class EnquiryForm(forms.ModelForm):

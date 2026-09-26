@@ -5568,38 +5568,126 @@ def academic_year_update(request, pk):
 # ==========================================
 # SUBJECT MANAGEMENT
 # ==========================================
+# SUBJECT MANAGEMENT
+# ==========================================
 
 @role_required(['admin'])
 def subject_list(request):
-    """List all subjects with filtering"""
-    subjects = Subject.objects.all().order_by('grade', 'subject_type', 'name')
+    """List all subjects organized by class, division, and subject type with rich sorting & filtering"""
+    grades = Grade.objects.all().order_by('order', 'name')
+    divisions = Division.objects.select_related('grade').all().order_by('grade__order', 'name')
     
-    # Filters
-    grade = request.GET.get('grade')
-    subject_type = request.GET.get('subject_type')
+    # Query parameters
+    selected_grade_id = request.GET.get('grade')
+    selected_division_id = request.GET.get('division')
+    selected_subject_type = request.GET.get('subject_type')
+    search_query = request.GET.get('search', '').strip()
+    sort_by = request.GET.get('sort', 'default')
     
-    if grade:
-        subjects = subjects.filter(grade=grade)
-    if subject_type:
-        subjects = subjects.filter(subject_type=subject_type)
+    # Base queryset with select_related
+    subjects_qs = Subject.objects.select_related('grade', 'division', 'section').all()
+    
+    if selected_grade_id:
+        subjects_qs = subjects_qs.filter(grade_id=selected_grade_id)
+    if selected_division_id:
+        subjects_qs = subjects_qs.filter(division_id=selected_division_id)
+    if selected_subject_type:
+        subjects_qs = subjects_qs.filter(subject_type=selected_subject_type)
+    if search_query:
+        subjects_qs = subjects_qs.filter(
+            Q(name__icontains=search_query) | 
+            Q(code__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
         
-    # Get all unique grades for the filter dropdown
-    grades = list(Subject.objects.values_list('grade', flat=True).distinct().order_by('grade'))
+    # Sorting
+    if sort_by == 'name_asc':
+        subjects_qs = subjects_qs.order_by('name')
+    elif sort_by == 'name_desc':
+        subjects_qs = subjects_qs.order_by('-name')
+    elif sort_by == 'code':
+        subjects_qs = subjects_qs.order_by('code', 'name')
+    elif sort_by == 'max_marks':
+        subjects_qs = subjects_qs.order_by('-max_marks', 'name')
+    else:
+        subjects_qs = subjects_qs.order_by('grade__order', 'grade__name', 'subject_type', 'division__name', 'name')
+        
+    all_subjects = list(subjects_qs)
+    total_subjects_count = len(all_subjects)
     
-    context = {
-        'subjects': subjects,
-        'grades': grades,
-        'current_filters': {
+    # Build structured Grade groups for class-wise organized layout
+    grade_subjects_map = {}
+    ungrouped_subjects = []
+    
+    for subj in all_subjects:
+        if subj.grade_id:
+            grade_subjects_map.setdefault(subj.grade_id, []).append(subj)
+        else:
+            ungrouped_subjects.append(subj)
+            
+    grade_groups = []
+    for grade in grades:
+        subjs_for_grade = grade_subjects_map.get(grade.id, [])
+        if not subjs_for_grade and (selected_grade_id or selected_division_id or selected_subject_type or search_query):
+            continue
+            
+        hadiya_subjs = [s for s in subjs_for_grade if s.subject_type == 'hadiya']
+        
+        # Group division-specific subjects by division
+        division_map = {}
+        no_div_subjs = []
+        for s in subjs_for_grade:
+            if s.subject_type == 'division':
+                if s.division:
+                    division_map.setdefault(s.division, []).append(s)
+                else:
+                    no_div_subjs.append(s)
+                    
+        div_groups = []
+        for div, div_subjs in division_map.items():
+            div_groups.append({
+                'division': div,
+                'subjects': div_subjs,
+                'count': len(div_subjs)
+            })
+            
+        grade_groups.append({
             'grade': grade,
-            'subject_type': subject_type
-        }
+            'subjects': subjs_for_grade,
+            'total_count': len(subjs_for_grade),
+            'hadiya_subjects': hadiya_subjs,
+            'hadiya_count': len(hadiya_subjs),
+            'division_groups': div_groups,
+            'no_div_subjects': no_div_subjs,
+        })
+        
+    context = {
+        'subjects': all_subjects,
+        'grades': grades,
+        'divisions': divisions,
+        'grade_groups': grade_groups,
+        'ungrouped_subjects': ungrouped_subjects,
+        'total_subjects_count': total_subjects_count,
+        'selected_grade_id': int(selected_grade_id) if selected_grade_id and str(selected_grade_id).isdigit() else None,
+        'selected_division_id': int(selected_division_id) if selected_division_id and str(selected_division_id).isdigit() else None,
+        'selected_subject_type': selected_subject_type,
+        'search_query': search_query,
+        'sort_by': sort_by,
     }
     return render(request, 'students/subject_list.html', context)
 
 
 @role_required(['admin'])
 def subject_create(request):
-    """Create a new subject"""
+    """Create a new subject with optional prefilled grade/division"""
+    initial_data = {}
+    if request.GET.get('grade'):
+        initial_data['grade'] = request.GET.get('grade')
+    if request.GET.get('division'):
+        initial_data['division'] = request.GET.get('division')
+    if request.GET.get('subject_type'):
+        initial_data['subject_type'] = request.GET.get('subject_type')
+        
     if request.method == 'POST':
         form = SubjectForm(request.POST)
         if form.is_valid():
@@ -5607,7 +5695,7 @@ def subject_create(request):
             messages.success(request, 'Subject created successfully.')
             return redirect('students:subject_list')
     else:
-        form = SubjectForm()
+        form = SubjectForm(initial=initial_data)
         
     context = {
         'form': form,
@@ -5636,6 +5724,18 @@ def subject_update(request, pk):
         'is_update': True
     }
     return render(request, 'students/subject_form.html', context)
+
+
+@role_required(['admin'])
+def subject_delete(request, pk):
+    """Delete an existing subject"""
+    subject = get_object_or_404(Subject, pk=pk)
+    if request.method == 'POST':
+        name = subject.name
+        subject.delete()
+        messages.success(request, f'Subject "{name}" deleted successfully.')
+        return redirect('students:subject_list')
+    return render(request, 'students/subject_confirm_delete.html', {'subject': subject})
 
 
 # --- Enquiry Views ---
@@ -6028,46 +6128,7 @@ def api_get_divisions_by_grade(request):
     data = [{'id': d.id, 'name': d.name, 'full_name': str(d)} for d in divisions]
     return JsonResponse({'divisions': data})
 
-# --- SUBJECT CRUD ---
 
-@role_required(['admin'])
-def subject_list(request):
-    subjects = Subject.objects.select_related('grade', 'division', 'section').all()
-    return render(request, 'students/subject_list.html', {'subjects': subjects})
-
-@role_required(['admin'])
-def subject_create(request):
-    if request.method == 'POST':
-        form = SubjectForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Subject created successfully.')
-            return redirect('students:subject_list')
-    else:
-        form = SubjectForm()
-    return render(request, 'students/subject_form.html', {'form': form})
-
-@role_required(['admin'])
-def subject_update(request, pk):
-    subject = get_object_or_404(Subject, pk=pk)
-    if request.method == 'POST':
-        form = SubjectForm(request.POST, instance=subject)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Subject updated successfully.')
-            return redirect('students:subject_list')
-    else:
-        form = SubjectForm(instance=subject)
-    return render(request, 'students/subject_form.html', {'form': form, 'is_update': True})
-
-@role_required(['admin'])
-def subject_delete(request, pk):
-    subject = get_object_or_404(Subject, pk=pk)
-    if request.method == 'POST':
-        subject.delete()
-        messages.success(request, 'Subject deleted successfully.')
-        return redirect('students:subject_list')
-    return render(request, 'students/subject_confirm_delete.html', {'subject': subject})
 
 from django.contrib.auth.models import User
 from .forms import UserManageForm
