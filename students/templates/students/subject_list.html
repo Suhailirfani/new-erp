@@ -99,18 +99,21 @@
         display: flex;
         align-items: center;
         flex-wrap: nowrap;
-        gap: 0.65rem;
+        gap: 0.5rem;
         border-top: 1px solid #f1f5f9;
         padding-top: 0.85rem;
         width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
         overflow-x: auto;
         scrollbar-width: thin;
     }
 
     .search-input-wrapper {
         position: relative;
-        flex: 2 1 180px;
-        min-width: 150px;
+        flex: 1.5 1 130px;
+        min-width: 0;
+        box-sizing: border-box;
     }
 
     .search-input-wrapper i {
@@ -130,6 +133,7 @@
         background: #f8fafc;
         font-size: 0.84rem;
         transition: all 0.2s;
+        box-sizing: border-box;
     }
 
     .search-input-wrapper input:focus {
@@ -140,10 +144,10 @@
     }
 
     .filter-select {
-        flex: 1 1 130px;
-        min-width: 110px;
-        max-width: 175px;
-        padding: 0.52rem 0.75rem;
+        flex: 1 1 100px;
+        min-width: 0;
+        max-width: 160px;
+        padding: 0.52rem 0.65rem;
         border-radius: 10px;
         border: 1px solid #cbd5e1;
         background: #f8fafc;
@@ -154,6 +158,7 @@
         cursor: pointer;
         white-space: nowrap;
         text-overflow: ellipsis;
+        box-sizing: border-box;
     }
 
     .filter-select:focus {
@@ -297,14 +302,31 @@
         border-bottom-color: #ccfbf1;
     }
 
-    /* Modern Table Inside Cards */
+    /* Global Container Boundaries */
+    .subject-page-header,
+    .subject-controls-card,
+    .class-subject-card,
+    .table-responsive {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 0.5rem;
+    }
+
     .clean-table {
         width: 100%;
+        max-width: 100%;
         border-collapse: separate;
         border-spacing: 0;
         border-radius: 12px;
         overflow: hidden;
         border: 1px solid #f1f5f9;
+        box-sizing: border-box;
     }
 
     .clean-table th {
@@ -317,6 +339,7 @@
         padding: 0.75rem 1rem;
         border-bottom: 1px solid #e2e8f0;
         text-align: left;
+        white-space: nowrap;
     }
 
     .clean-table td {
@@ -346,6 +369,7 @@
         padding: 0.2rem 0.5rem;
         border-radius: 6px;
         border: 1px solid #e2e8f0;
+        white-space: nowrap;
     }
 
     .badge-type-hadiya {
@@ -358,6 +382,7 @@
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
+        white-space: nowrap;
     }
 
     .badge-type-div {
@@ -370,6 +395,7 @@
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
+        white-space: nowrap;
     }
 
     .badge-stream {
@@ -380,6 +406,7 @@
         padding: 0.25rem 0.65rem;
         border-radius: 8px;
         border: 1px solid #fde68a;
+        white-space: nowrap;
     }
 
     .badge-common {
@@ -391,6 +418,7 @@
         border-radius: 6px;
         border: 1px solid #fbcfe8;
         margin-left: 0.4rem;
+        white-space: nowrap;
     }
 
     .badge-active {
@@ -400,6 +428,7 @@
         font-size: 0.75rem;
         padding: 0.2rem 0.55rem;
         border-radius: 20px;
+        white-space: nowrap;
     }
 
     .badge-inactive {
@@ -409,6 +438,7 @@
         font-size: 0.75rem;
         padding: 0.2rem 0.55rem;
         border-radius: 20px;
+        white-space: nowrap;
     }
 
     /* Action Buttons */
@@ -425,6 +455,7 @@
         align-items: center;
         gap: 0.35rem;
         transition: all 0.2s;
+        white-space: nowrap;
     }
 
     .btn-action-edit:hover {
@@ -446,6 +477,7 @@
         gap: 0.35rem;
         transition: all 0.2s;
         margin-left: 0.35rem;
+        white-space: nowrap;
     }
 
     .btn-action-delete:hover {
@@ -470,13 +502,6 @@
         .class-card-header {
             flex-direction: column;
             align-items: flex-start;
-        }
-        .clean-table {
-            min-width: 580px;
-        }
-        .table-responsive {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
         }
     }
 </style>
