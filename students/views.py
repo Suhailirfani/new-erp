@@ -8180,6 +8180,7 @@ def teacher_my_schedule(request):
         'period_timings': period_timings,
         'days_of_week': days_of_week,
         'schedule_map': schedule_map,
+        'slots_map': schedule_map,
         'all_teachers': all_teachers,
         'total_periods': slots.count(),
     }
