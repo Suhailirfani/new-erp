@@ -172,7 +172,7 @@
         
         /* Main Layout Structure */
         .sidebar {
-            width: 280px;
+            width: 76px;
             height: 100vh;
             background: var(--glass-bg);
             backdrop-filter: var(--glass-blur);
@@ -181,25 +181,34 @@
             position: fixed;
             left: 0;
             top: 0;
-            z-index: 1000;
+            z-index: 1050;
             display: flex;
             flex-direction: column;
-            padding: 2rem 1.5rem;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 10px 0 30px rgba(0,0,0,0.02);
+            padding: 1.25rem 0.65rem;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.03);
+            overflow-x: hidden;
+            white-space: nowrap;
+        }
+
+        .sidebar:hover {
+            width: 280px;
+            padding: 1.25rem 1.25rem;
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 15px 0 35px rgba(0,0,0,0.12);
         }
 
         .main-workspace {
-            margin-left: 280px; /* Sidebar width */
+            margin-left: 76px; /* Collapsed sidebar width */
             padding: 0;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            width: calc(100% - 280px);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            width: calc(100% - 76px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Sidebar Hidden State (Desktop) */
+        /* Sidebar Hidden State (Desktop toggle) */
         body.sidebar-closed .sidebar {
             transform: translateX(-100%);
         }
@@ -210,78 +219,192 @@
         }
 
         .sidebar-logo {
-            padding-bottom: 3rem;
-            text-align: center;
+            padding-bottom: 1.5rem;
+            text-align: left;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
         }
 
-        .sidebar-logo h2 {
-            font-size: 1.5rem;
+        .sidebar-logo a {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            text-decoration: none;
+            width: 100%;
+        }
+
+        .sidebar-logo img {
+            height: 44px;
+            width: 44px;
+            min-width: 44px;
+            object-fit: contain;
+            border-radius: 10px;
+            filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.3));
+            flex-shrink: 0;
+        }
+
+        .sidebar-logo-text {
+            opacity: 0;
+            max-width: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            transition: opacity 0.25s ease, max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar:hover .sidebar-logo-text {
+            opacity: 1;
+            max-width: 200px;
+        }
+
+        .nav-category-header {
+            opacity: 0;
+            max-height: 0;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-size: 0.7rem;
             font-weight: 800;
-            color: var(--primary);
-            letter-spacing: -0.02em;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: opacity 0.2s ease, max-height 0.3s ease, margin 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .sidebar:hover .nav-category-header {
+            opacity: 0.8;
+            max-height: 30px;
+            margin-top: 1.5rem;
+            padding: 0 0.5rem;
+            margin-bottom: 0.25rem;
         }
 
         .nav-sidebar-items {
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.4rem;
             flex: 1;
             overflow-y: auto;
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* IE and Edge */
+            overflow-x: hidden;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
         }
 
         .nav-sidebar-items::-webkit-scrollbar {
-            display: none; /* Chrome, Safari and Opera */
+            display: none;
         }
 
         .nav-item {
             display: flex;
             align-items: center;
             gap: 1rem;
-            padding: 0.875rem 1.25rem;
+            padding: 0.75rem 0.85rem;
             color: var(--gray);
             text-decoration: none;
-            border-radius: 16px;
+            border-radius: 14px;
             font-weight: 500;
             font-size: 0.95rem;
-            transition: all 0.3s ease;
+            transition: all 0.25s ease;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .nav-item i {
+            font-size: 1.15rem;
+            width: 24px;
+            min-width: 24px;
+            text-align: center;
+            flex-shrink: 0;
+            color: var(--gray);
+            transition: color 0.2s ease;
+        }
+
+        .nav-item span {
+            opacity: 0;
+            max-width: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            transition: opacity 0.2s ease, max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-item .arrow {
+            opacity: 0;
+            max-width: 0;
+            overflow: hidden;
+            transition: opacity 0.2s ease;
+        }
+
+        .sidebar:hover .nav-item span {
+            opacity: 1;
+            max-width: 180px;
+        }
+
+        .sidebar:hover .nav-item .arrow {
+            opacity: 1;
+            max-width: 20px;
+        }
+
+        .sidebar:hover .nav-item {
+            padding: 0.75rem 1rem;
         }
 
         .nav-item:hover, .nav-item.active {
             background: var(--light);
             color: var(--primary);
             box-shadow: var(--shadow-soft);
-            transform: translateX(4px);
         }
 
-        .nav-item i {
-            font-size: 1.1rem;
-            width: 24px;
-            text-align: center;
+        .nav-item:hover i, .nav-item.active i {
+            color: var(--primary);
+        }
+
+        .nav-group-content {
+            overflow: hidden;
+            transition: all 0.3s ease;
         }
 
         /* Mobile Styles for Sidebar */
         @media screen and (max-width: 1024px) {
             .sidebar {
+                width: 280px !important;
+                padding: 1.5rem !important;
                 transform: translateX(-100%);
-                background: rgba(255, 255, 255, 0.98); /* Less transparent for legibility */
+                background: rgba(255, 255, 255, 0.98);
                 box-shadow: 20px 0 60px rgba(0, 0, 0, 0.1);
             }
             .sidebar.active {
                 transform: translateX(0);
             }
             .main-workspace {
-                margin-left: 0;
-                width: 100%;
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+            .sidebar-logo-text {
+                opacity: 1 !important;
+                max-width: none !important;
+            }
+            .nav-category-header {
+                opacity: 0.8 !important;
+                max-height: none !important;
+                margin-top: 1.5rem !important;
+                padding: 0 0.5rem !important;
             }
             .nav-item {
-                color: var(--dark-secondary); /* Darker text for visibility */
-                font-weight: 600; /* Bolder text */
-                padding: 1.1rem 1.5rem; /* Larger touch targets */
+                color: var(--dark-secondary);
+                font-weight: 600;
+                padding: 1rem 1.25rem !important;
+            }
+            .nav-item span {
+                opacity: 1 !important;
+                max-width: none !important;
+            }
+            .nav-item .arrow {
+                opacity: 1 !important;
+                max-width: none !important;
             }
             .nav-item i {
-                color: var(--primary); /* More distinct icon color */
+                color: var(--primary);
             }
         }
         
@@ -1699,154 +1822,153 @@
     
     <!-- Sleek Left Sidebar -->
     <aside class="sidebar" id="sidebar">
-        <div class="sidebar-logo" style="padding: 1.25rem 1rem;">
+        <div class="sidebar-logo" style="padding: 1.25rem 0.75rem;">
             <a href="{% url 'students:landing' %}" style="text-decoration: none; display: flex; align-items: center; gap: 0.75rem;">
-                <img src="{% static 'images/app_icon.png' %}" alt="App Icon" style="height: 48px; width: auto; object-fit: contain; border-radius: 10px; filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.3));">
-                <div>
-                    <h2 style="color: var(--primary); font-weight: 800; font-size: 1.15rem; margin: 0; line-height: 1.1; letter-spacing: -0.02em;">MARKAZ HADIYA</h2>
-                    <h3 style="color: var(--dark-secondary); font-weight: 700; font-size: 0.78rem; margin: 0; opacity: 0.8; letter-spacing: 0.05em;">WOMEN'S COLLEGE</h3>
+                <img src="{% static 'images/app_icon.png' %}" alt="App Icon" style="height: 44px; width: 44px; min-width: 44px; object-fit: contain; border-radius: 10px; filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.3)); flex-shrink: 0;">
+                <div class="sidebar-logo-text">
+                    <h2 style="color: var(--primary); font-weight: 800; font-size: 1.15rem; margin: 0; line-height: 1.1; letter-spacing: -0.02em; white-space: nowrap;">MARKAZ HADIYA</h2>
+                    <h3 style="color: var(--dark-secondary); font-weight: 700; font-size: 0.78rem; margin: 0; opacity: 0.8; letter-spacing: 0.05em; white-space: nowrap;">WOMEN'S COLLEGE</h3>
                 </div>
             </a>
         </div>
         
         <div class="nav-sidebar-items">
-            <a href="{% url 'students:home' %}" class="nav-item active">
+            <a href="{% url 'students:home' %}" class="nav-item active" title="Dashboard">
                 <i class="fa-solid fa-house"></i>
-
                 <span>Dashboard</span>
             </a>
-            <a href="{% url 'students:brochure_malayalam' %}" class="nav-item" target="_blank">
+            <a href="{% url 'students:brochure_malayalam' %}" class="nav-item" target="_blank" title="App Features">
                 <i class="fa-solid fa-file-invoice"></i>
                 <span>App Features (മലയാളം)</span>
             </a>
 
             {% if request.user.profile.role == 'student' %}
-            <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">My Account</div>
+            <div class="nav-category-header">My Account</div>
             {% if request.user.profile.student_record %}
-            <a href="{% url 'students:student_profile' request.user.profile.student_record.id %}" class="nav-item">
+            <a href="{% url 'students:student_profile' request.user.profile.student_record.id %}" class="nav-item" title="My Profile">
                 <i class="fa-solid fa-id-card"></i>
                 <span>My Profile</span>
             </a>
             {% endif %}
-            <a href="{% url 'students:student_self_profile_update' %}" class="nav-item">
+            <a href="{% url 'students:student_self_profile_update' %}" class="nav-item" title="Profile & Password">
                 <i class="fa-solid fa-user-gear"></i>
                 <span>Profile & Password</span>
             </a>
             {% endif %}
             
             {% if request.user.is_superuser or request.user.profile.role in 'admin,teacher,accountant' %}
-            <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">Academics</div>
-            <a href="{% url 'students:student_list' %}" class="nav-item">
+            <div class="nav-category-header">Academics</div>
+            <a href="{% url 'students:student_list' %}" class="nav-item" title="Students">
                 <i class="fa-solid fa-users"></i>
                 <span>Students</span>
             </a>
-            <a href="{% url 'students:alumni_list' %}" class="nav-item">
+            <a href="{% url 'students:alumni_list' %}" class="nav-item" title="Alumni Registry">
                 <i class="fa-solid fa-user-graduate"></i>
                 <span>Alumni Registry</span>
             </a>
-            <a href="{% url 'students:attendance_list' %}" class="nav-item">
+            <a href="{% url 'students:attendance_list' %}" class="nav-item" title="Attendance">
                 <i class="fa-solid fa-calendar-check"></i>
                 <span>Attendance</span>
             </a>
-            <a href="{% url 'students:examination_dashboard' %}" class="nav-item">
+            <a href="{% url 'students:examination_dashboard' %}" class="nav-item" title="Examination">
                 <i class="fa-solid fa-graduation-cap"></i>
                 <span>Examination</span>
             </a>
-            <a href="{% url 'students:timetable_dashboard' %}" class="nav-item">
+            <a href="{% url 'students:timetable_dashboard' %}" class="nav-item" title="Timetable">
                 <i class="fa-solid fa-calendar-days"></i>
                 <span>Timetable</span>
             </a>
             {% endif %}
 
             {% if request.user.is_superuser or request.user.profile.role in 'admin,accountant,ntstaff' %}
-            <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">Human Resources</div>
-            <a href="{% url 'students:job_vacancy_list_admin' %}" class="nav-item">
+            <div class="nav-category-header">Human Resources</div>
+            <a href="{% url 'students:job_vacancy_list_admin' %}" class="nav-item" title="Job Vacancies">
                 <i class="fa-solid fa-briefcase"></i>
                 <span>Job Vacancies</span>
             </a>
-            <a href="{% url 'students:job_application_list_admin' %}" class="nav-item">
+            <a href="{% url 'students:job_application_list_admin' %}" class="nav-item" title="Applications">
                 <i class="fa-solid fa-file-invoice"></i>
                 <span>Applications</span>
             </a>
             
-            <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">Operations</div>
+            <div class="nav-category-header">Operations</div>
             <div class="nav-group">
-                <a href="#" class="nav-item nav-dropdown-btn" onclick="event.preventDefault(); const content = this.nextElementSibling; const icon = this.querySelector('.arrow'); const isClosed = content.style.display === 'none' || content.style.display === ''; content.style.display = isClosed ? 'block' : 'none'; icon.style.transform = isClosed ? 'rotate(180deg)' : 'none';">
+                <a href="#" class="nav-item nav-dropdown-btn" onclick="event.preventDefault(); const content = this.nextElementSibling; const icon = this.querySelector('.arrow'); const isClosed = content.style.display === 'none' || content.style.display === ''; content.style.display = isClosed ? 'block' : 'none'; icon.style.transform = isClosed ? 'rotate(180deg)' : 'none';" title="Enquiries">
                     <i class="fa-solid fa-user-plus"></i>
                     <span>Enquiries</span>
                     <i class="fa-solid fa-chevron-down arrow" style="margin-left: auto; font-size: 0.8rem; transition: transform 0.3s;"></i>
                 </a>
                 <div class="nav-group-content" style="display: none; padding-left: 1.5rem; margin-top: 0.25rem;">
-                    <a href="{% url 'students:enquiry_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                    <a href="{% url 'students:enquiry_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Admission List">
                         <i class="fa-solid fa-list-ul" style="font-size: 0.9rem;"></i>
                         <span>Admission List</span>
                     </a>
-                    <a href="{% url 'students:enquiry_create' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                    <a href="{% url 'students:enquiry_create' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Admission Form">
                         <i class="fa-solid fa-file-signature" style="font-size: 0.9rem;"></i>
                         <span>Admission Form</span>
                     </a>
-                    <a href="{% url 'awaze_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                    <a href="{% url 'awaze_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Camp Enquiries">
                         <i class="fa-solid fa-campground" style="font-size: 0.9rem;"></i>
                         <span>Camp Enquiries</span>
                     </a>
-                    <a href="{% url 'awaze_register' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                    <a href="{% url 'awaze_register' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Camp Form">
                         <i class="fa-solid fa-tent" style="font-size: 0.9rem;"></i>
                         <span>Camp Form</span>
                     </a>
                 </div>
             </div>
-            <a href="{% url 'fees:finance_dashboard' %}" class="nav-item">
+            <a href="{% url 'fees:finance_dashboard' %}" class="nav-item" title="Finance">
                 <i class="fa-solid fa-building-columns"></i>
                 <span>Finance</span>
             </a>
-            <a href="{% url 'students:hostel_movement_list' %}" class="nav-item">
+            <a href="{% url 'students:hostel_movement_list' %}" class="nav-item" title="Hostel">
                 <i class="fa-solid fa-bed"></i>
                 <span>Hostel</span>
             </a>
             {% endif %}
 
             {% if request.user.is_superuser or request.user.profile.role == 'admin' %}
-            <div style="margin-top: 1.5rem; padding: 0 1.25rem; font-size: 0.7rem; font-weight: 800; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">System</div>
+            <div class="nav-category-header">System</div>
             <div class="nav-group">
-                <a href="#" class="nav-item nav-dropdown-btn" onclick="event.preventDefault(); const content = this.nextElementSibling; const icon = this.querySelector('.arrow'); const isClosed = content.style.display === 'none' || content.style.display === ''; content.style.display = isClosed ? 'block' : 'none'; icon.style.transform = isClosed ? 'rotate(180deg)' : 'none';">
+                <a href="#" class="nav-item nav-dropdown-btn" onclick="event.preventDefault(); const content = this.nextElementSibling; const icon = this.querySelector('.arrow'); const isClosed = content.style.display === 'none' || content.style.display === ''; content.style.display = isClosed ? 'block' : 'none'; icon.style.transform = isClosed ? 'rotate(180deg)' : 'none';" title="Settings">
                     <i class="fa-solid fa-gears"></i>
                     <span>Settings</span>
                     <i class="fa-solid fa-chevron-down arrow" style="margin-left: auto; font-size: 0.8rem; transition: transform 0.3s;"></i>
                 </a>
                 <div class="nav-group-content" style="display: none; padding-left: 1.5rem; margin-top: 0.25rem;">
-                    <a href="{% url 'students:academic_year_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                    <a href="{% url 'students:academic_year_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Academic Years">
                         <i class="fa-solid fa-calendar-days" style="font-size: 0.9rem;"></i>
                         <span>Academic Years</span>
                     </a>
-                    <a href="{% url 'students:grade_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                    <a href="{% url 'students:grade_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Grades / Classes">
                         <i class="fa-solid fa-graduation-cap" style="font-size: 0.9rem;"></i>
                         <span>Grades / Classes</span>
                     </a>
-                    <a href="{% url 'students:division_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                    <a href="{% url 'students:division_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Divisions">
                         <i class="fa-solid fa-cubes" style="font-size: 0.9rem;"></i>
                         <span>Divisions</span>
                     </a>
-                    <a href="{% url 'students:section_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                    <a href="{% url 'students:section_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Sections">
                         <i class="fa-solid fa-puzzle-piece" style="font-size: 0.9rem;"></i>
                         <span>Sections</span>
                     </a>
-                    <a href="{% url 'students:subject_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                    <a href="{% url 'students:subject_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Subjects">
                         <i class="fa-solid fa-book" style="font-size: 0.9rem;"></i>
                         <span>Subjects</span>
                     </a>
-                    <a href="{% url 'students:user_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                    <a href="{% url 'students:user_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="User/Staff Management">
                         <i class="fa-solid fa-user-shield" style="font-size: 0.9rem;"></i>
                         <span>User/Staff Management</span>
                     </a>
-                    <a href="{% url 'students:student_credentials_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                    <a href="{% url 'students:student_credentials_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Student Credentials">
                         <i class="fa-solid fa-key" style="font-size: 0.9rem;"></i>
                         <span>Student Credentials</span>
                     </a>
-                    <a href="{% url 'students:holiday_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                    <a href="{% url 'students:holiday_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Manage Holidays">
                         <i class="fa-solid fa-calendar-xmark" style="font-size: 0.9rem;"></i>
                         <span>Manage Holidays</span>
                     </a>
-                    <a href="{% url 'students:news_ticker_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                    <a href="{% url 'students:news_ticker_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="News Ticker CRUD">
                         <i class="fa-solid fa-bullhorn" style="font-size: 0.9rem; color: #f59e0b;"></i>
                         <span>News Ticker CRUD</span>
                     </a>
