@@ -8281,7 +8281,7 @@ def class_timetable_view(request, grade_id=None):
     """Public / Printable View of Class Timetable for students, parents, and teachers.
     Supports viewing/printing all classes on the noticeboard or filtering to a specific class/division.
     """
-    grades = Grade.objects.prefetch_related('division_set').all()
+    grades = Grade.objects.prefetch_related('divisions').all()
     
     param_grade_id = request.GET.get('grade_id') or (str(grade_id) if grade_id else None)
     division_id = request.GET.get('division_id')
@@ -8300,7 +8300,7 @@ def class_timetable_view(request, grade_id=None):
             selected_grade = None
             
         if selected_grade:
-            divisions = selected_grade.division_set.all()
+            divisions = selected_grade.divisions.all()
             if division_id:
                 try:
                     selected_division = divisions.filter(pk=int(division_id)).first()
@@ -8354,7 +8354,7 @@ def class_timetable_view(request, grade_id=None):
     class_timetables = []
     if show_all:
         for g in grades:
-            divs = list(g.division_set.all())
+            divs = list(g.divisions.all())
             if divs:
                 for d in divs:
                     class_timetables.append({
