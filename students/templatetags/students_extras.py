@@ -14,3 +14,9 @@ def get_item(dictionary, key):
     if str_key in dictionary:
         return dictionary[str_key]
     return None
+
+
+@register.filter
+def slot_key(day_key, period_id):
+    """Combines day_key and period_id into a dictionary lookup key, e.g. 'monday_1'"""
+    return f"{day_key}_{period_id}"

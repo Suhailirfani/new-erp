@@ -225,7 +225,7 @@
                 {% else %}
 
                 {% for day_key, day_label in days_of_week %}
-                {% with slot_key=day_key|add:"_"|add:pt.id %}
+                {% with slot_key=day_key|slot_key:pt.id %}
                 {% with slot=slots_map|get_item:slot_key %}
                 
                 <td class="timetable-cell" 
@@ -250,11 +250,14 @@
                     <div style="font-size: 0.75rem; color: #334155; font-weight: 700; margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
                         <i class="fa-solid fa-user-tie" style="color: #6366f1;"></i> {{ slot.teacher.get_full_name|default:slot.teacher.username }}
                     </div>
-                    {% if slot.is_combined %}
-                    <div style="margin-top: 3px;">
+                    <div style="display: flex; gap: 0.25rem; justify-content: center; flex-wrap: wrap; margin-top: 3px;">
+                        {% if not slot.division %}
+                        <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">📌 Fixed Slot</span>
+                        {% endif %}
+                        {% if slot.is_combined %}
                         <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">🔗 Joint Class</span>
+                        {% endif %}
                     </div>
-                    {% endif %}
                     {% if slot.room_number %}
                     <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">
                         📍 Room: {{ slot.room_number }}
@@ -309,7 +312,7 @@
         </div>
         {% else %}
 
-        {% with slot_key=day_key|add:"_"|add:pt.id %}
+        {% with slot_key=day_key|slot_key:pt.id %}
         {% with slot=slots_map|get_item:slot_key %}
 
         <div class="mobile-slot-card {% if slot %}assigned{% else %}empty{% endif %}"
@@ -327,6 +330,9 @@
             {% if slot %}
             <div style="font-size: 1.05rem; font-weight: 800; color: #047857; margin-bottom: 0.25rem;">
                 {{ slot.subject.name }}
+                {% if not slot.division %}
+                <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700; margin-left: 0.35rem;">📌 Fixed Slot</span>
+                {% endif %}
                 {% if slot.is_combined %}
                 <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700; margin-left: 0.35rem;">🔗 Joint Class</span>
                 {% endif %}

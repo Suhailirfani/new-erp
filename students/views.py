@@ -7961,13 +7961,16 @@ def timetable_builder(request):
         if selected_division:
             slots_qs = slots_qs.filter(
                 Q(division=selected_division) | Q(division__isnull=True)
-            )
-        existing_slots = slots_qs.select_related('subject', 'teacher', 'period_timing')
+            ).order_by('division__id')
+        else:
+            slots_qs = slots_qs.filter(division__isnull=True)
+        existing_slots = slots_qs.select_related('subject', 'teacher', 'period_timing', 'division')
 
         for slot in existing_slots:
             key = f"{slot.day_of_week}_{slot.period_timing_id}"
-            slots_map[key] = slot
-            slots_map[str(key)] = slot
+            if key not in slots_map or slot.division_id == (selected_division.id if selected_division else None):
+                slots_map[key] = slot
+                slots_map[str(key)] = slot
 
     all_divisions = divisions
 
@@ -8205,14 +8208,19 @@ def class_timetable_view(request, grade_id=None):
 
     slots_map = {}
     if selected_grade:
-        existing_slots = TimetableSlot.objects.filter(
-            grade=selected_grade,
-            division=selected_division
-        ).select_related('subject', 'teacher', 'period_timing')
+        slots_qs = TimetableSlot.objects.filter(grade=selected_grade)
+        if selected_division:
+            slots_qs = slots_qs.filter(
+                Q(division=selected_division) | Q(division__isnull=True)
+            ).order_by('division__id')
+        else:
+            slots_qs = slots_qs.filter(division__isnull=True)
+        existing_slots = slots_qs.select_related('subject', 'teacher', 'period_timing', 'division')
 
         for slot in existing_slots:
             key = f"{slot.day_of_week}_{slot.period_timing_id}"
-            slots_map[key] = slot
+            if key not in slots_map or slot.division_id == (selected_division.id if selected_division else None):
+                slots_map[key] = slot
 
     context = {
         'grades': grades,
