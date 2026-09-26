@@ -88,44 +88,35 @@
 
     /* Compressed break column styling */
     .col-break-header {
-        width: 38px !important;
-        min-width: 32px !important;
-        max-width: 44px !important;
-        padding: 0.35rem 0.15rem !important;
+        width: 34px !important;
+        min-width: 30px !important;
+        max-width: 38px !important;
+        padding: 0.25rem 0.1rem !important;
         background: #0f172a !important;
         color: #fef08a !important;
         text-align: center !important;
         vertical-align: middle !important;
-        border-radius: 8px !important;
+        border-radius: 6px !important;
+        line-height: 1 !important;
     }
     .col-break-cell {
-        width: 38px !important;
-        min-width: 32px !important;
-        max-width: 44px !important;
-        padding: 0.35rem 0.15rem !important;
+        width: 34px !important;
+        min-width: 30px !important;
+        max-width: 38px !important;
+        padding: 0.25rem 0.1rem !important;
         background: #fef3c7 !important;
         color: #92400e !important;
         border: 1px dashed #f59e0b !important;
-        border-radius: 8px !important;
+        border-radius: 6px !important;
         text-align: center !important;
         vertical-align: middle !important;
-    }
-    .break-vertical-text {
-        writing-mode: vertical-rl;
-        transform: rotate(180deg);
-        margin: 0 auto;
-        letter-spacing: 1.5px;
-        font-size: 0.68rem;
-        font-weight: 800;
-        white-space: nowrap;
-        line-height: 1;
-        display: block;
+        line-height: 1 !important;
     }
 
     @media print {
         @page {
             size: landscape;
-            margin: 6mm 8mm;
+            margin: 5mm 6mm;
         }
         .no-print, .navbar, .sidebar, footer, .btn, .mobile-day-tabs-bar, .layout-toggle-btns, .header-container, #teacher_select_form {
             display: none !important;
@@ -153,26 +144,31 @@
             border-collapse: collapse !important;
             table-layout: fixed !important;
             min-width: 100% !important;
+            page-break-inside: avoid !important;
         }
-        th, td {
+        th {
+            border: 1px solid #334155 !important;
+            font-size: 8.5px !important;
+            padding: 2px 1px !important;
+            line-height: 1.1 !important;
+            height: auto !important;
+        }
+        td {
             border: 1px solid #475569 !important;
-            font-size: 9.5px !important;
-            padding: 3px 2px !important;
-            line-height: 1.15 !important;
+            font-size: 8.5px !important;
+            padding: 2px 1px !important;
+            line-height: 1.1 !important;
             word-break: break-word !important;
+            height: auto !important;
         }
         .col-break-header, .col-break-cell {
-            width: 24px !important;
-            min-width: 20px !important;
-            max-width: 28px !important;
-            padding: 2px !important;
-        }
-        .break-vertical-text {
-            font-size: 8px !important;
-            letter-spacing: 1px !important;
+            width: 22px !important;
+            min-width: 18px !important;
+            max-width: 24px !important;
+            padding: 1px !important;
         }
         tr {
-            page-break-inside: avoid;
+            page-break-inside: avoid !important;
         }
     }
 </style>
@@ -256,18 +252,18 @@
 <!-- ========================================================================= -->
 <!-- 1. DESKTOP VIEW (LAYOUT 1 & 2) -->
 <!-- ========================================================================= -->
-<div class="desktop-table-container card" style="background: white; border-radius: 16px; padding: 1.25rem; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); overflow-x: auto;">
+<div class="desktop-table-container card" style="background: white; border-radius: 14px; padding: 1rem; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); overflow-x: auto;">
     
     <!-- LAYOUT 1: Days as Columns (Periods as Rows) -->
     <div id="schedule_days_col_container" style="overflow-x: auto;">
         <table class="table-custom" style="width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed;">
             <thead>
                 <tr style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white;">
-                    <th style="padding: 0.65rem 0.4rem; text-align: center; border-radius: 8px; width: 120px; font-weight: 800; font-size: 0.85rem;">
+                    <th style="padding: 0.4rem 0.25rem; text-align: center; border-radius: 6px; width: 110px; font-weight: 800; font-size: 0.82rem;">
                         Period / Time
                     </th>
                     {% for day_key, day_label in days_of_week %}
-                    <th style="padding: 0.65rem 0.4rem; text-align: center; border-radius: 8px; font-weight: 800; font-size: 0.85rem;">
+                    <th style="padding: 0.4rem 0.25rem; text-align: center; border-radius: 6px; font-weight: 800; font-size: 0.82rem;">
                         {{ day_label }}
                     </th>
                     {% endfor %}
@@ -276,15 +272,15 @@
             <tbody>
                 {% for pt in period_timings %}
                 <tr>
-                    <td style="background: #f1f5f9; padding: 0.55rem 0.35rem; border-radius: 8px; text-align: center; border: 1px solid #cbd5e1; vertical-align: middle;">
-                        <div style="font-weight: 800; color: #1e293b; font-size: 0.88rem;">{{ pt.name }}</div>
-                        <div style="font-size: 0.68rem; color: #64748b; font-weight: 700; margin-top: 2px;">
-                            {{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }}
+                    <td style="background: #f1f5f9; padding: 0.35rem 0.25rem; border-radius: 6px; text-align: center; border: 1px solid #cbd5e1; vertical-align: middle;">
+                        <div style="font-weight: 800; color: #1e293b; font-size: 0.82rem; line-height: 1.1;">{{ pt.name }}</div>
+                        <div style="font-size: 0.65rem; color: #64748b; font-weight: 700; line-height: 1; margin-top: 1px;">
+                            {{ pt.start_time|time:"H:i" }}-{{ pt.end_time|time:"H:i" }}
                         </div>
                     </td>
 
                     {% if pt.is_break %}
-                    <td colspan="6" style="background: #fef3c7; color: #92400e; font-weight: 800; text-align: center; padding: 0.45rem; border-radius: 8px; border: 1px dashed #f59e0b; font-size: 0.82rem; letter-spacing: 1px;">
+                    <td colspan="6" style="background: #fef3c7; color: #92400e; font-weight: 800; text-align: center; padding: 0.25rem; border-radius: 6px; border: 1px dashed #f59e0b; font-size: 0.78rem; letter-spacing: 1px;">
                         ☕ {{ pt.name|upper }} INTERVAL
                     </td>
                     {% else %}
@@ -295,27 +291,27 @@
                     
                     <td style="background: {% if slot %}#f0f9ff{% else %}#ffffff{% endif %}; 
                                border: 1px solid {% if slot %}#bae6fd{% else %}#e2e8f0{% endif %}; 
-                               border-radius: 8px; padding: 0.55rem 0.35rem; text-align: center; vertical-align: middle;">
+                               border-radius: 6px; padding: 0.35rem 0.25rem; text-align: center; vertical-align: middle;">
                         
                         {% if slot %}
-                        <div style="font-weight: 800; color: #0369a1; font-size: 0.9rem; line-height: 1.2;">
+                        <div style="font-weight: 800; color: #0369a1; font-size: 0.82rem; line-height: 1.15;">
                             {{ slot.subject.name }}
                         </div>
-                        <div style="font-size: 0.75rem; color: #0f172a; font-weight: 700; margin-top: 3px;">
+                        <div style="font-size: 0.7rem; color: #0f172a; font-weight: 700; margin-top: 2px; line-height: 1.1;">
                             🏫 {{ slot.grade.name }} {% if slot.division %}- {{ slot.division.name }}{% endif %}
                         </div>
                         {% if slot.room_number %}
-                        <div style="font-size: 0.68rem; color: #64748b; margin-top: 2px;">
+                        <div style="font-size: 0.65rem; color: #64748b; line-height: 1; margin-top: 1px;">
                             📍 {{ slot.room_number }}
                         </div>
                         {% endif %}
-                        <div style="margin-top: 4px;">
-                            <a href="{% url 'students:mark_attendance_class' slot.grade.id slot.division.id|default:0 %}" class="btn btn-sm btn-success" style="padding: 0.2rem 0.5rem; font-size: 0.68rem; font-weight: 700; border-radius: 6px; text-decoration: none;">
+                        <div style="margin-top: 2px;">
+                            <a href="{% url 'students:mark_attendance_class' slot.grade.id slot.division.id|default:0 %}" class="btn btn-sm btn-success" style="padding: 0.15rem 0.45rem; font-size: 0.65rem; font-weight: 700; border-radius: 4px; text-decoration: none;">
                                 <i class="fa-solid fa-check"></i> Attendance
                             </a>
                         </div>
                         {% else %}
-                        <div style="color: #cbd5e1; font-size: 0.78rem; font-weight: 600;">
+                        <div style="color: #cbd5e1; font-size: 0.75rem; font-weight: 600;">
                             - Free -
                         </div>
                         {% endif %}
@@ -333,23 +329,24 @@
         </table>
     </div>
 
-    <!-- LAYOUT 2: Periods as Columns (Days as Rows) - Compressed Break Columns -->
+    <!-- LAYOUT 2: Periods as Columns (Days as Rows) - Ultra-Compact Header & Heights -->
     <div id="schedule_periods_col_container" style="display: none; overflow-x: auto;">
         <table class="table-custom" style="width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed;">
             <thead>
                 <tr style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white;">
-                    <th style="padding: 0.65rem 0.4rem; text-align: center; border-radius: 8px; width: 100px; font-weight: 800; font-size: 0.85rem;">
+                    <th style="padding: 0.35rem 0.25rem; text-align: center; border-radius: 6px; width: 85px; font-weight: 800; font-size: 0.78rem;">
                         Day \ Period
                     </th>
                     {% for pt in period_timings %}
                         {% if pt.is_break %}
                         <th class="col-break-header">
-                            <div class="break-vertical-text">☕ {{ pt.name }}</div>
+                            <div style="font-size: 0.7rem; line-height: 1;">☕</div>
+                            <div style="font-size: 0.58rem; font-weight: 800; text-transform: uppercase; line-height: 1; margin-top: 1px;">Break</div>
                         </th>
                         {% else %}
-                        <th style="padding: 0.65rem 0.35rem; text-align: center; border-radius: 8px; font-weight: 800; font-size: 0.85rem;">
-                            <div>{{ pt.name }}</div>
-                            <div style="font-size: 0.68rem; opacity: 0.85; font-weight: 600; margin-top: 2px;">{{ pt.start_time|time:"H:i" }}-{{ pt.end_time|time:"H:i" }}</div>
+                        <th style="padding: 0.35rem 0.2rem; text-align: center; border-radius: 6px; font-weight: 800; font-size: 0.78rem;">
+                            <div style="line-height: 1.1;">{{ pt.name }}</div>
+                            <div style="font-size: 0.65rem; opacity: 0.85; font-weight: 600; line-height: 1; margin-top: 1px;">{{ pt.start_time|time:"H:i" }}-{{ pt.end_time|time:"H:i" }}</div>
                         </th>
                         {% endif %}
                     {% endfor %}
@@ -358,40 +355,41 @@
             <tbody>
                 {% for day_key, day_label in days_of_week %}
                 <tr>
-                    <td style="background: #f1f5f9; padding: 0.65rem 0.35rem; border-radius: 8px; text-align: center; border: 1px solid #cbd5e1; font-weight: 800; color: #1e293b; font-size: 0.85rem; vertical-align: middle; white-space: nowrap;">
+                    <td style="background: #f1f5f9; padding: 0.35rem 0.25rem; border-radius: 6px; text-align: center; border: 1px solid #cbd5e1; font-weight: 800; color: #1e293b; font-size: 0.8rem; vertical-align: middle; white-space: nowrap;">
                         {{ day_label }}
                     </td>
                     {% for pt in period_timings %}
                         {% if pt.is_break %}
                         <td class="col-break-cell">
-                            <div class="break-vertical-text">☕ {{ pt.name|upper }}</div>
+                            <div style="font-size: 0.72rem; line-height: 1;">☕</div>
+                            <div style="font-size: 0.55rem; font-weight: 800; text-transform: uppercase; line-height: 1; margin-top: 1px;">Break</div>
                         </td>
                         {% else %}
                         {% with slot_key=day_key|slot_key:pt.id %}
                         {% with slot=slots_map|get_item:slot_key %}
                         <td style="background: {% if slot %}#f0f9ff{% else %}#ffffff{% endif %}; 
                                    border: 1px solid {% if slot %}#bae6fd{% else %}#e2e8f0{% endif %}; 
-                                   border-radius: 8px; padding: 0.55rem 0.35rem; text-align: center; vertical-align: middle;">
+                                   border-radius: 6px; padding: 0.35rem 0.2rem; text-align: center; vertical-align: middle;">
                             
                             {% if slot %}
-                            <div style="font-weight: 800; color: #0369a1; font-size: 0.9rem; line-height: 1.2;">
+                            <div style="font-weight: 800; color: #0369a1; font-size: 0.82rem; line-height: 1.15;">
                                 {{ slot.subject.name }}
                             </div>
-                            <div style="font-size: 0.75rem; color: #0f172a; font-weight: 700; margin-top: 3px;">
+                            <div style="font-size: 0.7rem; color: #0f172a; font-weight: 700; margin-top: 2px; line-height: 1.1;">
                                 🏫 {{ slot.grade.name }} {% if slot.division %}- {{ slot.division.name }}{% endif %}
                             </div>
                             {% if slot.room_number %}
-                            <div style="font-size: 0.68rem; color: #64748b; margin-top: 2px;">
+                            <div style="font-size: 0.65rem; color: #64748b; line-height: 1; margin-top: 1px;">
                                 📍 {{ slot.room_number }}
                             </div>
                             {% endif %}
-                            <div style="margin-top: 4px;">
-                                <a href="{% url 'students:mark_attendance_class' slot.grade.id slot.division.id|default:0 %}" class="btn btn-sm btn-success" style="padding: 0.2rem 0.5rem; font-size: 0.68rem; font-weight: 700; border-radius: 6px; text-decoration: none;">
+                            <div style="margin-top: 2px;">
+                                <a href="{% url 'students:mark_attendance_class' slot.grade.id slot.division.id|default:0 %}" class="btn btn-sm btn-success" style="padding: 0.15rem 0.45rem; font-size: 0.65rem; font-weight: 700; border-radius: 4px; text-decoration: none;">
                                     <i class="fa-solid fa-check"></i> Attendance
                                 </a>
                             </div>
                             {% else %}
-                            <div style="color: #cbd5e1; font-size: 0.78rem; font-weight: 600;">
+                            <div style="color: #cbd5e1; font-size: 0.75rem; font-weight: 600;">
                                 - Free -
                             </div>
                             {% endif %}
