@@ -85,12 +85,55 @@
         }
     }
 
+    /* Compressed break column styling */
+    .col-break-header {
+        width: 38px !important;
+        min-width: 32px !important;
+        max-width: 44px !important;
+        padding: 0.35rem 0.15rem !important;
+        background: #1e293b !important;
+        color: #fef08a !important;
+        text-align: center !important;
+        vertical-align: middle !important;
+    }
+    .col-break-cell {
+        width: 38px !important;
+        min-width: 32px !important;
+        max-width: 44px !important;
+        padding: 0.35rem 0.15rem !important;
+        background: #fef3c7 !important;
+        color: #92400e !important;
+        border: 1px dashed #f59e0b !important;
+        text-align: center !important;
+        vertical-align: middle !important;
+    }
+    .break-vertical-text {
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        margin: 0 auto;
+        letter-spacing: 1.5px;
+        font-size: 0.68rem;
+        font-weight: 800;
+        white-space: nowrap;
+        line-height: 1;
+        display: block;
+    }
+
     @media print {
-        .no-print, .navbar, .sidebar, footer, .btn, .mobile-day-tabs-bar {
+        @page {
+            size: landscape;
+            margin: 6mm 8mm;
+        }
+        .no-print, .navbar, .sidebar, footer, .btn, .mobile-day-tabs-bar, .layout-toggle-btns, .header-container {
             display: none !important;
         }
         .desktop-table-container {
             display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            width: 100% !important;
         }
         .mobile-app-container {
             display: none !important;
@@ -99,20 +142,43 @@
             background: white !important;
             padding: 0 !important;
             margin: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
         .printable-timetable-container {
             border: none !important;
             box-shadow: none !important;
             padding: 0 !important;
+            width: 100% !important;
         }
         table {
             width: 100% !important;
             border-collapse: collapse !important;
+            table-layout: fixed !important;
         }
         th, td {
-            border: 1px solid #000 !important;
-            font-size: 11px !important;
-            padding: 6px !important;
+            border: 1px solid #475569 !important;
+            font-size: 9.5px !important;
+            padding: 3px 2px !important;
+            line-height: 1.15 !important;
+            word-break: break-word !important;
+        }
+        .col-break-header, .col-break-cell {
+            width: 24px !important;
+            min-width: 20px !important;
+            max-width: 28px !important;
+            padding: 2px !important;
+        }
+        .break-vertical-text {
+            font-size: 8px !important;
+            letter-spacing: 1px !important;
+        }
+        .badge {
+            font-size: 7.5px !important;
+            padding: 1px 3px !important;
+        }
+        tr {
+            page-break-inside: avoid;
         }
     }
 </style>
@@ -173,37 +239,37 @@
 <!-- ========================================================================= -->
 <!-- 1. DESKTOP PRINTABLE VIEW (LAYOUT 1 & 2) -->
 <!-- ========================================================================= -->
-<div class="desktop-table-container printable-timetable-container card" style="background: white; border-radius: 16px; padding: 1.75rem; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);">
+<div class="desktop-table-container printable-timetable-container card" style="background: white; border-radius: 16px; padding: 1.25rem; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);">
     
-    <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 1rem; margin-bottom: 1.5rem;">
-        <h2 style="font-size: 1.6rem; font-weight: 800; color: #0f172a; margin: 0;">CLASS WEEKLY TIMETABLE</h2>
-        <h3 style="font-size: 1.15rem; font-weight: 700; color: #6366f1; margin: 0.35rem 0 0 0;">
+    <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
+        <h2 style="font-size: 1.45rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: 0.5px;">CLASS WEEKLY TIMETABLE</h2>
+        <h3 style="font-size: 1.05rem; font-weight: 700; color: #6366f1; margin: 0.25rem 0 0 0;">
             Grade: {{ selected_grade.name }} {% if selected_division %}- Division {{ selected_division.name }}{% endif %}
         </h3>
     </div>
 
     <!-- LAYOUT 1: Days as Columns (Periods as Rows) -->
     <div id="layout_days_col_container" style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse; text-align: center;">
+        <table style="width: 100%; border-collapse: collapse; text-align: center; table-layout: fixed;">
             <thead>
                 <tr style="background: #0f172a; color: white;">
-                    <th style="padding: 0.85rem; border: 1px solid #334155; font-weight: 800; width: 140px;">Time / Day</th>
+                    <th style="padding: 0.65rem 0.4rem; border: 1px solid #334155; font-weight: 800; width: 120px;">Time / Day</th>
                     {% for day_key, day_label in days_of_week %}
-                    <th style="padding: 0.85rem; border: 1px solid #334155; font-weight: 800;">{{ day_label }}</th>
+                    <th style="padding: 0.65rem 0.4rem; border: 1px solid #334155; font-weight: 800;">{{ day_label }}</th>
                     {% endfor %}
                 </tr>
             </thead>
             <tbody>
                 {% for pt in period_timings %}
                 <tr>
-                    <td style="background: #f8fafc; padding: 0.75rem; border: 1px solid #cbd5e1; font-weight: 700; color: #1e293b;">
-                        <div>{{ pt.name }}</div>
-                        <div style="font-size: 0.75rem; color: #64748b;">{{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }}</div>
+                    <td style="background: #f8fafc; padding: 0.55rem 0.35rem; border: 1px solid #cbd5e1; font-weight: 700; color: #1e293b;">
+                        <div style="font-size: 0.88rem;">{{ pt.name }}</div>
+                        <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">{{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }}</div>
                     </td>
 
                     {% if pt.is_break %}
-                    <td colspan="6" style="background: #fef3c7; color: #92400e; font-weight: 800; padding: 0.65rem; border: 1px solid #f59e0b;">
-                        ☕ {{ pt.name|upper }} RECESSS
+                    <td colspan="6" style="background: #fef3c7; color: #92400e; font-weight: 800; padding: 0.45rem; border: 1px solid #f59e0b; font-size: 0.82rem; letter-spacing: 1px;">
+                        ☕ {{ pt.name|upper }} RECESS
                     </td>
                     {% else %}
 
@@ -211,29 +277,29 @@
                     {% with slot_key=day_key|slot_key:pt.id %}
                     {% with slot=slots_map|get_item:slot_key %}
                     
-                    <td style="border: 1px solid #cbd5e1; padding: 0.75rem; vertical-align: middle; background: {% if slot %}#ffffff{% else %}#fafafa{% endif %};">
+                    <td style="border: 1px solid #cbd5e1; padding: 0.55rem 0.35rem; vertical-align: middle; background: {% if slot %}#ffffff{% else %}#fafafa{% endif %};">
                         {% if slot %}
-                        <div style="font-weight: 800; color: #0f172a; font-size: 0.95rem;">
+                        <div style="font-weight: 800; color: #0f172a; font-size: 0.9rem; line-height: 1.2;">
                             {{ slot.subject.name }}
                         </div>
-                        <div style="font-size: 0.8rem; color: #475569; font-weight: 600; margin-top: 3px;">
+                        <div style="font-size: 0.75rem; color: #475569; font-weight: 600; margin-top: 3px;">
                             {{ slot.teacher.get_full_name|default:slot.teacher.username }}
                         </div>
-                        <div style="display: flex; gap: 0.25rem; justify-content: center; flex-wrap: wrap; margin-top: 3px;">
+                        <div style="display: flex; gap: 0.2rem; justify-content: center; flex-wrap: wrap; margin-top: 3px;">
                             {% if not slot.division %}
-                            <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">📌 Fixed Slot</span>
+                            <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 4px; font-weight: 700;">📌 Fixed Slot</span>
                             {% endif %}
                             {% if slot.is_combined %}
-                            <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">🔗 Joint Class</span>
+                            <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 4px; font-weight: 700;">🔗 Joint</span>
                             {% endif %}
                         </div>
                         {% if slot.room_number %}
-                        <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">
+                        <div style="font-size: 0.68rem; color: #64748b; margin-top: 2px;">
                             Room {{ slot.room_number }}
                         </div>
                         {% endif %}
                         {% else %}
-                        <span style="color: #cbd5e1;">-</span>
+                        <span style="color: #cbd5e1; font-size: 0.85rem;">-</span>
                         {% endif %}
                     </td>
 
@@ -248,57 +314,63 @@
         </table>
     </div>
 
-    <!-- LAYOUT 2: Periods as Columns (Days as Rows) -->
+    <!-- LAYOUT 2: Periods as Columns (Days as Rows) - Compressed Break Columns -->
     <div id="layout_periods_col_container" style="overflow-x: auto; display: none;">
-        <table style="width: 100%; border-collapse: collapse; text-align: center;">
+        <table style="width: 100%; border-collapse: collapse; text-align: center; table-layout: fixed;">
             <thead>
                 <tr style="background: #0f172a; color: white;">
-                    <th style="padding: 0.85rem; border: 1px solid #334155; font-weight: 800; width: 130px;">Day \ Period</th>
+                    <th style="padding: 0.65rem 0.4rem; border: 1px solid #334155; font-weight: 800; width: 100px;">Day \ Period</th>
                     {% for pt in period_timings %}
-                    <th style="padding: 0.75rem; border: 1px solid #334155; font-weight: 800; min-width: 120px;">
-                        <div>{{ pt.name }}</div>
-                        <div style="font-size: 0.72rem; opacity: 0.85; font-weight: 600; margin-top: 2px;">{{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }}</div>
-                    </th>
+                        {% if pt.is_break %}
+                        <th class="col-break-header">
+                            <div class="break-vertical-text">☕ {{ pt.name }}</div>
+                        </th>
+                        {% else %}
+                        <th style="padding: 0.65rem 0.35rem; border: 1px solid #334155; font-weight: 800;">
+                            <div style="font-size: 0.85rem;">{{ pt.name }}</div>
+                            <div style="font-size: 0.68rem; opacity: 0.85; font-weight: 600; margin-top: 2px;">{{ pt.start_time|time:"H:i" }}-{{ pt.end_time|time:"H:i" }}</div>
+                        </th>
+                        {% endif %}
                     {% endfor %}
                 </tr>
             </thead>
             <tbody>
                 {% for day_key, day_label in days_of_week %}
                 <tr>
-                    <td style="background: #f8fafc; padding: 0.85rem; border: 1px solid #cbd5e1; font-weight: 800; color: #1e293b; white-space: nowrap;">
+                    <td style="background: #f8fafc; padding: 0.65rem 0.35rem; border: 1px solid #cbd5e1; font-weight: 800; color: #1e293b; font-size: 0.85rem; white-space: nowrap;">
                         {{ day_label }}
                     </td>
                     {% for pt in period_timings %}
                         {% if pt.is_break %}
-                        <td style="background: #fef3c7; color: #92400e; font-weight: 800; padding: 0.65rem; border: 1px solid #f59e0b; font-size: 0.78rem;">
-                            ☕ {{ pt.name }}
+                        <td class="col-break-cell">
+                            <div class="break-vertical-text">☕ {{ pt.name|upper }}</div>
                         </td>
                         {% else %}
                         {% with slot_key=day_key|slot_key:pt.id %}
                         {% with slot=slots_map|get_item:slot_key %}
-                        <td style="border: 1px solid #cbd5e1; padding: 0.75rem; vertical-align: middle; background: {% if slot %}#ffffff{% else %}#fafafa{% endif %};">
+                        <td style="border: 1px solid #cbd5e1; padding: 0.55rem 0.35rem; vertical-align: middle; background: {% if slot %}#ffffff{% else %}#fafafa{% endif %};">
                             {% if slot %}
-                            <div style="font-weight: 800; color: #0f172a; font-size: 0.95rem;">
+                            <div style="font-weight: 800; color: #0f172a; font-size: 0.9rem; line-height: 1.2;">
                                 {{ slot.subject.name }}
                             </div>
-                            <div style="font-size: 0.8rem; color: #475569; font-weight: 600; margin-top: 3px;">
+                            <div style="font-size: 0.75rem; color: #475569; font-weight: 600; margin-top: 3px;">
                                 {{ slot.teacher.get_full_name|default:slot.teacher.username }}
                             </div>
-                            <div style="display: flex; gap: 0.25rem; justify-content: center; flex-wrap: wrap; margin-top: 3px;">
+                            <div style="display: flex; gap: 0.2rem; justify-content: center; flex-wrap: wrap; margin-top: 3px;">
                                 {% if not slot.division %}
-                                <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">📌 Fixed Slot</span>
+                                <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 4px; font-weight: 700;">📌 Fixed Slot</span>
                                 {% endif %}
                                 {% if slot.is_combined %}
-                                <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">🔗 Joint Class</span>
+                                <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 4px; font-weight: 700;">🔗 Joint</span>
                                 {% endif %}
                             </div>
                             {% if slot.room_number %}
-                            <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">
+                            <div style="font-size: 0.68rem; color: #64748b; margin-top: 2px;">
                                 Room {{ slot.room_number }}
                             </div>
                             {% endif %}
                             {% else %}
-                            <span style="color: #cbd5e1;">-</span>
+                            <span style="color: #cbd5e1; font-size: 0.85rem;">-</span>
                             {% endif %}
                         </td>
                         {% endwith %}
