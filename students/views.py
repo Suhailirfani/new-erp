@@ -7888,8 +7888,8 @@ def teacher_assignment_list(request):
     assignments = TeacherSubjectAssignment.objects.select_related('teacher', 'subject', 'grade', 'division').all()
     teachers = User.objects.filter(profile__role='teacher').order_by('first_name', 'last_name', 'username')
     grades = Grade.objects.all()
-    divisions = Division.objects.all()
-    subjects = Subject.objects.filter(is_active=True)
+    divisions = Division.objects.select_related('grade').all()
+    subjects = Subject.objects.filter(is_active=True).select_related('grade', 'division')
 
     context = {
         'assignments': assignments,
@@ -7914,13 +7914,13 @@ def teacher_assignment_delete(request, pk):
 def timetable_builder(request):
     """Interactive Weekly Timetable Grid Builder for a selected Grade and Division"""
     grades = Grade.objects.all()
-    divisions = Division.objects.all()
 
     grade_id = request.GET.get('grade_id')
     division_id = request.GET.get('division_id')
 
     selected_grade = Grade.objects.filter(pk=grade_id).first() if grade_id else grades.first()
-    selected_division = Division.objects.filter(pk=division_id).first() if division_id else None
+    divisions = Division.objects.filter(grade=selected_grade) if selected_grade else Division.objects.none()
+    selected_division = divisions.filter(pk=division_id).first() if division_id else None
 
     period_timings = PeriodTiming.objects.all().order_by('period_order')
     days_of_week = [
@@ -7969,7 +7969,7 @@ def timetable_builder(request):
             slots_map[key] = slot
             slots_map[str(key)] = slot
 
-    all_divisions = Division.objects.all()
+    all_divisions = divisions
 
     context = {
         'grades': grades,
@@ -8190,7 +8190,8 @@ def class_timetable_view(request, grade_id=None):
     selected_grade = Grade.objects.filter(pk=grade_id).first() if grade_id else grades.first()
 
     division_id = request.GET.get('division_id')
-    selected_division = Division.objects.filter(pk=division_id).first() if division_id else None
+    divisions = Division.objects.filter(grade=selected_grade) if selected_grade else Division.objects.none()
+    selected_division = divisions.filter(pk=division_id).first() if division_id else None
 
     period_timings = PeriodTiming.objects.all().order_by('period_order')
     days_of_week = [
@@ -8215,6 +8216,7 @@ def class_timetable_view(request, grade_id=None):
 
     context = {
         'grades': grades,
+        'divisions': divisions,
         'selected_grade': selected_grade,
         'selected_division': selected_division,
         'period_timings': period_timings,

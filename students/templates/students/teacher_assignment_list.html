@@ -204,7 +204,7 @@
                 <select name="division_id" style="width: 100%; padding: 0.65rem; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 600;">
                     <option value="">-- All Divisions / None --</option>
                     {% for d in divisions %}
-                    <option value="{{ d.id }}" data-section-id="{{ d.section.id|default:'' }}">{{ d.name }}</option>
+                    <option value="{{ d.id }}" data-grade-id="{{ d.grade.id|default:'' }}">{{ d.name }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -241,16 +241,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const subjectSelect = document.querySelector('select[name="subject_id"]');
 
     function filterDivisionsAndSubjects() {
-        const selectedGradeOpt = gradeSelect.options[gradeSelect.selectedIndex];
-        const selectedGradeSection = selectedGradeOpt ? selectedGradeOpt.dataset.sectionId : '';
         const selectedGrade = gradeSelect.value;
 
-        // 1. Filter Divisions by selected Class Department (Section)
+        // 1. Filter Divisions by selected Class (Grade)
         const divOptions = divisionSelect.querySelectorAll('option');
         divOptions.forEach(opt => {
             if (!opt.value) return; // Keep '-- All Divisions / None --'
-            const secId = opt.dataset.sectionId;
-            if (!selectedGrade || !selectedGradeSection || !secId || secId === selectedGradeSection) {
+            const optGradeId = opt.dataset.gradeId;
+            if (!selectedGrade || !optGradeId || optGradeId === selectedGrade) {
                 opt.style.display = '';
                 opt.disabled = false;
             } else {

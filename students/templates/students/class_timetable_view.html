@@ -139,7 +139,7 @@
     <form method="get" id="class_view_form" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
         <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 180px;">
             <label style="font-weight: 800; color: #334155; white-space: nowrap;">Class:</label>
-            <select name="grade_id" onchange="document.getElementById('class_view_form').submit();" style="padding: 0.55rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; width: 100%;">
+            <select name="grade_id" id="class_view_grade_select" onchange="document.getElementById('class_view_division_select').value=''; document.getElementById('class_view_form').submit();" style="padding: 0.55rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; width: 100%;">
                 {% for g in grades %}
                 <option value="{{ g.id }}" {% if selected_grade.id == g.id %}selected{% endif %}>{{ g.name }}</option>
                 {% endfor %}
@@ -148,7 +148,7 @@
 
         <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 180px;">
             <label style="font-weight: 800; color: #334155; white-space: nowrap;">Division:</label>
-            <select name="division_id" onchange="document.getElementById('class_view_form').submit();" style="padding: 0.55rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; width: 100%;">
+            <select name="division_id" id="class_view_division_select" onchange="document.getElementById('class_view_form').submit();" style="padding: 0.55rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; width: 100%;">
                 <option value="">-- All / None --</option>
                 {% for d in divisions %}
                 <option value="{{ d.id }}" {% if selected_division and selected_division.id == d.id %}selected{% endif %}>{{ d.name }}</option>

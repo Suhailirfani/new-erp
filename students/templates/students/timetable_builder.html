@@ -102,17 +102,19 @@
 
         /* Bottom Sheet Modal for Mobile Phone Screens */
         #slot_editor_modal {
+            top: 60px !important;
+            height: calc(100vh - 60px) !important;
             align-items: flex-end !important;
             padding: 0 !important;
         }
         #slot_editor_modal .card {
             width: 100% !important;
             max-width: 100% !important;
-            border-radius: 24px 24px 0 0 !important;
-            padding: 1.5rem 1.25rem 2rem 1.25rem !important;
+            border-radius: 20px 20px 0 0 !important;
+            padding: 1.25rem 1.25rem 1.75rem 1.25rem !important;
             animation: slideUpSheet 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
             margin-bottom: 0 !important;
-            max-height: 90vh;
+            max-height: calc(100vh - 80px) !important;
             overflow-y: auto;
         }
         .bottom-sheet-handle {
@@ -120,13 +122,13 @@
             height: 5px;
             background: #cbd5e1;
             border-radius: 10px;
-            margin: 0 auto 1.25rem auto;
+            margin: 0 auto 1rem auto;
         }
 
         /* Form Control Touch Enhancements */
         select, input {
-            font-size: 16px !important; /* Prevents auto-zoom on iOS Safari */
-            min-height: 48px !important;
+            font-size: 15px !important;
+            min-height: 42px !important;
         }
     }
 
@@ -164,9 +166,9 @@
     <form method="get" id="class_filter_form" style="display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap;">
         <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 180px;">
             <label style="font-weight: 800; color: #334155; margin: 0; white-space: nowrap;">Class:</label>
-            <select name="grade_id" id="builder_grade_select" onchange="document.getElementById('class_filter_form').submit();" style="padding: 0.6rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; color: #0f172a; width: 100%;">
+            <select name="grade_id" id="builder_grade_select" onchange="document.getElementById('builder_division_select').value=''; document.getElementById('class_filter_form').submit();" style="padding: 0.6rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; color: #0f172a; width: 100%;">
                 {% for g in grades %}
-                <option value="{{ g.id }}" data-section-id="{{ g.section.id|default:'' }}" {% if selected_grade.id == g.id %}selected{% endif %}>{{ g.name }}</option>
+                <option value="{{ g.id }}" {% if selected_grade.id == g.id %}selected{% endif %}>{{ g.name }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -176,7 +178,7 @@
             <select name="division_id" id="builder_division_select" onchange="document.getElementById('class_filter_form').submit();" style="padding: 0.6rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; color: #0f172a; width: 100%;">
                 <option value="">-- All / None --</option>
                 {% for d in divisions %}
-                <option value="{{ d.id }}" data-section-id="{{ d.section.id|default:'' }}" {% if selected_division and selected_division.id == d.id %}selected{% endif %}>{{ d.name }}</option>
+                <option value="{{ d.id }}" {% if selected_division and selected_division.id == d.id %}selected{% endif %}>{{ d.name }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -186,31 +188,6 @@
         </div>
     </form>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const gradeSelect = document.getElementById('builder_grade_select');
-    const divisionSelect = document.getElementById('builder_division_select');
-
-    if (gradeSelect && divisionSelect) {
-        const selectedGradeOpt = gradeSelect.options[gradeSelect.selectedIndex];
-        const selectedGradeSection = selectedGradeOpt ? selectedGradeOpt.dataset.sectionId : '';
-
-        const divOptions = divisionSelect.querySelectorAll('option');
-        divOptions.forEach(opt => {
-            if (!opt.value) return;
-            const secId = opt.dataset.sectionId;
-            if (!selectedGradeSection || !secId || secId === selectedGradeSection) {
-                opt.style.display = '';
-                opt.disabled = false;
-            } else {
-                opt.style.display = 'none';
-                opt.disabled = true;
-            }
-        });
-    }
-});
-</script>
 
 {% if selected_grade and period_timings %}
 
@@ -384,25 +361,25 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <!-- Modal / Mobile Bottom Sheet for Assigning / Editing a Timetable Cell Slot -->
-<div id="slot_editor_modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); z-index: 999999; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 1rem; box-sizing: border-box;">
-    <div class="card" style="width: 520px; max-width: 94%; max-height: 88vh; overflow-y: auto; background: white; padding: 1.75rem; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35); position: relative;">
+<div id="slot_editor_modal" onclick="if(event.target === this) closeSlotModal();" style="display: none; position: fixed; top: 70px; left: 0; width: 100vw; height: calc(100vh - 70px); background: rgba(15, 23, 42, 0.65); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 1rem; box-sizing: border-box;">
+    <div class="card" style="width: 480px; max-width: 95%; max-height: calc(100vh - 100px); overflow-y: auto; background: white; padding: 1.25rem 1.5rem; border-radius: 16px; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.3); position: relative; margin: auto;">
         
         <div class="bottom-sheet-handle"></div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.6rem;">
             <div>
-                <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0;" id="modal_title">
+                <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;" id="modal_title">
                     Assign Period
                 </h3>
-                <div style="font-size: 0.8rem; color: #64748b; font-weight: 600;" id="modal_subtitle">
+                <div style="font-size: 0.78rem; color: #64748b; font-weight: 600;" id="modal_subtitle">
                     Grade {{ selected_grade.name }} {% if selected_division %}- {{ selected_division.name }}{% endif %}
                 </div>
             </div>
-            <button type="button" onclick="closeSlotModal()" style="background: #f1f5f9; border: none; width: 36px; height: 36px; border-radius: 50%; font-weight: 800; cursor: pointer; color: #64748b; font-size: 1.2rem;">&times;</button>
+            <button type="button" onclick="closeSlotModal()" style="background: #f1f5f9; border: none; width: 32px; height: 32px; border-radius: 50%; font-weight: 800; cursor: pointer; color: #64748b; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;">&times;</button>
         </div>
 
         <!-- Clash Warning Banner -->
-        <div id="clash_warning_box" style="display: none; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 12px; padding: 0.85rem; margin-bottom: 1.25rem; color: #991b1b; font-size: 0.85rem; font-weight: 700; line-height: 1.4;">
+        <div id="clash_warning_box" style="display: none; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 10px; padding: 0.65rem 0.85rem; margin-bottom: 0.85rem; color: #991b1b; font-size: 0.82rem; font-weight: 700; line-height: 1.35;">
             <div id="clash_message"></div>
         </div>
 
@@ -410,9 +387,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <input type="hidden" id="modal_day">
             <input type="hidden" id="modal_period_id">
 
-            <div style="margin-bottom: 1.25rem;">
-                <label style="font-weight: 700; display: block; margin-bottom: 0.4rem; color: #334155; font-size: 0.85rem;">Select Subject</label>
-                <select id="modal_subject_id" onchange="onSubjectChange()" required style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 12px; font-weight: 600;">
+            <div style="margin-bottom: 0.85rem;">
+                <label style="font-weight: 700; display: block; margin-bottom: 0.3rem; color: #334155; font-size: 0.82rem;">Select Subject</label>
+                <select id="modal_subject_id" onchange="onSubjectChange()" required style="width: 100%; padding: 0.55rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 600; font-size: 0.88rem; min-height: 40px;">
                     <option value="">-- Choose Subject --</option>
                     {% for sub in all_subjects %}
                     <option value="{{ sub.id }}">{{ sub.name }}</option>
@@ -420,14 +397,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 </select>
             </div>
 
-            <div style="margin-bottom: 1.25rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-                    <label style="font-weight: 700; color: #334155; font-size: 0.85rem;">Assign Teacher</label>
-                    <button type="button" onclick="findFreeTeachers()" style="background: none; border: none; color: #6366f1; font-weight: 700; font-size: 0.8rem; cursor: pointer;">
+            <div style="margin-bottom: 0.85rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+                    <label style="font-weight: 700; color: #334155; font-size: 0.82rem;">Assign Teacher</label>
+                    <button type="button" onclick="findFreeTeachers()" style="background: none; border: none; color: #6366f1; font-weight: 700; font-size: 0.78rem; cursor: pointer;">
                         🔍 Find Free Teachers
                     </button>
                 </div>
-                <select id="modal_teacher_id" onchange="checkTeacherClash()" required style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 12px; font-weight: 600;">
+                <select id="modal_teacher_id" onchange="checkTeacherClash()" required style="width: 100%; padding: 0.55rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 600; font-size: 0.88rem; min-height: 40px;">
                     <option value="">-- Choose Teacher --</option>
                     {% for t in all_teachers %}
                     <option value="{{ t.id }}">{{ t.get_full_name|default:t.username }}</option>
@@ -435,36 +412,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 </select>
             </div>
 
-            <div style="margin-bottom: 1.25rem;">
-                <label style="font-weight: 700; display: block; margin-bottom: 0.4rem; color: #334155; font-size: 0.85rem;">Room / Lab (Optional)</label>
-                <input type="text" id="modal_room" placeholder="e.g. Main Hall or Room 204" style="width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 12px;">
+            <div style="margin-bottom: 0.85rem;">
+                <label style="font-weight: 700; display: block; margin-bottom: 0.3rem; color: #334155; font-size: 0.82rem;">Room / Lab (Optional)</label>
+                <input type="text" id="modal_room" placeholder="e.g. Main Hall or Room 204" style="width: 100%; padding: 0.55rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.88rem; min-height: 40px;">
             </div>
 
             <!-- Joint Class / Combined Period Box -->
-            <div style="margin-bottom: 1.5rem; background: #f8fafc; padding: 0.85rem; border-radius: 12px; border: 1px solid #cbd5e1;">
+            <div style="margin-bottom: 1rem; background: #f8fafc; padding: 0.65rem 0.85rem; border-radius: 10px; border: 1px solid #cbd5e1;">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <input type="checkbox" id="modal_is_combined" onchange="toggleJointClassesBox()" style="width: 20px; height: 20px; cursor: pointer;">
-                    <label for="modal_is_combined" style="font-weight: 700; color: #1e293b; margin: 0; cursor: pointer; font-size: 0.88rem;">
+                    <input type="checkbox" id="modal_is_combined" onchange="toggleJointClassesBox()" style="width: 18px; height: 18px; cursor: pointer;">
+                    <label for="modal_is_combined" style="font-weight: 700; color: #1e293b; margin: 0; cursor: pointer; font-size: 0.85rem;">
                         🔗 Combined Class (Shared Main Hall)
                     </label>
                 </div>
-                <div id="joint_classes_box" style="display: none; margin-top: 0.75rem; border-top: 1px solid #cbd5e1; padding-top: 0.75rem;">
-                    <div style="font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.4rem;">Jointly Schedule With Divisions:</div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; max-height: 120px; overflow-y: auto;">
+                <div id="joint_classes_box" style="display: none; margin-top: 0.6rem; border-top: 1px solid #cbd5e1; padding-top: 0.6rem;">
+                    <div style="font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 0.35rem;">Jointly Schedule With Divisions:</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; max-height: 100px; overflow-y: auto;">
                         {% for div in all_divisions %}
-                        <label style="font-size: 0.8rem; font-weight: 600; color: #334155; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
-                            <input type="checkbox" name="modal_joint_divisions" value="{{ div.id }}" class="joint-div-checkbox" style="width: 16px; height: 16px;"> {{ div.name }}
+                        <label style="font-size: 0.78rem; font-weight: 600; color: #334155; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                            <input type="checkbox" name="modal_joint_divisions" value="{{ div.id }}" class="joint-div-checkbox" style="width: 15px; height: 15px;"> {{ div.name }}
                         </label>
                         {% endfor %}
                     </div>
                 </div>
             </div>
 
-            <div style="display: flex; gap: 0.75rem;">
-                <button type="button" onclick="clearSlot()" style="background: #fee2e2; color: #dc2626; border: none; padding: 0.85rem 1rem; border-radius: 12px; font-weight: 700; cursor: pointer; min-height: 48px;">
+            <div style="display: flex; gap: 0.65rem;">
+                <button type="button" onclick="clearSlot()" style="background: #fee2e2; color: #dc2626; border: none; padding: 0.65rem 1rem; border-radius: 10px; font-weight: 700; cursor: pointer; min-height: 42px; font-size: 0.88rem;">
                     🗑️ Clear
                 </button>
-                <button type="submit" id="btn_save_slot" class="btn btn-primary" style="flex: 1; padding: 0.85rem; border-radius: 12px; font-weight: 700; min-height: 48px;">
+                <button type="submit" id="btn_save_slot" class="btn btn-primary" style="flex: 1; padding: 0.65rem; border-radius: 10px; font-weight: 700; min-height: 42px; font-size: 0.88rem;">
                     💾 Save Slot
                 </button>
             </div>
@@ -635,6 +612,12 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modal_teacher_id').value = '';
         saveSlot();
     }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeSlotModal();
+        }
+    });
 </script>
 
 {% else %}

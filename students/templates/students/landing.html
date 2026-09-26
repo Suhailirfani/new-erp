@@ -332,9 +332,6 @@
                 {% else %}
                 <a href="{% url 'login' %}" class="btn btn-primary">Login to ERP <i class="fas fa-university"></i></a>
                 {% endif %}
-                <a href="{% url 'awaze_register' %}" class="btn btn-outline">AWAZE G-CAMP <i class="fas fa-rocket"></i></a>
-                <a href="{% url 'candidate_register' %}" class="btn btn-outline">Award Ceremony <i class="fas fa-award"></i></a>
-                <a href="{% url 'students:career' %}" class="btn btn-outline">Careers <i class="fas fa-briefcase"></i></a>
                 <a href="{% url 'students:courses_and_fees' %}" class="btn btn-outline">Courses & Fees <i class="fas fa-money-check-alt"></i></a>
                 <a href="{% url 'students:about_us' %}" class="btn btn-outline">About Us <i class="fas fa-info-circle"></i></a>
                 <a href="{% url 'students:after_10' %}" class="btn btn-outline" style="border-color: var(--text-gold); color: var(--text-gold);">After 10th Guide <i class="fas fa-graduation-cap"></i></a>
@@ -380,7 +377,7 @@
         </div>
     </section>
 
-    <section class="section reveal" style="background: rgba(255,255,255,0.05); border-radius: 30px; margin-bottom: 100px;">
+    <section class="section reveal" style="background: rgba(255,255,255,0.05); border-radius: 30px; margin-bottom: 80px;">
         <div style="display: flex; align-items: center; gap: 50px; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 300px;">
                 <img src="{% static 'images/college_campus_thazhapra_1773342079964.jpg' %}" alt="College Campus" style="width: 100%; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
@@ -392,6 +389,54 @@
                 </p>
                 <br>
                 <a href="#contact" class="btn btn-outline">Explore Campus</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Programs, Events & Careers Section -->
+    <section class="section reveal" style="margin-bottom: 80px;">
+        <h2>Events, Programs & Careers</h2>
+        <p style="text-align: center; color: rgba(255,255,255,0.7); max-width: 650px; margin: -10px auto 40px; font-size: 1.1rem; line-height: 1.6;">
+            Discover our flagship programs, annual celebrations, and open career opportunities at Markaz Hadiya.
+        </p>
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+            <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; align-items: center; border: 1px solid rgba(241, 196, 15, 0.35); background: linear-gradient(180deg, rgba(106, 6, 6, 0.4) 0%, rgba(42, 4, 4, 0.6) 100%);">
+                <div>
+                    <i class="fas fa-rocket" style="color: var(--text-gold);"></i>
+                    <h3 style="font-size: 1.4rem; margin-bottom: 12px; color: white;">AWAZE G-CAMP</h3>
+                    <p style="font-size: 0.95rem; opacity: 0.85; line-height: 1.6; margin-bottom: 25px;">
+                        Empowering residential camp focusing on leadership, personality development, and essential life skills for girls.
+                    </p>
+                </div>
+                <a href="{% url 'awaze_register' %}" class="btn btn-outline" style="border-color: var(--text-gold); color: var(--text-gold); width: 100%; padding: 12px 20px; font-size: 0.95rem;">
+                    Register for Camp <i class="fas fa-arrow-right" style="font-size: 0.85rem; margin-left: 6px;"></i>
+                </a>
+            </div>
+
+            <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; align-items: center; border: 1px solid rgba(255, 255, 255, 0.2); background: linear-gradient(180deg, rgba(106, 6, 6, 0.4) 0%, rgba(42, 4, 4, 0.6) 100%);">
+                <div>
+                    <i class="fas fa-award" style="color: #f39c12;"></i>
+                    <h3 style="font-size: 1.4rem; margin-bottom: 12px; color: white;">Award Ceremony</h3>
+                    <p style="font-size: 0.95rem; opacity: 0.85; line-height: 1.6; margin-bottom: 25px;">
+                        Honoring excellence and distinction holders. Candidate nomination and registration for the annual awards.
+                    </p>
+                </div>
+                <a href="{% url 'candidate_register' %}" class="btn btn-outline" style="width: 100%; padding: 12px 20px; font-size: 0.95rem;">
+                    Candidate Registration <i class="fas fa-arrow-right" style="font-size: 0.85rem; margin-left: 6px;"></i>
+                </a>
+            </div>
+
+            <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; align-items: center; border: 1px solid rgba(255, 255, 255, 0.2); background: linear-gradient(180deg, rgba(106, 6, 6, 0.4) 0%, rgba(42, 4, 4, 0.6) 100%);">
+                <div>
+                    <i class="fas fa-briefcase" style="color: #38bdf8;"></i>
+                    <h3 style="font-size: 1.4rem; margin-bottom: 12px; color: white;">Careers</h3>
+                    <p style="font-size: 0.95rem; opacity: 0.85; line-height: 1.6; margin-bottom: 25px;">
+                        Join our passionate team of educators and administrative staff dedicated to academic and moral excellence.
+                    </p>
+                </div>
+                <a href="{% url 'students:career' %}" class="btn btn-outline" style="width: 100%; padding: 12px 20px; font-size: 0.95rem;">
+                    View Openings <i class="fas fa-arrow-right" style="font-size: 0.85rem; margin-left: 6px;"></i>
+                </a>
             </div>
         </div>
     </section>
@@ -420,6 +465,7 @@
     <footer style="padding: 50px 20px; text-align: center; border-top: 1px solid var(--glass-border); background: #070b14;">
         <p>&copy; 2026 Markaz Hadiya Women's College, Thazhapra. All Rights Reserved. | 
             <a href="{% url 'students:about_us' %}" style="color: var(--text-gold); text-decoration: none;">About Us</a> | 
+            <a href="{% url 'students:career' %}" style="color: rgba(255,255,255,0.7); text-decoration: none;">Careers</a> | 
             <a href="{% url 'students:brochure_malayalam' %}" style="color: #25D366; text-decoration: none; font-weight: 700;">📱 App Brochure (മലയാളം)</a>
         </p>
         <div style="margin-top: 20px; font-size: 1.5rem; display: flex; justify-content: center; gap: 20px;">
