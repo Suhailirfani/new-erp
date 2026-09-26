@@ -208,26 +208,15 @@
 </div>
 
 <!-- Toolbar / Filter Bar with Layout Switcher -->
-<div class="card no-print" style="background: #f8fafc; padding: 1rem 1.25rem; border-radius: 12px; border: 1px solid #cbd5e1; margin-bottom: 1.5rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: {% if is_admin and all_teachers %}0.75rem{% else %}0{% endif %};">
-        {% if is_admin %}
-        <form method="get" id="teacher_select_form" style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 260px;">
-            <label style="font-weight: 800; color: #334155; white-space: nowrap;">
-                <i class="fa-solid fa-user-tie" style="color: #0ea5e9;"></i> Select Teacher:
-            </label>
-            <select name="teacher_id" onchange="document.getElementById('teacher_select_form').submit();" style="padding: 0.53rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; width: 100%; max-width: 380px; background: white;">
-                {% for t in all_teachers %}
-                <option value="{{ t.id }}" {% if teacher.id == t.id %}selected{% endif %}>
-                    {{ t.get_full_name|default:t.username }} ({{ t.total_allocated_slots|default:0 }} periods/wk)
-                </option>
-                {% endfor %}
-            </select>
-        </form>
-        {% else %}
-        <div style="font-weight: 700; color: #475569;">
-            <i class="fa-solid fa-calendar-check" style="color: #0ea5e9;"></i> My Weekly Schedule
+<div class="card no-print" style="background: #f8fafc; padding: 1.15rem; border-radius: 14px; border: 1px solid #cbd5e1; margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: {% if is_admin and all_teachers %}1rem{% else %}0{% endif %};">
+        <div style="font-weight: 800; color: #1e293b; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;">
+            {% if is_admin %}
+            <i class="fa-solid fa-users" style="color: #0284c7;"></i> Select Teacher Schedule
+            {% else %}
+            <i class="fa-solid fa-calendar-check" style="color: #0284c7;"></i> My Weekly Schedule
+            {% endif %}
         </div>
-        {% endif %}
 
         <!-- Layout Switcher Controls -->
         <div class="layout-toggle-btns" style="display: inline-flex; background: #e2e8f0; padding: 3px; border-radius: 12px; border: 1px solid #cbd5e1; margin-left: auto;">
@@ -241,21 +230,21 @@
     </div>
 
     {% if is_admin and all_teachers %}
-    <!-- Quick Teacher Tabs Strip for Admins -->
-    <div style="display: flex; gap: 0.4rem; overflow-x: auto; padding-top: 0.5rem; border-top: 1px dashed #cbd5e1; align-items: center; scrollbar-width: thin;">
-        <span style="font-size: 0.75rem; font-weight: 800; color: #64748b; white-space: nowrap; margin-right: 0.25rem;">
-            Quick Switch:
-        </span>
+    <!-- Quick Teacher Tabs Wrapping Grid (No Horizontal Overflow) -->
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; border-top: 1px dashed #cbd5e1; padding-top: 0.85rem;">
         {% for t in all_teachers %}
         <a href="?teacher_id={{ t.id }}" 
-           style="text-decoration: none; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; transition: all 0.15s ease;
+           style="text-decoration: none; padding: 0.45rem 0.85rem; border-radius: 10px; font-size: 0.82rem; font-weight: 700; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 0.35rem;
                   {% if teacher.id == t.id %}
-                  background: #0284c7; color: white; box-shadow: 0 2px 4px rgba(2, 132, 199, 0.3);
+                  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; border: 1.5px solid #0284c7; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);
                   {% else %}
-                  background: white; color: #334155; border: 1px solid #cbd5e1;
+                  background: #ffffff; color: #334155; border: 1.5px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
                   {% endif %}">
-            👨‍🏫 {{ t.get_full_name|default:t.username }}
-            <span style="font-size: 0.7rem; opacity: 0.85; margin-left: 2px;">({{ t.total_allocated_slots|default:0 }})</span>
+            <i class="fa-solid fa-user-tie" style="{% if teacher.id == t.id %}color: #bae6fd;{% else %}color: #0ea5e9;{% endif %}"></i>
+            {{ t.get_full_name|default:t.username }}
+            <span style="font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 6px; {% if teacher.id == t.id %}background: rgba(255,255,255,0.25); color: #ffffff;{% else %}background: #f1f5f9; color: #64748b;{% endif %}">
+                {{ t.total_allocated_slots|default:0 }}
+            </span>
         </a>
         {% endfor %}
     </div>
