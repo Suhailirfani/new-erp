@@ -8278,13 +8278,36 @@ def teacher_my_schedule(request):
 
 @login_required
 def class_timetable_view(request, grade_id=None):
-    """Public / Printable View of Class Timetable for students, parents, and teachers"""
-    grades = Grade.objects.all()
-    selected_grade = Grade.objects.filter(pk=grade_id).first() if grade_id else grades.first()
-
+    """Public / Printable View of Class Timetable for students, parents, and teachers.
+    Supports viewing/printing all classes on the noticeboard or filtering to a specific class/division.
+    """
+    grades = Grade.objects.prefetch_related('division_set').all()
+    
+    param_grade_id = request.GET.get('grade_id') or (str(grade_id) if grade_id else None)
     division_id = request.GET.get('division_id')
-    divisions = Division.objects.filter(grade=selected_grade) if selected_grade else Division.objects.none()
-    selected_division = divisions.filter(pk=division_id).first() if division_id else None
+    
+    show_all = False
+    selected_grade = None
+    selected_division = None
+    divisions = Division.objects.none()
+
+    if not param_grade_id or param_grade_id == 'all':
+        show_all = True
+    else:
+        try:
+            selected_grade = Grade.objects.filter(pk=int(param_grade_id)).first()
+        except (ValueError, TypeError):
+            selected_grade = None
+            
+        if selected_grade:
+            divisions = selected_grade.division_set.all()
+            if division_id:
+                try:
+                    selected_division = divisions.filter(pk=int(division_id)).first()
+                except (ValueError, TypeError):
+                    selected_division = None
+        else:
+            show_all = True
 
     period_timings = PeriodTiming.objects.all().order_by('period_order')
     days_of_week = [
@@ -8296,30 +8319,87 @@ def class_timetable_view(request, grade_id=None):
         ('saturday', 'Saturday'),
     ]
 
-    slots_map = {}
-    if selected_grade:
+    # Pre-fetch timetable slots
+    if show_all:
+        all_slots = TimetableSlot.objects.all().select_related('subject', 'teacher', 'period_timing', 'division', 'grade')
+    else:
         slots_qs = TimetableSlot.objects.filter(grade=selected_grade)
         if selected_division:
-            slots_qs = slots_qs.filter(
-                Q(division=selected_division) | Q(division__isnull=True)
-            ).order_by('division__id')
+            slots_qs = slots_qs.filter(Q(division=selected_division) | Q(division__isnull=True))
         else:
             slots_qs = slots_qs.filter(division__isnull=True)
-        existing_slots = slots_qs.select_related('subject', 'teacher', 'period_timing', 'division')
+        all_slots = slots_qs.select_related('subject', 'teacher', 'period_timing', 'division', 'grade')
 
-        for slot in existing_slots:
-            key = f"{slot.day_of_week}_{slot.period_timing_id}"
-            if key not in slots_map or slot.division_id == (selected_division.id if selected_division else None):
-                slots_map[key] = slot
+    # Index slots by (grade_id, division_id) and grade common slots
+    slots_by_key = {}
+    common_slots_by_grade = {}
+    for slot in all_slots:
+        g_id = slot.grade_id
+        d_id = slot.division_id
+        if d_id is None:
+            common_slots_by_grade.setdefault(g_id, []).append(slot)
+        slots_by_key.setdefault((g_id, d_id), []).append(slot)
+
+    def build_slots_map(g_id, d_id):
+        s_map = {}
+        for s in common_slots_by_grade.get(g_id, []):
+            k = f"{s.day_of_week}_{s.period_timing_id}"
+            s_map[k] = s
+        if d_id is not None:
+            for s in slots_by_key.get((g_id, d_id), []):
+                k = f"{s.day_of_week}_{s.period_timing_id}"
+                s_map[k] = s
+        return s_map
+
+    class_timetables = []
+    if show_all:
+        for g in grades:
+            divs = list(g.division_set.all())
+            if divs:
+                for d in divs:
+                    class_timetables.append({
+                        'grade': g,
+                        'division': d,
+                        'title': f"{g.name} - Division {d.name}",
+                        'subtitle': f"Class: {g.name} &bull; Section {d.name}",
+                        'slots_map': build_slots_map(g.id, d.id),
+                    })
+            else:
+                class_timetables.append({
+                    'grade': g,
+                    'division': None,
+                    'title': g.name,
+                    'subtitle': f"Class: {g.name}",
+                    'slots_map': build_slots_map(g.id, None),
+                })
+    else:
+        if selected_grade:
+            if selected_division:
+                title = f"{selected_grade.name} - Division {selected_division.name}"
+                subtitle = f"Class: {selected_grade.name} &bull; Section {selected_division.name}"
+                s_map = build_slots_map(selected_grade.id, selected_division.id)
+            else:
+                title = selected_grade.name
+                subtitle = f"Class: {selected_grade.name} (General / Fixed Slots)"
+                s_map = build_slots_map(selected_grade.id, None)
+            
+            class_timetables.append({
+                'grade': selected_grade,
+                'division': selected_division,
+                'title': title,
+                'subtitle': subtitle,
+                'slots_map': s_map,
+            })
 
     context = {
         'grades': grades,
         'divisions': divisions,
         'selected_grade': selected_grade,
         'selected_division': selected_division,
+        'show_all': show_all,
+        'class_timetables': class_timetables,
         'period_timings': period_timings,
         'days_of_week': days_of_week,
-        'slots_map': slots_map,
     }
     return render(request, 'students/class_timetable_view.html', context)
 

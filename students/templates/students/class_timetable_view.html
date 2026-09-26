@@ -1,7 +1,7 @@
 {% extends 'students/base.html' %}
 {% load students_extras %}
 
-{% block title %}Class Timetable View - Student Attendance System{% endblock %}
+{% block title %}Class Timetable Noticeboard - Student Attendance System{% endblock %}
 
 {% block content %}
 <style>
@@ -115,7 +115,7 @@
             size: landscape;
             margin: 8mm 8mm 6mm 8mm;
         }
-        .no-print, .navbar, .sidebar, footer, .btn, .mobile-day-tabs-bar, .layout-toggle-btns, .header-container {
+        .no-print, .navbar, .sidebar, footer, .btn, .mobile-day-tabs-bar, .layout-toggle-btns, .header-container, #class_view_form, .class-filter-pills-container {
             display: none !important;
         }
         .desktop-table-container {
@@ -136,11 +136,20 @@
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
-        .printable-timetable-container {
+        .class-timetable-sheet {
+            page-break-after: always !important;
+            break-after: page !important;
+            page-break-inside: avoid !important;
+            margin: 0 0 0 0 !important;
+            padding: 0 !important;
             border: none !important;
             box-shadow: none !important;
-            padding: 0 !important;
+            background: white !important;
             width: 100% !important;
+        }
+        .class-timetable-sheet:last-child {
+            page-break-after: auto !important;
+            break-after: auto !important;
         }
         .print-header-banner {
             border-bottom: 2px solid #0f172a !important;
@@ -239,171 +248,154 @@
 <div class="header-container no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
     <div>
         <h1 style="font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 0.75rem;">
-            <i class="fa-solid fa-graduation-cap" style="color: #8b5cf6;"></i> Class Timetable Noticeboard
+            <i class="fa-solid fa-graduation-cap" style="color: #8b5cf6;"></i> 
+            {% if show_all %}
+            All Classes Timetable Noticeboard
+            {% else %}
+            Class Timetable: {{ selected_grade.name }}{% if selected_division %} - Div {{ selected_division.name }}{% endif %}
+            {% endif %}
         </h1>
-        <p style="color: #64748b; margin: 0.35rem 0 0 0;">Printable & mobile weekly schedule for classrooms and students.</p>
+        <p style="color: #64748b; margin: 0.35rem 0 0 0;">
+            {% if show_all %}
+            Displaying full weekly schedules for all <strong>{{ class_timetables|length }} classes</strong> in the school &bull; Ready for multi-page batch A4 printing.
+            {% else %}
+            Showing filtered timetable for <strong>{{ selected_grade.name }}{% if selected_division %} - Division {{ selected_division.name }}{% endif %}</strong> &bull; Prints on 1 single A4 sheet.
+            {% endif %}
+        </p>
     </div>
     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
         <a href="{% url 'students:timetable_dashboard' %}" class="btn btn-secondary">
             <i class="fa-solid fa-arrow-left"></i> Dashboard
         </a>
-        <button onclick="window.print()" class="btn btn-primary" style="font-weight: 700;">
-            <i class="fa-solid fa-print"></i> Print Timetable
+        <button onclick="window.print()" class="btn btn-primary" style="font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
+            <i class="fa-solid fa-print"></i> 
+            {% if show_all %}
+            Print All Timetables ({{ class_timetables|length }} Sheets)
+            {% else %}
+            Print This Timetable
+            {% endif %}
         </button>
     </div>
 </div>
 
 <!-- Filter Bar & Layout Switcher -->
-<div class="card no-print" style="background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid #cbd5e1; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-    <form method="get" id="class_view_form" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; flex: 1;">
-        <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 160px;">
-            <label style="font-weight: 800; color: #334155; white-space: nowrap;">Class:</label>
-            <select name="grade_id" id="class_view_grade_select" onchange="document.getElementById('class_view_division_select').value=''; document.getElementById('class_view_form').submit();" style="padding: 0.55rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; width: 100%;">
-                {% for g in grades %}
-                <option value="{{ g.id }}" {% if selected_grade.id == g.id %}selected{% endif %}>{{ g.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
+<div class="card no-print" style="background: #f8fafc; padding: 1.15rem; border-radius: 14px; border: 1px solid #cbd5e1; margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <form method="get" id="class_view_form" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; flex: 1;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; min-width: 230px;">
+                <label style="font-weight: 800; color: #334155; white-space: nowrap;">
+                    <i class="fa-solid fa-filter" style="color: #8b5cf6;"></i> Filter Class:
+                </label>
+                <select name="grade_id" id="class_view_grade_select" onchange="document.getElementById('class_view_division_select') && (document.getElementById('class_view_division_select').value=''); document.getElementById('class_view_form').submit();" style="padding: 0.55rem 1rem; border-radius: 10px; border: 1.5px solid #94a3b8; font-weight: 700; width: 100%;">
+                    <option value="all" {% if show_all %}selected{% endif %}>-- 🏫 All Classes Noticeboard --</option>
+                    {% for g in grades %}
+                    <option value="{{ g.id }}" {% if not show_all and selected_grade.id == g.id %}selected{% endif %}>{{ g.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 160px;">
-            <label style="font-weight: 800; color: #334155; white-space: nowrap;">Division:</label>
-            <select name="division_id" id="class_view_division_select" onchange="document.getElementById('class_view_form').submit();" style="padding: 0.55rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; width: 100%;">
-                <option value="">-- All / None --</option>
-                {% for d in divisions %}
-                <option value="{{ d.id }}" {% if selected_division and selected_division.id == d.id %}selected{% endif %}>{{ d.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-    </form>
+            {% if not show_all and divisions %}
+            <div style="display: flex; align-items: center; gap: 0.5rem; min-width: 180px;">
+                <label style="font-weight: 800; color: #334155; white-space: nowrap;">Division:</label>
+                <select name="division_id" id="class_view_division_select" onchange="document.getElementById('class_view_form').submit();" style="padding: 0.55rem 1rem; border-radius: 10px; border: 1.5px solid #94a3b8; font-weight: 700; width: 100%;">
+                    <option value="">-- All Divisions / General --</option>
+                    {% for d in divisions %}
+                    <option value="{{ d.id }}" {% if selected_division and selected_division.id == d.id %}selected{% endif %}>{{ d.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
 
-    <!-- Layout Switcher Controls -->
-    <div class="layout-toggle-btns" style="display: inline-flex; background: #e2e8f0; padding: 3px; border-radius: 12px; border: 1px solid #cbd5e1;">
-        <button type="button" class="layout-btn active" id="btn_layout_days_col" onclick="switchTimetableLayout('days_col')" style="border: none; background: #ffffff; color: #4338ca; padding: 0.45rem 0.85rem; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; box-shadow: 0 2px 4px rgba(0,0,0,0.06); transition: all 0.2s;">
-            <i class="fa-solid fa-table-columns"></i> Days as Columns
-        </button>
-        <button type="button" class="layout-btn" id="btn_layout_periods_col" onclick="switchTimetableLayout('periods_col')" style="border: none; background: transparent; color: #64748b; padding: 0.45rem 0.85rem; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; transition: all 0.2s;">
-            <i class="fa-solid fa-table-cells"></i> Periods as Columns (Days as Rows)
-        </button>
+            {% if not show_all %}
+            <a href="{% url 'students:class_timetable_view' %}" class="btn btn-sm btn-outline-secondary" style="font-weight: 700; text-decoration: none; padding: 0.45rem 0.85rem; border-radius: 8px;">
+                <i class="fa-solid fa-rotate-left"></i> View All Classes
+            </a>
+            {% endif %}
+        </form>
+
+        <!-- Layout Switcher Controls -->
+        <div class="layout-toggle-btns" style="display: inline-flex; background: #e2e8f0; padding: 3px; border-radius: 12px; border: 1px solid #cbd5e1;">
+            <button type="button" class="layout-btn active" id="btn_layout_days_col" onclick="switchTimetableLayout('days_col')" style="border: none; background: #ffffff; color: #4338ca; padding: 0.45rem 0.85rem; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; box-shadow: 0 2px 4px rgba(0,0,0,0.06); transition: all 0.2s;">
+                <i class="fa-solid fa-table-columns"></i> Days as Columns
+            </button>
+            <button type="button" class="layout-btn" id="btn_layout_periods_col" onclick="switchTimetableLayout('periods_col')" style="border: none; background: transparent; color: #64748b; padding: 0.45rem 0.85rem; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; transition: all 0.2s;">
+                <i class="fa-solid fa-table-cells"></i> Periods as Columns (Days as Rows)
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Grade Pills Bar -->
+    <div class="class-filter-pills-container" style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.85rem; padding-top: 0.85rem; border-top: 1px solid #e2e8f0;">
+        <a href="{% url 'students:class_timetable_view' %}" 
+           style="padding: 0.35rem 0.75rem; border-radius: 20px; font-weight: 700; font-size: 0.78rem; text-decoration: none; border: 1px solid {% if show_all %}#8b5cf6{% else %}#cbd5e1{% endif %}; background: {% if show_all %}#8b5cf6{% else %}#ffffff{% endif %}; color: {% if show_all %}#ffffff{% else %}#475569{% endif %};">
+            🏫 All Classes ({{ class_timetables|length }})
+        </a>
+        {% for g in grades %}
+        <a href="{% url 'students:class_timetable_view_grade' g.id %}" 
+           style="padding: 0.35rem 0.75rem; border-radius: 20px; font-weight: 700; font-size: 0.78rem; text-decoration: none; border: 1px solid {% if not show_all and selected_grade.id == g.id %}#8b5cf6{% else %}#cbd5e1{% endif %}; background: {% if not show_all and selected_grade.id == g.id %}#8b5cf6{% else %}#ffffff{% endif %}; color: {% if not show_all and selected_grade.id == g.id %}#ffffff{% else %}#475569{% endif %};">
+            {{ g.name }}
+        </a>
+        {% endfor %}
     </div>
 </div>
 
-{% if selected_grade and period_timings %}
+{% if class_timetables and period_timings %}
 
 <!-- ========================================================================= -->
-<!-- 1. DESKTOP PRINTABLE VIEW (LAYOUT 1 & 2) -->
+<!-- 1. DESKTOP PRINTABLE VIEW (ALL CLASSES OR FILTERED SINGLE CLASS) -->
 <!-- ========================================================================= -->
-<div class="desktop-table-container printable-timetable-container card" style="background: white; border-radius: 14px; padding: 1rem; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);">
+<div class="desktop-table-container">
     
-    <div class="print-header-banner" style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 0.4rem; margin-bottom: 0.65rem;">
-        <h2 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: 0.5px;">CLASS WEEKLY TIMETABLE</h2>
-        <h3 style="font-size: 0.95rem; font-weight: 700; color: #6366f1; margin: 0.15rem 0 0 0;">
-            Grade: {{ selected_grade.name }} {% if selected_division %}- Division {{ selected_division.name }}{% endif %}
-        </h3>
-    </div>
+    {% for ct in class_timetables %}
+    <div class="class-timetable-sheet card" style="background: white; border-radius: 14px; padding: 1.15rem; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); margin-bottom: 2rem;">
+        
+        <div class="print-header-banner" style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 0.4rem; margin-bottom: 0.65rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+            <div style="text-align: left;">
+                <h2 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: 0.5px;">CLASS WEEKLY TIMETABLE</h2>
+                <h3 style="font-size: 0.95rem; font-weight: 700; color: #6366f1; margin: 0.15rem 0 0 0;">
+                    Grade: {{ ct.grade.name }} {% if ct.division %}- Division {{ ct.division.name }}{% endif %}
+                </h3>
+            </div>
+            {% if show_all %}
+            <div class="no-print" style="font-size: 0.78rem; font-weight: 700; color: #475569; background: #f1f5f9; padding: 0.25rem 0.6rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+                Sheet {{ forloop.counter }} of {{ class_timetables|length }} &bull; 
+                <a href="{% url 'students:class_timetable_view_grade' ct.grade.id %}{% if ct.division %}?division_id={{ ct.division.id }}{% endif %}" style="color: #6366f1; text-decoration: none; font-weight: 800;">
+                    Isolate <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </div>
+            {% endif %}
+        </div>
 
-    <!-- LAYOUT 1: Days as Columns (Periods as Rows) -->
-    <div id="layout_days_col_container" style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse; text-align: center; table-layout: fixed;">
-            <thead>
-                <tr style="background: #0f172a; color: white;">
-                    <th style="padding: 0.6rem 0.35rem; border: 1px solid #334155; font-weight: 800; width: 115px; font-size: 0.88rem;">Time / Day</th>
-                    {% for day_key, day_label in days_of_week %}
-                    <th style="padding: 0.6rem 0.35rem; border: 1px solid #334155; font-weight: 800; font-size: 0.88rem;">{{ day_label }}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for pt in period_timings %}
-                <tr>
-                    <td style="background: #f8fafc; padding: 0.5rem 0.35rem; border: 1px solid #cbd5e1; font-weight: 700; color: #1e293b;">
-                        <div style="font-size: 0.88rem; font-weight: 800; line-height: 1.15;">{{ pt.name }}</div>
-                        <div style="font-size: 0.72rem; color: #64748b; line-height: 1; margin-top: 2px;">{{ pt.start_time|time:"H:i" }}-{{ pt.end_time|time:"H:i" }}</div>
-                    </td>
-
-                    {% if pt.is_break %}
-                    <td colspan="6" style="background: #fef3c7; color: #92400e; font-weight: 800; padding: 0.45rem; border: 1px solid #f59e0b; font-size: 0.85rem; letter-spacing: 0.5px;">
-                        ☕ {{ pt.name|upper }} RECESS
-                    </td>
-                    {% else %}
-
-                    {% for day_key, day_label in days_of_week %}
-                    {% with slot_key=day_key|slot_key:pt.id %}
-                    {% with slot=slots_map|get_item:slot_key %}
-                    
-                    <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.35rem; vertical-align: middle; background: {% if slot %}#ffffff{% else %}#fafafa{% endif %};">
-                        {% if slot %}
-                        <div class="slot-title" style="font-weight: 800; color: #0f172a; font-size: 0.88rem; line-height: 1.2;">
-                            {{ slot.subject.name }}
-                        </div>
-                        <div class="slot-teacher" style="font-size: 0.76rem; color: #475569; font-weight: 600; line-height: 1.1; margin-top: 2px;">
-                            {{ slot.teacher.get_full_name|default:slot.teacher.username }}
-                        </div>
-                        <div style="display: flex; gap: 0.2rem; justify-content: center; flex-wrap: wrap; margin-top: 2px;">
-                            {% if not slot.division %}
-                            <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.65rem; padding: 0.08rem 0.3rem; border-radius: 3px; font-weight: 700;">📌 Fixed</span>
-                            {% endif %}
-                            {% if slot.is_combined %}
-                            <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.65rem; padding: 0.08rem 0.3rem; border-radius: 3px; font-weight: 700;">🔗 Joint</span>
-                            {% endif %}
-                        </div>
-                        {% if slot.room_number %}
-                        <div class="slot-room" style="font-size: 0.7rem; color: #64748b; line-height: 1; margin-top: 1px;">
-                            Rm {{ slot.room_number }}
-                        </div>
-                        {% endif %}
-                        {% else %}
-                        <span style="color: #cbd5e1; font-size: 0.85rem;">-</span>
-                        {% endif %}
-                    </td>
-
-                    {% endwith %}
-                    {% endwith %}
-                    {% endfor %}
-
-                    {% endif %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- LAYOUT 2: Periods as Columns (Days as Rows) - Proportioned Header & Heights -->
-    <div id="layout_periods_col_container" style="overflow-x: auto; display: none;">
-        <table style="width: 100%; border-collapse: collapse; text-align: center; table-layout: fixed;">
-            <thead>
-                <tr style="background: #0f172a; color: white;">
-                    <th style="padding: 0.55rem 0.35rem; border: 1px solid #334155; font-weight: 800; width: 95px; font-size: 0.85rem;">Day \ Period</th>
+        <!-- LAYOUT 1: Days as Columns (Periods as Rows) -->
+        <div class="layout-days-col-container" style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: center; table-layout: fixed;">
+                <thead>
+                    <tr style="background: #0f172a; color: white;">
+                        <th style="padding: 0.6rem 0.35rem; border: 1px solid #334155; font-weight: 800; width: 115px; font-size: 0.88rem;">Time / Day</th>
+                        {% for day_key, day_label in days_of_week %}
+                        <th style="padding: 0.6rem 0.35rem; border: 1px solid #334155; font-weight: 800; font-size: 0.88rem;">{{ day_label }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
                     {% for pt in period_timings %}
+                    <tr>
+                        <td style="background: #f8fafc; padding: 0.5rem 0.35rem; border: 1px solid #cbd5e1; font-weight: 700; color: #1e293b;">
+                            <div style="font-size: 0.88rem; font-weight: 800; line-height: 1.15;">{{ pt.name }}</div>
+                            <div style="font-size: 0.72rem; color: #64748b; line-height: 1; margin-top: 2px;">{{ pt.start_time|time:"H:i" }}-{{ pt.end_time|time:"H:i" }}</div>
+                        </td>
+
                         {% if pt.is_break %}
-                        <th class="col-break-header">
-                            <div style="font-size: 0.8rem; line-height: 1;">☕</div>
-                            <div style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; line-height: 1; margin-top: 1px;">Break</div>
-                        </th>
-                        {% else %}
-                        <th style="padding: 0.55rem 0.3rem; border: 1px solid #334155; font-weight: 800;">
-                            <div style="font-size: 0.85rem; line-height: 1.15;">{{ pt.name }}</div>
-                            <div style="font-size: 0.7rem; opacity: 0.9; font-weight: 600; line-height: 1; margin-top: 2px;">{{ pt.start_time|time:"H:i" }}-{{ pt.end_time|time:"H:i" }}</div>
-                        </th>
-                        {% endif %}
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for day_key, day_label in days_of_week %}
-                <tr>
-                    <td style="background: #f8fafc; padding: 0.55rem 0.35rem; border: 1px solid #cbd5e1; font-weight: 800; color: #1e293b; font-size: 0.88rem; white-space: nowrap;">
-                        {{ day_label }}
-                    </td>
-                    {% for pt in period_timings %}
-                        {% if pt.is_break %}
-                        <td class="col-break-cell">
-                            <div style="font-size: 0.8rem; line-height: 1;">☕</div>
-                            <div style="font-size: 0.62rem; font-weight: 800; text-transform: uppercase; line-height: 1; margin-top: 1px;">Break</div>
+                        <td colspan="6" style="background: #fef3c7; color: #92400e; font-weight: 800; padding: 0.45rem; border: 1px solid #f59e0b; font-size: 0.85rem; letter-spacing: 0.5px;">
+                            ☕ {{ pt.name|upper }} RECESS
                         </td>
                         {% else %}
+
+                        {% for day_key, day_label in days_of_week %}
                         {% with slot_key=day_key|slot_key:pt.id %}
-                        {% with slot=slots_map|get_item:slot_key %}
-                        <td style="border: 1px solid #cbd5e1; padding: 0.55rem 0.3rem; vertical-align: middle; background: {% if slot %}#ffffff{% else %}#fafafa{% endif %};">
+                        {% with slot=ct.slots_map|get_item:slot_key %}
+                        
+                        <td style="border: 1px solid #cbd5e1; padding: 0.5rem 0.35rem; vertical-align: middle; background: {% if slot %}#ffffff{% else %}#fafafa{% endif %};">
                             {% if slot %}
                             <div class="slot-title" style="font-weight: 800; color: #0f172a; font-size: 0.88rem; line-height: 1.2;">
                                 {{ slot.subject.name }}
@@ -428,15 +420,91 @@
                             <span style="color: #cbd5e1; font-size: 0.85rem;">-</span>
                             {% endif %}
                         </td>
+
                         {% endwith %}
                         {% endwith %}
+                        {% endfor %}
+
                         {% endif %}
+                    </tr>
                     {% endfor %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- LAYOUT 2: Periods as Columns (Days as Rows) -->
+        <div class="layout-periods-col-container" style="overflow-x: auto; display: none;">
+            <table style="width: 100%; border-collapse: collapse; text-align: center; table-layout: fixed;">
+                <thead>
+                    <tr style="background: #0f172a; color: white;">
+                        <th style="padding: 0.55rem 0.35rem; border: 1px solid #334155; font-weight: 800; width: 95px; font-size: 0.85rem;">Day \ Period</th>
+                        {% for pt in period_timings %}
+                            {% if pt.is_break %}
+                            <th class="col-break-header">
+                                <div style="font-size: 0.8rem; line-height: 1;">☕</div>
+                                <div style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; line-height: 1; margin-top: 1px;">Break</div>
+                            </th>
+                            {% else %}
+                            <th style="padding: 0.55rem 0.3rem; border: 1px solid #334155; font-weight: 800;">
+                                <div style="font-size: 0.85rem; line-height: 1.15;">{{ pt.name }}</div>
+                                <div style="font-size: 0.7rem; opacity: 0.9; font-weight: 600; line-height: 1; margin-top: 2px;">{{ pt.start_time|time:"H:i" }}-{{ pt.end_time|time:"H:i" }}</div>
+                            </th>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for day_key, day_label in days_of_week %}
+                    <tr>
+                        <td style="background: #f8fafc; padding: 0.55rem 0.35rem; border: 1px solid #cbd5e1; font-weight: 800; color: #1e293b; font-size: 0.88rem; white-space: nowrap;">
+                            {{ day_label }}
+                        </td>
+                        {% for pt in period_timings %}
+                            {% if pt.is_break %}
+                            <td class="col-break-cell">
+                                <div style="font-size: 0.8rem; line-height: 1;">☕</div>
+                                <div style="font-size: 0.62rem; font-weight: 800; text-transform: uppercase; line-height: 1; margin-top: 1px;">Break</div>
+                            </td>
+                            {% else %}
+                            {% with slot_key=day_key|slot_key:pt.id %}
+                            {% with slot=ct.slots_map|get_item:slot_key %}
+                            <td style="border: 1px solid #cbd5e1; padding: 0.55rem 0.3rem; vertical-align: middle; background: {% if slot %}#ffffff{% else %}#fafafa{% endif %};">
+                                {% if slot %}
+                                <div class="slot-title" style="font-weight: 800; color: #0f172a; font-size: 0.88rem; line-height: 1.2;">
+                                    {{ slot.subject.name }}
+                                </div>
+                                <div class="slot-teacher" style="font-size: 0.76rem; color: #475569; font-weight: 600; line-height: 1.1; margin-top: 2px;">
+                                    {{ slot.teacher.get_full_name|default:slot.teacher.username }}
+                                </div>
+                                <div style="display: flex; gap: 0.2rem; justify-content: center; flex-wrap: wrap; margin-top: 2px;">
+                                    {% if not slot.division %}
+                                    <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.65rem; padding: 0.08rem 0.3rem; border-radius: 3px; font-weight: 700;">📌 Fixed</span>
+                                    {% endif %}
+                                    {% if slot.is_combined %}
+                                    <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.65rem; padding: 0.08rem 0.3rem; border-radius: 3px; font-weight: 700;">🔗 Joint</span>
+                                    {% endif %}
+                                </div>
+                                {% if slot.room_number %}
+                                <div class="slot-room" style="font-size: 0.7rem; color: #64748b; line-height: 1; margin-top: 1px;">
+                                    Rm {{ slot.room_number }}
+                                </div>
+                                {% endif %}
+                                {% else %}
+                                <span style="color: #cbd5e1; font-size: 0.85rem;">-</span>
+                                {% endif %}
+                            </td>
+                            {% endwith %}
+                            {% endwith %}
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
     </div>
+    {% endfor %}
 
 </div>
 
@@ -445,77 +513,89 @@
 <!-- ========================================================================= -->
 <div class="mobile-app-container no-print">
 
-    <!-- Day Selector Tabs Bar -->
-    <div class="mobile-day-tabs-bar">
-        {% for day_key, day_label in days_of_week %}
-        <button type="button" 
-                class="mobile-day-pill {% if forloop.first %}active{% endif %}" 
-                id="view_pill_{{ day_key }}"
-                onclick="switchViewDay('{{ day_key }}')">
-            {{ day_label }}
-        </button>
-        {% endfor %}
-    </div>
-
-    <!-- Day Panels -->
-    {% for day_key, day_label in days_of_week %}
-    <div class="mobile-view-panel" id="view_panel_{{ day_key }}" style="{% if not forloop.first %}display: none;{% endif %}">
+    {% for ct in class_timetables %}
+    <div class="card" style="background: #ffffff; border-radius: 14px; padding: 1rem; border: 1px solid #cbd5e1; margin-bottom: 1.5rem;">
         
-        {% for pt in period_timings %}
-        {% if pt.is_break %}
-        <div class="mobile-slot-card break-card">
-            <div style="font-weight: 800; color: #b45309; font-size: 0.9rem;">
-                ☕ {{ pt.name }} ({{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }})
-            </div>
+        <div style="margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #8b5cf6;">
+            <h2 style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin: 0;">
+                {{ ct.title }}
+            </h2>
         </div>
-        {% else %}
 
-        {% with slot_key=day_key|slot_key:pt.id %}
-        {% with slot=slots_map|get_item:slot_key %}
+        <!-- Day Selector Tabs Bar -->
+        <div class="mobile-day-tabs-bar">
+            {% for day_key, day_label in days_of_week %}
+            <button type="button" 
+                    class="mobile-day-pill {% if forloop.first %}active{% endif %}" 
+                    id="view_pill_{{ ct.grade.id }}_{{ ct.division.id|default:0 }}_{{ day_key }}"
+                    onclick="switchViewDayClass('{{ ct.grade.id }}_{{ ct.division.id|default:0 }}', '{{ day_key }}')">
+                {{ day_label }}
+            </button>
+            {% endfor %}
+        </div>
 
-        <div class="mobile-slot-card {% if slot %}assigned{% else %}empty{% endif %}">
+        <!-- Day Panels -->
+        {% for day_key, day_label in days_of_week %}
+        <div class="mobile-view-panel-class-{{ ct.grade.id }}_{{ ct.division.id|default:0 }}" id="view_panel_{{ ct.grade.id }}_{{ ct.division.id|default:0 }}_{{ day_key }}" style="{% if not forloop.first %}display: none;{% endif %}">
             
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-                <div style="font-weight: 800; color: #1e293b; font-size: 0.9rem;">
-                    <i class="fa-solid fa-clock" style="color: #8b5cf6; margin-right: 0.35rem;"></i> {{ pt.name }}
+            {% for pt in period_timings %}
+            {% if pt.is_break %}
+            <div class="mobile-slot-card break-card">
+                <div style="font-weight: 800; color: #b45309; font-size: 0.9rem;">
+                    ☕ {{ pt.name }} ({{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }})
                 </div>
-                <div style="font-size: 0.75rem; color: #64748b; font-weight: 700; background: #f1f5f9; padding: 0.2rem 0.5rem; border-radius: 6px;">
-                    {{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }}
-                </div>
-            </div>
-
-            {% if slot %}
-            <div style="font-size: 1.1rem; font-weight: 800; color: #6d28d9; margin-bottom: 0.25rem;">
-                {{ slot.subject.name }}
-                {% if not slot.division %}
-                <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700; margin-left: 0.35rem;">📌 Fixed Slot</span>
-                {% endif %}
-                {% if slot.is_combined %}
-                <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700; margin-left: 0.35rem;">🔗 Joint Class</span>
-                {% endif %}
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; font-size: 0.85rem; color: #334155; font-weight: 700;">
-                <div>
-                    <i class="fa-solid fa-chalkboard-user" style="color: #8b5cf6;"></i> {{ slot.teacher.get_full_name|default:slot.teacher.username }}
-                </div>
-                {% if slot.room_number %}
-                <div style="color: #64748b;">
-                    📍 Room: {{ slot.room_number }}
-                </div>
-                {% endif %}
             </div>
             {% else %}
-            <div style="color: #cbd5e1; font-size: 0.85rem; font-weight: 600; margin-top: 0.25rem;">
-                - No Subject Assigned -
+
+            {% with slot_key=day_key|slot_key:pt.id %}
+            {% with slot=ct.slots_map|get_item:slot_key %}
+
+            <div class="mobile-slot-card {% if slot %}assigned{% else %}empty{% endif %}">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                    <div style="font-weight: 800; color: #1e293b; font-size: 0.9rem;">
+                        <i class="fa-solid fa-clock" style="color: #8b5cf6; margin-right: 0.35rem;"></i> {{ pt.name }}
+                    </div>
+                    <div style="font-size: 0.75rem; color: #64748b; font-weight: 700; background: #f1f5f9; padding: 0.2rem 0.5rem; border-radius: 6px;">
+                        {{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }}
+                    </div>
+                </div>
+
+                {% if slot %}
+                <div style="font-size: 1.05rem; font-weight: 800; color: #6d28d9; margin-bottom: 0.25rem;">
+                    {{ slot.subject.name }}
+                    {% if not slot.division %}
+                    <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700; margin-left: 0.35rem;">📌 Fixed</span>
+                    {% endif %}
+                    {% if slot.is_combined %}
+                    <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700; margin-left: 0.35rem;">🔗 Joint</span>
+                    {% endif %}
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; font-size: 0.85rem; color: #334155; font-weight: 700;">
+                    <div>
+                        <i class="fa-solid fa-chalkboard-user" style="color: #8b5cf6;"></i> {{ slot.teacher.get_full_name|default:slot.teacher.username }}
+                    </div>
+                    {% if slot.room_number %}
+                    <div style="color: #64748b;">
+                        📍 Room: {{ slot.room_number }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div style="color: #cbd5e1; font-size: 0.85rem; font-weight: 600; margin-top: 0.25rem;">
+                    - No Subject Assigned -
+                </div>
+                {% endif %}
+
             </div>
+
+            {% endwith %}
+            {% endwith %}
+
             {% endif %}
+            {% endfor %}
 
         </div>
-
-        {% endwith %}
-        {% endwith %}
-
-        {% endif %}
         {% endfor %}
 
     </div>
@@ -525,14 +605,14 @@
 
 <script>
     function switchTimetableLayout(layout) {
-        const layoutDays = document.getElementById('layout_days_col_container');
-        const layoutPeriods = document.getElementById('layout_periods_col_container');
+        const layoutDaysList = document.querySelectorAll('.layout-days-col-container');
+        const layoutPeriodsList = document.querySelectorAll('.layout-periods-col-container');
         const btnDays = document.getElementById('btn_layout_days_col');
         const btnPeriods = document.getElementById('btn_layout_periods_col');
 
         if (layout === 'periods_col') {
-            if (layoutDays) layoutDays.style.display = 'none';
-            if (layoutPeriods) layoutPeriods.style.display = 'block';
+            layoutDaysList.forEach(el => el.style.display = 'none');
+            layoutPeriodsList.forEach(el => el.style.display = 'block');
             
             if (btnPeriods) {
                 btnPeriods.style.background = '#ffffff';
@@ -546,8 +626,8 @@
             }
             localStorage.setItem('timetable_layout_pref', 'periods_col');
         } else {
-            if (layoutDays) layoutDays.style.display = 'block';
-            if (layoutPeriods) layoutPeriods.style.display = 'none';
+            layoutDaysList.forEach(el => el.style.display = 'block');
+            layoutPeriodsList.forEach(el => el.style.display = 'none');
             
             if (btnDays) {
                 btnDays.style.background = '#ffffff';
@@ -571,12 +651,12 @@
         }
     });
 
-    function switchViewDay(dayKey) {
-        document.querySelectorAll('.mobile-day-pill').forEach(pill => pill.classList.remove('active'));
-        document.querySelectorAll('.mobile-view-panel').forEach(panel => panel.style.display = 'none');
+    function switchViewDayClass(classKey, dayKey) {
+        document.querySelectorAll(`.mobile-view-panel-class-${classKey}`).forEach(panel => panel.style.display = 'none');
+        document.querySelectorAll(`[id^="view_pill_${classKey}_"]`).forEach(pill => pill.classList.remove('active'));
 
-        const activePill = document.getElementById(`view_pill_${dayKey}`);
-        const activePanel = document.getElementById(`view_panel_${dayKey}`);
+        const activePill = document.getElementById(`view_pill_${classKey}_${dayKey}`);
+        const activePanel = document.getElementById(`view_panel_${classKey}_${dayKey}`);
 
         if (activePill) activePill.classList.add('active');
         if (activePanel) activePanel.style.display = 'block';
