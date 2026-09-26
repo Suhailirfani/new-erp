@@ -107,10 +107,20 @@
                             <span class="badge" style="background: #e0e7ff; color: #4338ca; padding: 0.35rem 0.65rem; border-radius: 6px; font-weight: 700;">📚 Teaching Slot</span>
                             {% endif %}
                         </td>
-                        <td style="padding: 0.85rem; text-align: right;">
+                        <td style="padding: 0.85rem; text-align: right; white-space: nowrap;">
+                            <button type="button" class="btn btn-sm" onclick="editPeriodTiming(this)"
+                                    data-id="{{ pt.id }}"
+                                    data-name="{{ pt.name }}"
+                                    data-start="{{ pt.start_time|time:'H:i' }}"
+                                    data-end="{{ pt.end_time|time:'H:i' }}"
+                                    data-order="{{ pt.period_order }}"
+                                    data-is-break="{{ pt.is_break|yesno:'true,false' }}"
+                                    style="padding: 0.35rem 0.65rem; font-size: 0.8rem; background: #e0e7ff; color: #4338ca; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; margin-right: 0.35rem;">
+                                <i class="fa-solid fa-pen-to-square"></i> Edit
+                            </button>
                             <form method="post" action="{% url 'students:period_timing_delete' pt.id %}" style="display: inline;" onsubmit="return confirm('Delete period timing {{ pt.name }}?');">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-danger" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">
+                                <button type="submit" class="btn btn-sm btn-danger" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; border-radius: 6px;">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
                             </form>
@@ -125,7 +135,7 @@
         <div class="mobile-period-cards">
             {% for pt in timings %}
             <div class="mobile-pt-card">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
                     <div>
                         <div style="font-weight: 800; color: #0f172a; font-size: 1rem;">
                             #{{ pt.period_order }} - {{ pt.name }}
@@ -134,12 +144,24 @@
                             ⏰ {{ pt.start_time|time:"h:i A" }} - {{ pt.end_time|time:"h:i A" }}
                         </div>
                     </div>
-                    <form method="post" action="{% url 'students:period_timing_delete' pt.id %}" onsubmit="return confirm('Delete period timing {{ pt.name }}?');">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-danger btn-sm" style="padding: 0.4rem 0.75rem; border-radius: 8px; min-height: 38px;">
-                            <i class="fa-solid fa-trash"></i>
+                    <div style="display: flex; gap: 0.35rem; align-items: center;">
+                        <button type="button" class="btn btn-sm" onclick="editPeriodTiming(this)"
+                                data-id="{{ pt.id }}"
+                                data-name="{{ pt.name }}"
+                                data-start="{{ pt.start_time|time:'H:i' }}"
+                                data-end="{{ pt.end_time|time:'H:i' }}"
+                                data-order="{{ pt.period_order }}"
+                                data-is-break="{{ pt.is_break|yesno:'true,false' }}"
+                                style="padding: 0.4rem 0.75rem; border-radius: 8px; min-height: 38px; background: #e0e7ff; color: #4338ca; font-weight: 700; border: none; cursor: pointer;">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit
                         </button>
-                    </form>
+                        <form method="post" action="{% url 'students:period_timing_delete' pt.id %}" onsubmit="return confirm('Delete period timing {{ pt.name }}?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm" style="padding: 0.4rem 0.75rem; border-radius: 8px; min-height: 38px;">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
                 </div>
                 <div style="margin-top: 0.65rem;">
                     {% if pt.is_break %}
@@ -162,46 +184,91 @@
     </div>
 
     <!-- 2. Add/Edit Form -->
-    <div class="card" style="background: white; border-radius: 16px; padding: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);">
-        <h3 style="font-size: 1.15rem; font-weight: 700; color: #1e293b; margin-top: 0; margin-bottom: 1.25rem;">
+    <div class="card" id="period_form_card" style="background: white; border-radius: 16px; padding: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);">
+        <h3 id="form_title" style="font-size: 1.15rem; font-weight: 700; color: #1e293b; margin-top: 0; margin-bottom: 1.25rem;">
             ➕ Add Period Slot
         </h3>
         
-        <form method="post">
+        <form method="post" id="period_form">
             {% csrf_token %}
+            <input type="hidden" name="period_id" id="period_id_input" value="">
+
             <div style="margin-bottom: 1rem;">
                 <label style="font-weight: 700; display: block; margin-bottom: 0.4rem; color: #334155;">Period Name</label>
-                <input type="text" name="name" required placeholder="e.g. Period 1 or Lunch Break" style="width: 100%; padding: 0.65rem; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 600;">
+                <input type="text" name="name" id="period_name_input" required placeholder="e.g. Period 1 or Lunch Break" style="width: 100%; padding: 0.65rem; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 600;">
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
                 <div>
                     <label style="font-weight: 700; display: block; margin-bottom: 0.4rem; color: #334155;">Start Time</label>
-                    <input type="time" name="start_time" required style="width: 100%; padding: 0.65rem; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 600;">
+                    <input type="time" name="start_time" id="period_start_input" required style="width: 100%; padding: 0.65rem; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 600;">
                 </div>
                 <div>
                     <label style="font-weight: 700; display: block; margin-bottom: 0.4rem; color: #334155;">End Time</label>
-                    <input type="time" name="end_time" required style="width: 100%; padding: 0.65rem; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 600;">
+                    <input type="time" name="end_time" id="period_end_input" required style="width: 100%; padding: 0.65rem; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 600;">
                 </div>
             </div>
 
             <div style="margin-bottom: 1rem;">
                 <label style="font-weight: 700; display: block; margin-bottom: 0.4rem; color: #334155;">Display Order Index</label>
-                <input type="number" name="period_order" value="{{ timings|length|add:1 }}" min="1" required style="width: 100%; padding: 0.65rem; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 600;">
+                <input type="number" name="period_order" id="period_order_input" value="{{ timings|length|add:1 }}" min="1" required style="width: 100%; padding: 0.65rem; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 600;">
             </div>
 
             <div style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                <input type="checkbox" name="is_break" id="is_break_cb" style="width: 20px; height: 20px;">
+                <input type="checkbox" name="is_break" id="is_break_cb" style="width: 20px; height: 20px; cursor: pointer;">
                 <label for="is_break_cb" style="font-weight: 600; color: #334155; margin: 0; cursor: pointer;">
                     This is a Recess / Break Interval
                 </label>
             </div>
 
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-weight: 700; border-radius: 10px; min-height: 48px;">
-                💾 Save Period Timing
-            </button>
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="button" id="cancel_edit_btn" onclick="cancelPeriodEdit()" style="display: none; background: #fee2e2; color: #dc2626; border: none; padding: 0.85rem 1rem; border-radius: 10px; font-weight: 700; cursor: pointer; min-height: 48px;">
+                    ✖ Cancel
+                </button>
+                <button type="submit" id="submit_btn" class="btn btn-primary" style="flex: 1; padding: 0.85rem; font-weight: 700; border-radius: 10px; min-height: 48px;">
+                    💾 Save Period Timing
+                </button>
+            </div>
         </form>
     </div>
 
 </div>
+
+<script>
+function editPeriodTiming(btn) {
+    const id = btn.dataset.id;
+    const name = btn.dataset.name;
+    const start = btn.dataset.start;
+    const end = btn.dataset.end;
+    const order = btn.dataset.order;
+    const isBreak = btn.dataset.isBreak === 'true';
+
+    document.getElementById('period_id_input').value = id;
+    document.getElementById('period_name_input').value = name;
+    document.getElementById('period_start_input').value = start;
+    document.getElementById('period_end_input').value = end;
+    document.getElementById('period_order_input').value = order;
+    document.getElementById('is_break_cb').checked = isBreak;
+
+    document.getElementById('form_title').innerHTML = '✏️ Edit: ' + name;
+    document.getElementById('submit_btn').innerHTML = '💾 Update Period Timing';
+    document.getElementById('cancel_edit_btn').style.display = 'block';
+
+    const formCard = document.getElementById('period_form_card');
+    formCard.scrollIntoView({ behavior: 'smooth' });
+}
+
+function cancelPeriodEdit() {
+    document.getElementById('period_id_input').value = '';
+    document.getElementById('period_name_input').value = '';
+    document.getElementById('period_start_input').value = '';
+    document.getElementById('period_end_input').value = '';
+    document.getElementById('period_order_input').value = '{{ timings|length|add:1 }}';
+    document.getElementById('is_break_cb').checked = false;
+
+    document.getElementById('form_title').innerHTML = '➕ Add Period Slot';
+    document.getElementById('submit_btn').innerHTML = '💾 Save Period Timing';
+    document.getElementById('cancel_edit_btn').style.display = 'none';
+}
+</script>
 {% endblock %}
