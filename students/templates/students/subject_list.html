@@ -55,11 +55,11 @@
 
     .grade-tab-btn {
         background: #f1f5f9;
-        color: #475569;
-        border: 1px solid #e2e8f0;
+        color: #1e293b;
+        border: 1px solid #cbd5e1;
         padding: 0.48rem 1rem;
         border-radius: 30px;
-        font-weight: 600;
+        font-weight: 700;
         font-size: 0.84rem;
         cursor: pointer;
         display: inline-flex;
@@ -71,29 +71,34 @@
 
     .grade-tab-btn:hover {
         background: #e2e8f0;
-        color: var(--dark);
+        color: #0f172a;
+        border-color: #94a3b8;
         transform: translateY(-1px);
     }
 
     .grade-tab-btn.active {
-        background: var(--gradient-1);
-        color: #ffffff;
-        border-color: transparent;
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
+        color: #ffffff !important;
+        border-color: #4338ca !important;
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4) !important;
+    }
+
+    .grade-tab-btn.active i {
+        color: #ffffff !important;
     }
 
     .grade-tab-btn .tab-count {
-        background: rgba(0, 0, 0, 0.08);
-        color: inherit;
-        padding: 0.15rem 0.5rem;
+        background: #e2e8f0;
+        color: #334155;
+        padding: 0.15rem 0.55rem;
         border-radius: 12px;
         font-size: 0.75rem;
-        font-weight: 700;
+        font-weight: 800;
     }
 
     .grade-tab-btn.active .tab-count {
-        background: rgba(255, 255, 255, 0.25);
-        color: #ffffff;
+        background: rgba(255, 255, 255, 0.28) !important;
+        color: #ffffff !important;
     }
 
     .sub-filters-row {
