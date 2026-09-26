@@ -105,97 +105,184 @@
     </div>
 </div>
 
-{% if request.user.profile.role == 'admin' %}
-<!-- Admin Teacher Selector -->
-<div class="card" style="background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid #cbd5e1; margin-bottom: 1.5rem;">
-    <form method="get" id="teacher_select_form" style="display: flex; align-items: center; gap: 0.75rem;">
+<!-- Toolbar / Filter Bar with Layout Switcher -->
+<div class="card" style="background: #f8fafc; padding: 1rem 1.25rem; border-radius: 12px; border: 1px solid #cbd5e1; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    {% if request.user.profile.role == 'admin' %}
+    <form method="get" id="teacher_select_form" style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 250px;">
         <label style="font-weight: 800; color: #334155; white-space: nowrap;">Teacher:</label>
-        <select name="teacher_id" onchange="document.getElementById('teacher_select_form').submit();" style="padding: 0.53rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; width: 100%;">
+        <select name="teacher_id" onchange="document.getElementById('teacher_select_form').submit();" style="padding: 0.53rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; width: 100%; max-width: 320px;">
             {% for t in all_teachers %}
             <option value="{{ t.id }}" {% if teacher.id == t.id %}selected{% endif %}>{{ t.get_full_name|default:t.username }}</option>
             {% endfor %}
         </select>
     </form>
+    {% else %}
+    <div style="font-weight: 700; color: #475569;">
+        <i class="fa-solid fa-calendar-check" style="color: #0ea5e9;"></i> My Weekly Schedule
+    </div>
+    {% endif %}
+
+    <!-- Layout Switcher Controls -->
+    <div class="layout-toggle-btns" style="display: inline-flex; background: #e2e8f0; padding: 3px; border-radius: 12px; border: 1px solid #cbd5e1; margin-left: auto;">
+        <button type="button" class="layout-btn active" id="btn_schedule_days_col" onclick="switchScheduleLayout('days_col')" style="border: none; background: #ffffff; color: #0284c7; padding: 0.45rem 0.85rem; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; box-shadow: 0 2px 4px rgba(0,0,0,0.06); transition: all 0.2s;">
+            <i class="fa-solid fa-table-columns"></i> Days as Columns
+        </button>
+        <button type="button" class="layout-btn" id="btn_schedule_periods_col" onclick="switchScheduleLayout('periods_col')" style="border: none; background: transparent; color: #64748b; padding: 0.45rem 0.85rem; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; transition: all 0.2s;">
+            <i class="fa-solid fa-table-cells"></i> Periods as Columns (Days as Rows)
+        </button>
+    </div>
 </div>
-{% endif %}
 
 {% if period_timings %}
 
 <!-- ========================================================================= -->
-<!-- 1. DESKTOP VIEW -->
+<!-- 1. DESKTOP VIEW (LAYOUT 1 & 2) -->
 <!-- ========================================================================= -->
 <div class="desktop-table-container card" style="background: white; border-radius: 16px; padding: 1.25rem; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); overflow-x: auto;">
-    <table class="table-custom" style="width: 100%; border-collapse: separate; border-spacing: 6px; min-width: 900px;">
-        <thead>
-            <tr style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white;">
-                <th style="padding: 1rem; text-align: center; border-radius: 10px; width: 140px; font-weight: 800; font-size: 0.9rem;">
-                    Period / Time
-                </th>
-                {% for day_key, day_label in days_of_week %}
-                <th style="padding: 1rem; text-align: center; border-radius: 10px; font-weight: 800; font-size: 0.9rem;">
-                    {{ day_label }}
-                </th>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for pt in period_timings %}
-            <tr>
-                <td style="background: #f1f5f9; padding: 0.85rem; border-radius: 10px; text-align: center; border: 1px solid #cbd5e1; vertical-align: middle;">
-                    <div style="font-weight: 800; color: #1e293b; font-size: 0.95rem;">{{ pt.name }}</div>
-                    <div style="font-size: 0.75rem; color: #64748b; font-weight: 700; margin-top: 2px;">
-                        {{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }}
-                    </div>
-                </td>
+    
+    <!-- LAYOUT 1: Days as Columns (Periods as Rows) -->
+    <div id="schedule_days_col_container" style="overflow-x: auto;">
+        <table class="table-custom" style="width: 100%; border-collapse: separate; border-spacing: 6px; min-width: 900px;">
+            <thead>
+                <tr style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white;">
+                    <th style="padding: 1rem; text-align: center; border-radius: 10px; width: 140px; font-weight: 800; font-size: 0.9rem;">
+                        Period / Time
+                    </th>
+                    {% for day_key, day_label in days_of_week %}
+                    <th style="padding: 1rem; text-align: center; border-radius: 10px; font-weight: 800; font-size: 0.9rem;">
+                        {{ day_label }}
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for pt in period_timings %}
+                <tr>
+                    <td style="background: #f1f5f9; padding: 0.85rem; border-radius: 10px; text-align: center; border: 1px solid #cbd5e1; vertical-align: middle;">
+                        <div style="font-weight: 800; color: #1e293b; font-size: 0.95rem;">{{ pt.name }}</div>
+                        <div style="font-size: 0.75rem; color: #64748b; font-weight: 700; margin-top: 2px;">
+                            {{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }}
+                        </div>
+                    </td>
 
-                {% if pt.is_break %}
-                <td colspan="6" style="background: #fef3c7; color: #92400e; font-weight: 800; text-align: center; padding: 0.75rem; border-radius: 10px; border: 1px dashed #f59e0b; font-size: 0.9rem;">
-                    ☕ {{ pt.name|upper }} INTERVAL
-                </td>
-                {% else %}
-
-                {% for day_key, day_label in days_of_week %}
-                {% with slot_key=day_key|slot_key:pt.id %}
-                {% with slot=slots_map|get_item:slot_key %}
-                
-                <td style="background: {% if slot %}#f0f9ff{% else %}#ffffff{% endif %}; 
-                           border: 1px solid {% if slot %}#bae6fd{% else %}#e2e8f0{% endif %}; 
-                           border-radius: 10px; padding: 0.75rem; text-align: center; vertical-align: middle;">
-                    
-                    {% if slot %}
-                    <div style="font-weight: 800; color: #0369a1; font-size: 0.95rem;">
-                        {{ slot.subject.name }}
-                    </div>
-                    <div style="font-size: 0.8rem; color: #0f172a; font-weight: 700; margin-top: 4px;">
-                        🏫 {{ slot.grade.name }} {% if slot.division %}- {{ slot.division.name }}{% endif %}
-                    </div>
-                    {% if slot.room_number %}
-                    <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">
-                        📍 {{ slot.room_number }}
-                    </div>
-                    {% endif %}
-                    <div style="margin-top: 6px;">
-                        <a href="{% url 'students:mark_attendance_class' slot.grade.id slot.division.id|default:0 %}" class="btn btn-sm btn-success" style="padding: 0.25rem 0.6rem; font-size: 0.7rem; font-weight: 700; border-radius: 6px; text-decoration: none;">
-                            <i class="fa-solid fa-check"></i> Attendance
-                        </a>
-                    </div>
+                    {% if pt.is_break %}
+                    <td colspan="6" style="background: #fef3c7; color: #92400e; font-weight: 800; text-align: center; padding: 0.75rem; border-radius: 10px; border: 1px dashed #f59e0b; font-size: 0.9rem;">
+                        ☕ {{ pt.name|upper }} INTERVAL
+                    </td>
                     {% else %}
-                    <div style="color: #cbd5e1; font-size: 0.8rem; font-weight: 600;">
-                        - Free -
-                    </div>
+
+                    {% for day_key, day_label in days_of_week %}
+                    {% with slot_key=day_key|slot_key:pt.id %}
+                    {% with slot=slots_map|get_item:slot_key %}
+                    
+                    <td style="background: {% if slot %}#f0f9ff{% else %}#ffffff{% endif %}; 
+                               border: 1px solid {% if slot %}#bae6fd{% else %}#e2e8f0{% endif %}; 
+                               border-radius: 10px; padding: 0.75rem; text-align: center; vertical-align: middle;">
+                        
+                        {% if slot %}
+                        <div style="font-weight: 800; color: #0369a1; font-size: 0.95rem;">
+                            {{ slot.subject.name }}
+                        </div>
+                        <div style="font-size: 0.8rem; color: #0f172a; font-weight: 700; margin-top: 4px;">
+                            🏫 {{ slot.grade.name }} {% if slot.division %}- {{ slot.division.name }}{% endif %}
+                        </div>
+                        {% if slot.room_number %}
+                        <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">
+                            📍 {{ slot.room_number }}
+                        </div>
+                        {% endif %}
+                        <div style="margin-top: 6px;">
+                            <a href="{% url 'students:mark_attendance_class' slot.grade.id slot.division.id|default:0 %}" class="btn btn-sm btn-success" style="padding: 0.25rem 0.6rem; font-size: 0.7rem; font-weight: 700; border-radius: 6px; text-decoration: none;">
+                                <i class="fa-solid fa-check"></i> Attendance
+                            </a>
+                        </div>
+                        {% else %}
+                        <div style="color: #cbd5e1; font-size: 0.8rem; font-weight: 600;">
+                            - Free -
+                        </div>
+                        {% endif %}
+
+                    </td>
+
+                    {% endwith %}
+                    {% endwith %}
+                    {% endfor %}
+
                     {% endif %}
-
-                </td>
-
-                {% endwith %}
-                {% endwith %}
+                </tr>
                 {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-                {% endif %}
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <!-- LAYOUT 2: Periods as Columns (Days as Rows) -->
+    <div id="schedule_periods_col_container" style="display: none; overflow-x: auto;">
+        <table class="table-custom" style="width: 100%; border-collapse: separate; border-spacing: 6px; min-width: 900px;">
+            <thead>
+                <tr style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white;">
+                    <th style="padding: 1rem; text-align: center; border-radius: 10px; width: 140px; font-weight: 800; font-size: 0.9rem;">
+                        Day \ Period
+                    </th>
+                    {% for pt in period_timings %}
+                    <th style="padding: 0.85rem; text-align: center; border-radius: 10px; font-weight: 800; font-size: 0.88rem; min-width: 140px;">
+                        <div>{{ pt.name }}</div>
+                        <div style="font-size: 0.72rem; opacity: 0.85; font-weight: 600; margin-top: 2px;">{{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }}</div>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for day_key, day_label in days_of_week %}
+                <tr>
+                    <td style="background: #f1f5f9; padding: 0.85rem; border-radius: 10px; text-align: center; border: 1px solid #cbd5e1; font-weight: 800; color: #1e293b; vertical-align: middle; white-space: nowrap;">
+                        {{ day_label }}
+                    </td>
+                    {% for pt in period_timings %}
+                        {% if pt.is_break %}
+                        <td style="background: #fef3c7; color: #92400e; font-weight: 800; text-align: center; padding: 0.75rem; border-radius: 10px; border: 1px dashed #f59e0b; font-size: 0.82rem; vertical-align: middle;">
+                            ☕ {{ pt.name }}
+                        </td>
+                        {% else %}
+                        {% with slot_key=day_key|slot_key:pt.id %}
+                        {% with slot=slots_map|get_item:slot_key %}
+                        <td style="background: {% if slot %}#f0f9ff{% else %}#ffffff{% endif %}; 
+                                   border: 1px solid {% if slot %}#bae6fd{% else %}#e2e8f0{% endif %}; 
+                                   border-radius: 10px; padding: 0.75rem; text-align: center; vertical-align: middle;">
+                            
+                            {% if slot %}
+                            <div style="font-weight: 800; color: #0369a1; font-size: 0.95rem;">
+                                {{ slot.subject.name }}
+                            </div>
+                            <div style="font-size: 0.8rem; color: #0f172a; font-weight: 700; margin-top: 4px;">
+                                🏫 {{ slot.grade.name }} {% if slot.division %}- {{ slot.division.name }}{% endif %}
+                            </div>
+                            {% if slot.room_number %}
+                            <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">
+                                📍 {{ slot.room_number }}
+                            </div>
+                            {% endif %}
+                            <div style="margin-top: 6px;">
+                                <a href="{% url 'students:mark_attendance_class' slot.grade.id slot.division.id|default:0 %}" class="btn btn-sm btn-success" style="padding: 0.25rem 0.6rem; font-size: 0.7rem; font-weight: 700; border-radius: 6px; text-decoration: none;">
+                                    <i class="fa-solid fa-check"></i> Attendance
+                                </a>
+                            </div>
+                            {% else %}
+                            <div style="color: #cbd5e1; font-size: 0.8rem; font-weight: 600;">
+                                - Free -
+                            </div>
+                            {% endif %}
+
+                        </td>
+                        {% endwith %}
+                        {% endwith %}
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
 </div>
 
 <!-- ========================================================================= -->
@@ -275,6 +362,52 @@
 </div>
 
 <script>
+    function switchScheduleLayout(layout) {
+        const daysCol = document.getElementById('schedule_days_col_container');
+        const periodsCol = document.getElementById('schedule_periods_col_container');
+        const btnDays = document.getElementById('btn_schedule_days_col');
+        const btnPeriods = document.getElementById('btn_schedule_periods_col');
+        
+        if (!daysCol || !periodsCol) return;
+        
+        if (layout === 'periods_col') {
+            daysCol.style.display = 'none';
+            periodsCol.style.display = 'block';
+            if (btnDays) {
+                btnDays.style.background = 'transparent';
+                btnDays.style.color = '#64748b';
+                btnDays.style.boxShadow = 'none';
+            }
+            if (btnPeriods) {
+                btnPeriods.style.background = '#ffffff';
+                btnPeriods.style.color = '#0284c7';
+                btnPeriods.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06)';
+            }
+            localStorage.setItem('teacher_schedule_layout_pref', 'periods_col');
+        } else {
+            daysCol.style.display = 'block';
+            periodsCol.style.display = 'none';
+            if (btnDays) {
+                btnDays.style.background = '#ffffff';
+                btnDays.style.color = '#0284c7';
+                btnDays.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06)';
+            }
+            if (btnPeriods) {
+                btnPeriods.style.background = 'transparent';
+                btnPeriods.style.color = '#64748b';
+                btnPeriods.style.boxShadow = 'none';
+            }
+            localStorage.setItem('teacher_schedule_layout_pref', 'days_col');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedLayout = localStorage.getItem('teacher_schedule_layout_pref');
+        if (savedLayout) {
+            switchScheduleLayout(savedLayout);
+        }
+    });
+
     function switchScheduleDay(dayKey) {
         document.querySelectorAll('.mobile-day-pill').forEach(pill => pill.classList.remove('active'));
         document.querySelectorAll('.mobile-schedule-panel').forEach(panel => panel.style.display = 'none');

@@ -134,10 +134,10 @@
     </div>
 </div>
 
-<!-- Filter Bar -->
-<div class="card no-print" style="background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid #cbd5e1; margin-bottom: 1.5rem;">
-    <form method="get" id="class_view_form" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-        <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 180px;">
+<!-- Filter Bar & Layout Switcher -->
+<div class="card no-print" style="background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid #cbd5e1; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <form method="get" id="class_view_form" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; flex: 1;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 160px;">
             <label style="font-weight: 800; color: #334155; white-space: nowrap;">Class:</label>
             <select name="grade_id" id="class_view_grade_select" onchange="document.getElementById('class_view_division_select').value=''; document.getElementById('class_view_form').submit();" style="padding: 0.55rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; width: 100%;">
                 {% for g in grades %}
@@ -146,7 +146,7 @@
             </select>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 180px;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 160px;">
             <label style="font-weight: 800; color: #334155; white-space: nowrap;">Division:</label>
             <select name="division_id" id="class_view_division_select" onchange="document.getElementById('class_view_form').submit();" style="padding: 0.55rem 1rem; border-radius: 10px; border: 1px solid #94a3b8; font-weight: 700; width: 100%;">
                 <option value="">-- All / None --</option>
@@ -156,12 +156,22 @@
             </select>
         </div>
     </form>
+
+    <!-- Layout Switcher Controls -->
+    <div class="layout-toggle-btns" style="display: inline-flex; background: #e2e8f0; padding: 3px; border-radius: 12px; border: 1px solid #cbd5e1;">
+        <button type="button" class="layout-btn active" id="btn_layout_days_col" onclick="switchTimetableLayout('days_col')" style="border: none; background: #ffffff; color: #4338ca; padding: 0.45rem 0.85rem; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; box-shadow: 0 2px 4px rgba(0,0,0,0.06); transition: all 0.2s;">
+            <i class="fa-solid fa-table-columns"></i> Days as Columns
+        </button>
+        <button type="button" class="layout-btn" id="btn_layout_periods_col" onclick="switchTimetableLayout('periods_col')" style="border: none; background: transparent; color: #64748b; padding: 0.45rem 0.85rem; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; transition: all 0.2s;">
+            <i class="fa-solid fa-table-cells"></i> Periods as Columns (Days as Rows)
+        </button>
+    </div>
 </div>
 
 {% if selected_grade and period_timings %}
 
 <!-- ========================================================================= -->
-<!-- 1. DESKTOP PRINTABLE VIEW -->
+<!-- 1. DESKTOP PRINTABLE VIEW (LAYOUT 1 & 2) -->
 <!-- ========================================================================= -->
 <div class="desktop-table-container printable-timetable-container card" style="background: white; border-radius: 16px; padding: 1.75rem; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);">
     
@@ -172,11 +182,12 @@
         </h3>
     </div>
 
-    <div style="overflow-x: auto;">
+    <!-- LAYOUT 1: Days as Columns (Periods as Rows) -->
+    <div id="layout_days_col_container" style="overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse; text-align: center;">
             <thead>
                 <tr style="background: #0f172a; color: white;">
-                    <th style="padding: 0.85rem; border: 1px solid #334155; font-weight: 800;">Time / Day</th>
+                    <th style="padding: 0.85rem; border: 1px solid #334155; font-weight: 800; width: 140px;">Time / Day</th>
                     {% for day_key, day_label in days_of_week %}
                     <th style="padding: 0.85rem; border: 1px solid #334155; font-weight: 800;">{{ day_label }}</th>
                     {% endfor %}
@@ -231,6 +242,69 @@
                     {% endfor %}
 
                     {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- LAYOUT 2: Periods as Columns (Days as Rows) -->
+    <div id="layout_periods_col_container" style="overflow-x: auto; display: none;">
+        <table style="width: 100%; border-collapse: collapse; text-align: center;">
+            <thead>
+                <tr style="background: #0f172a; color: white;">
+                    <th style="padding: 0.85rem; border: 1px solid #334155; font-weight: 800; width: 130px;">Day \ Period</th>
+                    {% for pt in period_timings %}
+                    <th style="padding: 0.75rem; border: 1px solid #334155; font-weight: 800; min-width: 120px;">
+                        <div>{{ pt.name }}</div>
+                        <div style="font-size: 0.72rem; opacity: 0.85; font-weight: 600; margin-top: 2px;">{{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }}</div>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for day_key, day_label in days_of_week %}
+                <tr>
+                    <td style="background: #f8fafc; padding: 0.85rem; border: 1px solid #cbd5e1; font-weight: 800; color: #1e293b; white-space: nowrap;">
+                        {{ day_label }}
+                    </td>
+                    {% for pt in period_timings %}
+                        {% if pt.is_break %}
+                        <td style="background: #fef3c7; color: #92400e; font-weight: 800; padding: 0.65rem; border: 1px solid #f59e0b; font-size: 0.78rem;">
+                            ☕ {{ pt.name }}
+                        </td>
+                        {% else %}
+                        {% with slot_key=day_key|slot_key:pt.id %}
+                        {% with slot=slots_map|get_item:slot_key %}
+                        <td style="border: 1px solid #cbd5e1; padding: 0.75rem; vertical-align: middle; background: {% if slot %}#ffffff{% else %}#fafafa{% endif %};">
+                            {% if slot %}
+                            <div style="font-weight: 800; color: #0f172a; font-size: 0.95rem;">
+                                {{ slot.subject.name }}
+                            </div>
+                            <div style="font-size: 0.8rem; color: #475569; font-weight: 600; margin-top: 3px;">
+                                {{ slot.teacher.get_full_name|default:slot.teacher.username }}
+                            </div>
+                            <div style="display: flex; gap: 0.25rem; justify-content: center; flex-wrap: wrap; margin-top: 3px;">
+                                {% if not slot.division %}
+                                <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">📌 Fixed Slot</span>
+                                {% endif %}
+                                {% if slot.is_combined %}
+                                <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">🔗 Joint Class</span>
+                                {% endif %}
+                            </div>
+                            {% if slot.room_number %}
+                            <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">
+                                Room {{ slot.room_number }}
+                            </div>
+                            {% endif %}
+                            {% else %}
+                            <span style="color: #cbd5e1;">-</span>
+                            {% endif %}
+                        </td>
+                        {% endwith %}
+                        {% endwith %}
+                        {% endif %}
+                    {% endfor %}
                 </tr>
                 {% endfor %}
             </tbody>
@@ -323,6 +397,53 @@
 </div>
 
 <script>
+    function switchTimetableLayout(layout) {
+        const layoutDays = document.getElementById('layout_days_col_container');
+        const layoutPeriods = document.getElementById('layout_periods_col_container');
+        const btnDays = document.getElementById('btn_layout_days_col');
+        const btnPeriods = document.getElementById('btn_layout_periods_col');
+
+        if (layout === 'periods_col') {
+            if (layoutDays) layoutDays.style.display = 'none';
+            if (layoutPeriods) layoutPeriods.style.display = 'block';
+            
+            if (btnPeriods) {
+                btnPeriods.style.background = '#ffffff';
+                btnPeriods.style.color = '#4338ca';
+                btnPeriods.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06)';
+            }
+            if (btnDays) {
+                btnDays.style.background = 'transparent';
+                btnDays.style.color = '#64748b';
+                btnDays.style.boxShadow = 'none';
+            }
+            localStorage.setItem('timetable_layout_pref', 'periods_col');
+        } else {
+            if (layoutDays) layoutDays.style.display = 'block';
+            if (layoutPeriods) layoutPeriods.style.display = 'none';
+            
+            if (btnDays) {
+                btnDays.style.background = '#ffffff';
+                btnDays.style.color = '#4338ca';
+                btnDays.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06)';
+            }
+            if (btnPeriods) {
+                btnPeriods.style.background = 'transparent';
+                btnPeriods.style.color = '#64748b';
+                btnPeriods.style.boxShadow = 'none';
+            }
+            localStorage.setItem('timetable_layout_pref', 'days_col');
+        }
+    }
+
+    // Initialize layout preference on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const pref = localStorage.getItem('timetable_layout_pref');
+        if (pref === 'periods_col') {
+            switchTimetableLayout('periods_col');
+        }
+    });
+
     function switchViewDay(dayKey) {
         document.querySelectorAll('.mobile-day-pill').forEach(pill => pill.classList.remove('active'));
         document.querySelectorAll('.mobile-view-panel').forEach(panel => panel.style.display = 'none');

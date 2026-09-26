@@ -183,8 +183,14 @@
             </select>
         </div>
 
-        <div id="status_toast" style="margin-left: auto; font-weight: 700; font-size: 0.85rem; padding: 0.5rem 0.85rem; border-radius: 10px; background: #e0e7ff; color: #4338ca; display: flex; align-items: center; gap: 0.35rem;">
-            ⚡ Tap cell to edit!
+        <!-- Layout Switcher Controls -->
+        <div class="layout-toggle-btns" style="display: inline-flex; background: #e2e8f0; padding: 3px; border-radius: 12px; border: 1px solid #cbd5e1; margin-left: auto;">
+            <button type="button" class="layout-btn active" id="btn_builder_days_col" onclick="switchBuilderLayout('days_col')" style="border: none; background: #ffffff; color: #4338ca; padding: 0.45rem 0.85rem; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; box-shadow: 0 2px 4px rgba(0,0,0,0.06); transition: all 0.2s;">
+                <i class="fa-solid fa-table-columns"></i> Days as Columns
+            </button>
+            <button type="button" class="layout-btn" id="btn_builder_periods_col" onclick="switchBuilderLayout('periods_col')" style="border: none; background: transparent; color: #64748b; padding: 0.45rem 0.85rem; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; transition: all 0.2s;">
+                <i class="fa-solid fa-table-cells"></i> Periods as Columns (Days as Rows)
+            </button>
         </div>
     </form>
 </div>
@@ -192,94 +198,181 @@
 {% if selected_grade and period_timings %}
 
 <!-- ========================================================================= -->
-<!-- 1. DESKTOP VIEW (Matrix Table Layout) -->
+<!-- 1. DESKTOP VIEW (LAYOUT 1 & 2) -->
 <!-- ========================================================================= -->
 <div class="desktop-table-container card" style="background: white; border-radius: 16px; padding: 1.25rem; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); overflow-x: auto;">
-    <table class="table-custom" style="width: 100%; border-collapse: separate; border-spacing: 6px; min-width: 900px;">
-        <thead>
-            <tr style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white;">
-                <th style="padding: 1rem; text-align: center; border-radius: 10px; width: 140px; font-weight: 800; font-size: 0.9rem;">
-                    Period / Day
-                </th>
-                {% for day_key, day_label in days_of_week %}
-                <th style="padding: 1rem; text-align: center; border-radius: 10px; font-weight: 800; font-size: 0.9rem; letter-spacing: 0.5px;">
-                    {{ day_label }}
-                </th>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for pt in period_timings %}
-            <tr>
-                <td style="background: #f1f5f9; padding: 0.85rem; border-radius: 10px; text-align: center; border: 1px solid #cbd5e1; vertical-align: middle;">
-                    <div style="font-weight: 800; color: #1e293b; font-size: 0.95rem;">{{ pt.name }}</div>
-                    <div style="font-size: 0.75rem; color: #64748b; font-weight: 700; margin-top: 2px;">
-                        {{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }}
-                    </div>
-                </td>
+    
+    <!-- LAYOUT 1: Days as Columns (Periods as Rows) -->
+    <div id="builder_days_col_container" style="overflow-x: auto;">
+        <table class="table-custom" style="width: 100%; border-collapse: separate; border-spacing: 6px; min-width: 900px;">
+            <thead>
+                <tr style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white;">
+                    <th style="padding: 1rem; text-align: center; border-radius: 10px; width: 140px; font-weight: 800; font-size: 0.9rem;">
+                        Period / Day
+                    </th>
+                    {% for day_key, day_label in days_of_week %}
+                    <th style="padding: 1rem; text-align: center; border-radius: 10px; font-weight: 800; font-size: 0.9rem; letter-spacing: 0.5px;">
+                        {{ day_label }}
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for pt in period_timings %}
+                <tr>
+                    <td style="background: #f1f5f9; padding: 0.85rem; border-radius: 10px; text-align: center; border: 1px solid #cbd5e1; vertical-align: middle;">
+                        <div style="font-weight: 800; color: #1e293b; font-size: 0.95rem;">{{ pt.name }}</div>
+                        <div style="font-size: 0.75rem; color: #64748b; font-weight: 700; margin-top: 2px;">
+                            {{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }}
+                        </div>
+                    </td>
 
-                {% if pt.is_break %}
-                <td colspan="6" style="background: #fef3c7; color: #92400e; font-weight: 800; text-align: center; padding: 0.75rem; border-radius: 10px; border: 1px dashed #f59e0b; font-size: 0.9rem; letter-spacing: 1px;">
-                    ☕ {{ pt.name|upper }} INTERVAL
-                </td>
-                {% else %}
-
-                {% for day_key, day_label in days_of_week %}
-                {% with slot_key=day_key|slot_key:pt.id %}
-                {% with slot=slots_map|get_item:slot_key %}
-                
-                <td class="timetable-cell" 
-                    id="cell_{{ day_key }}_{{ pt.id }}"
-                    data-day="{{ day_key }}"
-                    data-period-id="{{ pt.id }}"
-                    data-period-name="{{ pt.name }}"
-                    data-day-label="{{ day_label }}"
-                    data-subject-id="{{ slot.subject.id|default:'' }}"
-                    data-teacher-id="{{ slot.teacher.id|default:'' }}"
-                    data-room="{{ slot.room_number|default:'' }}"
-                    data-is-combined="{% if slot and slot.is_combined %}true{% else %}false{% endif %}"
-                    onclick="openSlotModal('{{ day_key }}', '{{ pt.id }}', '{{ day_label }}', '{{ pt.name }}')"
-                    style="background: {% if slot %}#f0fdf4{% else %}#ffffff{% endif %}; 
-                           border: 2px dashed {% if slot %}#86efac{% else %}#cbd5e1{% endif %}; 
-                           border-radius: 10px; padding: 0.75rem; text-align: center; vertical-align: middle; cursor: pointer; transition: all 0.2s ease;">
-                    
-                    {% if slot %}
-                    <div style="font-weight: 800; color: #15803d; font-size: 0.9rem; line-height: 1.2;">
-                        {{ slot.subject.name }}
-                    </div>
-                    <div style="font-size: 0.75rem; color: #334155; font-weight: 700; margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
-                        <i class="fa-solid fa-user-tie" style="color: #6366f1;"></i> {{ slot.teacher.get_full_name|default:slot.teacher.username }}
-                    </div>
-                    <div style="display: flex; gap: 0.25rem; justify-content: center; flex-wrap: wrap; margin-top: 3px;">
-                        {% if not slot.division %}
-                        <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">📌 Fixed Slot</span>
-                        {% endif %}
-                        {% if slot.is_combined %}
-                        <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">🔗 Joint Class</span>
-                        {% endif %}
-                    </div>
-                    {% if slot.room_number %}
-                    <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">
-                        📍 Room: {{ slot.room_number }}
-                    </div>
-                    {% endif %}
+                    {% if pt.is_break %}
+                    <td colspan="6" style="background: #fef3c7; color: #92400e; font-weight: 800; text-align: center; padding: 0.75rem; border-radius: 10px; border: 1px dashed #f59e0b; font-size: 0.9rem; letter-spacing: 1px;">
+                        ☕ {{ pt.name|upper }} INTERVAL
+                    </td>
                     {% else %}
-                    <div style="color: #94a3b8; font-size: 0.8rem; font-weight: 600;">
-                        <i class="fa-solid fa-plus" style="margin-right: 0.2rem;"></i> Assign
-                    </div>
+
+                    {% for day_key, day_label in days_of_week %}
+                    {% with slot_key=day_key|slot_key:pt.id %}
+                    {% with slot=slots_map|get_item:slot_key %}
+                    
+                    <td class="timetable-cell" 
+                        id="cell_{{ day_key }}_{{ pt.id }}"
+                        data-day="{{ day_key }}"
+                        data-period-id="{{ pt.id }}"
+                        data-period-name="{{ pt.name }}"
+                        data-day-label="{{ day_label }}"
+                        data-subject-id="{{ slot.subject.id|default:'' }}"
+                        data-teacher-id="{{ slot.teacher.id|default:'' }}"
+                        data-room="{{ slot.room_number|default:'' }}"
+                        data-is-combined="{% if slot and slot.is_combined %}true{% else %}false{% endif %}"
+                        onclick="openSlotModal('{{ day_key }}', '{{ pt.id }}', '{{ day_label }}', '{{ pt.name }}')"
+                        style="background: {% if slot %}#f0fdf4{% else %}#ffffff{% endif %}; 
+                               border: 2px dashed {% if slot %}#86efac{% else %}#cbd5e1{% endif %}; 
+                               border-radius: 10px; padding: 0.75rem; text-align: center; vertical-align: middle; cursor: pointer; transition: all 0.2s ease;">
+                        
+                        {% if slot %}
+                        <div style="font-weight: 800; color: #15803d; font-size: 0.9rem; line-height: 1.2;">
+                            {{ slot.subject.name }}
+                        </div>
+                        <div style="font-size: 0.75rem; color: #334155; font-weight: 700; margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
+                            <i class="fa-solid fa-user-tie" style="color: #6366f1;"></i> {{ slot.teacher.get_full_name|default:slot.teacher.username }}
+                        </div>
+                        <div style="display: flex; gap: 0.25rem; justify-content: center; flex-wrap: wrap; margin-top: 3px;">
+                            {% if not slot.division %}
+                            <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">📌 Fixed Slot</span>
+                            {% endif %}
+                            {% if slot.is_combined %}
+                            <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">🔗 Joint Class</span>
+                            {% endif %}
+                        </div>
+                        {% if slot.room_number %}
+                        <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">
+                            📍 Room: {{ slot.room_number }}
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <div style="color: #94a3b8; font-size: 0.8rem; font-weight: 600;">
+                            <i class="fa-solid fa-plus" style="margin-right: 0.2rem;"></i> Assign
+                        </div>
+                        {% endif %}
+
+                    </td>
+
+                    {% endwith %}
+                    {% endwith %}
+                    {% endfor %}
+
                     {% endif %}
-
-                </td>
-
-                {% endwith %}
-                {% endwith %}
+                </tr>
                 {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-                {% endif %}
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <!-- LAYOUT 2: Periods as Columns (Days as Rows) -->
+    <div id="builder_periods_col_container" style="overflow-x: auto; display: none;">
+        <table class="table-custom" style="width: 100%; border-collapse: separate; border-spacing: 6px; min-width: 900px;">
+            <thead>
+                <tr style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white;">
+                    <th style="padding: 1rem; text-align: center; border-radius: 10px; width: 130px; font-weight: 800; font-size: 0.9rem;">
+                        Day \ Period
+                    </th>
+                    {% for pt in period_timings %}
+                    <th style="padding: 0.85rem; text-align: center; border-radius: 10px; font-weight: 800; font-size: 0.88rem; min-width: 130px;">
+                        <div>{{ pt.name }}</div>
+                        <div style="font-size: 0.72rem; opacity: 0.85; font-weight: 600; margin-top: 2px;">{{ pt.start_time|time:"H:i" }} - {{ pt.end_time|time:"H:i" }}</div>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for day_key, day_label in days_of_week %}
+                <tr>
+                    <td style="background: #f1f5f9; padding: 0.85rem; border-radius: 10px; text-align: center; border: 1px solid #cbd5e1; font-weight: 800; color: #1e293b; vertical-align: middle; white-space: nowrap;">
+                        {{ day_label }}
+                    </td>
+                    {% for pt in period_timings %}
+                        {% if pt.is_break %}
+                        <td style="background: #fef3c7; color: #92400e; font-weight: 800; text-align: center; padding: 0.75rem; border-radius: 10px; border: 1px dashed #f59e0b; font-size: 0.82rem; vertical-align: middle;">
+                            ☕ {{ pt.name }}
+                        </td>
+                        {% else %}
+                        {% with slot_key=day_key|slot_key:pt.id %}
+                        {% with slot=slots_map|get_item:slot_key %}
+                        <td class="timetable-cell" 
+                            id="cell_h_{{ day_key }}_{{ pt.id }}"
+                            data-day="{{ day_key }}"
+                            data-period-id="{{ pt.id }}"
+                            data-period-name="{{ pt.name }}"
+                            data-day-label="{{ day_label }}"
+                            data-subject-id="{{ slot.subject.id|default:'' }}"
+                            data-teacher-id="{{ slot.teacher.id|default:'' }}"
+                            data-room="{{ slot.room_number|default:'' }}"
+                            data-is-combined="{% if slot and slot.is_combined %}true{% else %}false{% endif %}"
+                            onclick="openSlotModal('{{ day_key }}', '{{ pt.id }}', '{{ day_label }}', '{{ pt.name }}')"
+                            style="background: {% if slot %}#f0fdf4{% else %}#ffffff{% endif %}; 
+                                   border: 2px dashed {% if slot %}#86efac{% else %}#cbd5e1{% endif %}; 
+                                   border-radius: 10px; padding: 0.75rem; text-align: center; vertical-align: middle; cursor: pointer; transition: all 0.2s ease;">
+                            
+                            {% if slot %}
+                            <div style="font-weight: 800; color: #15803d; font-size: 0.9rem; line-height: 1.2;">
+                                {{ slot.subject.name }}
+                            </div>
+                            <div style="font-size: 0.75rem; color: #334155; font-weight: 700; margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
+                                <i class="fa-solid fa-user-tie" style="color: #6366f1;"></i> {{ slot.teacher.get_full_name|default:slot.teacher.username }}
+                            </div>
+                            <div style="display: flex; gap: 0.25rem; justify-content: center; flex-wrap: wrap; margin-top: 3px;">
+                                {% if not slot.division %}
+                                <span class="badge" style="background: #ede9fe; color: #6d28d9; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">📌 Fixed Slot</span>
+                                {% endif %}
+                                {% if slot.is_combined %}
+                                <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">🔗 Joint Class</span>
+                                {% endif %}
+                            </div>
+                            {% if slot.room_number %}
+                            <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">
+                                📍 Room: {{ slot.room_number }}
+                            </div>
+                            {% endif %}
+                            {% else %}
+                            <div style="color: #94a3b8; font-size: 0.8rem; font-weight: 600;">
+                                <i class="fa-solid fa-plus" style="margin-right: 0.2rem;"></i> Assign
+                            </div>
+                            {% endif %}
+
+                        </td>
+                        {% endwith %}
+                        {% endwith %}
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
 </div>
 
 <!-- ========================================================================= -->
@@ -463,6 +556,52 @@
         {% endfor %}
     };
 
+    function switchBuilderLayout(layout) {
+        const daysCol = document.getElementById('builder_days_col_container');
+        const periodsCol = document.getElementById('builder_periods_col_container');
+        const btnDays = document.getElementById('btn_builder_days_col');
+        const btnPeriods = document.getElementById('btn_builder_periods_col');
+        
+        if (!daysCol || !periodsCol) return;
+        
+        if (layout === 'periods_col') {
+            daysCol.style.display = 'none';
+            periodsCol.style.display = 'block';
+            if (btnDays) {
+                btnDays.style.background = 'transparent';
+                btnDays.style.color = '#64748b';
+                btnDays.style.boxShadow = 'none';
+            }
+            if (btnPeriods) {
+                btnPeriods.style.background = '#ffffff';
+                btnPeriods.style.color = '#4338ca';
+                btnPeriods.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06)';
+            }
+            localStorage.setItem('timetable_builder_layout_pref', 'periods_col');
+        } else {
+            daysCol.style.display = 'block';
+            periodsCol.style.display = 'none';
+            if (btnDays) {
+                btnDays.style.background = '#ffffff';
+                btnDays.style.color = '#4338ca';
+                btnDays.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06)';
+            }
+            if (btnPeriods) {
+                btnPeriods.style.background = 'transparent';
+                btnPeriods.style.color = '#64748b';
+                btnPeriods.style.boxShadow = 'none';
+            }
+            localStorage.setItem('timetable_builder_layout_pref', 'days_col');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedLayout = localStorage.getItem('timetable_builder_layout_pref');
+        if (savedLayout) {
+            switchBuilderLayout(savedLayout);
+        }
+    });
+
     function switchMobileDay(dayKey) {
         document.querySelectorAll('.mobile-day-pill').forEach(pill => pill.classList.remove('active'));
         document.querySelectorAll('.mobile-day-panel').forEach(panel => panel.style.display = 'none');
@@ -485,10 +624,10 @@
         document.getElementById('modal_period_id').value = periodId;
         document.getElementById('modal_title').innerText = `${dayLabel} - ${periodName}`;
 
-        const cell = document.getElementById(`cell_${day}_${periodId}`);
-        const subjectId = cell ? cell.dataset.subjectId : '';
-        const teacherId = cell ? cell.dataset.teacherId : '';
-        const room = cell ? cell.dataset.room : '';
+        const cell = document.getElementById(`cell_${day}_${periodId}`) || document.getElementById(`cell_h_${day}_${periodId}`);
+        const subjectId = cell ? (cell.dataset.subjectId || '') : '';
+        const teacherId = cell ? (cell.dataset.teacherId || '') : '';
+        const room = cell ? (cell.dataset.room || '') : '';
         const isCombined = cell ? (cell.dataset.isCombined === 'true') : false;
 
         document.getElementById('modal_subject_id').value = subjectId;
