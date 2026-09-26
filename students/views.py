@@ -8220,7 +8220,7 @@ def teacher_my_schedule(request):
 
     # Get all teachers (users with teacher role, or who have timetable slots/assignments)
     all_teachers_qs = User.objects.filter(
-        Q(profile__role='teacher') | Q(timetableslot__isnull=False) | Q(teacher_assignments__isnull=False)
+        Q(profile__role='teacher') | Q(timetable_slots__isnull=False) | Q(subject_assignments__isnull=False)
     ).distinct().order_by('first_name', 'last_name', 'username')
     
     if not all_teachers_qs.exists():
