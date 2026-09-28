@@ -161,6 +161,97 @@
     /* Red active style */
     .tab-btn-red { background: #fef2f2; border-color: #fee2e2; color: #dc2626; }
     .tab-btn-red.active { background: #dc2626; border-color: #dc2626; color: #fff; }
+
+    /* Attendance Dashboard Style Components */
+    .attendance-dual-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.85rem;
+        margin-bottom: 1.25rem;
+        width: 100%;
+    }
+
+    @media (max-width: 576px) {
+        .attendance-dual-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .att-mini-card {
+        border-radius: 16px;
+        padding: 1rem 0.75rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        box-shadow: 0 3px 12px rgba(0,0,0,0.03);
+        position: relative;
+        box-sizing: border-box;
+        min-width: 0;
+    }
+
+    .att-mini-card h5 {
+        margin: 0 0 0.35rem 0;
+        font-size: 0.88rem;
+        font-weight: 800;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+    }
+
+    .att-mini-ring {
+        position: relative;
+        width: 80px;
+        height: 80px;
+        margin: 0.35rem 0;
+        flex-shrink: 0;
+    }
+
+    .att-mini-ring svg {
+        width: 80px;
+        height: 80px;
+        transform: rotate(-90deg);
+    }
+
+    .att-mini-ring circle {
+        fill: none;
+        stroke-width: 7;
+        stroke-linecap: round;
+    }
+
+    .att-mini-ring .progress-value {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.05rem;
+        font-weight: 800;
+    }
+
+    .att-mini-footer {
+        font-size: 0.8rem;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-top: 0.35rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+    }
+
+    .att-select-compact {
+        padding: 3px 6px;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        border: 1px solid rgba(67, 56, 202, 0.25);
+        background: #fff;
+        color: #4338ca;
+        outline: none;
+        cursor: pointer;
+    }
 </style>
 
 <!-- Top Bar Action Header -->
@@ -480,36 +571,144 @@
             <div class="profile-tab-pane" id="pane-attendance" style="display: none;">
                 <div class="card shadow-sm border-0" style="border-radius: 16px; background: white;">
                     <div class="card-body p-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-                            <h6 style="font-weight: 800; text-transform: uppercase; font-size: 0.85rem; color: #475569; margin: 0;">Attendance Summary</h6>
-                        </div>
-                        <div class="d-flex align-items-center gap-3 py-2">
-                            <div style="width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;
-                                {% if today_attendance %}
-                                    {% if today_attendance.status == 'present' %}background: #dcfce7; color: #15803d;
-                                    {% elif today_attendance.status == 'absent' %}background: #fee2e2; color: #991b1b;
-                                    {% elif today_attendance.status == 'late' %}background: #fef9c3; color: #a16207;
-                                    {% else %}background: #e0f2fe; color: #0369a1;{% endif %}
-                                {% else %}
-                                    background: #f1f5f9; color: #475569;
-                                {% endif %}">
-                                <i class="fa-solid fa-calendar-day"></i>
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom flex-wrap gap-2">
+                            <h6 style="font-weight: 800; text-transform: uppercase; font-size: 0.85rem; color: #475569; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fa-solid fa-calendar-check" style="color: #dc2626;"></i> Attendance Status & Summary
+                            </h6>
+                            {% if request.user.profile.role != 'student' %}
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'students:mark_attendance' %}" class="btn btn-xs btn-outline-success" style="font-size: 0.72rem; font-weight: 700; padding: 0.3rem 0.65rem; border-radius: 8px;">
+                                    <i class="fa-solid fa-check-double"></i> Mark Attendance
+                                </a>
+                                <a href="{% url 'students:attendance_student_detail' student.id %}" class="btn btn-xs btn-outline-primary" style="font-size: 0.72rem; font-weight: 700; padding: 0.3rem 0.65rem; border-radius: 8px;">
+                                    <i class="fa-solid fa-clock-rotate-left"></i> Full History
+                                </a>
                             </div>
-                            <div>
-                                <div style="font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.2;">Today's Attendance Status</div>
-                                <div style="font-size: 1rem; font-weight: 800; line-height: 1.2; margin-top: 2px;
-                                    {% if today_attendance %}
-                                        {% if today_attendance.status == 'present' %}color: #15803d;
-                                        {% elif today_attendance.status == 'absent' %}color: #991b1b;
-                                        {% elif today_attendance.status == 'late' %}color: #a16207;
-                                        {% else %}color: #0369a1;{% endif %}
-                                    {% else %}
-                                        color: #475569;
-                                    {% endif %}">
-                                    {% if today_attendance %}{{ today_attendance.get_status_display }}{% else %}Not Marked Today{% endif %}
+                            {% endif %}
+                        </div>
+
+                        <!-- TODAY'S ATTENDANCE STATUS (HERO STATUS CARD) -->
+                        <div class="hero-att-card mb-3 p-3" style="border-radius: 14px;
+                            {% if today_holiday %}
+                                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1.5px solid #f59e0b; color: #78350f;
+                            {% elif today_status == 'present' %}
+                                background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #10b981; color: #14532d;
+                            {% elif today_status == 'absent' %}
+                                background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1.5px solid #ef4444; color: #7f1d1d;
+                            {% elif today_status == 'late' %}
+                                background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1.5px solid #f59e0b; color: #78350f;
+                            {% elif today_status == 'excused' %}
+                                background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #0ea5e9; color: #0c4a6e;
+                            {% else %}
+                                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1.5px solid #cbd5e1; color: #334155;
+                            {% endif %}">
+                            
+                            <div style="display: flex; align-items: center; gap: 0.85rem; width: 100%;">
+                                <div style="width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; background: #ffffff; box-shadow: 0 3px 8px rgba(0,0,0,0.06); flex-shrink: 0;
+                                    {% if today_holiday %}color: #d97706;
+                                    {% elif today_status == 'present' %}color: #16a34a;
+                                    {% elif today_status == 'absent' %}color: #dc2626;
+                                    {% elif today_status == 'late' %}color: #d97706;
+                                    {% elif today_status == 'excused' %}color: #0284c7;
+                                    {% else %}color: #64748b;{% endif %}">
+                                    <i class="fa-solid {% if today_holiday %}fa-umbrella-beach{% elif today_status == 'present' %}fa-circle-check{% elif today_status == 'absent' %}fa-circle-xmark{% elif today_status == 'late' %}fa-clock{% elif today_status == 'excused' %}fa-circle-info{% else %}fa-hourglass-half{% endif %}"></i>
+                                </div>
+
+                                <div style="flex: 1; min-width: 0;">
+                                    <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.85;">
+                                        📅 TODAY'S ATTENDANCE
+                                    </div>
+                                    <div style="font-size: 1.05rem; font-weight: 800; line-height: 1.2; margin-top: 2px;">
+                                        {% if today_holiday %}
+                                            HOLIDAY
+                                        {% elif today_status == 'present' %}
+                                            PRESENT ✅
+                                        {% elif today_status == 'absent' %}
+                                            ABSENT ❌
+                                        {% elif today_status == 'late' %}
+                                            LATE ⏰
+                                        {% elif today_status == 'excused' %}
+                                            EXCUSED ℹ️
+                                        {% else %}
+                                            NOT MARKED ⏳
+                                        {% endif %}
+                                    </div>
+                                    <div style="font-size: 0.78rem; font-weight: 600; opacity: 0.9; margin-top: 2px;">
+                                        {% if today_holiday %}
+                                            {{ today_holiday.title }}
+                                        {% elif today_status == 'present' %}
+                                            Recorded present today
+                                        {% elif today_status == 'absent' %}
+                                            Marked absent today
+                                        {% elif today_status == 'late' %}
+                                            Recorded late today
+                                        {% elif today_status == 'excused' %}
+                                            Excused leave today
+                                        {% else %}
+                                            Attendance not submitted yet today
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- MONTHLY ATTENDANCE AND YEARLY ATTENDANCE IN ONE ROW (2 CARDS PER ROW) -->
+                        <div class="attendance-dual-grid">
+                            <!-- Monthly Attendance Card -->
+                            <div class="att-mini-card" style="background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 1px solid rgba(99, 102, 241, 0.18);">
+                                <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                    <h5 style="color: #4338ca;">Monthly Attendance</h5>
+                                    <form method="GET" action="" style="display: flex; gap: 4px; align-items: center; justify-content: center; width: 100%;">
+                                        <input type="hidden" name="tab" value="attendance">
+                                        <select name="month" onchange="this.form.submit()" class="att-select-compact">
+                                            {% for m_num, m_name in months_choices %}
+                                                <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>{{ m_name|slice:":3" }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <select name="year" onchange="this.form.submit()" class="att-select-compact">
+                                            {% for y in years_choices %}
+                                                <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </form>
+                                </div>
+                                
+                                <div class="att-mini-ring" style="--percent: {{ attendance_monthly_percentage|default:0 }}">
+                                    <svg viewBox="0 0 72 72">
+                                        <circle cx="36" cy="36" r="30" style="stroke: rgba(67, 56, 202, 0.12);"></circle>
+                                        <circle cx="36" cy="36" r="30" style="stroke-dasharray: 188.5; stroke-dashoffset: calc(188.5 - (188.5 * var(--percent)) / 100); stroke: #6366f1;"></circle>
+                                    </svg>
+                                    <div class="progress-value" style="color: #4338ca;">{{ attendance_monthly_percentage|floatformat:0 }}%</div>
+                                </div>
+                                
+                                <div class="att-mini-footer" style="color: #4338ca;" title="Attended {{ monthly_present }} of {{ monthly_total }} days in {{ current_month_name }}">
+                                    {{ monthly_present }} / {{ monthly_total }} Days Present
+                                </div>
+                            </div>
+
+                            <!-- Yearly Attendance Card / Total Attendance Status of this Academic Year -->
+                            <div class="att-mini-card" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid rgba(2, 132, 199, 0.2);">
+                                <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                    <h5 style="color: #0369a1;">Academic Year Attendance</h5>
+                                    <div style="background: #fff; padding: 3px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 800; color: #0284c7; box-shadow: 0 1px 3px rgba(0,0,0,0.05); max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        {% if active_year %}{{ active_year.name }}{% else %}Active Year{% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="att-mini-ring" style="--percent: {{ attendance_yearly_percentage|default:0 }}">
+                                    <svg viewBox="0 0 72 72">
+                                        <circle cx="36" cy="36" r="30" style="stroke: rgba(2, 132, 199, 0.12);"></circle>
+                                        <circle cx="36" cy="36" r="30" style="stroke-dasharray: 188.5; stroke-dashoffset: calc(188.5 - (188.5 * var(--percent)) / 100); stroke: #0284c7;"></circle>
+                                    </svg>
+                                    <div class="progress-value" style="color: #0369a1;">{{ attendance_yearly_percentage|floatformat:0 }}%</div>
+                                </div>
+                                
+                                <div class="att-mini-footer" style="color: #0369a1;" title="Attended {{ yearly_present }} of {{ yearly_total }} days this academic year">
+                                    {{ yearly_present }} / {{ yearly_total }} Days Present
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -546,24 +745,42 @@
         const tabButtons = document.querySelectorAll('#customProfileTabs .custom-tab-btn');
         const tabPanes = document.querySelectorAll('.profile-tab-pane');
 
-        tabButtons.forEach(btn => {
-            btn.addEventListener('click', function() {
-                // Remove active class from all buttons
-                tabButtons.forEach(b => b.classList.remove('active'));
-                // Add active class to clicked button
-                this.classList.add('active');
-
-                // Hide all panes
-                tabPanes.forEach(pane => pane.style.display = 'none');
-                
-                // Show the target pane
-                const targetId = this.getAttribute('data-target');
-                const targetPane = document.getElementById(targetId);
-                if (targetPane) {
-                    targetPane.style.display = 'block';
+        function activateTab(targetId) {
+            tabButtons.forEach(b => {
+                if (b.getAttribute('data-target') === targetId) {
+                    b.classList.add('active');
+                } else {
+                    b.classList.remove('active');
                 }
             });
+
+            tabPanes.forEach(pane => {
+                if (pane.id === targetId) {
+                    pane.style.display = 'block';
+                } else {
+                    pane.style.display = 'none';
+                }
+            });
+        }
+
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target');
+                activateTab(targetId);
+            });
         });
+
+        // Check URL parameters for tab activation
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+        if (tabParam === 'attendance' || urlParams.has('month') || urlParams.has('year')) {
+            activateTab('pane-attendance');
+        } else if (window.location.hash) {
+            const hashTarget = window.location.hash.replace('#', '');
+            if (document.getElementById(hashTarget)) {
+                activateTab(hashTarget);
+            }
+        }
     });
 </script>
 {% endblock %}
