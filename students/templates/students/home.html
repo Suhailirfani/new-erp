@@ -256,6 +256,10 @@
                 <i class="fa-solid fa-clipboard-user"></i>
                 Mark Attendance
             </a>
+            <a href="{% url 'students:low_attendance_students' %}" class="quick-action-btn" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%); border-color: rgba(239, 68, 68, 0.25);">
+                <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i>
+                Low Attendance (&lt;85%)
+            </a>
             <a href="{% url 'students:hostel_movement_create' %}" class="quick-action-btn">
                 <i class="fa-solid fa-shuttle-van"></i>
                 Hostel Movement

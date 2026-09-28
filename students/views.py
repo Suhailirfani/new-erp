@@ -3862,6 +3862,309 @@ def attendance_analytics(request):
 
     return render(request, 'students/attendance_analytics.html', context)
 
+
+@role_required(['admin', 'teacher', 'accountant', 'ntstaff'])
+def low_attendance_students(request):
+    """
+    Dedicated view to track and manage students with low attendance / attendance shortage.
+    Rules:
+    - Normal Mandatory Attendance Requirement: 85%
+    - Medical Exemption / Condonation Minimum: 70%
+    - Critical Shortage: < 70%
+    - Condonable Shortage: 70% to 84.99%
+    - Regular / Eligible: >= 85%
+    """
+    import math
+    import csv
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    academic_years = AcademicYear.objects.all().order_by('-start_date')
+    
+    selected_year_id = request.GET.get('academic_year')
+    selected_year = AcademicYear.objects.filter(id=selected_year_id).first() if selected_year_id else active_year
+    
+    grade_id = request.GET.get('grade')
+    division_id = request.GET.get('division')
+    section_id = request.GET.get('section')
+    status_filter = request.GET.get('status_filter', 'all_low')  # all_low (<85%), critical (<70%), condonable (70-85%), medical_claimed, all
+    search_query = request.GET.get('search', '').strip()
+    date_from_str = request.GET.get('date_from', '')
+    date_to_str = request.GET.get('date_to', '')
+    
+    today = date.today()
+    
+    # Base Enrollments query for the selected year
+    enrollments_qs = Enrollment.objects.filter(student__is_active=True).select_related(
+        'student', 'grade', 'division', 'section', 'academic_year'
+    )
+    if selected_year:
+        enrollments_qs = enrollments_qs.filter(academic_year=selected_year)
+    if grade_id:
+        enrollments_qs = enrollments_qs.filter(grade_id=grade_id)
+    if division_id:
+        enrollments_qs = enrollments_qs.filter(division_id=division_id)
+    if section_id:
+        enrollments_qs = enrollments_qs.filter(grade__section_id=section_id)
+    if search_query:
+        enrollments_qs = enrollments_qs.filter(
+            Q(student__first_name__icontains=search_query) |
+            Q(student__last_name__icontains=search_query) |
+            Q(student__student_id__icontains=search_query)
+        )
+        
+    enrollments = list(enrollments_qs)
+    student_ids = [e.student_id for e in enrollments]
+    
+    custom_start = None
+    custom_end = None
+    if date_from_str:
+        try:
+            custom_start = datetime.strptime(date_from_str, '%Y-%m-%d').date()
+        except ValueError:
+            custom_start = None
+    if date_to_str:
+        try:
+            custom_end = datetime.strptime(date_to_str, '%Y-%m-%d').date()
+        except ValueError:
+            custom_end = None
+            
+    holiday_cache = {}
+    
+    att_qs = Attendance.objects.filter(student_id__in=student_ids)
+    if selected_year:
+        att_qs = att_qs.filter(enrollment__academic_year=selected_year)
+    if custom_start:
+        att_qs = att_qs.filter(date__gte=custom_start)
+    if custom_end:
+        att_qs = att_qs.filter(date__lte=custom_end)
+        
+    attendances_by_student = {}
+    for att in att_qs.only('student_id', 'date', 'status', 'remarks'):
+        attendances_by_student.setdefault(att.student_id, []).append(att)
+        
+    student_list = []
+    
+    total_analyzed = 0
+    total_low_attendance = 0  # < 85%
+    total_critical = 0        # < 70%
+    total_condonable = 0     # 70% - 84.99%
+    total_regular = 0        # >= 85%
+    total_medical_cases = 0
+    total_pct_sum = 0
+    
+    medical_keywords = {'medical', 'sick', 'hospital', 'doctor', 'health', 'ill', 'fever', 'treatment', 'surgery', 'injury', 'accident', 'clinic', 'pharma', 'leave'}
+    
+    for enrollment in enrollments:
+        student = enrollment.student
+        grade_obj = enrollment.grade
+        
+        if custom_start:
+            s_start = custom_start
+        elif grade_obj and grade_obj.session_start_date:
+            s_start = grade_obj.session_start_date
+        elif selected_year and selected_year.start_date:
+            s_start = selected_year.start_date
+        else:
+            s_start = None
+            
+        if custom_end:
+            s_end = custom_end
+        elif selected_year and selected_year.end_date and selected_year.end_date < today:
+            s_end = selected_year.end_date
+        else:
+            s_end = today
+            
+        grade_id_key = grade_obj.id if grade_obj else 0
+        if (grade_id_key, s_start, s_end) not in holiday_cache:
+            holiday_cache[(grade_id_key, s_start, s_end)] = get_holiday_dates(s_start, s_end, grade=grade_obj) if (s_start and s_end) else set()
+        holidays = holiday_cache[(grade_id_key, s_start, s_end)]
+        
+        st_records = attendances_by_student.get(student.id, [])
+        valid_records = []
+        for r in st_records:
+            if s_start and r.date < s_start:
+                continue
+            if s_end and r.date > s_end:
+                continue
+            if r.date in holidays and r.status == 'absent':
+                continue
+            valid_records.append(r)
+            
+        total_working = len(valid_records)
+        present_count = 0
+        late_count = 0
+        excused_count = 0
+        absent_count = 0
+        medical_count = 0
+        medical_reasons = []
+        
+        for r in valid_records:
+            if r.status == 'present':
+                present_count += 1
+            elif r.status == 'late':
+                late_count += 1
+            elif r.status == 'excused':
+                excused_count += 1
+                medical_count += 1
+                if r.remarks:
+                    medical_reasons.append(f"{r.date.strftime('%d/%m')}: {r.remarks}")
+            elif r.status == 'absent':
+                absent_count += 1
+                if r.remarks:
+                    rem_lower = r.remarks.lower()
+                    if any(kw in rem_lower for kw in medical_keywords):
+                        medical_count += 1
+                        medical_reasons.append(f"{r.date.strftime('%d/%m')}: {r.remarks}")
+                        
+        attended_count = present_count + late_count
+        attendance_pct = round((attended_count / total_working * 100), 2) if total_working > 0 else 0.0
+        medical_adjusted_pct = round(((attended_count + medical_count) / total_working * 100), 2) if total_working > 0 else 0.0
+        
+        if attendance_pct < 85.0 and total_working > 0:
+            target_85_needed = math.ceil((0.85 * total_working - attended_count) / 0.15)
+            target_85_needed = max(1, target_85_needed)
+        else:
+            target_85_needed = 0
+            
+        if attendance_pct < 70.0 and total_working > 0:
+            target_70_needed = math.ceil((0.70 * total_working - attended_count) / 0.30)
+            target_70_needed = max(1, target_70_needed)
+        else:
+            target_70_needed = 0
+
+        # Normal mandatory: 85%, Medical threshold: 70%
+        if attendance_pct >= 85.0:
+            category = 'regular'
+            category_label = 'Eligible (≥85%)'
+            badge_class = 'success'
+            condonation_status = 'Meets Regular Mandatory Threshold'
+        elif attendance_pct >= 70.0:
+            category = 'condonable'
+            category_label = 'Shortage (70% - 85%)'
+            badge_class = 'warning'
+            if medical_count > 0:
+                condonation_status = 'Eligible for Medical Condonation (≥70%)'
+            else:
+                condonation_status = 'Requires Medical Proof for Exemption (≥70%)'
+        else:
+            category = 'critical'
+            category_label = 'Critical Shortage (<70%)'
+            badge_class = 'danger'
+            condonation_status = 'Ineligible / Below Medical Floor (<70%)'
+
+        has_medical = (medical_count > 0)
+        
+        total_analyzed += 1
+        total_pct_sum += attendance_pct
+        if attendance_pct < 85.0:
+            total_low_attendance += 1
+        if attendance_pct < 70.0:
+            total_critical += 1
+        elif 70.0 <= attendance_pct < 85.0:
+            total_condonable += 1
+        else:
+            total_regular += 1
+            
+        if has_medical:
+            total_medical_cases += 1
+            
+        # Status filtering
+        if status_filter == 'all_low' and attendance_pct >= 85.0:
+            continue
+        elif status_filter == 'critical' and category != 'critical':
+            continue
+        elif status_filter == 'condonable' and category != 'condonable':
+            continue
+        elif status_filter == 'medical_claimed' and not has_medical:
+            continue
+            
+        student_list.append({
+            'student': student,
+            'enrollment': enrollment,
+            'total_working': total_working,
+            'attended_count': attended_count,
+            'present_count': present_count,
+            'late_count': late_count,
+            'excused_count': excused_count,
+            'absent_count': absent_count,
+            'medical_count': medical_count,
+            'medical_reasons': medical_reasons,
+            'has_medical': has_medical,
+            'attendance_pct': attendance_pct,
+            'medical_adjusted_pct': medical_adjusted_pct,
+            'category': category,
+            'category_label': category_label,
+            'badge_class': badge_class,
+            'condonation_status': condonation_status,
+            'target_85_needed': target_85_needed,
+            'target_70_needed': target_70_needed,
+        })
+        
+    student_list.sort(key=lambda x: (x['attendance_pct'], x['student'].first_name))
+    avg_institution_pct = round((total_pct_sum / total_analyzed), 1) if total_analyzed > 0 else 0.0
+    
+    if request.GET.get('export') == 'csv':
+        response = HttpResponse(content_type='text/csv')
+        filename = f"low_attendance_students_{selected_year.name if selected_year else 'active'}_{today}.csv"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        writer = csv.writer(response)
+        writer.writerow(['STUDENT SHORTAGE / LOW ATTENDANCE REPORT'])
+        writer.writerow([f'Academic Year: {selected_year.name if selected_year else "N/A"}', f'Generated on: {today.strftime("%d-%m-%Y")}'])
+        writer.writerow(['Normal Mandatory Requirement: 85%', 'Medical Condonation Threshold: 70%'])
+        writer.writerow([])
+        writer.writerow([
+            'Student ID', 'Student Name', 'Class / Grade', 'Division', 'Type',
+            'Total Working Days', 'Attended Days', 'Absent Days', 'Medical / Excused Days',
+            'Attendance %', 'Status Category', 'Medical Condonation Status', 'Days Needed for 85%', 'Contact Phone'
+        ])
+        for row in student_list:
+            s = row['student']
+            e = row['enrollment']
+            writer.writerow([
+                s.student_id,
+                s.full_name,
+                e.grade.name if e.grade else '',
+                e.division.name if e.division else '',
+                s.get_student_type_display(),
+                row['total_working'],
+                row['attended_count'],
+                row['absent_count'],
+                row['medical_count'],
+                f"{row['attendance_pct']}%",
+                row['category_label'],
+                row['condonation_status'],
+                row['target_85_needed'],
+                s.phone or ''
+            ])
+        return response
+
+    sections = Section.objects.all().order_by('order', 'name')
+    grades = Grade.objects.all().order_by('order', 'name')
+    divisions = Division.objects.all()
+
+    context = {
+        'student_list': student_list,
+        'total_analyzed': total_analyzed,
+        'total_low_attendance': total_low_attendance,
+        'total_critical': total_critical,
+        'total_condonable': total_condonable,
+        'total_regular': total_regular,
+        'total_medical_cases': total_medical_cases,
+        'avg_institution_pct': avg_institution_pct,
+        'academic_years': academic_years,
+        'selected_year': selected_year,
+        'sections': sections,
+        'grades': grades,
+        'divisions': divisions,
+        'selected_section': section_id,
+        'selected_grade': grade_id,
+        'selected_division': division_id,
+        'status_filter': status_filter,
+        'search_query': search_query,
+        'date_from': date_from_str,
+        'date_to': date_to_str,
+    }
+    return render(request, 'students/low_attendance_students.html', context)
+
 # Detect students absent 3+ days in a row
 def get_consecutive_absences(student_id, days=3):
     recent = Attendance.objects.filter(

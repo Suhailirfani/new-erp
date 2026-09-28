@@ -1873,10 +1873,31 @@
                 <i class="fa-solid fa-user-graduate"></i>
                 <span>Alumni Registry</span>
             </a>
-            <a href="{% url 'students:attendance_list' %}" class="nav-item" title="Attendance">
-                <i class="fa-solid fa-calendar-check"></i>
-                <span>Attendance</span>
-            </a>
+            <div class="nav-group">
+                <a href="#" class="nav-item nav-dropdown-btn" onclick="event.preventDefault(); const content = this.nextElementSibling; const icon = this.querySelector('.arrow'); const isClosed = content.style.display === 'none' || content.style.display === ''; content.style.display = isClosed ? 'block' : 'none'; icon.style.transform = isClosed ? 'rotate(180deg)' : 'none';" title="Attendance">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>Attendance</span>
+                    <i class="fa-solid fa-chevron-down arrow" style="margin-left: auto; font-size: 0.8rem; transition: transform 0.3s;"></i>
+                </a>
+                <div class="nav-group-content" style="display: none; padding-left: 1.5rem; margin-top: 0.25rem;">
+                    <a href="{% url 'students:attendance_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Attendance Log">
+                        <i class="fa-solid fa-list-check" style="font-size: 0.9rem;"></i>
+                        <span>Attendance Log</span>
+                    </a>
+                    <a href="{% url 'students:low_attendance_students' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem; color: #ef4444; font-weight: 700;" title="Low Attendance Tracker">
+                        <i class="fa-solid fa-triangle-exclamation" style="font-size: 0.9rem; color: #ef4444;"></i>
+                        <span>Low Attendance (&lt;85%)</span>
+                    </a>
+                    <a href="{% url 'students:today_attendance' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Today's Attendance">
+                        <i class="fa-solid fa-calendar-day" style="font-size: 0.9rem;"></i>
+                        <span>Today's Status</span>
+                    </a>
+                    <a href="{% url 'students:attendance_analytics' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Attendance Analytics">
+                        <i class="fa-solid fa-chart-pie" style="font-size: 0.9rem;"></i>
+                        <span>Analytics</span>
+                    </a>
+                </div>
+            </div>
             <a href="{% url 'students:examination_dashboard' %}" class="nav-item" title="Examination">
                 <i class="fa-solid fa-graduation-cap"></i>
                 <span>Examination</span>
