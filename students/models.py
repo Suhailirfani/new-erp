@@ -286,22 +286,22 @@ class HostelMovement(models.Model):
                                 limit_choices_to={'student_type': 'hostel'})
 
     # Departure Part
-    departure_date = models.DateField()
-    departure_time = models.TimeField()
-    escorting_person = models.CharField(max_length=200)
-    reason = models.TextField()
+    departure_date = models.DateField(default=timezone.now)
+    departure_time = models.TimeField(default=timezone.now)
+    escorting_person = models.CharField(max_length=200, blank=True, default='')
+    reason = models.TextField(blank=True, default='')
 
     # Arrival Part
     expected_return_date = models.DateField(null=True, blank=True)
     arrival_date = models.DateField(null=True, blank=True)
     arrival_time = models.TimeField(null=True, blank=True)
-    sign = models.CharField(max_length=200, blank=True)  # Student signature or name
+    sign = models.CharField(max_length=200, blank=True, default='')  # Student signature or name
 
     # Status
     is_returned = models.BooleanField(default=False)
 
     # Additional fields
-    remarks = models.TextField(blank=True)
+    remarks = models.TextField(blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -318,9 +318,7 @@ class HostelMovement(models.Model):
 
     def clean(self):
         from django.core.exceptions import ValidationError
-        if self.is_returned:
-            if not self.arrival_date:
-                raise ValidationError({'arrival_date': 'Arrival date is required when student has returned.'})
+        if self.is_returned and self.arrival_date and self.departure_date:
             if self.arrival_date < self.departure_date:
                 raise ValidationError({'arrival_date': 'Arrival date cannot be before departure date.'})
 

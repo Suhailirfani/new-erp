@@ -142,6 +142,63 @@
         color: #b91c1c;
     }
 
+    /* In-window Modal Styles */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(15, 23, 42, 0.75);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 100000;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem 1rem;
+        box-sizing: border-box;
+        overflow-y: auto;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-card {
+        background: #ffffff;
+        border-radius: 24px;
+        max-width: 760px;
+        width: 100%;
+        padding: 1.5rem 1.75rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        max-height: calc(100vh - 80px);
+        max-height: calc(100dvh - 80px);
+        overflow-y: auto;
+        position: relative;
+        animation: modalSlideUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        margin: auto;
+    }
+
+    @keyframes modalSlideUp {
+        from { opacity: 0; transform: translateY(20px) scale(0.97); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal-grid-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 0.85rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .modal-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.85rem;
+        margin-bottom: 1rem;
+    }
+
     @media (max-width: 768px) {
         .hostel-hero {
             padding: 1.25rem;
@@ -173,6 +230,27 @@
             padding: 1rem 0.75rem !important;
             border-radius: 14px !important;
         }
+        .modal-overlay {
+            padding: 0.75rem 0.75rem 85px 0.75rem !important;
+            align-items: flex-start !important;
+        }
+        .modal-card {
+            padding: 1.15rem 1rem !important;
+            border-radius: 18px !important;
+            max-width: 100% !important;
+            max-height: calc(100vh - 120px) !important;
+            max-height: calc(100dvh - 120px) !important;
+            overflow-y: auto !important;
+            margin: auto auto 15px auto !important;
+        }
+        .modal-grid-3 {
+            grid-template-columns: 1fr !important;
+            gap: 0.5rem !important;
+        }
+        .modal-grid-2 {
+            grid-template-columns: 1fr !important;
+            gap: 0.5rem !important;
+        }
     }
 </style>
 
@@ -197,9 +275,9 @@
         <a href="{% url 'students:hostel_attendance_mark' %}" class="btn btn-primary" style="margin: 0; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-radius: 14px; padding: 0.85rem 1.5rem;">
             <i class="fa-solid fa-clipboard-check"></i> Mark Activity Attendance
         </a>
-        <a href="{% url 'students:hostel_movement_create' %}" class="btn btn-secondary" style="margin: 0; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-radius: 14px; padding: 0.85rem 1.25rem;">
-            <i class="fa-solid fa-door-open"></i> Log Departure
-        </a>
+        <button type="button" onclick="openDepartureModal()" class="btn btn-secondary" style="margin: 0; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-radius: 14px; padding: 0.85rem 1.25rem;">
+            <i class="fa-solid fa-person-walking-arrow-right"></i> Log Departure
+        </button>
     </div>
 </div>
 
@@ -399,33 +477,41 @@
 
         {% if unreturned_movements %}
         <div class="table-responsive" style="margin: 0; border: none; box-shadow: none;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
                 <thead>
                     <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-                        <th style="padding: 0.6rem 0.5rem; text-align: left; font-size: 0.75rem; color: var(--gray);">Student</th>
-                        <th style="padding: 0.6rem 0.5rem; text-align: left; font-size: 0.75rem; color: var(--gray);">Departure</th>
-                        <th style="padding: 0.6rem 0.5rem; text-align: left; font-size: 0.75rem; color: var(--gray);">Reason</th>
-                        <th style="padding: 0.6rem 0.5rem; text-align: right; font-size: 0.75rem; color: var(--gray);">Action</th>
+                        <th style="padding: 0.5rem 0.6rem; text-align: left; font-size: 0.74rem; color: var(--gray);">Student & Action</th>
+                        <th style="padding: 0.5rem 0.6rem; text-align: left; font-size: 0.74rem; color: var(--gray); width: 90px; white-space: nowrap;">Departure</th>
+                        <th style="padding: 0.5rem 0.6rem; text-align: left; font-size: 0.74rem; color: var(--gray); max-width: 110px;">Reason</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for m in unreturned_movements %}
                     <tr style="border-bottom: 1px solid #f1f5f9;">
-                        <td style="padding: 0.65rem 0.5rem;">
-                            <div style="font-weight: 700; color: var(--dark);">{{ m.student.full_name }}</div>
-                            <div style="font-size: 0.7rem; color: var(--gray);">{{ m.student.student_id }} &bull; {{ m.student.class_name }}</div>
+                        <td style="padding: 0.55rem 0.6rem;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                                <div style="min-width: 0;">
+                                    <div style="font-weight: 700; color: var(--dark); font-size: 0.88rem; line-height: 1.25;">
+                                        {{ m.student.full_name }}
+                                    </div>
+                                    <div style="font-size: 0.7rem; color: var(--gray); font-weight: 600;">
+                                        {{ m.student.student_id }} &bull; {{ m.student.class_name }}
+                                    </div>
+                                </div>
+                                <button type="button" onclick="openReturnModal('{{ m.id }}', '{{ m.student.full_name|escapejs }} ({{ m.student.student_id }})', '{{ m.departure_date|date:"d M Y" }}', '{{ m.departure_time|time:"h:i A" }}')" 
+                                        class="btn btn-xs btn-outline-success" 
+                                        style="margin: 0; padding: 0.2rem 0.55rem; font-size: 0.7rem; font-weight: 700; border-radius: 6px; flex-shrink: 0; display: inline-flex; align-items: center; gap: 3px; box-shadow: none;" 
+                                        title="Confirm Return to Campus">
+                                    <i class="fa-solid fa-door-closed"></i> Return
+                                </button>
+                            </div>
                         </td>
-                        <td style="padding: 0.65rem 0.5rem;">
-                            <div style="font-weight: 600;">{{ m.departure_date|date:"d M" }}</div>
-                            <div style="font-size: 0.7rem; color: var(--gray);">{{ m.departure_time|time:"h:i A" }}</div>
+                        <td style="padding: 0.55rem 0.6rem; white-space: nowrap;">
+                            <div style="font-weight: 700; color: var(--dark-secondary); font-size: 0.8rem;">{{ m.departure_date|date:"d M" }}</div>
+                            <div style="font-size: 0.7rem; color: var(--gray); font-weight: 600;">{{ m.departure_time|time:"h:i A" }}</div>
                         </td>
-                        <td style="padding: 0.65rem 0.5rem; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ m.reason }}">
-                            {{ m.reason }}
-                        </td>
-                        <td style="padding: 0.65rem 0.5rem; text-align: right;">
-                            <a href="{% url 'students:hostel_movement_update' m.id %}" class="btn btn-xs btn-outline-primary" style="padding: 0.25rem 0.6rem; font-size: 0.7rem; border-radius: 6px;">
-                                Return
-                            </a>
+                        <td style="padding: 0.55rem 0.6rem; font-size: 0.75rem; color: var(--dark-secondary); max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ m.reason|default:'-' }}">
+                            {% if m.reason %}{{ m.reason }}{% else %}<span style="color: var(--gray);">-</span>{% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -488,5 +574,186 @@
         {% endif %}
     </div>
 </div>
+
+<!-- IN-WINDOW MODAL: LOG NEW DEPARTURE (Wider single-window desktop layout) -->
+<div class="modal-overlay" id="departureModal">
+    <div class="modal-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(99, 102, 241, 0.15); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+                    <i class="fa-solid fa-person-walking-arrow-right"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--dark);">Log Student Departure</h3>
+                    <span style="font-size: 0.75rem; color: var(--gray);">Fast gate pass / departure record</span>
+                </div>
+            </div>
+            <button type="button" onclick="closeModal('departureModal')" style="background: none; border: none; font-size: 1.25rem; color: var(--gray); cursor: pointer; padding: 4px;">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form action="{% url 'students:hostel_movement_create' %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+            <!-- Row 1: Student Selection -->
+            <div class="form-group mb-2">
+                <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem;">Select Student <span style="color: var(--danger);">*</span></label>
+                <select name="student" required style="border-radius: 10px; padding: 0.65rem 0.85rem; font-size: 0.92rem; font-weight: 600;">
+                    <option value="">-- Choose Hostel Student --</option>
+                    {% for st in hostel_students %}
+                    <option value="{{ st.id }}">{{ st.full_name }} ({{ st.student_id }}) - {{ st.class_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Row 2: Date, Time & Expected Return (3 columns on desktop) -->
+            <div class="modal-grid-3">
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem;">Departure Date</label>
+                    <input type="date" name="departure_date" id="dashDepDateInput" value="{{ default_date }}" style="border-radius: 10px; padding: 0.6rem; font-size: 0.88rem; font-weight: 600;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem;">Departure Time</label>
+                    <input type="time" name="departure_time" id="dashDepTimeInput" value="{{ default_time }}" style="border-radius: 10px; padding: 0.6rem; font-size: 0.88rem; font-weight: 600;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem;">Expected Return <span style="color: var(--gray); font-size: 0.72rem;">(Opt)</span></label>
+                    <input type="date" name="expected_return_date" style="border-radius: 10px; padding: 0.6rem; font-size: 0.88rem;">
+                </div>
+            </div>
+
+            <!-- Row 3: Escort & Reason (2 columns on desktop) -->
+            <div class="modal-grid-2">
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem;">Escorting Person <span style="color: var(--gray); font-size: 0.72rem;">(Optional)</span></label>
+                    <input type="text" name="escorting_person" placeholder="Parent / Guardian / Self" style="border-radius: 10px; padding: 0.6rem; font-size: 0.88rem;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem;">Reason <span style="color: var(--gray); font-size: 0.72rem;">(Optional)</span></label>
+                    <input type="text" name="reason" placeholder="Home visit, medical, function, etc." style="border-radius: 10px; padding: 0.6rem; font-size: 0.88rem;">
+                </div>
+            </div>
+
+            <!-- Row 4: Buttons -->
+            <div style="display: flex; justify-content: flex-end; gap: 0.65rem; border-top: 1px solid #f1f5f9; padding-top: 0.85rem;">
+                <button type="button" onclick="closeModal('departureModal')" class="btn btn-secondary" style="margin: 0; border-radius: 10px; padding: 0.6rem 1.25rem;">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="margin: 0; border-radius: 10px; font-weight: 700; padding: 0.6rem 1.5rem;">
+                    <i class="fa-solid fa-check"></i> Record Departure
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- IN-WINDOW MODAL: QUICK MARK RETURN (Wider single-window desktop layout) -->
+<div class="modal-overlay" id="returnModal">
+    <div class="modal-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(16, 185, 129, 0.15); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+                    <i class="fa-solid fa-door-closed"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--dark);">Mark Student Returned</h3>
+                    <span style="font-size: 0.75rem; color: var(--gray);">Confirm campus arrival timestamp</span>
+                </div>
+            </div>
+            <button type="button" onclick="closeModal('returnModal')" style="background: none; border: none; font-size: 1.25rem; color: var(--gray); cursor: pointer; padding: 4px;">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form id="returnForm" action="" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <input type="hidden" name="is_returned" value="1">
+
+            <!-- Student Summary Info Banner -->
+            <div style="background: #f8fafc; border-radius: 12px; padding: 0.75rem 1rem; margin-bottom: 0.85rem; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                <div>
+                    <div style="font-weight: 800; color: var(--dark); font-size: 0.95rem;" id="returnStudentName"></div>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--gray);">
+                    Departed: <strong id="returnDepartureInfo" style="color: var(--dark-secondary);"></strong>
+                </div>
+            </div>
+
+            <!-- Arrival Date, Time & Remarks in clean 3-col grid -->
+            <div class="modal-grid-3">
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem;">Arrival Date</label>
+                    <input type="date" name="arrival_date" id="dashRetDateInput" value="{{ default_date }}" style="border-radius: 10px; padding: 0.6rem; font-size: 0.88rem; font-weight: 600;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem;">Arrival Time</label>
+                    <input type="time" name="arrival_time" id="dashRetTimeInput" value="{{ default_time }}" style="border-radius: 10px; padding: 0.6rem; font-size: 0.88rem; font-weight: 600;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem;">Remarks <span style="color: var(--gray); font-size: 0.72rem;">(Optional)</span></label>
+                    <input type="text" name="remarks" placeholder="On time, health ok..." style="border-radius: 10px; padding: 0.6rem; font-size: 0.88rem;">
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.65rem; border-top: 1px solid #f1f5f9; padding-top: 0.85rem;">
+                <button type="button" onclick="closeModal('returnModal')" class="btn btn-secondary" style="margin: 0; border-radius: 10px; padding: 0.6rem 1.25rem;">Cancel</button>
+                <button type="submit" class="btn btn-success" style="margin: 0; border-radius: 10px; font-weight: 700; padding: 0.6rem 1.5rem;">
+                    <i class="fa-solid fa-check"></i> Confirm Return
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openDepartureModal() {
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0];
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const timeStr = `${hours}:${minutes}`;
+
+        document.getElementById('dashDepDateInput').value = dateStr;
+        document.getElementById('dashDepTimeInput').value = timeStr;
+        document.getElementById('departureModal').classList.add('active');
+        document.body.classList.add('modal-open');
+    }
+
+    function openReturnModal(movementId, studentName, depDate, depTime) {
+        const form = document.getElementById('returnForm');
+        form.action = `/hostel-movements/${movementId}/update/`;
+        document.getElementById('returnStudentName').textContent = studentName;
+        document.getElementById('returnDepartureInfo').textContent = `${depDate} at ${depTime}`;
+
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0];
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const timeStr = `${hours}:${minutes}`;
+
+        document.getElementById('dashRetDateInput').value = dateStr;
+        document.getElementById('dashRetTimeInput').value = timeStr;
+        document.getElementById('returnModal').classList.add('active');
+        document.body.classList.add('modal-open');
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+        if (!document.querySelector('.modal-overlay.active')) {
+            document.body.classList.remove('modal-open');
+        }
+    }
+
+    // Close on click outside
+    window.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal-overlay')) {
+            e.target.classList.remove('active');
+            if (!document.querySelector('.modal-overlay.active')) {
+                document.body.classList.remove('modal-open');
+            }
+        }
+    });
+</script>
 
 {% endblock %}

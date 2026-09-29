@@ -57,13 +57,10 @@
         border-radius: 0 0 6px 6px;
     }
 
-    /* Student Attendance Table & Cards */
+    /* Student Attendance Table & Controls */
     .att-table {
         width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        border-radius: 16px;
-        overflow: hidden;
+        border-collapse: collapse;
     }
 
     .att-table th {
@@ -73,12 +70,12 @@
         font-size: 0.82rem;
         text-transform: uppercase;
         letter-spacing: 0.04em;
-        padding: 1rem 1.25rem;
+        padding: 0.85rem 1rem;
         border-bottom: 2px solid #e2e8f0;
     }
 
     .att-table td {
-        padding: 1rem 1.25rem;
+        padding: 0.75rem 1rem;
         border-bottom: 1px solid #f1f5f9;
         vertical-align: middle;
         background: #ffffff;
@@ -88,26 +85,48 @@
         background: #faf5ff;
     }
 
-    /* Modern Segmented Status Control */
+    .att-col-num {
+        width: 40px;
+        text-align: center;
+    }
+
+    .att-col-name {
+        text-align: left;
+    }
+
+    .att-col-mov {
+        width: 70px;
+        text-align: center;
+    }
+
+    .att-col-status {
+        width: 140px;
+        text-align: center;
+    }
+
+    /* Segmented Status Control (P, Ab, Aw) */
     .status-segmented {
         display: inline-flex;
         background: #f1f5f9;
-        padding: 4px;
-        border-radius: 12px;
+        padding: 3px;
+        border-radius: 10px;
         gap: 3px;
-        border: 1px solid #e2e8f0;
+        border: 1.5px solid #e2e8f0;
+        box-sizing: border-box;
     }
 
     .status-segmented label {
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        gap: 4px;
-        padding: 6px 12px;
-        border-radius: 8px;
-        font-size: 0.78rem;
-        font-weight: 700;
+        justify-content: center;
+        min-width: 38px;
+        height: 32px;
+        padding: 0 8px;
+        border-radius: 7px;
+        font-size: 0.82rem;
+        font-weight: 800;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.15s ease;
         margin: 0;
         user-select: none;
         color: var(--gray);
@@ -120,68 +139,165 @@
     .status-segmented input[type="radio"]:checked + label.opt-present {
         background: #10b981;
         color: #ffffff;
-        box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
+        box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
     }
 
     .status-segmented input[type="radio"]:checked + label.opt-absent {
         background: #ef4444;
         color: #ffffff;
-        box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
-    }
-
-    .status-segmented input[type="radio"]:checked + label.opt-late {
-        background: #f59e0b;
-        color: #ffffff;
-        box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);
+        box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
     }
 
     .status-segmented input[type="radio"]:checked + label.opt-excused {
         background: #0ea5e9;
         color: #ffffff;
-        box-shadow: 0 2px 6px rgba(14, 165, 233, 0.35);
+        box-shadow: 0 2px 6px rgba(14, 165, 233, 0.4);
     }
 
-    /* Floating Save Bar */
+    .mov-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        font-size: 0.95rem;
+    }
+
+    .mov-badge-inline {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 700;
+    }
+
+    @media (min-width: 769px) {
+        .mobile-only {
+            display: none !important;
+        }
+    }
+
+    /* Save Bar at bottom of table */
     .floating-save-bar {
-        position: sticky;
-        bottom: 20px;
-        background: rgba(15, 23, 42, 0.94);
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
+        position: relative;
+        background: rgba(15, 23, 42, 0.95);
         color: white;
-        border-radius: 20px;
+        border-radius: 18px;
         padding: 1rem 1.75rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 1rem;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
-        z-index: 100;
-        margin-top: 2rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+        margin-top: 1.75rem;
+        z-index: 10;
     }
 
+    /* MOBILE DEDICATED IN-WINDOW VIEW (< 768px) */
     @media (max-width: 768px) {
+        .desktop-only {
+            display: none !important;
+        }
         .activity-button-bar {
             gap: 0.5rem;
         }
         .activity-btn {
-            min-width: 145px;
+            min-width: 140px;
             padding: 0.75rem 0.85rem;
             border-radius: 14px;
         }
-        .att-table th, .att-table td {
-            padding: 0.75rem 0.5rem;
+        .att-marking-card {
+            padding: 0.75rem 0.5rem !important;
+            border-radius: 16px !important;
+        }
+        
+        /* Turn the table on mobile into a clean vertical-stacked card row */
+        .att-table thead {
+            display: none !important;
+        }
+        .att-table, .att-table tbody {
+            display: block !important;
+            width: 100% !important;
+        }
+        .att-table tr.class-header-row {
+            display: block !important;
+            margin: 0.85rem 0 0.4rem 0 !important;
+            border-radius: 10px !important;
+            overflow: hidden !important;
+        }
+        .att-table tr.class-header-row td {
+            display: block !important;
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.85rem !important;
+            background: #f1f5f9 !important;
+            border: none !important;
+        }
+        .att-table tr.student-row {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            padding: 0.75rem 0.65rem !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+            gap: 0.45rem !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            background: #ffffff !important;
+        }
+        .att-table tr.student-row td.att-col-num {
+            display: none !important;
+        }
+        .att-table tr.student-row td.att-col-name {
+            display: block !important;
+            padding: 0 !important;
+            border: none !important;
+            width: 100% !important;
+            background: transparent !important;
+        }
+        .att-table tr.student-row td.att-col-mov {
+            display: none !important;
+        }
+        .att-table tr.student-row td.att-col-status {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 0.65rem !important;
+            padding: 0 !important;
+            border: none !important;
+            width: 100% !important;
+            flex-wrap: wrap !important;
+            background: transparent !important;
+        }
+
+        .mobile-controls-row {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.45rem !important;
+        }
+
+        .status-segmented {
+            padding: 2px !important;
+            gap: 2px !important;
+            border-radius: 8px !important;
         }
         .status-segmented label {
-            padding: 5px 8px;
-            font-size: 0.72rem;
+            min-width: 36px !important;
+            height: 30px !important;
+            padding: 0 8px !important;
+            font-size: 0.8rem !important;
+            border-radius: 6px !important;
         }
         .floating-save-bar {
+            position: relative;
             flex-direction: column;
             align-items: stretch;
-            bottom: 80px; /* Above mobile bottom nav */
-            padding: 1rem;
+            padding: 1rem !important;
             border-radius: 16px;
+            gap: 0.75rem !important;
+            margin-top: 1.25rem !important;
+            margin-bottom: 0.5rem !important;
         }
     }
 </style>
@@ -231,7 +347,7 @@
     </div>
 </div>
 
-<!-- ACTIVITY BUTTONS SELECTION (User Request: "show the activities as buttons - select the activity and mark attendance") -->
+<!-- ACTIVITY BUTTONS SELECTION -->
 <div style="margin-bottom: 1.5rem;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding: 0 0.25rem;">
         <span style="font-size: 0.85rem; font-weight: 800; color: var(--dark); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.4rem;">
@@ -286,128 +402,135 @@
     <input type="hidden" name="activity_id" value="{{ selected_activity.id }}">
     <input type="hidden" name="date" value="{{ selected_date_str }}">
 
-    <div class="card p-4" style="border-radius: 24px; border-top: 5px solid {{ selected_activity.color }};">
+    <div class="card p-4 att-marking-card" style="border-radius: 24px; border-top: 5px solid {{ selected_activity.color }};">
         
         <!-- Sheet Header & Mass Actions Toolbar -->
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1.5px solid #f1f5f9;">
-            <div style="display: flex; align-items: center; gap: 0.85rem;">
-                <div style="width: 46px; height: 46px; border-radius: 14px; background: {{ selected_activity.color }}18; color: {{ selected_activity.color }}; display: flex; align-items: center; justify-content: center; font-size: 1.35rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.85rem; margin-bottom: 1rem; padding-bottom: 0.85rem; border-bottom: 1.5px solid #f1f5f9;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div style="width: 40px; height: 40px; border-radius: 12px; background: {{ selected_activity.color }}18; color: {{ selected_activity.color }}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
                     <i class="fa-solid {{ selected_activity.icon|default:'fa-calendar-check' }}"></i>
                 </div>
                 <div>
-                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--dark);">
-                        {{ selected_activity.name }} Attendance
+                    <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--dark);">
+                        {{ selected_activity.name }}
                     </h3>
-                    <div style="font-size: 0.82rem; color: var(--gray); font-weight: 600;">
-                        Date: <strong>{{ selected_date|date:"l, d F Y" }}</strong> &bull; Total Students: <strong>{{ total_students_count }}</strong>
+                    <div style="font-size: 0.78rem; color: var(--gray); font-weight: 600;">
+                        {{ selected_date|date:"d M Y" }} &bull; Total: <strong>{{ total_students_count }}</strong>
                         {% if is_already_marked %}
-                            <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 0.7rem; font-weight: 800; margin-left: 6px;">Already Recorded</span>
+                            <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 0.68rem; font-weight: 800; margin-left: 4px;">Saved</span>
                         {% endif %}
                     </div>
                 </div>
             </div>
 
             <!-- Quick Mass Actions -->
-            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-                <span style="font-size: 0.78rem; font-weight: 700; color: var(--gray);">Quick Fill:</span>
-                <button type="button" onclick="setAllStatus('present')" class="btn btn-xs btn-outline-success" style="padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 700;">
-                    <i class="fa-solid fa-check-double"></i> All Present
+            <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                <span style="font-size: 0.75rem; font-weight: 700; color: var(--gray);">Quick:</span>
+                <button type="button" onclick="setAllStatus('present')" class="btn btn-xs btn-outline-success" style="padding: 0.3rem 0.65rem; border-radius: 8px; font-weight: 700; font-size: 0.75rem;">
+                    All P
                 </button>
-                <button type="button" onclick="setAwayStudents()" class="btn btn-xs btn-outline-info" style="padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 700;" title="Mark away students as Excused and others as Present">
-                    <i class="fa-solid fa-person-walking-luggage"></i> Auto-Away
+                <button type="button" onclick="setAwayStudents()" class="btn btn-xs btn-outline-info" style="padding: 0.3rem 0.65rem; border-radius: 8px; font-weight: 700; font-size: 0.75rem;" title="Mark away students as Aw and in-campus students as P">
+                    Auto Aw
                 </button>
-                <button type="button" onclick="setAllStatus('absent')" class="btn btn-xs btn-outline-danger" style="padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 700;">
-                    <i class="fa-solid fa-xmark"></i> All Absent
+                <button type="button" onclick="setAllStatus('absent')" class="btn btn-xs btn-outline-danger" style="padding: 0.3rem 0.65rem; border-radius: 8px; font-weight: 700; font-size: 0.75rem;">
+                    All Ab
                 </button>
             </div>
         </div>
 
         {% if students_data %}
-        <div class="table-responsive" style="margin: 0; border: none; box-shadow: none;">
+        {% regroup students_data by class_name as class_groups %}
+        <div style="margin: 0;">
             <table class="att-table">
                 <thead>
                     <tr>
-                        <th style="width: 50px; text-align: center;">#</th>
-                        <th>Student Name & ID</th>
-                        <th>Class / Division</th>
-                        <th style="text-align: center;">Hostel Movement Status</th>
-                        <th style="text-align: center; min-width: 240px;">Attendance Status</th>
-                        <th style="min-width: 150px;">Remarks</th>
+                        <th class="att-col-num desktop-only">#</th>
+                        <th class="att-col-name">Student Name & ID</th>
+                        <th class="att-col-mov desktop-only">Movement</th>
+                        <th class="att-col-status">Attendance</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for row in students_data %}
+                    {% for group in class_groups %}
+                    <!-- Separate Class & Division Heading -->
+                    <tr class="class-header-row" style="background: #f8fafc; border-top: 2px solid #e2e8f0; border-bottom: 2px solid #e2e8f0;">
+                        <td colspan="4" style="padding: 0.5rem 0.85rem; font-weight: 800; font-size: 0.82rem; color: var(--primary); background: #f8fafc;">
+                            <i class="fa-solid fa-graduation-cap" style="margin-right: 0.35rem;"></i> {{ group.grouper }}
+                            <span style="font-size: 0.72rem; font-weight: 600; color: var(--gray); margin-left: 0.4rem;">({{ group.list|length }} Student{{ group.list|length|pluralize }})</span>
+                        </td>
+                    </tr>
+                    
+                    {% for row in group.list %}
                     {% with st=row.student %}
-                    <tr data-student-id="{{ st.id }}" data-is-away="{{ row.is_away|yesno:'true,false' }}">
-                        <td style="text-align: center; font-weight: 700; color: var(--gray); font-size: 0.85rem;">
+                    <tr class="student-row" data-student-id="{{ st.id }}" data-is-away="{{ row.is_away|yesno:'true,false' }}">
+                        <!-- Serial Number (Desktop only) -->
+                        <td class="att-col-num desktop-only" style="font-weight: 700; color: var(--gray);">
                             {{ forloop.counter }}
                         </td>
 
-                        <td>
-                            <div style="display: flex; align-items: center; gap: 0.65rem;">
-                                <div style="width: 36px; height: 36px; border-radius: 10px; background: var(--gradient-lavender); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; flex-shrink: 0;">
-                                    {{ st.first_name|first|upper }}
-                                </div>
-                                <div>
-                                    <div style="font-weight: 800; color: var(--dark); font-size: 0.95rem;">
-                                        <a href="{% url 'students:hostel_student_detail' st.id %}" style="color: inherit; text-decoration: none;" target="_blank">
-                                            {{ st.full_name }}
-                                        </a>
-                                    </div>
-                                    <div style="font-size: 0.75rem; color: var(--gray); font-weight: 600;">
-                                        ID: {{ st.student_id }}
-                                    </div>
-                                </div>
+                        <!-- Student Name & ID -->
+                        <td class="att-col-name">
+                            <div style="font-weight: 800; color: var(--dark); font-size: 0.95rem; line-height: 1.25;">
+                                <a href="{% url 'students:hostel_student_detail' st.id %}" style="color: inherit; text-decoration: none;" target="_blank">
+                                    {{ st.full_name }}
+                                </a>
+                            </div>
+                            <div class="desktop-only" style="font-size: 0.74rem; color: var(--gray); font-weight: 600; margin-top: 2px;">
+                                ID: {{ st.student_id }}
                             </div>
                         </td>
 
-                        <td>
-                            <div style="font-weight: 700; color: var(--dark-secondary); font-size: 0.85rem;">
-                                {{ st.class_name }}
-                            </div>
-                        </td>
-
-                        <td style="text-align: center;">
+                        <!-- Hostel Movement Status: Icon and Color Only (Desktop) -->
+                        <td class="att-col-mov desktop-only">
                             {% if row.is_away %}
-                                <span class="badge" style="background: #fee2e2; color: #b91c1c; font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;" title="Departed on {{ row.movement.departure_date }} - {{ row.movement.reason }}">
-                                    <i class="fa-solid fa-person-walking-luggage"></i> Away on Movement
+                                <span class="mov-badge" style="background: #fee2e2; color: #b91c1c;" title="Away on Movement{% if row.movement %} (Departed: {{ row.movement.departure_date|date:'d M' }}){% endif %}">
+                                    <i class="fa-solid fa-person-walking-luggage"></i>
                                 </span>
                             {% else %}
-                                <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
-                                    <i class="fa-solid fa-house"></i> In Hostel
+                                <span class="mov-badge" style="background: #dcfce7; color: #15803d;" title="In Hostel">
+                                    <i class="fa-solid fa-house"></i>
                                 </span>
                             {% endif %}
                         </td>
 
-                        <td style="text-align: center;">
+                        <!-- Attendance Controls + Mobile Combined Info (Right next to student) -->
+                        <td class="att-col-status">
+                            <!-- Mobile Combined ID & In/Away Movement Status -->
+                            <div class="mobile-controls-row mobile-only">
+                                <span style="font-size: 0.76rem; color: var(--gray); font-weight: 700;">ID: {{ st.student_id }}</span>
+                                
+                                {% if row.is_away %}
+                                    <span class="mov-badge-inline" style="background: #fee2e2; color: #b91c1c;" title="Away on Movement">
+                                        <i class="fa-solid fa-person-walking-luggage"></i> Away
+                                    </span>
+                                {% else %}
+                                    <span class="mov-badge-inline" style="background: #dcfce7; color: #15803d;" title="In Hostel">
+                                        <i class="fa-solid fa-house"></i> In
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <!-- P, Ab, Aw Buttons -->
                             <div class="status-segmented">
                                 <input type="radio" name="status_{{ st.id }}" id="st_{{ st.id }}_present" value="present" {% if row.current_status == 'present' %}checked{% endif %} onchange="updateSummaryCounts()">
                                 <label for="st_{{ st.id }}_present" class="opt-present" title="Present">
-                                    <i class="fa-solid fa-check"></i> Present
+                                    P
                                 </label>
 
                                 <input type="radio" name="status_{{ st.id }}" id="st_{{ st.id }}_absent" value="absent" {% if row.current_status == 'absent' %}checked{% endif %} onchange="updateSummaryCounts()">
                                 <label for="st_{{ st.id }}_absent" class="opt-absent" title="Absent">
-                                    <i class="fa-solid fa-xmark"></i> Absent
+                                    Ab
                                 </label>
 
-                                <input type="radio" name="status_{{ st.id }}" id="st_{{ st.id }}_late" value="late" {% if row.current_status == 'late' %}checked{% endif %} onchange="updateSummaryCounts()">
-                                <label for="st_{{ st.id }}_late" class="opt-late" title="Late">
-                                    <i class="fa-regular fa-clock"></i> Late
-                                </label>
-
-                                <input type="radio" name="status_{{ st.id }}" id="st_{{ st.id }}_excused" value="excused" {% if row.current_status == 'excused' %}checked{% endif %} onchange="updateSummaryCounts()">
-                                <label for="st_{{ st.id }}_excused" class="opt-excused" title="Excused / Away">
-                                    <i class="fa-solid fa-circle-info"></i> Away
+                                <input type="radio" name="status_{{ st.id }}" id="st_{{ st.id }}_excused" value="excused" {% if row.current_status == 'excused' or row.current_status == 'late' %}checked{% endif %} onchange="updateSummaryCounts()">
+                                <label for="st_{{ st.id }}_excused" class="opt-excused" title="Away / Excused">
+                                    Aw
                                 </label>
                             </div>
                         </td>
-
-                        <td>
-                            <input type="text" name="remarks_{{ st.id }}" value="{{ row.current_remarks }}" placeholder="Optional remarks..." style="width: 100%; padding: 0.45rem 0.65rem; border-radius: 8px; font-size: 0.8rem; border: 1px solid #cbd5e1;">
-                        </td>
                     </tr>
                     {% endwith %}
+                    {% endfor %}
                     {% endfor %}
                 </tbody>
             </table>
@@ -424,10 +547,9 @@
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 0.85rem; font-size: 0.82rem; font-weight: 700;">
-                    <span style="color: #4ade80;"><i class="fa-solid fa-circle-check"></i> <span id="countPresent">0</span> Present</span>
-                    <span style="color: #f87171;"><i class="fa-solid fa-circle-xmark"></i> <span id="countAbsent">0</span> Absent</span>
-                    <span style="color: #fbbf24;"><i class="fa-solid fa-clock"></i> <span id="countLate">0</span> Late</span>
-                    <span style="color: #38bdf8;"><i class="fa-solid fa-circle-info"></i> <span id="countExcused">0</span> Away</span>
+                    <span style="color: #4ade80;"><i class="fa-solid fa-circle-check"></i> <span id="countPresent">0</span> P</span>
+                    <span style="color: #f87171;"><i class="fa-solid fa-circle-xmark"></i> <span id="countAbsent">0</span> Ab</span>
+                    <span style="color: #38bdf8;"><i class="fa-solid fa-circle-info"></i> <span id="countExcused">0</span> Aw</span>
                 </div>
             </div>
 
@@ -460,7 +582,7 @@
     }
 
     function setAwayStudents() {
-        // Set away students to 'excused' and others to 'present'
+        // Set away students to 'excused' (Aw) and others to 'present' (P)
         const rows = document.querySelectorAll('tr[data-student-id]');
         rows.forEach(row => {
             const isAway = row.getAttribute('data-is-away') === 'true';
@@ -473,23 +595,20 @@
     }
 
     function updateSummaryCounts() {
-        let present = 0, absent = 0, late = 0, excused = 0;
+        let present = 0, absent = 0, excused = 0;
         const checkedRadios = document.querySelectorAll('input[type="radio"]:checked');
         checkedRadios.forEach(r => {
             if (r.value === 'present') present++;
             else if (r.value === 'absent') absent++;
-            else if (r.value === 'late') late++;
-            else if (r.value === 'excused') excused++;
+            else if (r.value === 'excused' || r.value === 'late') excused++;
         });
 
         const pEl = document.getElementById('countPresent');
         const aEl = document.getElementById('countAbsent');
-        const lEl = document.getElementById('countLate');
         const eEl = document.getElementById('countExcused');
 
         if (pEl) pEl.textContent = present;
         if (aEl) aEl.textContent = absent;
-        if (lEl) lEl.textContent = late;
         if (eEl) eEl.textContent = excused;
     }
 

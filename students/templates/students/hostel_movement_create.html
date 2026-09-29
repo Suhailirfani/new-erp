@@ -1,100 +1,114 @@
 {% extends 'students/base.html' %}
+{% load static %}
 
-{% block title %}Record Hostel Movement - Student Attendance System{% endblock %}
+{% block title %}Log Hostel Departure - MARKAZ HADIYA{% endblock %}
+{% block page_heading %}Log Hostel Departure{% endblock %}
 
 {% block content %}
-<h1>Record Hostel Movement</h1>
+<style>
+    .form-container-wide {
+        max-width: 820px;
+        margin: 0 auto;
+    }
+    .form-grid-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    .form-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+    @media (max-width: 768px) {
+        .form-grid-3 {
+            grid-template-columns: 1fr !important;
+            gap: 0.75rem !important;
+        }
+        .form-grid-2 {
+            grid-template-columns: 1fr !important;
+            gap: 0.75rem !important;
+        }
+    }
+</style>
 
-<div class="card">
-    <form method="post">
-        {% csrf_token %}
-        <div class="form-group">
-            <label>Student *</label>
-            <input type="text" list="studentList" id="studentNameInput" placeholder="Search by student name or ID..." 
-                   style="width: 100%; border: 2px solid var(--border); padding: 1rem; border-radius: 12px;" required autocomplete="off"
-                   value="{% for e in enrollments %}{% if request.GET.student == e.student.id|stringformat:'i' %}{{ e.student.full_name }} ({{ e.student.student_id }}){% endif %}{% endfor %}">
+<div class="form-container-wide">
+    <div style="margin-bottom: 1.25rem;">
+        <a href="{% url 'students:hostel_movement_list' %}" style="color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.85rem;">
+            <i class="fa-solid fa-arrow-left"></i> Back to Movement List
+        </a>
+        <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--dark); margin: 0.35rem 0 0.15rem 0;">Log Student Departure</h1>
+        <p style="color: var(--gray); font-size: 0.9rem; margin: 0;">
+            Record a hostel student leaving the campus. Escort and reason are optional.
+        </p>
+    </div>
 
-            <datalist id="studentList">
-                {% for enrollment in enrollments %}
-                <option data-id="{{ enrollment.student.id }}" value="{{ enrollment.student.full_name }} ({{ enrollment.student.student_id }})"></option>
-                {% endfor %}
-            </datalist>
+    <div class="card p-4" style="border-radius: 20px;">
+        <form method="post" action="{% url 'students:hostel_movement_create' %}">
+            {% csrf_token %}
             
-            <input type="hidden" name="student" id="studentIdInput" value="{{ request.GET.student }}">
-
-            <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    const input = document.getElementById('studentNameInput');
-                    const hiddenId = document.getElementById('studentIdInput');
-                    const datalist = document.getElementById('studentList');
-
-                    // If pre-filled by URL, clear Custom Validity immediately
-                    if (hiddenId.value && input.value) {
-                        input.setCustomValidity("");
-                    } else {
-                        input.setCustomValidity("Please strictly select a student from the dropdown list.");
-                    }
-
-                    input.addEventListener('input', function() {
-                        const val = this.value;
-                        let id = "";
-                        let found = false;
-                        
-                        for (let i = 0; i < datalist.options.length; i++) {
-                            if (datalist.options[i].value === val) {
-                                id = datalist.options[i].getAttribute('data-id');
-                                found = true;
-                                break;
-                            }
-                        }
-                        
-                        hiddenId.value = id;
-                        
-                        if (!found && val.trim() !== "") {
-                            input.setCustomValidity("Please strictly select a student from the dropdown list.");
-                        } else {
-                            input.setCustomValidity("");
-                        }
-                    });
-
-                    // Prevent form submission if the ID hasn't been properly matched
-                    input.form.addEventListener('submit', function(e) {
-                        if (!hiddenId.value) {
-                            input.setCustomValidity("Please strictly select a student from the dropdown list.");
-                            e.preventDefault();
-                        }
-                    });
-                });
-            </script>
-        </div>
-        
-        <h2>Departure Information</h2>
-        <div class="form-row">
-            <div class="form-group">
-                <label>Departure Date *</label>
-                <input type="date" name="departure_date" value="{% now 'Y-m-d' %}" required>
+            <!-- Row 1: Student Selection -->
+            <div class="form-group mb-3">
+                <label class="form-label" style="font-weight: 700; font-size: 0.88rem;">Select Student <span style="color: var(--danger);">*</span></label>
+                <select name="student" required style="border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.95rem; font-weight: 600;">
+                    <option value="">-- Choose Hostel Student --</option>
+                    {% for st in hostel_students %}
+                    <option value="{{ st.id }}" {% if request.GET.student == st.id|stringformat:'s' %}selected{% endif %}>
+                        {{ st.full_name }} ({{ st.student_id }}) - {{ st.class_name }}
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
-            <div class="form-group">
-                <label>Departure Time *</label>
-                <input type="time" name="departure_time" required>
+
+            <!-- Row 2: Departure Date, Departure Time, Expected Return Date -->
+            <div class="form-grid-3">
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Departure Date</label>
+                    <input type="date" name="departure_date" id="depDate" value="{{ default_date }}" style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem; font-weight: 600;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Departure Time</label>
+                    <input type="time" name="departure_time" id="depTime" value="{{ default_time }}" style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem; font-weight: 600;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Expected Return <span style="color: var(--gray); font-size: 0.75rem;">(Optional)</span></label>
+                    <input type="date" name="expected_return_date" style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem;">
+                </div>
             </div>
-        </div>
-        <div class="form-group">
-            <label>Escorting Person *</label>
-            <input type="text" name="escorting_person" required placeholder="Name of escorting person">
-        </div>
-        <div class="form-group">
-            <label>Reason *</label>
-            <textarea name="reason" rows="3" required placeholder="Reason for departure"></textarea>
-        </div>
-        <div class="form-group">
-            <label>Expected Return Date</label>
-            <input type="date" name="expected_return_date">
-        </div>
-        
-        <button type="submit" class="btn btn-success">Record Movement</button>
-        <a href="{% url 'students:hostel_movement_list' %}" class="btn btn-danger">Cancel</a>
-    </form>
+
+            <!-- Row 3: Escorting Person & Reason -->
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Escorting Person <span style="color: var(--gray); font-size: 0.75rem;">(Optional)</span></label>
+                    <input type="text" name="escorting_person" placeholder="Parent / Guardian / Self" style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Reason <span style="color: var(--gray); font-size: 0.75rem;">(Optional)</span></label>
+                    <input type="text" name="reason" placeholder="Home visit, medical checkup, etc." style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem;">
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid #f1f5f9; padding-top: 1rem;">
+                <a href="{% url 'students:hostel_movement_list' %}" class="btn btn-secondary" style="margin: 0; border-radius: 10px; padding: 0.65rem 1.25rem;">Cancel</a>
+                <button type="submit" class="btn btn-primary" style="margin: 0; border-radius: 10px; font-weight: 700; padding: 0.65rem 2rem;">
+                    <i class="fa-solid fa-check"></i> Record Movement
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
-{% endblock %}
 
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const timeInput = document.getElementById('depTime');
+        if (timeInput && !timeInput.value) {
+            timeInput.value = `${hours}:${minutes}`;
+        }
+    });
+</script>
+{% endblock %}

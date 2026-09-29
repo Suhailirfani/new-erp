@@ -1752,16 +1752,84 @@ def hostel_movement_list(request):
     return render(request, 'students/hostel_movement_list.html', context)
 
 
-@role_required(['admin', 'ntstaff'])
+@role_required(['admin', 'teacher', 'ntstaff'])
+def hostel_movement_list(request):
+    """List hostel movements with in-window departure creation and return modals"""
+    from django.db.models import Q
+    movements = HostelMovement.objects.select_related('student')
+
+    # Calculate Stats
+    hostel_students = Student.objects.filter(student_type='hostel', is_active=True).exclude(alumni_record__isnull=False).order_by('last_name', 'first_name')
+    total_hostel_students = hostel_students.count()
+    
+    # Away students are those with an unreturned movement
+    away_students = HostelMovement.objects.filter(is_returned=False, student__is_active=True, student__student_type='hostel').values('student').distinct().count()
+    present_students = max(0, total_hostel_students - away_students)
+
+    # Filters
+    student_id = request.GET.get('student_id')
+    is_returned = request.GET.get('is_returned')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+
+    if student_id:
+        movements = movements.filter(
+            Q(student__student_id__icontains=student_id) | 
+            Q(student__first_name__icontains=student_id) |
+            Q(student__last_name__icontains=student_id)
+        )
+    if is_returned is not None and is_returned != '':
+        movements = movements.filter(is_returned=is_returned == '1')
+    if date_from:
+        movements = movements.filter(departure_date__gte=date_from)
+    if date_to:
+        movements = movements.filter(departure_date__lte=date_to)
+
+    movements = movements.order_by('-departure_date', '-departure_time')
+
+    # Current date and time formatted for HTML inputs
+    now = timezone.localtime(timezone.now()) if timezone.is_aware(timezone.now()) else timezone.now()
+    default_date = now.strftime('%Y-%m-%d')
+    default_time = now.strftime('%H:%M')
+
+    context = {
+        'movements': movements,
+        'hostel_students': hostel_students,
+        'default_date': default_date,
+        'default_time': default_time,
+        'stats': {
+            'total': total_hostel_students,
+            'present': present_students,
+            'away': away_students
+        },
+        'current_filters': {
+            'student_id': student_id,
+            'is_returned': is_returned,
+            'date_from': date_from,
+            'date_to': date_to,
+        }
+    }
+    return render(request, 'students/hostel_movement_list.html', context)
+
+
+@role_required(['admin', 'teacher', 'ntstaff'])
 def hostel_movement_create(request):
-    """Create hostel movement record"""
+    """Create hostel movement record (handles in-window modal and standalone form)"""
+    now = timezone.localtime(timezone.now()) if timezone.is_aware(timezone.now()) else timezone.now()
+    default_date = now.strftime('%Y-%m-%d')
+    default_time = now.strftime('%H:%M')
+
     if request.method == 'POST':
         student_id = request.POST.get('student')
-        departure_date = request.POST.get('departure_date')
-        departure_time = request.POST.get('departure_time')
-        escorting_person = request.POST.get('escorting_person')
-        reason = request.POST.get('reason')
+        departure_date = request.POST.get('departure_date') or default_date
+        departure_time = request.POST.get('departure_time') or default_time
+        escorting_person = request.POST.get('escorting_person', '').strip()
+        reason = request.POST.get('reason', '').strip()
         expected_return_date = request.POST.get('expected_return_date') or None
+
+        if not student_id:
+            messages.error(request, 'Please select a student.')
+            return redirect(request.POST.get('next') or 'students:hostel_movement_list')
 
         student = get_object_or_404(Student, id=student_id, student_type='hostel')
 
@@ -1774,42 +1842,61 @@ def hostel_movement_create(request):
             expected_return_date=expected_return_date,
         )
 
-        messages.success(request, f'Movement record created for {student.full_name}')
+        messages.success(request, f'Movement logged successfully for {student.full_name}')
+        next_url = request.POST.get('next')
+        if next_url:
+            return redirect(next_url)
         return redirect('students:hostel_movement_list')
 
-    active_year = AcademicYear.objects.filter(is_active=True).first()
-    enrollments = Enrollment.objects.filter(
-        academic_year=active_year,
-        student__student_type='hostel', 
-        student__is_active=True
-    ).select_related('student')
-    context = {'enrollments': enrollments}
+    hostel_students = Student.objects.filter(student_type='hostel', is_active=True).exclude(alumni_record__isnull=False).order_by('last_name', 'first_name')
+    context = {
+        'hostel_students': hostel_students,
+        'default_date': default_date,
+        'default_time': default_time,
+    }
     return render(request, 'students/hostel_movement_create.html', context)
 
 
-@role_required(['admin', 'ntstaff'])
+@role_required(['admin', 'teacher', 'ntstaff'])
 def hostel_movement_update(request, pk):
-    """Update hostel movement (mark as returned)"""
+    """Update hostel movement / Mark as returned"""
     movement = get_object_or_404(HostelMovement, pk=pk)
+    now = timezone.localtime(timezone.now()) if timezone.is_aware(timezone.now()) else timezone.now()
+    default_date = now.strftime('%Y-%m-%d')
+    default_time = now.strftime('%H:%M')
 
     if request.method == 'POST':
-        arrival_date = request.POST.get('arrival_date')
-        arrival_time = request.POST.get('arrival_time')
-        sign = request.POST.get('sign')
-        remarks = request.POST.get('remarks')
-        is_returned = request.POST.get('is_returned') == 'on'
+        arrival_date = request.POST.get('arrival_date') or default_date
+        arrival_time = request.POST.get('arrival_time') or default_time
+        sign = request.POST.get('sign', '').strip()
+        remarks = request.POST.get('remarks', '').strip()
+        
+        is_returned_val = request.POST.get('is_returned')
+        if is_returned_val is not None:
+            is_returned = is_returned_val in ['on', '1', 'true', True]
+        else:
+            is_returned = True
 
-        movement.arrival_date = arrival_date if arrival_date else None
-        movement.arrival_time = arrival_time if arrival_time else None
+        movement.arrival_date = arrival_date if is_returned else None
+        movement.arrival_time = arrival_time if is_returned else None
         movement.sign = sign
         movement.remarks = remarks
         movement.is_returned = is_returned
         movement.save()
 
-        messages.success(request, f'Movement record updated for {movement.student.full_name}')
+        status_text = "marked as returned" if is_returned else "updated"
+        messages.success(request, f'Movement record for {movement.student.full_name} {status_text}.')
+        
+        next_url = request.POST.get('next')
+        if next_url:
+            return redirect(next_url)
         return redirect('students:hostel_movement_list')
 
-    context = {'movement': movement}
+    context = {
+        'movement': movement,
+        'default_date': default_date,
+        'default_time': default_time,
+    }
     return render(request, 'students/hostel_movement_update.html', context)
 
 
@@ -1821,9 +1908,12 @@ def hostel_movement_update(request, pk):
 def hostel_dashboard(request):
     """Hostel Command Center and Overview Dashboard"""
     today = timezone.now().date()
+    now = timezone.localtime(timezone.now()) if timezone.is_aware(timezone.now()) else timezone.now()
+    default_date = now.strftime('%Y-%m-%d')
+    default_time = now.strftime('%H:%M')
     
     # 1. Total active hostel students
-    hostel_students = Student.objects.filter(student_type='hostel', is_active=True).exclude(alumni_record__isnull=False)
+    hostel_students = Student.objects.filter(student_type='hostel', is_active=True).exclude(alumni_record__isnull=False).order_by('last_name', 'first_name')
     total_hostel_students = hostel_students.count()
     
     # 2. Movement stats (Students currently away / unreturned)
@@ -1870,6 +1960,9 @@ def hostel_dashboard(request):
         'present_students_count': present_students_count,
         'away_students_count': away_students_count,
         'unreturned_movements': unreturned_movements[:8],
+        'hostel_students': hostel_students,
+        'default_date': default_date,
+        'default_time': default_time,
         'activities_stats': activities_stats,
         'recent_movements': recent_movements,
         'recent_attendances': recent_attendances,
@@ -2100,9 +2193,22 @@ def hostel_attendance_mark(request):
         )
         return redirect(f"{reverse('students:hostel_attendance_mark')}?date={target_date.isoformat()}&activity={target_activity.id}" + (f"&grade={grade_id}" if grade_id else ""))
         
-    # Prepare student rows for template
+    # Prepare student rows for template sorted by Class & Division, then Name
+    students_list = list(hostel_students)
+    
+    def get_student_sort_key(st):
+        curr = st.current_enrollment
+        grade_order = curr.grade.order if (curr and curr.grade and curr.grade.order is not None) else 999
+        grade_name = curr.grade.name if (curr and curr.grade) else "ZZZ"
+        div_name = curr.division.name if (curr and curr.division) else "ZZZ"
+        first_name = st.first_name or ""
+        last_name = st.last_name or ""
+        return (grade_order, grade_name, div_name, first_name.lower(), last_name.lower(), st.student_id or "")
+
+    students_list.sort(key=get_student_sort_key)
+
     students_data = []
-    for st in hostel_students.order_by('last_name', 'first_name'):
+    for st in students_list:
         existing_att = existing_attendances.get(st.id)
         is_away = st.id in away_students_map
         movement = away_students_map.get(st.id)
@@ -2112,10 +2218,11 @@ def hostel_attendance_mark(request):
             current_remarks = existing_att.remarks
         else:
             current_status = 'excused' if is_away else 'present'
-            current_remarks = f"Away since {movement.departure_date.strftime('%d/%m')}" if (is_away and movement) else ""
+            current_remarks = ""
             
         students_data.append({
             'student': st,
+            'class_name': st.class_name,
             'existing_attendance': existing_att,
             'is_away': is_away,
             'movement': movement,
