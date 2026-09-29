@@ -49,13 +49,29 @@
         <form method="post" action="{% url 'students:hostel_movement_create' %}">
             {% csrf_token %}
             
-            <!-- Row 1: Student Selection -->
+            <!-- Row 1: Student Selection with Search Filter -->
             <div class="form-group mb-3">
-                <label class="form-label" style="font-weight: 700; font-size: 0.88rem;">Select Student <span style="color: var(--danger);">*</span></label>
-                <select name="student" required style="border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.95rem; font-weight: 600;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.88rem; margin: 0;">
+                        Select Student <span style="color: var(--danger);">*</span>
+                    </label>
+                    <span id="createStudentCount" style="font-size: 0.75rem; color: var(--gray); font-weight: 600;">
+                        {{ hostel_students|length }} student{{ hostel_students|length|pluralize }}
+                    </span>
+                </div>
+
+                <div style="position: relative; margin-bottom: 0.5rem;">
+                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--gray); font-size: 0.85rem; pointer-events: none;"></i>
+                    <input type="text" id="createStudentSearch" placeholder="Type student name, ID or class to filter..." oninput="filterStudentSelect('createStudentSearch', 'createStudentSelect', 'createStudentCount')" style="padding-left: 36px; padding-right: 30px; height: 40px; border-radius: 10px; font-size: 0.88rem; border: 1.5px solid #cbd5e1; width: 100%; box-sizing: border-box; font-weight: 500;">
+                    <button type="button" onclick="clearStudentSelect('createStudentSearch', 'createStudentSelect', 'createStudentCount')" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--gray); cursor: pointer; font-size: 0.9rem; padding: 2px;" title="Clear search">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <select name="student" id="createStudentSelect" required style="border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.95rem; font-weight: 600; width: 100%;">
                     <option value="">-- Choose Hostel Student --</option>
                     {% for st in hostel_students %}
-                    <option value="{{ st.id }}" {% if request.GET.student == st.id|stringformat:'s' %}selected{% endif %}>
+                    <option value="{{ st.id }}" data-search="{{ st.full_name|lower }} {{ st.student_id|lower }} {{ st.class_name|lower }}" {% if request.GET.student == st.id|stringformat:'s' %}selected{% endif %}>
                         {{ st.full_name }} ({{ st.student_id }}) - {{ st.class_name }}
                     </option>
                     {% endfor %}
@@ -101,6 +117,58 @@
 </div>
 
 <script>
+    function filterStudentSelect(searchId, selectId, countId) {
+        const searchInput = document.getElementById(searchId);
+        const select = document.getElementById(selectId);
+        if (!searchInput || !select) return;
+
+        const q = searchInput.value.trim().toLowerCase();
+        const options = Array.from(select.querySelectorAll('option'));
+        let matchCount = 0;
+        let firstMatch = null;
+
+        options.forEach((opt, idx) => {
+            if (idx === 0) {
+                opt.hidden = false;
+                opt.disabled = false;
+                return;
+            }
+            const searchData = (opt.getAttribute('data-search') || opt.textContent).toLowerCase();
+            if (!q || searchData.includes(q)) {
+                opt.hidden = false;
+                opt.disabled = false;
+                matchCount++;
+                if (!firstMatch) firstMatch = opt;
+            } else {
+                opt.hidden = true;
+                opt.disabled = true;
+            }
+        });
+
+        // Auto-select if exact 1 match
+        if (q && matchCount === 1 && firstMatch) {
+            select.value = firstMatch.value;
+        } else if (q && matchCount === 0) {
+            select.value = '';
+        }
+
+        if (countId) {
+            const countEl = document.getElementById(countId);
+            if (countEl) {
+                countEl.textContent = q ? `${matchCount} found` : `${options.length - 1} students`;
+            }
+        }
+    }
+
+    function clearStudentSelect(searchId, selectId, countId) {
+        const searchInput = document.getElementById(searchId);
+        if (searchInput) {
+            searchInput.value = '';
+            filterStudentSelect(searchId, selectId, countId);
+            searchInput.focus();
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const now = new Date();
         const hours = String(now.getHours()).padStart(2, '0');
@@ -108,6 +176,11 @@
         const timeInput = document.getElementById('depTime');
         if (timeInput && !timeInput.value) {
             timeInput.value = `${hours}:${minutes}`;
+        }
+
+        const searchInput = document.getElementById('createStudentSearch');
+        if (searchInput && !document.getElementById('createStudentSelect').value) {
+            searchInput.focus();
         }
     });
 </script>

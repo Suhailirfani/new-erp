@@ -597,13 +597,31 @@
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
 
-            <!-- Row 1: Student Selection -->
+            <!-- Row 1: Student Selection with Search Filter -->
             <div class="form-group mb-2">
-                <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem;">Select Student <span style="color: var(--danger);">*</span></label>
-                <select name="student" required style="border-radius: 10px; padding: 0.65rem 0.85rem; font-size: 0.92rem; font-weight: 600;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin: 0;">
+                        Select Student <span style="color: var(--danger);">*</span>
+                    </label>
+                    <span id="dashStudentCount" style="font-size: 0.72rem; color: var(--gray); font-weight: 600;">
+                        {{ hostel_students|length }} student{{ hostel_students|length|pluralize }}
+                    </span>
+                </div>
+
+                <div style="position: relative; margin-bottom: 0.4rem;">
+                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--gray); font-size: 0.8rem; pointer-events: none;"></i>
+                    <input type="text" id="dashStudentSearch" placeholder="Type student name, ID or class to filter..." oninput="filterStudentSelect('dashStudentSearch', 'dashStudentSelect', 'dashStudentCount')" style="padding-left: 32px; padding-right: 28px; height: 36px; border-radius: 8px; font-size: 0.85rem; border: 1.5px solid #cbd5e1; width: 100%; box-sizing: border-box; font-weight: 500;">
+                    <button type="button" onclick="clearStudentSelect('dashStudentSearch', 'dashStudentSelect', 'dashStudentCount')" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--gray); cursor: pointer; font-size: 0.85rem; padding: 2px;" title="Clear search">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <select name="student" id="dashStudentSelect" required style="border-radius: 10px; padding: 0.65rem 0.85rem; font-size: 0.92rem; font-weight: 600; width: 100%;">
                     <option value="">-- Choose Hostel Student --</option>
                     {% for st in hostel_students %}
-                    <option value="{{ st.id }}">{{ st.full_name }} ({{ st.student_id }}) - {{ st.class_name }}</option>
+                    <option value="{{ st.id }}" data-search="{{ st.full_name|lower }} {{ st.student_id|lower }} {{ st.class_name|lower }}">
+                        {{ st.full_name }} ({{ st.student_id }}) - {{ st.class_name }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
@@ -707,6 +725,58 @@
 </div>
 
 <script>
+    function filterStudentSelect(searchId, selectId, countId) {
+        const searchInput = document.getElementById(searchId);
+        const select = document.getElementById(selectId);
+        if (!searchInput || !select) return;
+
+        const q = searchInput.value.trim().toLowerCase();
+        const options = Array.from(select.querySelectorAll('option'));
+        let matchCount = 0;
+        let firstMatch = null;
+
+        options.forEach((opt, idx) => {
+            if (idx === 0) {
+                opt.hidden = false;
+                opt.disabled = false;
+                return;
+            }
+            const searchData = (opt.getAttribute('data-search') || opt.textContent).toLowerCase();
+            if (!q || searchData.includes(q)) {
+                opt.hidden = false;
+                opt.disabled = false;
+                matchCount++;
+                if (!firstMatch) firstMatch = opt;
+            } else {
+                opt.hidden = true;
+                opt.disabled = true;
+            }
+        });
+
+        // Auto-select if exact 1 match
+        if (q && matchCount === 1 && firstMatch) {
+            select.value = firstMatch.value;
+        } else if (q && matchCount === 0) {
+            select.value = '';
+        }
+
+        if (countId) {
+            const countEl = document.getElementById(countId);
+            if (countEl) {
+                countEl.textContent = q ? `${matchCount} found` : `${options.length - 1} students`;
+            }
+        }
+    }
+
+    function clearStudentSelect(searchId, selectId, countId) {
+        const searchInput = document.getElementById(searchId);
+        if (searchInput) {
+            searchInput.value = '';
+            filterStudentSelect(searchId, selectId, countId);
+            searchInput.focus();
+        }
+    }
+
     function openDepartureModal() {
         const now = new Date();
         const dateStr = now.toISOString().split('T')[0];
@@ -716,8 +786,17 @@
 
         document.getElementById('dashDepDateInput').value = dateStr;
         document.getElementById('dashDepTimeInput').value = timeStr;
+        
+        // Reset student search
+        clearStudentSelect('dashStudentSearch', 'dashStudentSelect', 'dashStudentCount');
+
         document.getElementById('departureModal').classList.add('active');
         document.body.classList.add('modal-open');
+
+        setTimeout(() => {
+            const searchInput = document.getElementById('dashStudentSearch');
+            if (searchInput) searchInput.focus();
+        }, 120);
     }
 
     function openReturnModal(movementId, studentName, depDate, depTime) {

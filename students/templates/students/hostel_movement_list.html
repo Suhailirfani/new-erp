@@ -6,11 +6,28 @@
 
 {% block content %}
 <style>
+    /* Header & Action Toolbar */
+    .mov-header-wrap {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .mov-actions-bar {
+        display: flex;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+    }
+
+    /* Stat Cards */
     .hostel-stat-cards {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 1.25rem;
-        margin-bottom: 2rem;
+        margin-bottom: 1.75rem;
     }
 
     .stat-tile {
@@ -33,6 +50,23 @@
         justify-content: center;
         font-size: 1.35rem;
         flex-shrink: 0;
+    }
+
+    /* Filter Form Grid */
+    .mov-filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 0.85rem;
+        align-items: end;
+    }
+
+    /* Dual Display: Desktop Table vs Mobile Cards */
+    .mov-desktop-table {
+        display: block;
+    }
+
+    .mov-mobile-cards {
+        display: none;
     }
 
     /* In-window Modal Styles */
@@ -93,24 +127,62 @@
         margin-bottom: 1rem;
     }
 
+    /* MOBILE DEDICATED IN-WINDOW VIEW (< 768px) */
     @media (max-width: 768px) {
+        .mov-header-wrap {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.85rem;
+            margin-bottom: 1.25rem;
+        }
+        .mov-actions-bar {
+            width: 100%;
+        }
+        .mov-actions-bar .btn {
+            flex: 1;
+            justify-content: center;
+            padding: 0.65rem 0.75rem !important;
+            font-size: 0.85rem !important;
+        }
+
         .hostel-stat-cards {
             grid-template-columns: repeat(3, 1fr) !important;
-            gap: 0.5rem !important;
+            gap: 0.45rem !important;
+            margin-bottom: 1.25rem !important;
         }
         .stat-tile {
-            padding: 0.75rem 0.5rem !important;
+            padding: 0.65rem 0.4rem !important;
             flex-direction: column !important;
             text-align: center !important;
-            gap: 0.35rem !important;
+            gap: 0.25rem !important;
             border-radius: 14px !important;
         }
         .stat-tile-icon {
-            width: 34px !important;
-            height: 34px !important;
-            font-size: 1rem !important;
-            border-radius: 10px !important;
+            width: 32px !important;
+            height: 32px !important;
+            font-size: 0.95rem !important;
+            border-radius: 8px !important;
         }
+
+        .mov-filter-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 0.65rem !important;
+        }
+        .mov-filter-full {
+            grid-column: 1 / -1 !important;
+        }
+
+        /* Hide wide table on mobile and show dedicated mobile cards */
+        .mov-desktop-table {
+            display: none !important;
+        }
+        .mov-mobile-cards {
+            display: flex !important;
+            flex-direction: column;
+            gap: 0.65rem;
+            padding: 0.65rem !important;
+        }
+
         .modal-overlay {
             padding: 0.75rem 0.75rem 85px 0.75rem !important;
             align-items: flex-start !important;
@@ -136,7 +208,7 @@
 </style>
 
 <!-- Header & Quick Launch -->
-<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+<div class="mov-header-wrap">
     <div>
         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
             <a href="{% url 'students:hostel_dashboard' %}" style="color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.85rem;">
@@ -145,19 +217,19 @@
             <span style="color: var(--gray);">&bull;</span>
             <span style="color: var(--gray); font-weight: 600; font-size: 0.85rem;">Movement Tracking</span>
         </div>
-        <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--dark); margin: 0;">Hostel Movements</h1>
-        <p style="color: var(--gray); font-size: 0.95rem; margin: 0.25rem 0 0;">
-            Log campus leaves, student departures, and verify arrivals with fast 1-click in-window entries.
+        <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--dark); margin: 0; line-height: 1.2;">Hostel Movements</h1>
+        <p style="color: var(--gray); font-size: 0.88rem; margin: 0.25rem 0 0;">
+            Track gate passes, campus departures, and verify arrivals with fast in-window entries.
         </p>
     </div>
 
     <!-- Quick Action Buttons -->
-    <div style="display: flex; gap: 0.65rem; flex-wrap: wrap;">
-        <button type="button" onclick="openDepartureModal()" class="btn btn-primary" style="margin: 0; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-radius: 12px; padding: 0.75rem 1.25rem;">
+    <div class="mov-actions-bar">
+        <button type="button" onclick="openDepartureModal()" class="btn btn-primary" style="margin: 0; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-radius: 12px; padding: 0.7rem 1.25rem;">
             <i class="fa-solid fa-person-walking-arrow-right"></i> Log New Departure
         </button>
-        <a href="{% url 'students:hostel_student_list' %}" class="btn btn-secondary" style="margin: 0; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-radius: 12px; padding: 0.75rem 1.25rem;">
-            <i class="fa-solid fa-users"></i> Hostel Directory
+        <a href="{% url 'students:hostel_student_list' %}" class="btn btn-secondary" style="margin: 0; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-radius: 12px; padding: 0.7rem 1.25rem;">
+            <i class="fa-solid fa-users"></i> Directory
         </a>
     </div>
 </div>
@@ -169,8 +241,8 @@
             <i class="fa-solid fa-users"></i>
         </div>
         <div>
-            <div style="font-size: 1.5rem; font-weight: 800; color: var(--dark); line-height: 1.1;">{{ stats.total }}</div>
-            <div style="font-size: 0.75rem; color: var(--gray); font-weight: 700; text-transform: uppercase;">Total Hostel</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: var(--dark); line-height: 1.1;">{{ stats.total }}</div>
+            <div style="font-size: 0.72rem; color: var(--gray); font-weight: 700; text-transform: uppercase;">Total Hostel</div>
         </div>
     </div>
 
@@ -179,8 +251,8 @@
             <i class="fa-solid fa-building-user"></i>
         </div>
         <div>
-            <div style="font-size: 1.5rem; font-weight: 800; color: #10b981; line-height: 1.1;">{{ stats.present }}</div>
-            <div style="font-size: 0.75rem; color: var(--gray); font-weight: 700; text-transform: uppercase;">In Campus</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: #10b981; line-height: 1.1;">{{ stats.present }}</div>
+            <div style="font-size: 0.72rem; color: var(--gray); font-weight: 700; text-transform: uppercase;">In Campus</div>
         </div>
     </div>
 
@@ -189,72 +261,73 @@
             <i class="fa-solid fa-person-walking-luggage"></i>
         </div>
         <div>
-            <div style="font-size: 1.5rem; font-weight: 800; color: #ef4444; line-height: 1.1;">{{ stats.away }}</div>
-            <div style="font-size: 0.75rem; color: var(--gray); font-weight: 700; text-transform: uppercase;">Currently Away</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: #ef4444; line-height: 1.1;">{{ stats.away }}</div>
+            <div style="font-size: 0.72rem; color: var(--gray); font-weight: 700; text-transform: uppercase;">Currently Away</div>
         </div>
     </div>
 </div>
 
 <!-- Filters Card -->
-<div class="card p-4 mb-4" style="border-radius: 20px;">
-    <form method="get" action="" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; align-items: end;">
-        <div>
-            <label class="form-label" style="font-weight: 700; font-size: 0.82rem;">Student Name or ID</label>
-            <input type="text" name="student_id" value="{{ current_filters.student_id|default:'' }}" placeholder="Search name or ID..." style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem;">
+<div class="card p-3 p-md-4 mb-4" style="border-radius: 20px;">
+    <form method="get" action="" class="mov-filter-grid">
+        <div class="mov-filter-full">
+            <label class="form-label" style="font-weight: 700; font-size: 0.8rem; margin-bottom: 0.3rem;">Student Name or ID</label>
+            <input type="text" name="student_id" value="{{ current_filters.student_id|default:'' }}" placeholder="Search name or ID..." style="border-radius: 10px; padding: 0.55rem 0.75rem; font-size: 0.88rem; width: 100%;">
         </div>
 
         <div>
-            <label class="form-label" style="font-weight: 700; font-size: 0.82rem;">Status</label>
-            <select name="is_returned" style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem;">
+            <label class="form-label" style="font-weight: 700; font-size: 0.8rem; margin-bottom: 0.3rem;">Status</label>
+            <select name="is_returned" style="border-radius: 10px; padding: 0.55rem 0.75rem; font-size: 0.88rem; width: 100%;">
                 <option value="">All Statuses</option>
-                <option value="0" {% if current_filters.is_returned == '0' %}selected{% endif %}>Currently Away (Not Returned)</option>
+                <option value="0" {% if current_filters.is_returned == '0' %}selected{% endif %}>Away (Not Returned)</option>
                 <option value="1" {% if current_filters.is_returned == '1' %}selected{% endif %}>Returned Back</option>
             </select>
         </div>
 
         <div>
-            <label class="form-label" style="font-weight: 700; font-size: 0.82rem;">Departure From</label>
-            <input type="date" name="date_from" value="{{ current_filters.date_from|default:'' }}" style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem;">
+            <label class="form-label" style="font-weight: 700; font-size: 0.8rem; margin-bottom: 0.3rem;">Departure From</label>
+            <input type="date" name="date_from" value="{{ current_filters.date_from|default:'' }}" style="border-radius: 10px; padding: 0.55rem; font-size: 0.88rem; width: 100%;">
         </div>
 
         <div>
-            <label class="form-label" style="font-weight: 700; font-size: 0.82rem;">Departure To</label>
-            <input type="date" name="date_to" value="{{ current_filters.date_to|default:'' }}" style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem;">
+            <label class="form-label" style="font-weight: 700; font-size: 0.8rem; margin-bottom: 0.3rem;">Departure To</label>
+            <input type="date" name="date_to" value="{{ current_filters.date_to|default:'' }}" style="border-radius: 10px; padding: 0.55rem; font-size: 0.88rem; width: 100%;">
         </div>
 
-        <div style="display: flex; gap: 0.5rem;">
-            <button type="submit" class="btn btn-primary" style="flex: 1; margin: 0; padding: 0.65rem 1rem; border-radius: 10px; font-weight: 700;">
+        <div style="display: flex; gap: 0.45rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1; margin: 0; padding: 0.55rem 0.85rem; border-radius: 10px; font-weight: 700; font-size: 0.85rem;">
                 <i class="fa-solid fa-filter"></i> Filter
             </button>
-            <a href="{% url 'students:hostel_movement_list' %}" class="btn btn-secondary" style="margin: 0; padding: 0.65rem 0.85rem; border-radius: 10px;" title="Reset Filters">
+            <a href="{% url 'students:hostel_movement_list' %}" class="btn btn-secondary" style="margin: 0; padding: 0.55rem 0.75rem; border-radius: 10px;" title="Reset Filters">
                 <i class="fa-solid fa-rotate-left"></i>
             </a>
         </div>
     </form>
 </div>
 
-<!-- Movement Table -->
+<!-- Movement Logs Section -->
 <div class="card p-0" style="border-radius: 20px; overflow: hidden;">
-    <div style="padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; background: #ffffff;">
-        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--dark);">
+    <div style="padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; background: #ffffff;">
+        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--dark);">
             Movement Logs ({{ movements.count }})
         </h3>
-        <button type="button" onclick="openDepartureModal()" class="btn btn-xs btn-primary" style="padding: 0.4rem 0.85rem; border-radius: 8px; font-weight: 700;">
+        <button type="button" onclick="openDepartureModal()" class="btn btn-xs btn-primary" style="padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 700; font-size: 0.78rem;">
             <i class="fa-solid fa-plus"></i> New Departure
         </button>
     </div>
 
     {% if movements %}
-    <div class="table-responsive" style="margin: 0;">
+    <!-- 1. DESKTOP TABLE VIEW (>= 769px) -->
+    <div class="table-responsive mov-desktop-table" style="margin: 0;">
         <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
             <thead>
                 <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-                    <th style="padding: 1rem; text-align: left; font-size: 0.8rem; color: var(--gray);">Student</th>
-                    <th style="padding: 1rem; text-align: left; font-size: 0.8rem; color: var(--gray);">Departure</th>
-                    <th style="padding: 1rem; text-align: left; font-size: 0.8rem; color: var(--gray);">Expected Return</th>
-                    <th style="padding: 1rem; text-align: left; font-size: 0.8rem; color: var(--gray);">Escort / Reason</th>
-                    <th style="padding: 1rem; text-align: center; font-size: 0.8rem; color: var(--gray);">Status</th>
-                    <th style="padding: 1rem; text-align: right; font-size: 0.8rem; color: var(--gray);">Actions</th>
+                    <th style="padding: 0.85rem 1rem; text-align: left; font-size: 0.78rem; color: var(--gray);">Student</th>
+                    <th style="padding: 0.85rem 1rem; text-align: left; font-size: 0.78rem; color: var(--gray);">Departure</th>
+                    <th style="padding: 0.85rem 1rem; text-align: left; font-size: 0.78rem; color: var(--gray);">Expected Return</th>
+                    <th style="padding: 0.85rem 1rem; text-align: left; font-size: 0.78rem; color: var(--gray);">Escort / Reason</th>
+                    <th style="padding: 0.85rem 1rem; text-align: center; font-size: 0.78rem; color: var(--gray);">Status</th>
+                    <th style="padding: 0.85rem 1rem; text-align: right; font-size: 0.78rem; color: var(--gray);">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -262,11 +335,11 @@
                 <tr style="border-bottom: 1px solid #f1f5f9; {% if not m.is_returned %}background: #fffafa;{% endif %}">
                     <td style="padding: 0.85rem 1rem;">
                         <div style="font-weight: 700; color: var(--dark);">
-                            <a href="{% url 'students:hostel_student_detail' m.student.id %}" style="color: inherit; text-decoration: none;">
+                            <a href="{% url 'students:hostel_student_detail' m.student.id %}" style="color: inherit; text-decoration: none;" target="_blank">
                                 {{ m.student.full_name }}
                             </a>
                         </div>
-                        <div style="font-size: 0.72rem; color: var(--gray);">ID: {{ m.student.student_id }} &bull; {{ m.student.class_name }}</div>
+                        <div style="font-size: 0.72rem; color: var(--gray); font-weight: 600;">ID: {{ m.student.student_id }} &bull; {{ m.student.class_name }}</div>
                     </td>
 
                     <td style="padding: 0.85rem 1rem; white-space: nowrap;">
@@ -322,15 +395,101 @@
             </tbody>
         </table>
     </div>
+
+    <!-- 2. MOBILE DEDICATED IN-WINDOW CARDS (< 769px) -->
+    <div class="mov-mobile-cards">
+        {% for m in movements %}
+        <div style="background: #ffffff; border-radius: 14px; border: 1px solid #e2e8f0; border-left: 4px solid {% if m.is_returned %}#10b981{% else %}#ef4444{% endif %}; padding: 0.85rem; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+            <!-- Card Header: Student Info & Status Badge -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <div>
+                    <div style="font-weight: 800; color: var(--dark); font-size: 0.95rem; line-height: 1.2;">
+                        <a href="{% url 'students:hostel_student_detail' m.student.id %}" style="color: inherit; text-decoration: none;">
+                            {{ m.student.full_name }}
+                        </a>
+                    </div>
+                    <div style="font-size: 0.72rem; color: var(--gray); font-weight: 600; margin-top: 2px;">
+                        ID: {{ m.student.student_id }} &bull; {{ m.student.class_name }}
+                    </div>
+                </div>
+
+                {% if m.is_returned %}
+                    <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 0.7rem; font-weight: 800; padding: 2px 6px; border-radius: 6px; flex-shrink: 0;">
+                        <i class="fa-solid fa-check"></i> Returned
+                    </span>
+                {% else %}
+                    <span class="badge" style="background: #fee2e2; color: #b91c1c; font-size: 0.7rem; font-weight: 800; padding: 2px 6px; border-radius: 6px; flex-shrink: 0;">
+                        <i class="fa-solid fa-person-walking-luggage"></i> Away
+                    </span>
+                {% endif %}
+            </div>
+
+            <!-- Card Details: Departure, Return & Notes -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; background: #f8fafc; border-radius: 8px; padding: 0.5rem 0.65rem; margin-bottom: 0.6rem; font-size: 0.78rem;">
+                <div>
+                    <div style="font-size: 0.68rem; color: var(--gray); font-weight: 700; text-transform: uppercase;">Departure</div>
+                    <div style="font-weight: 700; color: var(--dark-secondary);">
+                        {{ m.departure_date|date:"d M" }} at {{ m.departure_time|time:"h:i A" }}
+                    </div>
+                </div>
+
+                <div>
+                    <div style="font-size: 0.68rem; color: var(--gray); font-weight: 700; text-transform: uppercase;">
+                        {% if m.is_returned %}Arrival{% else %}Expected{% endif %}
+                    </div>
+                    <div style="font-weight: 700; color: {% if m.is_returned %}#15803d{% else %}#6366f1{% endif %};">
+                        {% if m.is_returned %}
+                            {{ m.arrival_date|date:"d M" }} at {{ m.arrival_time|time:"h:i A" }}
+                        {% elif m.expected_return_date %}
+                            {{ m.expected_return_date|date:"d M Y" }}
+                        {% else %}
+                            <span style="color: var(--gray);">Not set</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% if m.escorting_person or m.reason %}
+            <div style="font-size: 0.75rem; color: var(--gray); margin-bottom: 0.6rem; line-height: 1.3;">
+                {% if m.escorting_person %}
+                    <div><strong style="color: var(--dark-secondary);">Escort:</strong> {{ m.escorting_person }}</div>
+                {% endif %}
+                {% if m.reason %}
+                    <div><strong style="color: var(--dark-secondary);">Reason:</strong> {{ m.reason }}</div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Card Actions -->
+            <div style="display: flex; gap: 0.4rem; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 0.5rem;">
+                {% if not m.is_returned %}
+                    <button type="button" onclick="openReturnModal('{{ m.id }}', '{{ m.student.full_name|escapejs }} ({{ m.student.student_id }}) - {{ m.student.class_name|escapejs }}', '{{ m.departure_date|date:'d M Y' }}', '{{ m.departure_time|time:'h:i A' }}')" 
+                            class="btn btn-xs btn-success" 
+                            style="flex: 1; margin: 0; padding: 0.45rem 0.75rem; border-radius: 8px; font-weight: 700; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+                        <i class="fa-solid fa-door-closed"></i> Mark Return
+                    </button>
+                {% endif %}
+                
+                <a href="{% url 'students:hostel_movement_update' m.id %}" class="btn btn-xs btn-outline-secondary" style="margin: 0; padding: 0.45rem 0.65rem; border-radius: 8px; font-size: 0.8rem;" title="Edit Record">
+                    <i class="fa-solid fa-pen"></i> Edit
+                </a>
+
+                <a href="{% url 'students:hostel_student_detail' m.student.id %}" class="btn btn-xs btn-outline-primary" style="margin: 0; padding: 0.45rem 0.65rem; border-radius: 8px; font-size: 0.8rem;" title="Student Profile">
+                    <i class="fa-solid fa-user"></i>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
     {% else %}
-    <div style="text-align: center; padding: 4rem 1rem; color: var(--gray);">
+    <div style="text-align: center; padding: 3rem 1rem; color: var(--gray);">
         <i class="fa-solid fa-clipboard-list" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: 0.75rem;"></i>
-        <h4 style="font-weight: 800; color: var(--dark);">No Movement Records Found</h4>
-        <p style="font-size: 0.9rem; max-width: 400px; margin: 0 auto 1.5rem;">
-            No records matched your search filters. Click below to log a new departure.
+        <h4 style="font-weight: 800; color: var(--dark); font-size: 1.1rem;">No Movement Records Found</h4>
+        <p style="font-size: 0.85rem; max-width: 360px; margin: 0 auto 1.25rem;">
+            No records matched your filters. Click below to log a new departure.
         </p>
-        <button type="button" onclick="openDepartureModal()" class="btn btn-primary btn-xs" style="padding: 0.6rem 1.25rem; font-weight: 700; border-radius: 10px;">
-            <i class="fa-solid fa-plus"></i> Log Student Departure
+        <button type="button" onclick="openDepartureModal()" class="btn btn-primary btn-xs" style="padding: 0.55rem 1.25rem; font-weight: 700; border-radius: 10px;">
+            <i class="fa-solid fa-plus"></i> Log Departure
         </button>
     </div>
     {% endif %}
@@ -358,13 +517,31 @@
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
 
-            <!-- Row 1: Student Selection -->
+            <!-- Row 1: Student Selection with Search Filter -->
             <div class="form-group mb-2">
-                <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem;">Select Student <span style="color: var(--danger);">*</span></label>
-                <select name="student" required style="border-radius: 10px; padding: 0.65rem 0.85rem; font-size: 0.92rem; font-weight: 600;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin: 0;">
+                        Select Student <span style="color: var(--danger);">*</span>
+                    </label>
+                    <span id="depStudentCount" style="font-size: 0.72rem; color: var(--gray); font-weight: 600;">
+                        {{ hostel_students|length }} student{{ hostel_students|length|pluralize }}
+                    </span>
+                </div>
+
+                <div style="position: relative; margin-bottom: 0.4rem;">
+                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--gray); font-size: 0.8rem; pointer-events: none;"></i>
+                    <input type="text" id="depStudentSearch" placeholder="Type student name, ID or class to filter..." oninput="filterStudentSelect('depStudentSearch', 'depStudentSelect', 'depStudentCount')" style="padding-left: 32px; padding-right: 28px; height: 36px; border-radius: 8px; font-size: 0.85rem; border: 1.5px solid #cbd5e1; width: 100%; box-sizing: border-box; font-weight: 500;">
+                    <button type="button" onclick="clearStudentSelect('depStudentSearch', 'depStudentSelect', 'depStudentCount')" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--gray); cursor: pointer; font-size: 0.85rem; padding: 2px;" title="Clear search">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <select name="student" id="depStudentSelect" required style="border-radius: 10px; padding: 0.65rem 0.85rem; font-size: 0.92rem; font-weight: 600; width: 100%;">
                     <option value="">-- Choose Hostel Student --</option>
                     {% for st in hostel_students %}
-                    <option value="{{ st.id }}">{{ st.full_name }} ({{ st.student_id }}) - {{ st.class_name }}</option>
+                    <option value="{{ st.id }}" data-search="{{ st.full_name|lower }} {{ st.student_id|lower }} {{ st.class_name|lower }}">
+                        {{ st.full_name }} ({{ st.student_id }}) - {{ st.class_name }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
@@ -468,6 +645,58 @@
 </div>
 
 <script>
+    function filterStudentSelect(searchId, selectId, countId) {
+        const searchInput = document.getElementById(searchId);
+        const select = document.getElementById(selectId);
+        if (!searchInput || !select) return;
+
+        const q = searchInput.value.trim().toLowerCase();
+        const options = Array.from(select.querySelectorAll('option'));
+        let matchCount = 0;
+        let firstMatch = null;
+
+        options.forEach((opt, idx) => {
+            if (idx === 0) {
+                opt.hidden = false;
+                opt.disabled = false;
+                return;
+            }
+            const searchData = (opt.getAttribute('data-search') || opt.textContent).toLowerCase();
+            if (!q || searchData.includes(q)) {
+                opt.hidden = false;
+                opt.disabled = false;
+                matchCount++;
+                if (!firstMatch) firstMatch = opt;
+            } else {
+                opt.hidden = true;
+                opt.disabled = true;
+            }
+        });
+
+        // Auto-select if exact 1 match
+        if (q && matchCount === 1 && firstMatch) {
+            select.value = firstMatch.value;
+        } else if (q && matchCount === 0) {
+            select.value = '';
+        }
+
+        if (countId) {
+            const countEl = document.getElementById(countId);
+            if (countEl) {
+                countEl.textContent = q ? `${matchCount} found` : `${options.length - 1} students`;
+            }
+        }
+    }
+
+    function clearStudentSelect(searchId, selectId, countId) {
+        const searchInput = document.getElementById(searchId);
+        if (searchInput) {
+            searchInput.value = '';
+            filterStudentSelect(searchId, selectId, countId);
+            searchInput.focus();
+        }
+    }
+
     function openDepartureModal() {
         // Set live current time whenever button is clicked
         const now = new Date();
@@ -478,8 +707,17 @@
 
         document.getElementById('depDateInput').value = dateStr;
         document.getElementById('depTimeInput').value = timeStr;
+        
+        // Reset student search
+        clearStudentSelect('depStudentSearch', 'depStudentSelect', 'depStudentCount');
+
         document.getElementById('departureModal').classList.add('active');
         document.body.classList.add('modal-open');
+
+        setTimeout(() => {
+            const searchInput = document.getElementById('depStudentSearch');
+            if (searchInput) searchInput.focus();
+        }, 120);
     }
 
     function openReturnModal(movementId, studentName, depDate, depTime) {
