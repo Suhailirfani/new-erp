@@ -1,0 +1,500 @@
+{% extends 'students/base.html' %}
+{% load static %}
+
+{% block title %}Mark Hostel Attendance - HadiyAdmin{% endblock %}
+{% block page_heading %}Mark Hostel Attendance{% endblock %}
+
+{% block content %}
+<style>
+    .activity-button-bar {
+        display: flex;
+        gap: 0.85rem;
+        overflow-x: auto;
+        padding: 0.5rem 0.25rem 1.25rem 0.25rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+    }
+
+    .activity-btn {
+        flex: 0 0 auto;
+        min-width: 180px;
+        background: #ffffff;
+        border: 2px solid #e2e8f0;
+        border-radius: 18px;
+        padding: 1rem 1.25rem;
+        text-decoration: none;
+        color: var(--dark);
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--shadow-soft);
+        cursor: pointer;
+        position: relative;
+    }
+
+    .activity-btn:hover {
+        transform: translateY(-3px);
+        border-color: var(--primary-light);
+        box-shadow: var(--shadow-float);
+    }
+
+    .activity-btn.active {
+        border-color: var(--primary);
+        background: linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%);
+        box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.35);
+        transform: translateY(-2px);
+    }
+
+    .activity-btn.active::before {
+        content: "";
+        position: absolute;
+        top: -2px;
+        left: 20px;
+        right: 20px;
+        height: 4px;
+        background: var(--primary);
+        border-radius: 0 0 6px 6px;
+    }
+
+    /* Student Attendance Table & Cards */
+    .att-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .att-table th {
+        background: #f8fafc;
+        color: var(--dark);
+        font-weight: 800;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 1rem 1.25rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .att-table td {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+        background: #ffffff;
+    }
+
+    .att-table tr:hover td {
+        background: #faf5ff;
+    }
+
+    /* Modern Segmented Status Control */
+    .status-segmented {
+        display: inline-flex;
+        background: #f1f5f9;
+        padding: 4px;
+        border-radius: 12px;
+        gap: 3px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .status-segmented label {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin: 0;
+        user-select: none;
+        color: var(--gray);
+    }
+
+    .status-segmented input[type="radio"] {
+        display: none;
+    }
+
+    .status-segmented input[type="radio"]:checked + label.opt-present {
+        background: #10b981;
+        color: #ffffff;
+        box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
+    }
+
+    .status-segmented input[type="radio"]:checked + label.opt-absent {
+        background: #ef4444;
+        color: #ffffff;
+        box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
+    }
+
+    .status-segmented input[type="radio"]:checked + label.opt-late {
+        background: #f59e0b;
+        color: #ffffff;
+        box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);
+    }
+
+    .status-segmented input[type="radio"]:checked + label.opt-excused {
+        background: #0ea5e9;
+        color: #ffffff;
+        box-shadow: 0 2px 6px rgba(14, 165, 233, 0.35);
+    }
+
+    /* Floating Save Bar */
+    .floating-save-bar {
+        position: sticky;
+        bottom: 20px;
+        background: rgba(15, 23, 42, 0.94);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        color: white;
+        border-radius: 20px;
+        padding: 1rem 1.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+        z-index: 100;
+        margin-top: 2rem;
+    }
+
+    @media (max-width: 768px) {
+        .activity-button-bar {
+            gap: 0.5rem;
+        }
+        .activity-btn {
+            min-width: 145px;
+            padding: 0.75rem 0.85rem;
+            border-radius: 14px;
+        }
+        .att-table th, .att-table td {
+            padding: 0.75rem 0.5rem;
+        }
+        .status-segmented label {
+            padding: 5px 8px;
+            font-size: 0.72rem;
+        }
+        .floating-save-bar {
+            flex-direction: column;
+            align-items: stretch;
+            bottom: 80px; /* Above mobile bottom nav */
+            padding: 1rem;
+            border-radius: 16px;
+        }
+    }
+</style>
+
+<!-- Top Navigation & Date Bar -->
+<div class="card p-3 mb-3" style="border-radius: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <a href="{% url 'students:hostel_dashboard' %}" class="btn btn-secondary btn-xs" style="padding: 0.5rem 0.85rem; border-radius: 8px; font-weight: 700;">
+                <i class="fa-solid fa-arrow-left"></i> Dashboard
+            </a>
+            <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--dark); margin: 0;">
+                Hostel Attendance
+            </h2>
+        </div>
+
+        <!-- Date & Grade Filter Form -->
+        <form method="get" action="" id="filterForm" style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; margin: 0;">
+            <input type="hidden" name="activity" value="{{ selected_activity.id }}">
+            
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <label style="font-size: 0.8rem; font-weight: 700; color: var(--gray); margin: 0;">Date:</label>
+                <input type="date" name="date" value="{{ selected_date_str }}" onchange="this.form.submit()" style="padding: 0.45rem 0.75rem; border-radius: 8px; font-size: 0.85rem; border: 1.5px solid #cbd5e1; font-weight: 700; color: var(--dark);">
+            </div>
+
+            {% if grades %}
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <label style="font-size: 0.8rem; font-weight: 700; color: var(--gray); margin: 0;">Class:</label>
+                <select name="grade" onchange="this.form.submit()" style="padding: 0.45rem 0.75rem; border-radius: 8px; font-size: 0.85rem; border: 1.5px solid #cbd5e1; font-weight: 600;">
+                    <option value="">All Classes</option>
+                    {% for g in grades %}
+                    <option value="{{ g.id }}" {% if selected_grade_id == g.id|stringformat:"s" %}selected{% endif %}>{{ g.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div style="display: flex; gap: 0.35rem;">
+                <a href="{% url 'students:hostel_activity_list' %}" class="btn btn-xs btn-outline-primary" style="padding: 0.45rem 0.75rem; border-radius: 8px; font-weight: 700;" title="Manage Activity List">
+                    <i class="fa-solid fa-gear"></i> Activities
+                </a>
+                <a href="{% url 'students:hostel_attendance_list' %}" class="btn btn-xs btn-outline-secondary" style="padding: 0.45rem 0.75rem; border-radius: 8px; font-weight: 700;" title="View Logs">
+                    <i class="fa-solid fa-clock-rotate-left"></i> History
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ACTIVITY BUTTONS SELECTION (User Request: "show the activities as buttons - select the activity and mark attendance") -->
+<div style="margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding: 0 0.25rem;">
+        <span style="font-size: 0.85rem; font-weight: 800; color: var(--dark); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.4rem;">
+            <i class="fa-solid fa-hand-pointer" style="color: var(--primary);"></i> Select Activity To Mark Attendance:
+        </span>
+        <span style="font-size: 0.75rem; color: var(--gray); font-weight: 600;">
+            {{ activities|length }} Active Routine{{ activities|length|pluralize }}
+        </span>
+    </div>
+
+    <div class="activity-button-bar">
+        {% for item in activity_buttons_data %}
+        {% with act=item.activity %}
+        <a href="?date={{ selected_date_str }}&activity={{ act.id }}{% if selected_grade_id %}&grade={{ selected_grade_id }}{% endif %}" 
+           class="activity-btn {% if item.is_selected %}active{% endif %}"
+           style="border-color: {% if item.is_selected %}{{ act.color }}{% else %}#e2e8f0{% endif %};">
+            
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                <div style="width: 36px; height: 36px; border-radius: 10px; background: {{ act.color }}18; color: {{ act.color }}; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                    <i class="fa-solid {{ act.icon|default:'fa-calendar-check' }}"></i>
+                </div>
+                
+                {% if item.is_marked %}
+                    <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 0.68rem; font-weight: 800; padding: 2px 6px; border-radius: 6px;">
+                        <i class="fa-solid fa-check"></i> {{ item.present_count }} Present
+                    </span>
+                {% else %}
+                    <span class="badge" style="background: #fef3c7; color: #b45309; font-size: 0.68rem; font-weight: 800; padding: 2px 6px; border-radius: 6px;">
+                        <i class="fa-regular fa-clock"></i> Not Marked
+                    </span>
+                {% endif %}
+            </div>
+
+            <div>
+                <div style="font-weight: 800; font-size: 0.95rem; color: var(--dark); line-height: 1.2; margin-bottom: 2px;">
+                    {{ act.name }}
+                </div>
+                <div style="font-size: 0.72rem; color: var(--gray); font-weight: 600;">
+                    {% if act.time_slot %}{{ act.time_slot }}{% else %}Scheduled Routine{% endif %}
+                </div>
+            </div>
+        </a>
+        {% endwith %}
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ATTENDANCE MARKING SHEET -->
+{% if selected_activity %}
+<form method="post" action="{% url 'students:hostel_attendance_mark' %}" id="attendanceForm">
+    {% csrf_token %}
+    <input type="hidden" name="activity_id" value="{{ selected_activity.id }}">
+    <input type="hidden" name="date" value="{{ selected_date_str }}">
+
+    <div class="card p-4" style="border-radius: 24px; border-top: 5px solid {{ selected_activity.color }};">
+        
+        <!-- Sheet Header & Mass Actions Toolbar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1.5px solid #f1f5f9;">
+            <div style="display: flex; align-items: center; gap: 0.85rem;">
+                <div style="width: 46px; height: 46px; border-radius: 14px; background: {{ selected_activity.color }}18; color: {{ selected_activity.color }}; display: flex; align-items: center; justify-content: center; font-size: 1.35rem;">
+                    <i class="fa-solid {{ selected_activity.icon|default:'fa-calendar-check' }}"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--dark);">
+                        {{ selected_activity.name }} Attendance
+                    </h3>
+                    <div style="font-size: 0.82rem; color: var(--gray); font-weight: 600;">
+                        Date: <strong>{{ selected_date|date:"l, d F Y" }}</strong> &bull; Total Students: <strong>{{ total_students_count }}</strong>
+                        {% if is_already_marked %}
+                            <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 0.7rem; font-weight: 800; margin-left: 6px;">Already Recorded</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Mass Actions -->
+            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                <span style="font-size: 0.78rem; font-weight: 700; color: var(--gray);">Quick Fill:</span>
+                <button type="button" onclick="setAllStatus('present')" class="btn btn-xs btn-outline-success" style="padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 700;">
+                    <i class="fa-solid fa-check-double"></i> All Present
+                </button>
+                <button type="button" onclick="setAwayStudents()" class="btn btn-xs btn-outline-info" style="padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 700;" title="Mark away students as Excused and others as Present">
+                    <i class="fa-solid fa-person-walking-luggage"></i> Auto-Away
+                </button>
+                <button type="button" onclick="setAllStatus('absent')" class="btn btn-xs btn-outline-danger" style="padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 700;">
+                    <i class="fa-solid fa-xmark"></i> All Absent
+                </button>
+            </div>
+        </div>
+
+        {% if students_data %}
+        <div class="table-responsive" style="margin: 0; border: none; box-shadow: none;">
+            <table class="att-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px; text-align: center;">#</th>
+                        <th>Student Name & ID</th>
+                        <th>Class / Division</th>
+                        <th style="text-align: center;">Hostel Movement Status</th>
+                        <th style="text-align: center; min-width: 240px;">Attendance Status</th>
+                        <th style="min-width: 150px;">Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in students_data %}
+                    {% with st=row.student %}
+                    <tr data-student-id="{{ st.id }}" data-is-away="{{ row.is_away|yesno:'true,false' }}">
+                        <td style="text-align: center; font-weight: 700; color: var(--gray); font-size: 0.85rem;">
+                            {{ forloop.counter }}
+                        </td>
+
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 0.65rem;">
+                                <div style="width: 36px; height: 36px; border-radius: 10px; background: var(--gradient-lavender); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; flex-shrink: 0;">
+                                    {{ st.first_name|first|upper }}
+                                </div>
+                                <div>
+                                    <div style="font-weight: 800; color: var(--dark); font-size: 0.95rem;">
+                                        <a href="{% url 'students:hostel_student_detail' st.id %}" style="color: inherit; text-decoration: none;" target="_blank">
+                                            {{ st.full_name }}
+                                        </a>
+                                    </div>
+                                    <div style="font-size: 0.75rem; color: var(--gray); font-weight: 600;">
+                                        ID: {{ st.student_id }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td>
+                            <div style="font-weight: 700; color: var(--dark-secondary); font-size: 0.85rem;">
+                                {{ st.class_name }}
+                            </div>
+                        </td>
+
+                        <td style="text-align: center;">
+                            {% if row.is_away %}
+                                <span class="badge" style="background: #fee2e2; color: #b91c1c; font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;" title="Departed on {{ row.movement.departure_date }} - {{ row.movement.reason }}">
+                                    <i class="fa-solid fa-person-walking-luggage"></i> Away on Movement
+                                </span>
+                            {% else %}
+                                <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                                    <i class="fa-solid fa-house"></i> In Hostel
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td style="text-align: center;">
+                            <div class="status-segmented">
+                                <input type="radio" name="status_{{ st.id }}" id="st_{{ st.id }}_present" value="present" {% if row.current_status == 'present' %}checked{% endif %} onchange="updateSummaryCounts()">
+                                <label for="st_{{ st.id }}_present" class="opt-present" title="Present">
+                                    <i class="fa-solid fa-check"></i> Present
+                                </label>
+
+                                <input type="radio" name="status_{{ st.id }}" id="st_{{ st.id }}_absent" value="absent" {% if row.current_status == 'absent' %}checked{% endif %} onchange="updateSummaryCounts()">
+                                <label for="st_{{ st.id }}_absent" class="opt-absent" title="Absent">
+                                    <i class="fa-solid fa-xmark"></i> Absent
+                                </label>
+
+                                <input type="radio" name="status_{{ st.id }}" id="st_{{ st.id }}_late" value="late" {% if row.current_status == 'late' %}checked{% endif %} onchange="updateSummaryCounts()">
+                                <label for="st_{{ st.id }}_late" class="opt-late" title="Late">
+                                    <i class="fa-regular fa-clock"></i> Late
+                                </label>
+
+                                <input type="radio" name="status_{{ st.id }}" id="st_{{ st.id }}_excused" value="excused" {% if row.current_status == 'excused' %}checked{% endif %} onchange="updateSummaryCounts()">
+                                <label for="st_{{ st.id }}_excused" class="opt-excused" title="Excused / Away">
+                                    <i class="fa-solid fa-circle-info"></i> Away
+                                </label>
+                            </div>
+                        </td>
+
+                        <td>
+                            <input type="text" name="remarks_{{ st.id }}" value="{{ row.current_remarks }}" placeholder="Optional remarks..." style="width: 100%; padding: 0.45rem 0.65rem; border-radius: 8px; font-size: 0.8rem; border: 1px solid #cbd5e1;">
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sticky Floating Save Bar -->
+        <div class="floating-save-bar">
+            <div style="display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                    <div style="font-weight: 800; font-size: 0.95rem; color: #ffffff;">
+                        {{ selected_activity.name }}
+                    </div>
+                    <span style="color: #94a3b8; font-size: 0.85rem;">({{ selected_date|date:"d M Y" }})</span>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 0.85rem; font-size: 0.82rem; font-weight: 700;">
+                    <span style="color: #4ade80;"><i class="fa-solid fa-circle-check"></i> <span id="countPresent">0</span> Present</span>
+                    <span style="color: #f87171;"><i class="fa-solid fa-circle-xmark"></i> <span id="countAbsent">0</span> Absent</span>
+                    <span style="color: #fbbf24;"><i class="fa-solid fa-clock"></i> <span id="countLate">0</span> Late</span>
+                    <span style="color: #38bdf8;"><i class="fa-solid fa-circle-info"></i> <span id="countExcused">0</span> Away</span>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="margin: 0; padding: 0.85rem 2rem; font-weight: 800; border-radius: 12px; font-size: 1rem; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);">
+                <i class="fa-solid fa-floppy-disk"></i> Save Attendance
+            </button>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 3rem 1rem; color: var(--gray);">
+            <i class="fa-solid fa-users-slash" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: 0.75rem;"></i>
+            <h4 style="font-weight: 700; color: var(--dark);">No Active Hostel Students Found</h4>
+            <p style="font-size: 0.9rem;">Make sure students are marked as 'Hostel' in student directory.</p>
+        </div>
+        {% endif %}
+    </div>
+</form>
+{% else %}
+<div class="card p-5" style="text-align: center; border-radius: 20px;">
+    <h3 style="font-weight: 800;">No Active Activities</h3>
+    <p style="color: var(--gray);">Please create or activate at least one hostel activity to mark attendance.</p>
+    <a href="{% url 'students:hostel_activity_list' %}" class="btn btn-primary">Create Activity</a>
+</div>
+{% endif %}
+
+<script>
+    function setAllStatus(statusVal) {
+        const radios = document.querySelectorAll(`input[type="radio"][value="${statusVal}"]`);
+        radios.forEach(r => r.checked = true);
+        updateSummaryCounts();
+    }
+
+    function setAwayStudents() {
+        // Set away students to 'excused' and others to 'present'
+        const rows = document.querySelectorAll('tr[data-student-id]');
+        rows.forEach(row => {
+            const isAway = row.getAttribute('data-is-away') === 'true';
+            const studentId = row.getAttribute('data-student-id');
+            const targetStatus = isAway ? 'excused' : 'present';
+            const radio = document.getElementById(`st_${studentId}_${targetStatus}`);
+            if (radio) radio.checked = true;
+        });
+        updateSummaryCounts();
+    }
+
+    function updateSummaryCounts() {
+        let present = 0, absent = 0, late = 0, excused = 0;
+        const checkedRadios = document.querySelectorAll('input[type="radio"]:checked');
+        checkedRadios.forEach(r => {
+            if (r.value === 'present') present++;
+            else if (r.value === 'absent') absent++;
+            else if (r.value === 'late') late++;
+            else if (r.value === 'excused') excused++;
+        });
+
+        const pEl = document.getElementById('countPresent');
+        const aEl = document.getElementById('countAbsent');
+        const lEl = document.getElementById('countLate');
+        const eEl = document.getElementById('countExcused');
+
+        if (pEl) pEl.textContent = present;
+        if (aEl) aEl.textContent = absent;
+        if (lEl) lEl.textContent = late;
+        if (eEl) eEl.textContent = excused;
+    }
+
+    // Initialize counts on page load
+    document.addEventListener('DOMContentLoaded', updateSummaryCounts);
+</script>
+
+{% endblock %}

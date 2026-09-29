@@ -1,0 +1,432 @@
+{% extends 'students/base.html' %}
+{% load static %}
+
+{% block title %}Hostel Activities (CRUD) - HadiyAdmin{% endblock %}
+{% block page_heading %}Hostel Activities{% endblock %}
+
+{% block content %}
+<style>
+    .activity-grid-card {
+        background: var(--light);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 1.5rem;
+        box-shadow: var(--shadow-soft);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+    }
+
+    .activity-grid-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-float);
+    }
+
+    .icon-preview-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.35rem;
+        flex-shrink: 0;
+    }
+
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(8px);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        box-sizing: border-box;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-box {
+        background: #ffffff;
+        border-radius: 24px;
+        max-width: 540px;
+        width: 100%;
+        padding: 2rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+        animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes modalSlideIn {
+        from { opacity: 0; transform: translateY(20px) scale(0.97); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .color-swatch-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .color-swatch-btn:hover {
+        transform: scale(1.15);
+    }
+
+    .color-swatch-btn.selected {
+        border-color: #0f172a;
+        transform: scale(1.15);
+    }
+</style>
+
+<!-- Header & Action Row -->
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+    <div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+            <a href="{% url 'students:hostel_dashboard' %}" style="color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.85rem;">
+                <i class="fa-solid fa-arrow-left"></i> Hostel Dashboard
+            </a>
+            <span style="color: var(--gray);">&bull;</span>
+            <span style="color: var(--gray); font-weight: 600; font-size: 0.85rem;">Activity Management</span>
+        </div>
+        <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--dark); margin: 0;">Hostel Activities</h1>
+        <p style="color: var(--gray); font-size: 0.95rem; margin: 0.25rem 0 0;">
+            Manage recurring daily hostel routines, prayers, study halls, and roll calls for attendance tracking.
+        </p>
+    </div>
+
+    <div style="display: flex; gap: 0.65rem; flex-wrap: wrap;">
+        <button onclick="openCreateModal()" class="btn btn-primary" style="margin: 0; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-radius: 12px;">
+            <i class="fa-solid fa-plus"></i> Add New Activity
+        </button>
+        <a href="{% url 'students:hostel_attendance_mark' %}" class="btn btn-secondary" style="margin: 0; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-radius: 12px;">
+            <i class="fa-solid fa-clipboard-check"></i> Mark Attendance
+        </a>
+    </div>
+</div>
+
+<!-- Activities Grid -->
+{% if activities %}
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
+    {% for item in activities %}
+    {% with act=item.activity %}
+    <div class="activity-grid-card" style="border-top: 5px solid {{ act.color }}; {% if not act.is_active %}opacity: 0.65; background: #f8fafc;{% endif %}">
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.85rem;">
+                    <div class="icon-preview-box" style="background: {{ act.color }}18; color: {{ act.color }};">
+                        <i class="fa-solid {{ act.icon|default:'fa-calendar-check' }}"></i>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--dark); margin: 0 0 2px 0;">
+                            {{ act.name }}
+                        </h3>
+                        <div style="font-size: 0.78rem; font-weight: 700; color: var(--primary);">
+                            {% if act.time_slot %}
+                                <i class="fa-regular fa-clock"></i> {{ act.time_slot }}
+                            {% else %}
+                                <i class="fa-regular fa-calendar"></i> Daily Routine
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: right;">
+                    <span class="badge" style="font-size: 0.72rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; {% if act.is_active %}background: #dcfce7; color: #15803d;{% else %}background: #f1f5f9; color: #64748b;{% endif %}">
+                        {% if act.is_active %}ACTIVE{% else %}DISABLED{% endif %}
+                    </span>
+                    <div style="font-size: 0.7rem; color: var(--gray); margin-top: 3px;">Order: {{ act.order }}</div>
+                </div>
+            </div>
+
+            {% if act.description %}
+            <p style="font-size: 0.85rem; color: var(--dark-secondary); margin-bottom: 1rem; line-height: 1.4; opacity: 0.9;">
+                {{ act.description }}
+            </p>
+            {% endif %}
+
+            <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--gray); font-weight: 600; margin-bottom: 1.25rem;">
+                <i class="fa-solid fa-clipboard-list"></i> Total Logs: <strong style="color: var(--dark);">{{ item.total_records }} records</strong>
+            </div>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #f1f5f9; padding-top: 1rem; gap: 0.5rem;">
+            <div style="display: flex; gap: 0.4rem;">
+                <a href="{% url 'students:hostel_attendance_mark' %}?activity={{ act.id }}" class="btn btn-xs btn-primary" style="margin: 0; padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 700;">
+                    <i class="fa-solid fa-clipboard-check"></i> Mark
+                </a>
+                <a href="{% url 'students:hostel_attendance_list' %}?activity={{ act.id }}" class="btn btn-xs btn-secondary" style="margin: 0; padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 700;">
+                    <i class="fa-solid fa-list"></i> Logs
+                </a>
+            </div>
+
+            <div style="display: flex; gap: 0.4rem; align-items: center;">
+                <button type="button" onclick="openEditModal('{{ act.id }}', '{{ act.name|escapejs }}', '{{ act.time_slot|escapejs }}', '{{ act.description|escapejs }}', '{{ act.icon|escapejs }}', '{{ act.color|escapejs }}', '{{ act.order }}', {{ act.is_active|yesno:'true,false' }})" class="btn btn-xs btn-outline-primary" style="margin: 0; padding: 0.35rem 0.6rem; border-radius: 8px;" title="Edit Activity">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+
+                <form action="{% url 'students:hostel_activity_toggle' act.id %}" method="post" style="display: inline; margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-xs {% if act.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}" style="margin: 0; padding: 0.35rem 0.6rem; border-radius: 8px;" title="{% if act.is_active %}Disable Activity{% else %}Enable Activity{% endif %}">
+                        <i class="fa-solid {% if act.is_active %}fa-eye-slash{% else %}fa-eye{% endif %}"></i>
+                    </button>
+                </form>
+
+                {% if request.user.is_superuser or request.user.profile.role == 'admin' %}
+                <form action="{% url 'students:hostel_activity_delete' act.id %}" method="post" style="display: inline; margin: 0;" onsubmit="return confirm('Are you sure you want to delete the activity \'{{ act.name|escapejs }}\'? All associated attendance logs will also be removed.');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-xs btn-outline-danger" style="margin: 0; padding: 0.35rem 0.6rem; border-radius: 8px;" title="Delete Activity">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endwith %}
+    {% endfor %}
+</div>
+{% else %}
+<div class="card p-5" style="text-align: center; border-radius: 20px;">
+    <div style="width: 70px; height: 70px; border-radius: 50%; background: rgba(99, 102, 241, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1.25rem;">
+        <i class="fa-solid fa-sliders"></i>
+    </div>
+    <h3 style="font-weight: 800; color: var(--dark); margin-bottom: 0.5rem;">No Hostel Activities Found</h3>
+    <p style="color: var(--gray); max-width: 450px; margin: 0 auto 1.5rem;">
+        Create activities like Fajr Prayer, Quran Class, Maghrib Prayer, Night Study, or Night Roll Call to start tracking hostel attendance.
+    </p>
+    <button onclick="openCreateModal()" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-radius: 12px;">
+        <i class="fa-solid fa-plus"></i> Create First Activity
+    </button>
+</div>
+{% endif %}
+
+<!-- CREATE ACTIVITY MODAL -->
+<div class="modal-overlay" id="createModal">
+    <div class="modal-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(99, 102, 241, 0.15); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+                    <i class="fa-solid fa-plus"></i>
+                </div>
+                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--dark);">Create Hostel Activity</h3>
+            </div>
+            <button type="button" onclick="closeModal('createModal')" style="background: none; border: none; font-size: 1.25rem; color: var(--gray); cursor: pointer;">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form action="{% url 'students:hostel_activity_create' %}" method="post">
+            {% csrf_token %}
+            
+            <div class="form-group mb-3">
+                <label class="form-label" style="font-weight: 700;">Activity Name <span style="color: var(--danger);">*</span></label>
+                <input type="text" name="name" placeholder="e.g. Fajr Prayer, Night Study Hall, Roll Call" required style="border-radius: 10px; padding: 0.75rem;">
+            </div>
+
+            <div class="form-group mb-3">
+                <label class="form-label" style="font-weight: 700;">Time Slot / Schedule</label>
+                <input type="text" name="time_slot" placeholder="e.g. 05:30 AM or 08:30 PM - 10:00 PM" style="border-radius: 10px; padding: 0.75rem;">
+            </div>
+
+            <div class="form-group mb-3">
+                <label class="form-label" style="font-weight: 700;">Description (Optional)</label>
+                <textarea name="description" rows="2" placeholder="Brief note or guidelines for this activity..." style="border-radius: 10px; padding: 0.75rem;"></textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700;">Icon (FontAwesome)</label>
+                    <select name="icon" style="border-radius: 10px; padding: 0.75rem;">
+                        <option value="fa-mosque">🕌 Mosque / Prayer</option>
+                        <option value="fa-book-quran">📖 Quran / Studies</option>
+                        <option value="fa-book-open-reader">📚 Study Hall</option>
+                        <option value="fa-clipboard-user" selected>📋 Roll Call / Attendance</option>
+                        <option value="fa-moon">🌙 Night Time</option>
+                        <option value="fa-sun">☀️ Morning</option>
+                        <option value="fa-utensils">🍽️ Dining / Meals</option>
+                        <option value="fa-bed">🛏️ Dormitory / Bedtime</option>
+                        <option value="fa-dumbbell">⚽ Sports / Exercise</option>
+                        <option value="fa-broom">🧹 Cleaning / Chores</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700;">Order Index</label>
+                    <input type="number" name="order" value="1" min="0" style="border-radius: 10px; padding: 0.75rem;">
+                </div>
+            </div>
+
+            <div class="form-group mb-3">
+                <label class="form-label" style="font-weight: 700;">Theme Color</label>
+                <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.25rem;">
+                    <input type="hidden" name="color" id="createColorInput" value="#6366f1">
+                    <button type="button" class="color-swatch-btn selected" style="background: #6366f1;" onclick="selectColor(this, 'createColorInput', '#6366f1')"></button>
+                    <button type="button" class="color-swatch-btn" style="background: #0ea5e9;" onclick="selectColor(this, 'createColorInput', '#0ea5e9')"></button>
+                    <button type="button" class="color-swatch-btn" style="background: #10b981;" onclick="selectColor(this, 'createColorInput', '#10b981')"></button>
+                    <button type="button" class="color-swatch-btn" style="background: #f59e0b;" onclick="selectColor(this, 'createColorInput', '#f59e0b')"></button>
+                    <button type="button" class="color-swatch-btn" style="background: #8b5cf6;" onclick="selectColor(this, 'createColorInput', '#8b5cf6')"></button>
+                    <button type="button" class="color-swatch-btn" style="background: #ec4899;" onclick="selectColor(this, 'createColorInput', '#ec4899')"></button>
+                    <button type="button" class="color-swatch-btn" style="background: #ef4444;" onclick="selectColor(this, 'createColorInput', '#ef4444')"></button>
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+                <input type="checkbox" name="is_active" id="createActive" checked style="width: 18px; height: 18px; cursor: pointer;">
+                <label for="createActive" style="font-weight: 700; color: var(--dark); cursor: pointer; margin: 0;">Active (Visible for attendance marking)</label>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.65rem;">
+                <button type="button" onclick="closeModal('createModal')" class="btn btn-secondary" style="margin: 0; border-radius: 10px;">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="margin: 0; border-radius: 10px; font-weight: 700;">Create Activity</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- EDIT ACTIVITY MODAL -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(14, 165, 233, 0.15); color: #0ea5e9; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+                    <i class="fa-solid fa-pen"></i>
+                </div>
+                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--dark);">Edit Hostel Activity</h3>
+            </div>
+            <button type="button" onclick="closeModal('editModal')" style="background: none; border: none; font-size: 1.25rem; color: var(--gray); cursor: pointer;">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form id="editActivityForm" action="" method="post">
+            {% csrf_token %}
+            
+            <div class="form-group mb-3">
+                <label class="form-label" style="font-weight: 700;">Activity Name <span style="color: var(--danger);">*</span></label>
+                <input type="text" name="name" id="editName" required style="border-radius: 10px; padding: 0.75rem;">
+            </div>
+
+            <div class="form-group mb-3">
+                <label class="form-label" style="font-weight: 700;">Time Slot / Schedule</label>
+                <input type="text" name="time_slot" id="editTimeSlot" style="border-radius: 10px; padding: 0.75rem;">
+            </div>
+
+            <div class="form-group mb-3">
+                <label class="form-label" style="font-weight: 700;">Description</label>
+                <textarea name="description" id="editDescription" rows="2" style="border-radius: 10px; padding: 0.75rem;"></textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700;">Icon</label>
+                    <select name="icon" id="editIcon" style="border-radius: 10px; padding: 0.75rem;">
+                        <option value="fa-mosque">🕌 Mosque / Prayer</option>
+                        <option value="fa-book-quran">📖 Quran / Studies</option>
+                        <option value="fa-book-open-reader">📚 Study Hall</option>
+                        <option value="fa-clipboard-user">📋 Roll Call / Attendance</option>
+                        <option value="fa-moon">🌙 Night Time</option>
+                        <option value="fa-sun">☀️ Morning</option>
+                        <option value="fa-utensils">🍽️ Dining / Meals</option>
+                        <option value="fa-bed">🛏️ Dormitory / Bedtime</option>
+                        <option value="fa-dumbbell">⚽ Sports / Exercise</option>
+                        <option value="fa-broom">🧹 Cleaning / Chores</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700;">Order Index</label>
+                    <input type="number" name="order" id="editOrder" min="0" style="border-radius: 10px; padding: 0.75rem;">
+                </div>
+            </div>
+
+            <div class="form-group mb-3">
+                <label class="form-label" style="font-weight: 700;">Theme Color</label>
+                <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.25rem;">
+                    <input type="hidden" name="color" id="editColorInput" value="#6366f1">
+                    <button type="button" class="color-swatch-btn" style="background: #6366f1;" onclick="selectColor(this, 'editColorInput', '#6366f1')"></button>
+                    <button type="button" class="color-swatch-btn" style="background: #0ea5e9;" onclick="selectColor(this, 'editColorInput', '#0ea5e9')"></button>
+                    <button type="button" class="color-swatch-btn" style="background: #10b981;" onclick="selectColor(this, 'editColorInput', '#10b981')"></button>
+                    <button type="button" class="color-swatch-btn" style="background: #f59e0b;" onclick="selectColor(this, 'editColorInput', '#f59e0b')"></button>
+                    <button type="button" class="color-swatch-btn" style="background: #8b5cf6;" onclick="selectColor(this, 'editColorInput', '#8b5cf6')"></button>
+                    <button type="button" class="color-swatch-btn" style="background: #ec4899;" onclick="selectColor(this, 'editColorInput', '#ec4899')"></button>
+                    <button type="button" class="color-swatch-btn" style="background: #ef4444;" onclick="selectColor(this, 'editColorInput', '#ef4444')"></button>
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+                <input type="checkbox" name="is_active" id="editActive" style="width: 18px; height: 18px; cursor: pointer;">
+                <label for="editActive" style="font-weight: 700; color: var(--dark); cursor: pointer; margin: 0;">Active (Visible for attendance marking)</label>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.65rem;">
+                <button type="button" onclick="closeModal('editModal')" class="btn btn-secondary" style="margin: 0; border-radius: 10px;">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="margin: 0; border-radius: 10px; font-weight: 700;">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openCreateModal() {
+        document.getElementById('createModal').classList.add('active');
+    }
+
+    function openEditModal(id, name, timeSlot, description, icon, color, order, isActive) {
+        const form = document.getElementById('editActivityForm');
+        form.action = `/hostel/activities/${id}/edit/`;
+        document.getElementById('editName').value = name;
+        document.getElementById('editTimeSlot').value = timeSlot;
+        document.getElementById('editDescription').value = description;
+        document.getElementById('editIcon').value = icon || 'fa-clipboard-user';
+        document.getElementById('editOrder').value = order || 0;
+        document.getElementById('editActive').checked = isActive;
+        
+        document.getElementById('editColorInput').value = color || '#6366f1';
+        
+        // Highlight matching color button
+        const swatches = document.querySelectorAll('#editModal .color-swatch-btn');
+        swatches.forEach(btn => {
+            if (btn.getAttribute('style').includes(color)) {
+                btn.classList.add('selected');
+            } else {
+                btn.classList.remove('selected');
+            }
+        });
+
+        document.getElementById('editModal').classList.add('active');
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+    }
+
+    function selectColor(btn, inputId, colorHex) {
+        document.getElementById(inputId).value = colorHex;
+        const parent = btn.parentElement;
+        parent.querySelectorAll('.color-swatch-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+    }
+
+    // Close modal on click outside
+    window.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal-overlay')) {
+            e.target.classList.remove('active');
+        }
+    });
+</script>
+
+{% endblock %}

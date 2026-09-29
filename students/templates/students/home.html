@@ -178,7 +178,7 @@
             </div>
         </a>
         
-        <a href="{% url 'students:hostel_student_list' %}" class="stat-card-new glass-card" style="background: var(--gradient-sky); text-decoration: none;">
+        <a href="{% url 'students:hostel_dashboard' %}" class="stat-card-new glass-card" style="background: var(--gradient-sky); text-decoration: none;" title="View Hostel Dashboard">
             <div class="icon-box" style="background: #fff; color: #0ea5e9;">
                 <i class="fa-solid fa-hotel"></i>
             </div>
@@ -259,6 +259,10 @@
             <a href="{% url 'students:low_attendance_students' %}" class="quick-action-btn" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%); border-color: rgba(239, 68, 68, 0.25);">
                 <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i>
                 Low Attendance (&lt;85%)
+            </a>
+            <a href="{% url 'students:hostel_attendance_mark' %}" class="quick-action-btn" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, transparent 100%); border-color: rgba(14, 165, 233, 0.25);">
+                <i class="fa-solid fa-hotel" style="color: #0ea5e9;"></i>
+                Hostel Attendance
             </a>
             <a href="{% url 'students:hostel_movement_create' %}" class="quick-action-btn">
                 <i class="fa-solid fa-shuttle-van"></i>

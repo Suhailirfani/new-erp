@@ -19,7 +19,8 @@ from .models import (
     Student, Attendance, HostelMovement, Period, Activity, Division, Room,
     ExamType, Subject, MarkEntry, ProgressReport, AcademicYear, Enrollment,
     Grade, Section, Holiday, ExamSubjectMaxMark, NewsTickerItem,
-    PeriodTiming, TeacherSubjectAssignment, TimetableSlot
+    PeriodTiming, TeacherSubjectAssignment, TimetableSlot,
+    HostelActivity, HostelAttendance
 )
 from .forms import SectionForm, AcademicYearForm, EnquiryForm, GradeForm, DivisionForm, SubjectForm
 
@@ -1810,6 +1811,418 @@ def hostel_movement_update(request, pk):
 
     context = {'movement': movement}
     return render(request, 'students/hostel_movement_update.html', context)
+
+
+# ==========================================
+# HOSTEL DASHBOARD, ACTIVITIES & ATTENDANCE
+# ==========================================
+
+@role_required(['admin', 'teacher', 'ntstaff', 'accountant'])
+def hostel_dashboard(request):
+    """Hostel Command Center and Overview Dashboard"""
+    today = timezone.now().date()
+    
+    # 1. Total active hostel students
+    hostel_students = Student.objects.filter(student_type='hostel', is_active=True).exclude(alumni_record__isnull=False)
+    total_hostel_students = hostel_students.count()
+    
+    # 2. Movement stats (Students currently away / unreturned)
+    unreturned_movements = HostelMovement.objects.filter(
+        is_returned=False, 
+        student__is_active=True,
+        student__student_type='hostel'
+    ).select_related('student').order_by('-departure_date', '-departure_time')
+    away_students_count = unreturned_movements.values('student_id').distinct().count()
+    present_students_count = max(0, total_hostel_students - away_students_count)
+    
+    # 3. Active Activities and today's attendance summary
+    activities = HostelActivity.objects.filter(is_active=True).order_by('order', 'name')
+    activities_stats = []
+    
+    for act in activities:
+        att_qs = HostelAttendance.objects.filter(activity=act, date=today)
+        marked_count = att_qs.count()
+        present_count = att_qs.filter(status='present').count()
+        absent_count = att_qs.filter(status='absent').count()
+        late_count = att_qs.filter(status='late').count()
+        excused_count = att_qs.filter(status='excused').count()
+        is_marked = marked_count > 0
+        
+        activities_stats.append({
+            'activity': act,
+            'is_marked': is_marked,
+            'marked_count': marked_count,
+            'present_count': present_count,
+            'absent_count': absent_count,
+            'late_count': late_count,
+            'excused_count': excused_count,
+            'total_students': total_hostel_students,
+        })
+        
+    # 4. Recent movements (last 6)
+    recent_movements = HostelMovement.objects.select_related('student').order_by('-departure_date', '-departure_time')[:6]
+    
+    # 5. Recent attendance logs (last 8)
+    recent_attendances = HostelAttendance.objects.select_related('student', 'activity').order_by('-date', '-created_at')[:8]
+    
+    context = {
+        'total_hostel_students': total_hostel_students,
+        'present_students_count': present_students_count,
+        'away_students_count': away_students_count,
+        'unreturned_movements': unreturned_movements[:8],
+        'activities_stats': activities_stats,
+        'recent_movements': recent_movements,
+        'recent_attendances': recent_attendances,
+        'today': today,
+    }
+    return render(request, 'students/hostel_dashboard.html', context)
+
+
+@role_required(['admin', 'teacher', 'ntstaff'])
+def hostel_activity_list(request):
+    """CRUD List and Management for Hostel Activities"""
+    activities = HostelActivity.objects.all().order_by('order', 'name')
+    
+    activities_with_counts = []
+    for act in activities:
+        total_records = act.attendances.count()
+        activities_with_counts.append({
+            'activity': act,
+            'total_records': total_records,
+        })
+        
+    context = {
+        'activities': activities_with_counts,
+    }
+    return render(request, 'students/hostel_activity_list.html', context)
+
+
+@role_required(['admin', 'teacher', 'ntstaff'])
+def hostel_activity_create(request):
+    """Create a new Hostel Activity"""
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        description = request.POST.get('description', '').strip()
+        time_slot = request.POST.get('time_slot', '').strip()
+        icon = request.POST.get('icon', 'fa-calendar-check').strip() or 'fa-calendar-check'
+        color = request.POST.get('color', '#6366f1').strip() or '#6366f1'
+        order = request.POST.get('order', 0)
+        is_active = request.POST.get('is_active') == 'on' or request.POST.get('is_active') == '1'
+        
+        if not name:
+            messages.error(request, "Activity name is required.")
+            return redirect('students:hostel_activity_list')
+            
+        try:
+            order = int(order)
+        except ValueError:
+            order = 0
+            
+        activity = HostelActivity.objects.create(
+            name=name,
+            description=description,
+            time_slot=time_slot,
+            icon=icon,
+            color=color,
+            order=order,
+            is_active=is_active
+        )
+        messages.success(request, f"Hostel Activity '{activity.name}' created successfully!")
+        return redirect('students:hostel_activity_list')
+        
+    return redirect('students:hostel_activity_list')
+
+
+@role_required(['admin', 'teacher', 'ntstaff'])
+def hostel_activity_edit(request, pk):
+    """Edit an existing Hostel Activity"""
+    activity = get_object_or_404(HostelActivity, pk=pk)
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        description = request.POST.get('description', '').strip()
+        time_slot = request.POST.get('time_slot', '').strip()
+        icon = request.POST.get('icon', 'fa-calendar-check').strip() or 'fa-calendar-check'
+        color = request.POST.get('color', '#6366f1').strip() or '#6366f1'
+        order = request.POST.get('order', 0)
+        is_active = request.POST.get('is_active') == 'on' or request.POST.get('is_active') == '1'
+        
+        if not name:
+            messages.error(request, "Activity name cannot be empty.")
+            return redirect('students:hostel_activity_list')
+            
+        try:
+            order = int(order)
+        except ValueError:
+            order = 0
+            
+        activity.name = name
+        activity.description = description
+        activity.time_slot = time_slot
+        activity.icon = icon
+        activity.color = color
+        activity.order = order
+        activity.is_active = is_active
+        activity.save()
+        
+        messages.success(request, f"Hostel Activity '{activity.name}' updated successfully!")
+        return redirect('students:hostel_activity_list')
+        
+    return redirect('students:hostel_activity_list')
+
+
+@role_required(['admin', 'ntstaff'])
+def hostel_activity_delete(request, pk):
+    """Delete a Hostel Activity"""
+    activity = get_object_or_404(HostelActivity, pk=pk)
+    if request.method == 'POST':
+        name = activity.name
+        activity.delete()
+        messages.success(request, f"Hostel Activity '{name}' deleted successfully.")
+        return redirect('students:hostel_activity_list')
+    return redirect('students:hostel_activity_list')
+
+
+@role_required(['admin', 'teacher', 'ntstaff'])
+def hostel_activity_toggle(request, pk):
+    """Toggle active status of a Hostel Activity"""
+    activity = get_object_or_404(HostelActivity, pk=pk)
+    activity.is_active = not activity.is_active
+    activity.save()
+    status_text = "activated" if activity.is_active else "disabled"
+    messages.success(request, f"Activity '{activity.name}' {status_text} successfully.")
+    return redirect('students:hostel_activity_list')
+
+
+@role_required(['admin', 'teacher', 'ntstaff'])
+def hostel_attendance_mark(request):
+    """
+    Mark activity-based hostel attendance.
+    Displays activities as interactive buttons. Clicking an activity button selects it and displays the student list.
+    """
+    today_str = timezone.now().date().isoformat()
+    selected_date_str = request.GET.get('date', today_str)
+    try:
+        selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        selected_date = timezone.now().date()
+        selected_date_str = selected_date.isoformat()
+        
+    activities = HostelActivity.objects.filter(is_active=True).order_by('order', 'name')
+    if not activities.exists():
+        messages.warning(request, "No active hostel activities found. Please create an activity first.")
+        return redirect('students:hostel_activity_list')
+        
+    activity_id = request.GET.get('activity')
+    selected_activity = None
+    if activity_id:
+        selected_activity = HostelActivity.objects.filter(id=activity_id, is_active=True).first()
+        
+    # If no activity specified or invalid, default to the first active activity
+    if not selected_activity and activities.exists():
+        selected_activity = activities.first()
+        
+    # Class / Grade filter (optional)
+    grade_id = request.GET.get('grade')
+    grades = Grade.objects.all().order_by('order', 'name')
+    
+    # Get all active hostel students
+    hostel_students = Student.objects.filter(
+        student_type='hostel',
+        is_active=True
+    ).exclude(alumni_record__isnull=False).select_related('user_profile').prefetch_related('enrollments', 'enrollments__grade', 'enrollments__division')
+    
+    if grade_id:
+        hostel_students = hostel_students.filter(enrollments__grade_id=grade_id, enrollments__academic_year__is_active=True)
+        
+    # Unreturned movements (away students)
+    unreturned_movements = HostelMovement.objects.filter(
+        departure_date__lte=selected_date,
+        student__student_type='hostel'
+    ).filter(
+        Q(is_returned=False) | Q(arrival_date__gt=selected_date)
+    ).select_related('student')
+    
+    away_students_map = {m.student_id: m for m in unreturned_movements}
+    
+    # Pre-fetch existing attendance records for the selected activity & date
+    existing_attendances = {}
+    if selected_activity:
+        for att in HostelAttendance.objects.filter(activity=selected_activity, date=selected_date).select_related('student'):
+            existing_attendances[att.student_id] = att
+            
+    # Calculate status badge for each activity button on the selected date
+    activity_buttons_data = []
+    for act in activities:
+        total_marked = HostelAttendance.objects.filter(activity=act, date=selected_date).count()
+        present_count = HostelAttendance.objects.filter(activity=act, date=selected_date, status='present').count()
+        activity_buttons_data.append({
+            'activity': act,
+            'is_selected': selected_activity and selected_activity.id == act.id,
+            'is_marked': total_marked > 0,
+            'total_marked': total_marked,
+            'present_count': present_count,
+        })
+        
+    # Handle POST Submission (Saving Attendance)
+    if request.method == 'POST':
+        submitted_activity_id = request.POST.get('activity_id')
+        submitted_date_str = request.POST.get('date')
+        
+        target_activity = get_object_or_404(HostelActivity, id=submitted_activity_id)
+        try:
+            target_date = datetime.strptime(submitted_date_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            target_date = selected_date
+            
+        marked_by_name = request.user.get_full_name() or request.user.username
+        saved_count = 0
+        
+        all_hostel_students = Student.objects.filter(student_type='hostel', is_active=True).exclude(alumni_record__isnull=False)
+        for st in all_hostel_students:
+            status_val = request.POST.get(f'status_{st.id}')
+            if status_val:
+                remarks_val = request.POST.get(f'remarks_{st.id}', '').strip()
+                HostelAttendance.objects.update_or_create(
+                    student=st,
+                    activity=target_activity,
+                    date=target_date,
+                    defaults={
+                        'status': status_val,
+                        'remarks': remarks_val,
+                        'marked_by': marked_by_name,
+                    }
+                )
+                saved_count += 1
+                
+        messages.success(
+            request, 
+            f"✅ Attendance recorded successfully for '{target_activity.name}' on {target_date.strftime('%d %b %Y')} ({saved_count} students)."
+        )
+        return redirect(f"{reverse('students:hostel_attendance_mark')}?date={target_date.isoformat()}&activity={target_activity.id}" + (f"&grade={grade_id}" if grade_id else ""))
+        
+    # Prepare student rows for template
+    students_data = []
+    for st in hostel_students.order_by('last_name', 'first_name'):
+        existing_att = existing_attendances.get(st.id)
+        is_away = st.id in away_students_map
+        movement = away_students_map.get(st.id)
+        
+        if existing_att:
+            current_status = existing_att.status
+            current_remarks = existing_att.remarks
+        else:
+            current_status = 'excused' if is_away else 'present'
+            current_remarks = f"Away since {movement.departure_date.strftime('%d/%m')}" if (is_away and movement) else ""
+            
+        students_data.append({
+            'student': st,
+            'existing_attendance': existing_att,
+            'is_away': is_away,
+            'movement': movement,
+            'current_status': current_status,
+            'current_remarks': current_remarks,
+        })
+        
+    context = {
+        'selected_date': selected_date,
+        'selected_date_str': selected_date_str,
+        'activities': activities,
+        'selected_activity': selected_activity,
+        'activity_buttons_data': activity_buttons_data,
+        'students_data': students_data,
+        'total_students_count': len(students_data),
+        'grades': grades,
+        'selected_grade_id': grade_id,
+        'is_already_marked': len(existing_attendances) > 0,
+    }
+    return render(request, 'students/hostel_attendance_mark.html', context)
+
+
+@role_required(['admin', 'teacher', 'ntstaff', 'accountant'])
+def hostel_attendance_list(request):
+    """Hostel Attendance Logs, Reports & History"""
+    activities = HostelActivity.objects.all().order_by('order', 'name')
+    grades = Grade.objects.all().order_by('order', 'name')
+    
+    attendances = HostelAttendance.objects.select_related('student', 'activity').order_by('-date', 'activity__order', 'student__last_name')
+    
+    # Filters
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    activity_id = request.GET.get('activity')
+    status_filter = request.GET.get('status')
+    student_query = request.GET.get('student')
+    grade_id = request.GET.get('grade')
+    
+    # Default to current month or today if no filters
+    if not date_from and not date_to and not activity_id and not student_query:
+        today = timezone.now().date()
+        date_from = date(today.year, today.month, 1).isoformat()
+        date_to = today.isoformat()
+        
+    if date_from:
+        attendances = attendances.filter(date__gte=date_from)
+    if date_to:
+        attendances = attendances.filter(date__lte=date_to)
+    if activity_id:
+        attendances = attendances.filter(activity_id=activity_id)
+    if status_filter:
+        attendances = attendances.filter(status=status_filter)
+    if student_query:
+        attendances = attendances.filter(
+            Q(student__student_id__icontains=student_query) |
+            Q(student__first_name__icontains=student_query) |
+            Q(student__last_name__icontains=student_query)
+        )
+    if grade_id:
+        attendances = attendances.filter(student__enrollments__grade_id=grade_id, student__enrollments__academic_year__is_active=True)
+        
+    # Summary stats
+    total_records = attendances.count()
+    present_records = attendances.filter(status='present').count()
+    absent_records = attendances.filter(status='absent').count()
+    late_records = attendances.filter(status='late').count()
+    excused_records = attendances.filter(status='excused').count()
+    
+    # Export CSV check
+    if request.GET.get('export') == 'csv':
+        import csv
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="Hostel_Attendance_{date_from}_to_{date_to}.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Date', 'Activity', 'Student ID', 'Student Name', 'Class', 'Status', 'Remarks', 'Marked By'])
+        for a in attendances:
+            writer.writerow([
+                a.date,
+                a.activity.name,
+                a.student.student_id,
+                a.student.full_name,
+                a.student.class_name,
+                a.get_status_display(),
+                a.remarks,
+                a.marked_by,
+            ])
+        return response
+        
+    context = {
+        'attendances': attendances[:300], # Limit display for performance
+        'total_records': total_records,
+        'present_records': present_records,
+        'absent_records': absent_records,
+        'late_records': late_records,
+        'excused_records': excused_records,
+        'activities': activities,
+        'grades': grades,
+        'current_filters': {
+            'date_from': date_from,
+            'date_to': date_to,
+            'activity': activity_id,
+            'status': status_filter,
+            'student': student_query,
+            'grade': grade_id,
+        }
+    }
+    return render(request, 'students/hostel_attendance_list.html', context)
 
 
 @role_required(['admin', 'teacher'])

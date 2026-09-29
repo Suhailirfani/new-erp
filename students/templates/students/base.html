@@ -1951,10 +1951,39 @@
                 <i class="fa-solid fa-building-columns"></i>
                 <span>Finance</span>
             </a>
-            <a href="{% url 'students:hostel_movement_list' %}" class="nav-item" title="Hostel">
-                <i class="fa-solid fa-bed"></i>
-                <span>Hostel</span>
-            </a>
+            <div class="nav-group">
+                <a href="#" class="nav-item nav-dropdown-btn" onclick="event.preventDefault(); const content = this.nextElementSibling; const icon = this.querySelector('.arrow'); const isClosed = content.style.display === 'none' || content.style.display === ''; content.style.display = isClosed ? 'block' : 'none'; icon.style.transform = isClosed ? 'rotate(180deg)' : 'none';" title="Hostel">
+                    <i class="fa-solid fa-hotel"></i>
+                    <span>Hostel</span>
+                    <i class="fa-solid fa-chevron-down arrow" style="margin-left: auto; font-size: 0.8rem; transition: transform 0.3s;"></i>
+                </a>
+                <div class="nav-group-content" style="display: none; padding-left: 1.5rem; margin-top: 0.25rem;">
+                    <a href="{% url 'students:hostel_dashboard' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Hostel Dashboard">
+                        <i class="fa-solid fa-chart-pie" style="font-size: 0.9rem;"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="{% url 'students:hostel_attendance_mark' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem; color: var(--primary); font-weight: 700;" title="Mark Attendance">
+                        <i class="fa-solid fa-clipboard-check" style="font-size: 0.9rem; color: var(--primary);"></i>
+                        <span>Mark Attendance</span>
+                    </a>
+                    <a href="{% url 'students:hostel_attendance_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Attendance Logs">
+                        <i class="fa-solid fa-clock-rotate-left" style="font-size: 0.9rem;"></i>
+                        <span>Attendance Logs</span>
+                    </a>
+                    <a href="{% url 'students:hostel_activity_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Manage Activities">
+                        <i class="fa-solid fa-sliders" style="font-size: 0.9rem;"></i>
+                        <span>Activities (CRUD)</span>
+                    </a>
+                    <a href="{% url 'students:hostel_movement_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Movements & Leaves">
+                        <i class="fa-solid fa-person-walking-arrow-right" style="font-size: 0.9rem;"></i>
+                        <span>Movements Log</span>
+                    </a>
+                    <a href="{% url 'students:hostel_student_list' %}" class="nav-item" style="padding: 0.6rem 1rem; font-size: 0.85rem;" title="Hostel Students">
+                        <i class="fa-solid fa-users" style="font-size: 0.9rem;"></i>
+                        <span>Hostel Directory</span>
+                    </a>
+                </div>
+            </div>
             {% endif %}
 
             {% if request.user.is_superuser or request.user.profile.role == 'admin' %}

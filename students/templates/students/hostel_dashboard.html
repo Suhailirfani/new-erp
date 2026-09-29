@@ -1,0 +1,492 @@
+{% extends 'students/base.html' %}
+{% load static %}
+
+{% block title %}Hostel Dashboard - HadiyAdmin{% endblock %}
+{% block page_heading %}Hostel Dashboard{% endblock %}
+
+{% block content %}
+<style>
+    .hostel-hero {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(236, 72, 153, 0.08) 100%);
+        border-radius: 24px;
+        padding: 1.75rem;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: var(--shadow-soft);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hostel-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .hostel-card {
+        background: var(--light);
+        border-radius: 20px;
+        padding: 1.5rem;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-soft);
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        text-decoration: none;
+        color: var(--dark);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hostel-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-float);
+    }
+
+    .hostel-card-icon {
+        width: 54px;
+        height: 54px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    }
+
+    .hostel-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .hostel-action-tile {
+        background: var(--light);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 1.5rem;
+        text-decoration: none;
+        color: var(--dark);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 1rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--shadow-soft);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hostel-action-tile:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-float);
+        border-color: var(--primary);
+    }
+
+    .activity-bubble-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+
+    .activity-bubble {
+        background: var(--light);
+        border-radius: 16px;
+        padding: 1.15rem;
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        transition: all 0.25s ease;
+        box-shadow: var(--shadow-soft);
+    }
+
+    .activity-bubble:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-float);
+    }
+
+    .status-pill {
+        padding: 0.35rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .status-pill.success {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .status-pill.pending {
+        background: #fef3c7;
+        color: #b45309;
+    }
+
+    .status-pill.away {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    @media (max-width: 768px) {
+        .hostel-hero {
+            padding: 1.25rem;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .hostel-stat-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 0.5rem !important;
+        }
+        .hostel-stat-grid .hostel-card {
+            padding: 0.75rem 0.5rem !important;
+            flex-direction: column !important;
+            text-align: center !important;
+            gap: 0.4rem !important;
+            border-radius: 14px !important;
+        }
+        .hostel-card-icon {
+            width: 36px !important;
+            height: 36px !important;
+            font-size: 1rem !important;
+            border-radius: 10px !important;
+        }
+        .hostel-actions-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.65rem !important;
+        }
+        .hostel-action-tile {
+            padding: 1rem 0.75rem !important;
+            border-radius: 14px !important;
+        }
+    }
+</style>
+
+<!-- Hero Section -->
+<div class="hostel-hero">
+    <div>
+        <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.35rem;">
+            <span class="badge" style="background: var(--primary); color: white; padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 800; font-size: 0.75rem;">
+                <i class="fa-solid fa-hotel"></i> HOSTEL COMMAND CENTER
+            </span>
+            <span style="color: var(--gray); font-weight: 700; font-size: 0.85rem;">
+                {{ today|date:"l, d F Y" }}
+            </span>
+        </div>
+        <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--dark); margin: 0 0 0.35rem 0;">Hostel Management & Attendance</h1>
+        <p style="color: var(--dark-secondary); margin: 0; font-size: 0.95rem; opacity: 0.85;">
+            Track daily hostel activities, log student departures & arrivals, and monitor campus residence status.
+        </p>
+    </div>
+    
+    <div style="display: flex; gap: 0.65rem; flex-wrap: wrap;">
+        <a href="{% url 'students:hostel_attendance_mark' %}" class="btn btn-primary" style="margin: 0; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-radius: 14px; padding: 0.85rem 1.5rem;">
+            <i class="fa-solid fa-clipboard-check"></i> Mark Activity Attendance
+        </a>
+        <a href="{% url 'students:hostel_movement_create' %}" class="btn btn-secondary" style="margin: 0; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-radius: 14px; padding: 0.85rem 1.25rem;">
+            <i class="fa-solid fa-door-open"></i> Log Departure
+        </a>
+    </div>
+</div>
+
+<!-- Primary Stats Grid -->
+<div class="hostel-stat-grid">
+    <!-- Total Hostel Students -->
+    <a href="{% url 'students:hostel_student_list' %}" class="hostel-card" style="border-left: 5px solid #6366f1;">
+        <div class="hostel-card-icon" style="background: rgba(99, 102, 241, 0.12); color: #6366f1;">
+            <i class="fa-solid fa-users"></i>
+        </div>
+        <div>
+            <div style="font-size: 1.75rem; font-weight: 800; color: var(--dark); line-height: 1.1;">{{ total_hostel_students }}</div>
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px;">Hostel Students</div>
+        </div>
+    </a>
+
+    <!-- Present in Hostel -->
+    <div class="hostel-card" style="border-left: 5px solid #10b981;">
+        <div class="hostel-card-icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+            <i class="fa-solid fa-building-user"></i>
+        </div>
+        <div>
+            <div style="font-size: 1.75rem; font-weight: 800; color: #10b981; line-height: 1.1;">{{ present_students_count }}</div>
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px;">Present in Campus</div>
+        </div>
+    </div>
+
+    <!-- Away on Movement -->
+    <a href="{% url 'students:hostel_movement_list' %}?is_returned=0" class="hostel-card" style="border-left: 5px solid #ef4444;">
+        <div class="hostel-card-icon" style="background: rgba(239, 68, 68, 0.12); color: #ef4444;">
+            <i class="fa-solid fa-person-walking-luggage"></i>
+        </div>
+        <div>
+            <div style="font-size: 1.75rem; font-weight: 800; color: #ef4444; line-height: 1.1;">{{ away_students_count }}</div>
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px;">Away / On Movement</div>
+        </div>
+    </a>
+</div>
+
+<!-- Quick Actions Section -->
+<div style="margin-bottom: 2rem;">
+    <h3 style="font-weight: 800; font-size: 1.25rem; color: var(--dark); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.65rem;">
+        <i class="fa-solid fa-bolt" style="color: var(--warning);"></i> Hostel Modules & Tools
+    </h3>
+    
+    <div class="hostel-actions-grid">
+        <!-- 1. Mark Activity Attendance -->
+        <a href="{% url 'students:hostel_attendance_mark' %}" class="hostel-action-tile">
+            <div style="display: flex; align-items: center; gap: 0.85rem;">
+                <div style="width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);">
+                    <i class="fa-solid fa-clipboard-user"></i>
+                </div>
+                <div>
+                    <h4 style="margin: 0; font-weight: 800; font-size: 1.05rem;">Mark Attendance</h4>
+                    <span style="font-size: 0.78rem; color: var(--gray); font-weight: 600;">Activity-wise selection</span>
+                </div>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--gray); margin: 0; line-height: 1.4;">
+                Select from activity buttons (Fajr, Study, Roll Call, etc.) and mark room/class attendance.
+            </p>
+            <div style="font-size: 0.82rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 0.35rem; margin-top: auto;">
+                <span>Take Attendance</span> <i class="fa-solid fa-arrow-right"></i>
+            </div>
+        </a>
+
+        <!-- 2. Attendance History & Logs -->
+        <a href="{% url 'students:hostel_attendance_list' %}" class="hostel-action-tile">
+            <div style="display: flex; align-items: center; gap: 0.85rem;">
+                <div style="width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3);">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <div>
+                    <h4 style="margin: 0; font-weight: 800; font-size: 1.05rem;">Attendance Logs</h4>
+                    <span style="font-size: 0.78rem; color: var(--gray); font-weight: 600;">History & Reports</span>
+                </div>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--gray); margin: 0; line-height: 1.4;">
+                Search, filter, and export attendance records by date range, activity, or student ID.
+            </p>
+            <div style="font-size: 0.82rem; font-weight: 700; color: #0284c7; display: flex; align-items: center; gap: 0.35rem; margin-top: auto;">
+                <span>View Reports</span> <i class="fa-solid fa-arrow-right"></i>
+            </div>
+        </a>
+
+        <!-- 3. Manage Activities (CRUD) -->
+        <a href="{% url 'students:hostel_activity_list' %}" class="hostel-action-tile">
+            <div style="display: flex; align-items: center; gap: 0.85rem;">
+                <div style="width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #10b981, #059669); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);">
+                    <i class="fa-solid fa-sliders"></i>
+                </div>
+                <div>
+                    <h4 style="margin: 0; font-weight: 800; font-size: 1.05rem;">Manage Activities</h4>
+                    <span style="font-size: 0.78rem; color: var(--gray); font-weight: 600;">Activity CRUD</span>
+                </div>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--gray); margin: 0; line-height: 1.4;">
+                Add, edit, reorder, or toggle daily activities like Prayers, Study Hall, Roll Call, etc.
+            </p>
+            <div style="font-size: 0.82rem; font-weight: 700; color: #059669; display: flex; align-items: center; gap: 0.35rem; margin-top: auto;">
+                <span>Manage Activities</span> <i class="fa-solid fa-arrow-right"></i>
+            </div>
+        </a>
+
+        <!-- 4. Hostel Movement -->
+        <a href="{% url 'students:hostel_movement_list' %}" class="hostel-action-tile">
+            <div style="display: flex; align-items: center; gap: 0.85rem;">
+                <div style="width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);">
+                    <i class="fa-solid fa-person-walking-arrow-right"></i>
+                </div>
+                <div>
+                    <h4 style="margin: 0; font-weight: 800; font-size: 1.05rem;">Hostel Movements</h4>
+                    <span style="font-size: 0.78rem; color: var(--gray); font-weight: 600;">Gate Pass & Departure</span>
+                </div>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--gray); margin: 0; line-height: 1.4;">
+                Record departures with escort details and update arrivals when students return.
+            </p>
+            <div style="font-size: 0.82rem; font-weight: 700; color: #d97706; display: flex; align-items: center; gap: 0.35rem; margin-top: auto;">
+                <span>Movement Log</span> <i class="fa-solid fa-arrow-right"></i>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Today's Activity Attendance Status -->
+<div class="card p-4 mb-4" style="border-radius: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem;">
+        <div>
+            <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--dark); margin: 0 0 0.25rem 0;">
+                <i class="fa-solid fa-calendar-day" style="color: var(--primary);"></i> Today's Activity Attendance Status
+            </h3>
+            <span style="font-size: 0.82rem; color: var(--gray); font-weight: 600;">Status for {{ today|date:"d M Y" }}</span>
+        </div>
+        <a href="{% url 'students:hostel_attendance_mark' %}" class="btn btn-primary btn-xs" style="padding: 0.5rem 1rem; border-radius: 8px; font-weight: 700;">
+            <i class="fa-solid fa-pen-to-square"></i> Open Attendance Pad
+        </a>
+    </div>
+
+    {% if activities_stats %}
+    <div class="activity-bubble-grid">
+        {% for act_stat in activities_stats %}
+        <div class="activity-bubble" style="border-left: 4px solid {{ act_stat.activity.color }};">
+            <div style="display: flex; align-items: center; gap: 0.85rem; min-width: 0;">
+                <div style="width: 42px; height: 42px; border-radius: 12px; background: {{ act_stat.activity.color }}15; color: {{ act_stat.activity.color }}; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+                    <i class="fa-solid {{ act_stat.activity.icon|default:'fa-calendar-check' }}"></i>
+                </div>
+                <div style="min-width: 0;">
+                    <div style="font-weight: 800; font-size: 0.95rem; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ act_stat.activity.name }}
+                    </div>
+                    <div style="font-size: 0.72rem; color: var(--gray); font-weight: 600;">
+                        {% if act_stat.activity.time_slot %}{{ act_stat.activity.time_slot }}{% else %}Daily Activity{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: right; flex-shrink: 0;">
+                {% if act_stat.is_marked %}
+                    <span class="status-pill success">
+                        <i class="fa-solid fa-check"></i> {{ act_stat.present_count }}/{{ act_stat.total_students }}
+                    </span>
+                    <a href="{% url 'students:hostel_attendance_mark' %}?activity={{ act_stat.activity.id }}" style="display: block; font-size: 0.72rem; font-weight: 700; color: var(--primary); text-decoration: none; margin-top: 3px;">
+                        Edit &rarr;
+                    </a>
+                {% else %}
+                    <span class="status-pill pending">
+                        <i class="fa-regular fa-clock"></i> Not Marked
+                    </span>
+                    <a href="{% url 'students:hostel_attendance_mark' %}?activity={{ act_stat.activity.id }}" style="display: block; font-size: 0.72rem; font-weight: 700; color: var(--primary); text-decoration: none; margin-top: 3px;">
+                        Mark Now &rarr;
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 2rem; color: var(--gray);">
+        <p>No hostel activities configured yet.</p>
+        <a href="{% url 'students:hostel_activity_list' %}" class="btn btn-primary btn-xs">Add Your First Activity</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Bottom Row: Currently Away Students & Recent Logs -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+    <!-- Currently Away Students Table -->
+    <div class="card p-4" style="border-radius: 24px; margin-bottom: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h4 style="font-size: 1.1rem; font-weight: 800; color: var(--dark); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-person-walking-luggage" style="color: #ef4444;"></i> Currently Outside Campus
+            </h4>
+            <span class="badge" style="background: #fee2e2; color: #b91c1c; font-weight: 800; font-size: 0.75rem;">
+                {{ away_students_count }} Away
+            </span>
+        </div>
+
+        {% if unreturned_movements %}
+        <div class="table-responsive" style="margin: 0; border: none; box-shadow: none;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                <thead>
+                    <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                        <th style="padding: 0.6rem 0.5rem; text-align: left; font-size: 0.75rem; color: var(--gray);">Student</th>
+                        <th style="padding: 0.6rem 0.5rem; text-align: left; font-size: 0.75rem; color: var(--gray);">Departure</th>
+                        <th style="padding: 0.6rem 0.5rem; text-align: left; font-size: 0.75rem; color: var(--gray);">Reason</th>
+                        <th style="padding: 0.6rem 0.5rem; text-align: right; font-size: 0.75rem; color: var(--gray);">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in unreturned_movements %}
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 0.65rem 0.5rem;">
+                            <div style="font-weight: 700; color: var(--dark);">{{ m.student.full_name }}</div>
+                            <div style="font-size: 0.7rem; color: var(--gray);">{{ m.student.student_id }} &bull; {{ m.student.class_name }}</div>
+                        </td>
+                        <td style="padding: 0.65rem 0.5rem;">
+                            <div style="font-weight: 600;">{{ m.departure_date|date:"d M" }}</div>
+                            <div style="font-size: 0.7rem; color: var(--gray);">{{ m.departure_time|time:"h:i A" }}</div>
+                        </td>
+                        <td style="padding: 0.65rem 0.5rem; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ m.reason }}">
+                            {{ m.reason }}
+                        </td>
+                        <td style="padding: 0.65rem 0.5rem; text-align: right;">
+                            <a href="{% url 'students:hostel_movement_update' m.id %}" class="btn btn-xs btn-outline-primary" style="padding: 0.25rem 0.6rem; font-size: 0.7rem; border-radius: 6px;">
+                                Return
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 2rem 1rem; color: var(--gray);">
+            <i class="fa-solid fa-circle-check" style="font-size: 2rem; color: #10b981; margin-bottom: 0.5rem; opacity: 0.8;"></i>
+            <div style="font-weight: 700; color: var(--dark-secondary);">All Hostel Students Are Inside Campus</div>
+            <div style="font-size: 0.8rem;">No open departure records pending return.</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Attendance Activity Logs -->
+    <div class="card p-4" style="border-radius: 24px; margin-bottom: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h4 style="font-size: 1.1rem; font-weight: 800; color: var(--dark); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-list-check" style="color: var(--primary);"></i> Recent Attendance Entries
+            </h4>
+            <a href="{% url 'students:hostel_attendance_list' %}" style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-decoration: none;">
+                View All &rarr;
+            </a>
+        </div>
+
+        {% if recent_attendances %}
+        <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+            {% for att in recent_attendances %}
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-size: 0.85rem;">
+                <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 0;">
+                    <div style="width: 32px; height: 32px; border-radius: 8px; background: {{ att.activity.color }}20; color: {{ att.activity.color }}; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0;">
+                        <i class="fa-solid {{ att.activity.icon|default:'fa-calendar-check' }}"></i>
+                    </div>
+                    <div style="min-width: 0;">
+                        <div style="font-weight: 700; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ att.student.full_name }}</div>
+                        <div style="font-size: 0.7rem; color: var(--gray);">{{ att.activity.name }} &bull; {{ att.date|date:"d M" }}</div>
+                    </div>
+                </div>
+
+                <div>
+                    {% if att.status == 'present' %}
+                        <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 0.7rem; font-weight: 800; padding: 2px 6px;">Present</span>
+                    {% elif att.status == 'absent' %}
+                        <span class="badge" style="background: #fee2e2; color: #b91c1c; font-size: 0.7rem; font-weight: 800; padding: 2px 6px;">Absent</span>
+                    {% elif att.status == 'late' %}
+                        <span class="badge" style="background: #fef3c7; color: #b45309; font-size: 0.7rem; font-weight: 800; padding: 2px 6px;">Late</span>
+                    {% else %}
+                        <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 0.7rem; font-weight: 800; padding: 2px 6px;">Excused</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 2rem 1rem; color: var(--gray);">
+            <i class="fa-solid fa-clipboard" style="font-size: 2rem; opacity: 0.3; margin-bottom: 0.5rem;"></i>
+            <div style="font-weight: 600; font-size: 0.85rem;">No attendance records entered yet.</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

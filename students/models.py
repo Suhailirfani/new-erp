@@ -325,6 +325,63 @@ class HostelMovement(models.Model):
                 raise ValidationError({'arrival_date': 'Arrival date cannot be before departure date.'})
 
 
+class HostelActivity(models.Model):
+    """Hostel activities for activity-based hostel attendance (e.g. Fajr, Maghrib, Study Hall, Roll Call)"""
+    name = models.CharField(max_length=150)
+    description = models.TextField(blank=True)
+    time_slot = models.CharField(max_length=100, blank=True, help_text="e.g. 05:30 AM or 08:30 PM - 10:00 PM")
+    icon = models.CharField(max_length=50, default="fa-calendar-check", blank=True, help_text="FontAwesome icon name e.g. fa-mosque, fa-book-open, fa-moon, fa-sun, fa-bed, fa-utensils")
+    color = models.CharField(max_length=30, default="#6366f1", blank=True, help_text="Accent color hex e.g. #6366f1, #10b981, #f59e0b, #ec4899, #8b5cf6")
+    order = models.PositiveIntegerField(default=0, help_text="Order for button display")
+    is_active = models.BooleanField(default=True, help_text="Designates whether this activity is active for attendance")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name = "Hostel Activity"
+        verbose_name_plural = "Hostel Activities"
+
+    def __str__(self):
+        if self.time_slot:
+            return f"{self.name} ({self.time_slot})"
+        return self.name
+
+
+class HostelAttendance(models.Model):
+    """Attendance records for hostel students per activity per date"""
+    STATUS_CHOICES = [
+        ('present', 'Present'),
+        ('absent', 'Absent'),
+        ('late', 'Late'),
+        ('excused', 'Excused / Away'),
+    ]
+
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='hostel_attendances',
+                                limit_choices_to={'student_type': 'hostel'})
+    activity = models.ForeignKey(HostelActivity, on_delete=models.CASCADE, related_name='attendances')
+    date = models.DateField(default=timezone.now)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='present')
+    remarks = models.TextField(blank=True)
+    marked_by = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date', 'activity__order', 'student__last_name']
+        unique_together = [['student', 'activity', 'date']]
+        indexes = [
+            models.Index(fields=['student', 'date']),
+            models.Index(fields=['activity', 'date']),
+            models.Index(fields=['date', 'status']),
+        ]
+        verbose_name = "Hostel Attendance"
+        verbose_name_plural = "Hostel Attendances"
+
+    def __str__(self):
+        return f"{self.student.full_name} - {self.activity.name} ({self.date}) : {self.get_status_display()}"
+
+
 class ExamType(models.Model):
     """Exam types like Quarterly, Half Yearly, Annual, etc."""
     SUBJECT_TYPE_CHOICES = [
