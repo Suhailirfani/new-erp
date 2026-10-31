@@ -38,6 +38,7 @@ urlpatterns = [
     path('hostel-movements/', views.hostel_movement_list, name='hostel_movement_list'),
     path('hostel-movements/create/', views.hostel_movement_create, name='hostel_movement_create'),
     path('hostel-movements/<int:pk>/update/', views.hostel_movement_update, name='hostel_movement_update'),
+    path('hostel-movements/<int:pk>/delete/', views.hostel_movement_delete, name='hostel_movement_delete'),
     path('hostel-students/', views.hostel_student_list_view, name='hostel_student_list'),
     path('hostel-students/<int:pk>/', views.hostel_student_detail_view, name='hostel_student_detail'),
     path('examination/dashboard/', views.examination_dashboard, name='examination_dashboard'),

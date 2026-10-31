@@ -120,10 +120,10 @@ class AttendanceAdmin(admin.ModelAdmin):
 @admin.register(HostelMovement)
 class HostelMovementAdmin(admin.ModelAdmin):
     list_display = ['student', 'departure_date', 'departure_time', 'escorting_person',
-                    'expected_return_date', 'arrival_date', 'is_returned', 'status_display']
+                    'expected_return_date', 'arrival_date', 'return_escorting_person', 'is_returned', 'status_display']
     list_filter = ['is_returned', 'departure_date', 'arrival_date']
     search_fields = ['student__student_id', 'student__first_name', 'student__last_name',
-                     'escorting_person', 'reason']
+                     'escorting_person', 'return_escorting_person', 'reason']
     date_hierarchy = 'departure_date'
     readonly_fields = ['created_at', 'updated_at']
 
@@ -135,7 +135,7 @@ class HostelMovementAdmin(admin.ModelAdmin):
             'fields': ('departure_date', 'departure_time', 'escorting_person', 'reason')
         }),
         ('Arrival Information', {
-            'fields': ('expected_return_date', 'arrival_date', 'arrival_time', 'sign', 'is_returned')
+            'fields': ('expected_return_date', 'arrival_date', 'arrival_time', 'return_escorting_person', 'sign', 'is_returned')
         }),
         ('Additional Information', {
             'fields': ('remarks',)

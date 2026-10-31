@@ -429,7 +429,7 @@
         
         .nav-links a:hover {
             color: white;
-            transform: translateY(-2px);
+            transform: none;
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
         
@@ -662,7 +662,7 @@
         }
         
         .btn:hover {
-            transform: translateY(-3px);
+            transform: none !important;
             box-shadow: 0 12px 24px -5px rgba(102, 126, 234, 0.5);
         }
         
@@ -730,7 +730,7 @@
         }
         
         .btn-gradient:hover {
-            transform: translateY(-3px);
+            transform: none !important;
             box-shadow: 0 12px 24px rgba(99, 102, 241, 0.6);
         }
         
@@ -750,8 +750,39 @@
             background: rgba(255, 255, 255, 0.2);
             color: white !important;
             border-color: white !important;
-            transform: translateY(-3px);
+            transform: none !important;
             box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Prevent annoying button jumping / movement on hover, active, or click */
+        button,
+        .btn,
+        .btn:hover,
+        .btn:active,
+        .btn:focus,
+        button:hover,
+        button:active,
+        button:focus,
+        input[type="button"]:hover,
+        input[type="button"]:active,
+        input[type="submit"]:hover,
+        input[type="submit"]:active,
+        .quick-action-btn:hover,
+        .quick-action-btn:active,
+        .activity-btn:hover,
+        .activity-btn:active,
+        .activity-btn.active,
+        .submit-btn:hover,
+        .submit-btn:active,
+        .hero-marklist-btn:hover,
+        .hero-marklist-btn:active,
+        .mob-status-btn:hover,
+        .mob-status-btn:active,
+        .grade-tab-btn:hover,
+        .grade-tab-btn:active,
+        .action-icon-btn:hover,
+        .action-icon-btn:active {
+            transform: none !important;
         }
 
         /* Outline Button Fixes */
@@ -1739,7 +1770,7 @@
         }
 
         .mobile-nav-tab.active .mobile-nav-icon {
-            transform: translateY(-2px) scale(1.15);
+            transform: scale(1.1);
             color: var(--primary);
         }
 
@@ -1774,10 +1805,8 @@
                 padding-right: 0.75rem !important;
             }
 
-            .quick-action-btn:active, 
             .card:active, 
-            .stat-card-new:active,
-            .btn:active {
+            .stat-card-new:active {
                 transform: scale(0.97) !important;
                 transition: transform 0.1s ease !important;
             }

@@ -498,12 +498,20 @@
                                         {{ m.student.student_id }} &bull; {{ m.student.class_name }}
                                     </div>
                                 </div>
-                                <button type="button" onclick="openReturnModal('{{ m.id }}', '{{ m.student.full_name|escapejs }} ({{ m.student.student_id }})', '{{ m.departure_date|date:"d M Y" }}', '{{ m.departure_time|time:"h:i A" }}')" 
-                                        class="btn btn-xs btn-outline-success" 
-                                        style="margin: 0; padding: 0.2rem 0.55rem; font-size: 0.7rem; font-weight: 700; border-radius: 6px; flex-shrink: 0; display: inline-flex; align-items: center; gap: 3px; box-shadow: none;" 
-                                        title="Confirm Return to Campus">
-                                    <i class="fa-solid fa-door-closed"></i> Return
-                                </button>
+                                <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                    <button type="button" onclick="openReturnModal('{{ m.id }}', '{{ m.student.full_name|escapejs }} ({{ m.student.student_id }})', '{{ m.departure_date|date:"d M Y" }}', '{{ m.departure_time|time:"h:i A" }}')" 
+                                            class="btn btn-xs btn-outline-success" 
+                                            style="margin: 0; padding: 0.2rem 0.55rem; font-size: 0.7rem; font-weight: 700; border-radius: 6px; flex-shrink: 0; display: inline-flex; align-items: center; gap: 3px; box-shadow: none;" 
+                                            title="Confirm Return to Campus">
+                                        <i class="fa-solid fa-door-closed"></i> Return
+                                    </button>
+                                    <a href="{% url 'students:hostel_movement_update' m.id %}" 
+                                       class="btn btn-xs btn-outline-secondary" 
+                                       style="margin: 0; padding: 0.2rem 0.45rem; font-size: 0.7rem; border-radius: 6px;" 
+                                       title="Edit Record">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </a>
+                                </div>
                             </div>
                         </td>
                         <td style="padding: 0.55rem 0.6rem; white-space: nowrap;">
@@ -616,14 +624,28 @@
                     </button>
                 </div>
 
-                <select name="student" id="dashStudentSelect" required style="border-radius: 10px; padding: 0.65rem 0.85rem; font-size: 0.92rem; font-weight: 600; width: 100%;">
+                <select name="student" id="dashStudentSelect" required onchange="checkAwayStatus('dashStudentSelect', 'dashAwayWarning', 'dashAwayWarningText', 'dashAwayReturnLink', 'dashSubmitBtn')" style="border-radius: 10px; padding: 0.65rem 0.85rem; font-size: 0.92rem; font-weight: 600; width: 100%;">
                     <option value="">-- Choose Hostel Student --</option>
                     {% for st in hostel_students %}
-                    <option value="{{ st.id }}" data-search="{{ st.full_name|lower }} {{ st.student_id|lower }} {{ st.class_name|lower }}">
-                        {{ st.full_name }} ({{ st.student_id }}) - {{ st.class_name }}
+                    <option value="{{ st.id }}" data-search="{{ st.full_name|lower }} {{ st.student_id|lower }} {{ st.class_name|lower }}" {% if st.id in away_student_ids %}data-away="1"{% endif %}>
+                        {{ st.full_name }} ({{ st.student_id }}) - {{ st.class_name }}{% if st.id in away_student_ids %} [⚠️ CURRENTLY AWAY]{% endif %}
                     </option>
                     {% endfor %}
                 </select>
+
+                <!-- Away Warning Alert -->
+                <div id="dashAwayWarning" style="display: none; background: #fef2f2; border: 1.5px solid #f87171; border-radius: 10px; padding: 0.65rem 0.85rem; margin-top: 0.45rem; color: #991b1b; font-size: 0.82rem;">
+                    <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 800; margin-bottom: 0.2rem;">
+                        <i class="fa-solid fa-triangle-exclamation" style="color: #dc2626;"></i>
+                        <span>Student is Already Marked as Away</span>
+                    </div>
+                    <div id="dashAwayWarningText" style="line-height: 1.35;"></div>
+                    <div style="margin-top: 0.4rem;">
+                        <a id="dashAwayReturnLink" href="#" class="btn btn-xs btn-success" style="padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.78rem;">
+                            <i class="fa-solid fa-door-closed"></i> Mark Return / Edit Movement
+                        </a>
+                    </div>
+                </div>
             </div>
 
             <!-- Row 2: Date, Time & Expected Return (3 columns on desktop) -->
@@ -657,7 +679,7 @@
             <!-- Row 4: Buttons -->
             <div style="display: flex; justify-content: flex-end; gap: 0.65rem; border-top: 1px solid #f1f5f9; padding-top: 0.85rem;">
                 <button type="button" onclick="closeModal('departureModal')" class="btn btn-secondary" style="margin: 0; border-radius: 10px; padding: 0.6rem 1.25rem;">Cancel</button>
-                <button type="submit" class="btn btn-primary" style="margin: 0; border-radius: 10px; font-weight: 700; padding: 0.6rem 1.5rem;">
+                <button type="submit" id="dashSubmitBtn" class="btn btn-primary" style="margin: 0; border-radius: 10px; font-weight: 700; padding: 0.6rem 1.5rem;">
                     <i class="fa-solid fa-check"></i> Record Departure
                 </button>
             </div>
@@ -698,19 +720,27 @@
                 </div>
             </div>
 
-            <!-- Arrival Date, Time & Remarks in clean 3-col grid -->
-            <div class="modal-grid-3">
+            <!-- Arrival Date & Time -->
+            <div class="modal-grid-2" style="margin-bottom: 0.65rem;">
                 <div class="form-group">
-                    <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem;">Arrival Date</label>
+                    <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem;">Arrival Date <span style="color: var(--danger);">*</span></label>
                     <input type="date" name="arrival_date" id="dashRetDateInput" value="{{ default_date }}" style="border-radius: 10px; padding: 0.6rem; font-size: 0.88rem; font-weight: 600;">
                 </div>
                 <div class="form-group">
-                    <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem;">Arrival Time</label>
+                    <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem;">Arrival Time <span style="color: var(--danger);">*</span></label>
                     <input type="time" name="arrival_time" id="dashRetTimeInput" value="{{ default_time }}" style="border-radius: 10px; padding: 0.6rem; font-size: 0.88rem; font-weight: 600;">
+                </div>
+            </div>
+
+            <!-- Return Escort & Remarks -->
+            <div class="modal-grid-2">
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem;">Return Escorting Person <span style="color: var(--gray); font-size: 0.72rem;">(Optional)</span></label>
+                    <input type="text" name="return_escorting_person" id="dashRetEscortInput" placeholder="Parent / Guardian / Self" style="border-radius: 10px; padding: 0.6rem; font-size: 0.88rem;">
                 </div>
                 <div class="form-group">
                     <label class="form-label" style="font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem;">Remarks <span style="color: var(--gray); font-size: 0.72rem;">(Optional)</span></label>
-                    <input type="text" name="remarks" placeholder="On time, health ok..." style="border-radius: 10px; padding: 0.6rem; font-size: 0.88rem;">
+                    <input type="text" name="remarks" id="dashRetRemarksInput" placeholder="On time, health ok..." style="border-radius: 10px; padding: 0.6rem; font-size: 0.88rem;">
                 </div>
             </div>
 
@@ -725,6 +755,40 @@
 </div>
 
 <script>
+    const awayStudentsData = {{ away_students_json|default:'{}'|safe }};
+
+    function checkAwayStatus(selectId, warningId, textId, linkId, btnId) {
+        const select = document.getElementById(selectId);
+        const warning = document.getElementById(warningId);
+        const text = document.getElementById(textId);
+        const link = document.getElementById(linkId);
+        const btn = document.getElementById(btnId);
+
+        if (!select) return;
+        const studentId = select.value;
+
+        if (studentId && awayStudentsData && awayStudentsData[studentId]) {
+            const info = awayStudentsData[studentId];
+            text.innerHTML = `<strong>${info.name}</strong> is currently away (Departed: <strong>${info.dep_date} ${info.dep_time}</strong>). You cannot log another departure until return is logged.`;
+            if (link) {
+                link.href = `/hostel-movements/${info.movement_id}/update/`;
+            }
+            warning.style.display = 'block';
+            if (btn) {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            }
+        } else {
+            if (warning) warning.style.display = 'none';
+            if (btn) {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
+        }
+    }
+
     function filterStudentSelect(searchId, selectId, countId) {
         const searchInput = document.getElementById(searchId);
         const select = document.getElementById(selectId);
@@ -766,6 +830,8 @@
                 countEl.textContent = q ? `${matchCount} found` : `${options.length - 1} students`;
             }
         }
+
+        checkAwayStatus(selectId, 'dashAwayWarning', 'dashAwayWarningText', 'dashAwayReturnLink', 'dashSubmitBtn');
     }
 
     function clearStudentSelect(searchId, selectId, countId) {
@@ -813,6 +879,10 @@
 
         document.getElementById('dashRetDateInput').value = dateStr;
         document.getElementById('dashRetTimeInput').value = timeStr;
+        const escortInput = document.getElementById('dashRetEscortInput');
+        if (escortInput) escortInput.value = '';
+        const remarksInput = document.getElementById('dashRetRemarksInput');
+        if (remarksInput) remarksInput.value = '';
         document.getElementById('returnModal').classList.add('active');
         document.body.classList.add('modal-open');
     }

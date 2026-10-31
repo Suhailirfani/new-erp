@@ -1,14 +1,33 @@
 {% extends 'students/base.html' %}
 {% load static %}
 
-{% block title %}Update Movement / Mark Returned - MARKAZ HADIYA{% endblock %}
-{% block page_heading %}Update Movement Record{% endblock %}
+{% block title %}Edit Movement Record - MARKAZ HADIYA{% endblock %}
+{% block page_heading %}Edit Movement Record{% endblock %}
 
 {% block content %}
 <style>
     .form-container-wide {
-        max-width: 820px;
+        max-width: 860px;
         margin: 0 auto;
+    }
+    .form-section-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .form-section-title {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: var(--dark);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #f1f5f9;
     }
     .form-grid-3 {
         display: grid;
@@ -20,87 +39,211 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 1rem;
-        margin-bottom: 1.25rem;
+        margin-bottom: 1rem;
     }
     @media (max-width: 768px) {
-        .form-grid-3 {
+        .form-grid-3, .form-grid-2 {
             grid-template-columns: 1fr !important;
             gap: 0.75rem !important;
         }
-        .form-grid-2 {
-            grid-template-columns: 1fr !important;
-            gap: 0.75rem !important;
+        .form-section-card {
+            padding: 1rem !important;
         }
     }
 </style>
 
 <div class="form-container-wide">
-    <div style="margin-bottom: 1.25rem;">
-        <a href="{% url 'students:hostel_movement_list' %}" style="color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.85rem;">
-            <i class="fa-solid fa-arrow-left"></i> Back to Movement List
-        </a>
-        <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--dark); margin: 0.35rem 0 0.15rem 0;">Update Movement Record</h1>
-        <p style="color: var(--gray); font-size: 0.9rem; margin: 0;">
-            Mark student as returned back to hostel or update departure details.
-        </p>
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem;">
+        <div>
+            <a href="{% url 'students:hostel_movement_list' %}" style="color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.85rem;">
+                <i class="fa-solid fa-arrow-left"></i> Back to Movement List
+            </a>
+            <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--dark); margin: 0.35rem 0 0.15rem 0;">Edit Movement Record</h1>
+            <p style="color: var(--gray); font-size: 0.88rem; margin: 0;">
+                Update departure details, log campus arrival, or delete miss-entries.
+            </p>
+        </div>
+        <div>
+            <button type="button" onclick="openDeleteModal()" class="btn btn-danger" style="margin: 0; border-radius: 10px; font-weight: 700; font-size: 0.85rem; padding: 0.6rem 1rem; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <i class="fa-solid fa-trash"></i> Delete Record
+            </button>
+        </div>
     </div>
 
-    <div class="card p-4" style="border-radius: 20px;">
-        <form method="post">
-            {% csrf_token %}
+    <form method="post" id="movementEditForm">
+        {% csrf_token %}
 
-            <!-- Student Details Summary Box -->
-            <div style="background: #f8fafc; border-radius: 14px; padding: 0.85rem 1.15rem; margin-bottom: 1.25rem; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                <div>
-                    <div style="font-weight: 800; color: var(--dark); font-size: 1.05rem;">{{ movement.student.full_name }}</div>
-                    <div style="font-size: 0.78rem; color: var(--gray);">
-                        ID: {{ movement.student.student_id }} &bull; Class: {{ movement.student.class_name }}
-                    </div>
+        <!-- Section 1: Student Information -->
+        <div class="form-section-card" style="border-left: 4px solid var(--primary);">
+            <div class="form-section-title">
+                <i class="fa-solid fa-user-graduate" style="color: var(--primary);"></i> Student Details
+            </div>
+            
+            <div class="form-group mb-0">
+                <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Student <span style="color: var(--danger);">*</span></label>
+                <select name="student" required style="border-radius: 10px; padding: 0.65rem; font-size: 0.92rem; font-weight: 600; width: 100%;">
+                    {% for st in hostel_students %}
+                    <option value="{{ st.id }}" {% if st.id == movement.student_id %}selected{% endif %}>
+                        {{ st.full_name }} ({{ st.student_id }}) - {{ st.class_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <small style="color: var(--gray); font-size: 0.75rem;">If the record was logged under the wrong student, you can reassign it here.</small>
+            </div>
+        </div>
+
+        <!-- Section 2: Departure Details -->
+        <div class="form-section-card" style="border-left: 4px solid #f59e0b;">
+            <div class="form-section-title">
+                <i class="fa-solid fa-person-walking-arrow-right" style="color: #f59e0b;"></i> Departure Details
+            </div>
+
+            <div class="form-grid-3">
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Departure Date <span style="color: var(--danger);">*</span></label>
+                    <input type="date" name="departure_date" value="{{ movement.departure_date|date:'Y-m-d' }}" required style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem; font-weight: 600;">
                 </div>
-                <div style="display: flex; gap: 1rem; font-size: 0.82rem; color: var(--dark-secondary); flex-wrap: wrap;">
-                    <div><strong>Departed:</strong> {{ movement.departure_date|date:"d M Y" }} at {{ movement.departure_time|time:"h:i A" }}</div>
-                    {% if movement.escorting_person %}<div><strong>Escort:</strong> {{ movement.escorting_person }}</div>{% endif %}
-                    {% if movement.reason %}<div><strong>Reason:</strong> {{ movement.reason }}</div>{% endif %}
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Departure Time <span style="color: var(--danger);">*</span></label>
+                    <input type="time" name="departure_time" value="{{ movement.departure_time|time:'H:i' }}" required style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem; font-weight: 600;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Expected Return <span style="color: var(--gray); font-size: 0.75rem;">(Optional)</span></label>
+                    <input type="date" name="expected_return_date" value="{{ movement.expected_return_date|date:'Y-m-d'|default:'' }}" style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem;">
                 </div>
             </div>
 
-            <!-- Return Status Switch -->
-            <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;">
-                <input type="checkbox" name="is_returned" id="isReturnedCheck" {% if movement.is_returned %}checked{% endif %} style="width: 20px; height: 20px; cursor: pointer;">
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Departure Escort <span style="color: var(--gray); font-size: 0.75rem;">(Optional)</span></label>
+                    <input type="text" name="escorting_person" value="{{ movement.escorting_person }}" placeholder="Parent / Guardian / Self" style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Reason for Leaving <span style="color: var(--gray); font-size: 0.75rem;">(Optional)</span></label>
+                    <input type="text" name="reason" value="{{ movement.reason }}" placeholder="Home visit, medical, function, etc." style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Arrival / Return Details -->
+        <div class="form-section-card" style="border-left: 4px solid #10b981;">
+            <div class="form-section-title">
+                <i class="fa-solid fa-door-closed" style="color: #10b981;"></i> Return / Arrival Details
+            </div>
+
+            <!-- Return Status Checkbox -->
+            <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.75rem;">
+                <input type="checkbox" name="is_returned" id="isReturnedCheck" {% if movement.is_returned %}checked{% endif %} onchange="toggleArrivalFields()" style="width: 20px; height: 20px; cursor: pointer;">
                 <label for="isReturnedCheck" style="font-weight: 800; color: #166534; cursor: pointer; margin: 0; font-size: 0.92rem;">
-                    Student Has Returned to Hostel
+                    Student Has Returned to Hostel (Campus Arrival Confirmed)
                 </label>
             </div>
 
-            <!-- Arrival Date & Time & Student Sign -->
-            <div class="form-grid-3">
-                <div class="form-group">
-                    <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Arrival Date</label>
-                    <input type="date" name="arrival_date" id="arrDate" value="{{ movement.arrival_date|date:'Y-m-d'|default:default_date }}" style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem; font-weight: 600;">
+            <div id="arrivalFieldsWrap" style="transition: opacity 0.2s ease;">
+                <!-- Arrival Date, Time & Return Escorting Person -->
+                <div class="form-grid-3">
+                    <div class="form-group">
+                        <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Arrival Date</label>
+                        <input type="date" name="arrival_date" id="arrDate" value="{{ movement.arrival_date|date:'Y-m-d'|default:default_date }}" style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem; font-weight: 600;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Arrival Time</label>
+                        <input type="time" name="arrival_time" id="arrTime" value="{{ movement.arrival_time|time:'H:i'|default:default_time }}" style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem; font-weight: 600;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Return Escorting Person <span style="color: var(--gray); font-size: 0.75rem;">(Optional)</span></label>
+                        <input type="text" name="return_escorting_person" value="{{ movement.return_escorting_person }}" placeholder="Parent / Guardian / Self" style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem;">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Arrival Time</label>
-                    <input type="time" name="arrival_time" id="arrTime" value="{{ movement.arrival_time|time:'H:i'|default:default_time }}" style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem; font-weight: 600;">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Sign / Verified By <span style="color: var(--gray); font-size: 0.75rem;">(Opt)</span></label>
-                    <input type="text" name="sign" value="{{ movement.sign }}" placeholder="Staff / student sign" style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem;">
+
+                <!-- Sign & Remarks -->
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Sign / Verified By <span style="color: var(--gray); font-size: 0.75rem;">(Optional)</span></label>
+                        <input type="text" name="sign" value="{{ movement.sign }}" placeholder="Staff / warden signature or name" style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Remarks / Observations <span style="color: var(--gray); font-size: 0.75rem;">(Optional)</span></label>
+                        <input type="text" name="remarks" value="{{ movement.remarks }}" placeholder="On time, health status, notes..." style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem;">
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Remarks (Optional) -->
-            <div class="form-group mb-4">
-                <label class="form-label" style="font-weight: 700; font-size: 0.85rem;">Remarks <span style="color: var(--gray); font-size: 0.75rem;">(Optional)</span></label>
-                <input type="text" name="remarks" value="{{ movement.remarks }}" placeholder="Any return observations or health notes..." style="border-radius: 10px; padding: 0.65rem; font-size: 0.9rem;">
-            </div>
-
-            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid #f1f5f9; padding-top: 1rem;">
+        <!-- Form Actions Bar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; border-top: 1px solid #e2e8f0; padding-top: 1rem; flex-wrap: wrap;">
+            <button type="button" onclick="openDeleteModal()" class="btn btn-outline-danger" style="margin: 0; border-radius: 10px; padding: 0.65rem 1.25rem;">
+                <i class="fa-solid fa-trash"></i> Delete
+            </button>
+            <div style="display: flex; gap: 0.65rem;">
                 <a href="{% url 'students:hostel_movement_list' %}" class="btn btn-secondary" style="margin: 0; border-radius: 10px; padding: 0.65rem 1.25rem;">Cancel</a>
                 <button type="submit" class="btn btn-success" style="margin: 0; border-radius: 10px; font-weight: 700; padding: 0.65rem 2rem;">
                     <i class="fa-solid fa-floppy-disk"></i> Save & Update
                 </button>
             </div>
+        </div>
+    </form>
+</div>
+
+<!-- Modal: Delete Confirmation -->
+<div class="modal-overlay" id="deleteConfirmModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(8px); z-index: 100000; align-items: center; justify-content: center; padding: 1.5rem 1rem;">
+    <div style="background: #ffffff; border-radius: 20px; max-width: 460px; width: 100%; padding: 1.5rem 1.75rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); margin: auto;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; color: #dc2626;">
+            <div style="width: 42px; height: 42px; border-radius: 12px; background: #fee2e2; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--dark);">Delete Movement Record</h3>
+                <span style="font-size: 0.75rem; color: var(--gray);">Handle miss-entry</span>
+            </div>
+        </div>
+
+        <p style="font-size: 0.88rem; color: var(--dark-secondary); margin-bottom: 1.25rem; line-height: 1.45;">
+            Are you sure you want to delete this movement record for <strong>{{ movement.student.full_name }}</strong> (Departed: {{ movement.departure_date|date:"d M Y" }})?
+            This will permanently remove the record and restore their campus status if away.
+        </p>
+
+        <form action="{% url 'students:hostel_movement_delete' movement.id %}" method="post">
+            {% csrf_token %}
+            <div style="display: flex; justify-content: flex-end; gap: 0.65rem;">
+                <button type="button" onclick="closeDeleteModal()" class="btn btn-secondary" style="margin: 0; border-radius: 10px; padding: 0.6rem 1.25rem;">Cancel</button>
+                <button type="submit" class="btn btn-danger" style="margin: 0; border-radius: 10px; font-weight: 700; padding: 0.6rem 1.5rem;">
+                    <i class="fa-solid fa-trash"></i> Yes, Delete
+                </button>
+            </div>
         </form>
     </div>
 </div>
+
+<script>
+    function toggleArrivalFields() {
+        const isChecked = document.getElementById('isReturnedCheck').checked;
+        const wrap = document.getElementById('arrivalFieldsWrap');
+        if (isChecked) {
+            wrap.style.opacity = '1';
+            wrap.style.pointerEvents = 'auto';
+        } else {
+            wrap.style.opacity = '0.5';
+            wrap.style.pointerEvents = 'none';
+        }
+    }
+
+    function openDeleteModal() {
+        document.getElementById('deleteConfirmModal').style.display = 'flex';
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteConfirmModal').style.display = 'none';
+    }
+
+    window.addEventListener('click', function(e) {
+        const modal = document.getElementById('deleteConfirmModal');
+        if (e.target === modal) {
+            closeDeleteModal();
+        }
+    });
+
+    // Initialize toggle state on load
+    toggleArrivalFields();
+</script>
 {% endblock %}

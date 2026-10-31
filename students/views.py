@@ -1702,59 +1702,10 @@ def today_attendance_view(request):
     }
     return render(request, 'students/today_attendance.html', context)
 
-@role_required(['admin', 'ntstaff'])
-def hostel_movement_list(request):
-    """List hostel movements with stats and enhanced search"""
-    from django.db.models import Q
-    movements = HostelMovement.objects.select_related('student')
-
-    # Calculate Stats
-    total_hostel_students = Student.objects.filter(student_type='hostel', is_active=True).count()
-    # Away students are those with a movement log where is_returned is False
-    away_students = HostelMovement.objects.filter(is_returned=False, student__is_active=True).values('student').distinct().count()
-    present_students = total_hostel_students - away_students
-
-    # Filters
-    student_id = request.GET.get('student_id')
-    is_returned = request.GET.get('is_returned')
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
-
-    if student_id:
-        movements = movements.filter(
-            Q(student__student_id__icontains=student_id) | 
-            Q(student__first_name__icontains=student_id) |
-            Q(student__last_name__icontains=student_id)
-        )
-    if is_returned is not None:
-        movements = movements.filter(is_returned=is_returned == '1')
-    if date_from:
-        movements = movements.filter(departure_date__gte=date_from)
-    if date_to:
-        movements = movements.filter(departure_date__lte=date_to)
-
-    movements = movements.order_by('-departure_date', '-departure_time')
-
-    context = {
-        'movements': movements,
-        'stats': {
-            'total': total_hostel_students,
-            'present': present_students,
-            'away': away_students
-        },
-        'current_filters': {
-            'student_id': student_id,
-            'is_returned': is_returned,
-            'date_from': date_from,
-            'date_to': date_to,
-        }
-    }
-    return render(request, 'students/hostel_movement_list.html', context)
-
-
 @role_required(['admin', 'teacher', 'ntstaff'])
 def hostel_movement_list(request):
     """List hostel movements with in-window departure creation and return modals"""
+    import json
     from django.db.models import Q
     movements = HostelMovement.objects.select_related('student')
 
@@ -1763,8 +1714,21 @@ def hostel_movement_list(request):
     total_hostel_students = hostel_students.count()
     
     # Away students are those with an unreturned movement
-    away_students = HostelMovement.objects.filter(is_returned=False, student__is_active=True, student__student_type='hostel').values('student').distinct().count()
+    unreturned_qs = HostelMovement.objects.filter(is_returned=False, student__is_active=True, student__student_type='hostel').select_related('student')
+    away_students = unreturned_qs.values('student').distinct().count()
     present_students = max(0, total_hostel_students - away_students)
+
+    away_student_ids = set(unreturned_qs.values_list('student_id', flat=True))
+    away_students_dict = {
+        str(m.student_id): {
+            'name': m.student.full_name,
+            'dep_date': m.departure_date.strftime('%d %b %Y') if m.departure_date else '',
+            'dep_time': m.departure_time.strftime('%I:%M %p') if m.departure_time else '',
+            'movement_id': m.id,
+        }
+        for m in unreturned_qs
+    }
+    away_students_json = json.dumps(away_students_dict)
 
     # Filters
     student_id = request.GET.get('student_id')
@@ -1795,6 +1759,9 @@ def hostel_movement_list(request):
     context = {
         'movements': movements,
         'hostel_students': hostel_students,
+        'away_student_ids': away_student_ids,
+        'away_students_dict': away_students_dict,
+        'away_students_json': away_students_json,
         'default_date': default_date,
         'default_time': default_time,
         'stats': {
@@ -1815,6 +1782,7 @@ def hostel_movement_list(request):
 @role_required(['admin', 'teacher', 'ntstaff'])
 def hostel_movement_create(request):
     """Create hostel movement record (handles in-window modal and standalone form)"""
+    import json
     now = timezone.localtime(timezone.now()) if timezone.is_aware(timezone.now()) else timezone.now()
     default_date = now.strftime('%Y-%m-%d')
     default_time = now.strftime('%H:%M')
@@ -1833,6 +1801,25 @@ def hostel_movement_create(request):
 
         student = get_object_or_404(Student, id=student_id, student_type='hostel')
 
+        # Check if student is already marked as away (prevent double out entry)
+        active_movement = HostelMovement.objects.filter(
+            student=student,
+            is_returned=False
+        ).order_by('-departure_date', '-departure_time').first()
+
+        if active_movement:
+            dep_date_str = active_movement.departure_date.strftime('%d %b %Y') if active_movement.departure_date else 'earlier'
+            dep_time_str = f" at {active_movement.departure_time.strftime('%I:%M %p')}" if active_movement.departure_time else ""
+            messages.error(
+                request,
+                f"Cannot log departure: {student.full_name} is already marked as Away (Departed on {dep_date_str}{dep_time_str}). "
+                f"Please record their return before logging a new movement."
+            )
+            next_url = request.POST.get('next')
+            if next_url:
+                return redirect(next_url)
+            return redirect('students:hostel_movement_list')
+
         movement = HostelMovement.objects.create(
             student=student,
             departure_date=departure_date,
@@ -1849,8 +1836,24 @@ def hostel_movement_create(request):
         return redirect('students:hostel_movement_list')
 
     hostel_students = Student.objects.filter(student_type='hostel', is_active=True).exclude(alumni_record__isnull=False).order_by('last_name', 'first_name')
+    unreturned_qs = HostelMovement.objects.filter(is_returned=False, student__is_active=True, student__student_type='hostel').select_related('student')
+    away_student_ids = set(unreturned_qs.values_list('student_id', flat=True))
+    away_students_dict = {
+        str(m.student_id): {
+            'name': m.student.full_name,
+            'dep_date': m.departure_date.strftime('%d %b %Y') if m.departure_date else '',
+            'dep_time': m.departure_time.strftime('%I:%M %p') if m.departure_time else '',
+            'movement_id': m.id,
+        }
+        for m in unreturned_qs
+    }
+    away_students_json = json.dumps(away_students_dict)
+
     context = {
         'hostel_students': hostel_students,
+        'away_student_ids': away_student_ids,
+        'away_students_dict': away_students_dict,
+        'away_students_json': away_students_json,
         'default_date': default_date,
         'default_time': default_time,
     }
@@ -1859,26 +1862,54 @@ def hostel_movement_create(request):
 
 @role_required(['admin', 'teacher', 'ntstaff'])
 def hostel_movement_update(request, pk):
-    """Update hostel movement / Mark as returned"""
+    """Update hostel movement / Mark as returned / Full edit to handle miss-entries"""
     movement = get_object_or_404(HostelMovement, pk=pk)
     now = timezone.localtime(timezone.now()) if timezone.is_aware(timezone.now()) else timezone.now()
     default_date = now.strftime('%Y-%m-%d')
     default_time = now.strftime('%H:%M')
 
     if request.method == 'POST':
+        # Check if full edit form submitted (contains departure_date)
+        if 'departure_date' in request.POST:
+            student_id = request.POST.get('student')
+            if student_id and int(student_id) != movement.student_id:
+                new_student = get_object_or_404(Student, id=student_id, student_type='hostel')
+                is_returned_candidate = request.POST.get('is_returned') in ['on', '1', 'true', True]
+                if not is_returned_candidate and HostelMovement.objects.filter(student=new_student, is_returned=False).exclude(pk=movement.pk).exists():
+                    messages.error(request, f"Cannot reassign: {new_student.full_name} is already marked as Away on another record.")
+                    return redirect('students:hostel_movement_update', pk=pk)
+                movement.student = new_student
+
+            departure_date = request.POST.get('departure_date') or default_date
+            departure_time = request.POST.get('departure_time') or default_time
+            escorting_person = request.POST.get('escorting_person', '').strip()
+            reason = request.POST.get('reason', '').strip()
+            expected_return_date = request.POST.get('expected_return_date') or None
+
+            movement.departure_date = departure_date
+            movement.departure_time = departure_time
+            movement.escorting_person = escorting_person
+            movement.reason = reason
+            movement.expected_return_date = expected_return_date
+
+            is_returned = request.POST.get('is_returned') in ['on', '1', 'true', True]
+        else:
+            # Quick return modal submitted
+            is_returned_val = request.POST.get('is_returned')
+            if is_returned_val is not None:
+                is_returned = is_returned_val in ['on', '1', 'true', True]
+            else:
+                is_returned = True
+
         arrival_date = request.POST.get('arrival_date') or default_date
         arrival_time = request.POST.get('arrival_time') or default_time
+        return_escorting_person = request.POST.get('return_escorting_person', '').strip()
         sign = request.POST.get('sign', '').strip()
         remarks = request.POST.get('remarks', '').strip()
-        
-        is_returned_val = request.POST.get('is_returned')
-        if is_returned_val is not None:
-            is_returned = is_returned_val in ['on', '1', 'true', True]
-        else:
-            is_returned = True
 
         movement.arrival_date = arrival_date if is_returned else None
         movement.arrival_time = arrival_time if is_returned else None
+        movement.return_escorting_person = return_escorting_person if is_returned else ''
         movement.sign = sign
         movement.remarks = remarks
         movement.is_returned = is_returned
@@ -1892,12 +1923,29 @@ def hostel_movement_update(request, pk):
             return redirect(next_url)
         return redirect('students:hostel_movement_list')
 
+    hostel_students = Student.objects.filter(student_type='hostel', is_active=True).exclude(alumni_record__isnull=False).order_by('last_name', 'first_name')
     context = {
         'movement': movement,
+        'hostel_students': hostel_students,
         'default_date': default_date,
         'default_time': default_time,
     }
     return render(request, 'students/hostel_movement_update.html', context)
+
+
+@role_required(['admin', 'teacher', 'ntstaff'])
+def hostel_movement_delete(request, pk):
+    """Delete a hostel movement record to handle miss-entries"""
+    movement = get_object_or_404(HostelMovement, pk=pk)
+    student_name = movement.student.full_name
+    if request.method == 'POST':
+        movement.delete()
+        messages.success(request, f'Movement record for {student_name} deleted successfully.')
+        next_url = request.POST.get('next')
+        if next_url:
+            return redirect(next_url)
+        return redirect('students:hostel_movement_list')
+    return redirect(request.GET.get('next') or 'students:hostel_movement_list')
 
 
 # ==========================================
@@ -1924,6 +1972,18 @@ def hostel_dashboard(request):
     ).select_related('student').order_by('-departure_date', '-departure_time')
     away_students_count = unreturned_movements.values('student_id').distinct().count()
     present_students_count = max(0, total_hostel_students - away_students_count)
+    import json
+    away_student_ids = set(unreturned_movements.values_list('student_id', flat=True))
+    away_students_dict = {
+        str(m.student_id): {
+            'name': m.student.full_name,
+            'dep_date': m.departure_date.strftime('%d %b %Y') if m.departure_date else '',
+            'dep_time': m.departure_time.strftime('%I:%M %p') if m.departure_time else '',
+            'movement_id': m.id,
+        }
+        for m in unreturned_movements
+    }
+    away_students_json = json.dumps(away_students_dict)
     
     # 3. Active Activities and today's attendance summary
     activities = HostelActivity.objects.filter(is_active=True).order_by('order', 'name')
@@ -1960,6 +2020,9 @@ def hostel_dashboard(request):
         'present_students_count': present_students_count,
         'away_students_count': away_students_count,
         'unreturned_movements': unreturned_movements[:8],
+        'away_student_ids': away_student_ids,
+        'away_students_dict': away_students_dict,
+        'away_students_json': away_students_json,
         'hostel_students': hostel_students,
         'default_date': default_date,
         'default_time': default_time,
@@ -6350,6 +6413,7 @@ def hostel_student_detail_view(request, pk):
             pass
             
     is_currently_away = movements.filter(is_returned=False).exists()
+    current_away_movement = movements.filter(is_returned=False).first() if is_currently_away else None
     
     context = {
         'student': student,
@@ -6357,6 +6421,7 @@ def hostel_student_detail_view(request, pk):
         'total_away_days': total_away_days,
         'total_present_days': total_present_days,
         'is_currently_away': is_currently_away,
+        'current_away_movement': current_away_movement,
         'check_date_str': check_date_str,
         'check_status': check_status
     }

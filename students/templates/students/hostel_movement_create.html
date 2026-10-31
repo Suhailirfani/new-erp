@@ -46,7 +46,7 @@
     </div>
 
     <div class="card p-4" style="border-radius: 20px;">
-        <form method="post" action="{% url 'students:hostel_movement_create' %}">
+        <form method="post" action="{% url 'students:hostel_movement_create' %}" id="createMovementForm">
             {% csrf_token %}
             
             <!-- Row 1: Student Selection with Search Filter -->
@@ -68,14 +68,28 @@
                     </button>
                 </div>
 
-                <select name="student" id="createStudentSelect" required style="border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.95rem; font-weight: 600; width: 100%;">
+                <select name="student" id="createStudentSelect" required onchange="checkAwayStatus('createStudentSelect', 'createAwayWarning', 'createAwayWarningText', 'createAwayReturnLink', 'createSubmitBtn')" style="border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.95rem; font-weight: 600; width: 100%;">
                     <option value="">-- Choose Hostel Student --</option>
                     {% for st in hostel_students %}
-                    <option value="{{ st.id }}" data-search="{{ st.full_name|lower }} {{ st.student_id|lower }} {{ st.class_name|lower }}" {% if request.GET.student == st.id|stringformat:'s' %}selected{% endif %}>
-                        {{ st.full_name }} ({{ st.student_id }}) - {{ st.class_name }}
+                    <option value="{{ st.id }}" data-search="{{ st.full_name|lower }} {{ st.student_id|lower }} {{ st.class_name|lower }}" {% if st.id in away_student_ids %}data-away="1"{% endif %} {% if request.GET.student == st.id|stringformat:'s' %}selected{% endif %}>
+                        {{ st.full_name }} ({{ st.student_id }}) - {{ st.class_name }}{% if st.id in away_student_ids %} [⚠️ CURRENTLY AWAY]{% endif %}
                     </option>
                     {% endfor %}
                 </select>
+
+                <!-- Away Warning Banner -->
+                <div id="createAwayWarning" style="display: none; background: #fef2f2; border: 1.5px solid #f87171; border-radius: 12px; padding: 0.85rem 1rem; margin-top: 0.65rem; color: #991b1b; font-size: 0.88rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 800; margin-bottom: 0.25rem;">
+                        <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.1rem; color: #dc2626;"></i>
+                        <span>Student is Already Marked as Away</span>
+                    </div>
+                    <div id="createAwayWarningText" style="line-height: 1.4;"></div>
+                    <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <a id="createAwayReturnLink" href="#" class="btn btn-xs btn-success" style="padding: 0.35rem 0.75rem; border-radius: 6px; font-weight: 700; text-decoration: none;">
+                            <i class="fa-solid fa-door-closed"></i> Mark Return / Edit Existing Movement
+                        </a>
+                    </div>
+                </div>
             </div>
 
             <!-- Row 2: Departure Date, Departure Time, Expected Return Date -->
@@ -108,7 +122,7 @@
 
             <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid #f1f5f9; padding-top: 1rem;">
                 <a href="{% url 'students:hostel_movement_list' %}" class="btn btn-secondary" style="margin: 0; border-radius: 10px; padding: 0.65rem 1.25rem;">Cancel</a>
-                <button type="submit" class="btn btn-primary" style="margin: 0; border-radius: 10px; font-weight: 700; padding: 0.65rem 2rem;">
+                <button type="submit" id="createSubmitBtn" class="btn btn-primary" style="margin: 0; border-radius: 10px; font-weight: 700; padding: 0.65rem 2rem;">
                     <i class="fa-solid fa-check"></i> Record Movement
                 </button>
             </div>
@@ -117,6 +131,40 @@
 </div>
 
 <script>
+    const awayStudentsData = {{ away_students_json|safe }};
+
+    function checkAwayStatus(selectId, warningId, textId, linkId, btnId) {
+        const select = document.getElementById(selectId);
+        const warning = document.getElementById(warningId);
+        const text = document.getElementById(textId);
+        const link = document.getElementById(linkId);
+        const btn = document.getElementById(btnId);
+
+        if (!select) return;
+        const studentId = select.value;
+
+        if (studentId && awayStudentsData && awayStudentsData[studentId]) {
+            const info = awayStudentsData[studentId];
+            text.innerHTML = `<strong>${info.name}</strong> is already marked as away (Departed: <strong>${info.dep_date} ${info.dep_time}</strong>). You cannot log a new departure for this student until their return is confirmed.`;
+            if (link) {
+                link.href = `/hostel-movements/${info.movement_id}/update/`;
+            }
+            warning.style.display = 'block';
+            if (btn) {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            }
+        } else {
+            if (warning) warning.style.display = 'none';
+            if (btn) {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
+        }
+    }
+
     function filterStudentSelect(searchId, selectId, countId) {
         const searchInput = document.getElementById(searchId);
         const select = document.getElementById(selectId);
@@ -158,6 +206,8 @@
                 countEl.textContent = q ? `${matchCount} found` : `${options.length - 1} students`;
             }
         }
+
+        checkAwayStatus(selectId, 'createAwayWarning', 'createAwayWarningText', 'createAwayReturnLink', 'createSubmitBtn');
     }
 
     function clearStudentSelect(searchId, selectId, countId) {
@@ -178,9 +228,12 @@
             timeInput.value = `${hours}:${minutes}`;
         }
 
-        const searchInput = document.getElementById('createStudentSearch');
-        if (searchInput && !document.getElementById('createStudentSelect').value) {
-            searchInput.focus();
+        const select = document.getElementById('createStudentSelect');
+        if (select && select.value) {
+            checkAwayStatus('createStudentSelect', 'createAwayWarning', 'createAwayWarningText', 'createAwayReturnLink', 'createSubmitBtn');
+        } else {
+            const searchInput = document.getElementById('createStudentSearch');
+            if (searchInput) searchInput.focus();
         }
     });
 </script>

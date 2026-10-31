@@ -295,6 +295,7 @@ class HostelMovement(models.Model):
     expected_return_date = models.DateField(null=True, blank=True)
     arrival_date = models.DateField(null=True, blank=True)
     arrival_time = models.TimeField(null=True, blank=True)
+    return_escorting_person = models.CharField(max_length=200, blank=True, default='')
     sign = models.CharField(max_length=200, blank=True, default='')  # Student signature or name
 
     # Status
