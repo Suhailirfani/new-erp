@@ -4682,42 +4682,190 @@ def low_attendance_students(request):
             'target_70_needed': target_70_needed,
         })
         
-    student_list.sort(key=lambda x: (x['attendance_pct'], x['student'].first_name))
+    # Sort students by Grade (order, name), then Division name, then attendance % ascending, then name
+    def student_sort_key(item):
+        e = item['enrollment']
+        grade = e.grade if e else None
+        division = e.division if e else None
+        grade_order = grade.order if grade else 9999
+        grade_name = grade.name if grade else 'ZZZ'
+        div_name = division.name if division else ''
+        pct = item['attendance_pct']
+        st_name = item['student'].first_name
+        return (grade_order, grade_name, div_name, pct, st_name)
+
+    student_list.sort(key=student_sort_key)
     avg_institution_pct = round((total_pct_sum / total_analyzed), 1) if total_analyzed > 0 else 0.0
-    
-    if request.GET.get('export') == 'csv':
-        response = HttpResponse(content_type='text/csv')
-        filename = f"low_attendance_students_{selected_year.name if selected_year else 'active'}_{today}.csv"
+
+    # Distribute students under each Grade + Division heading
+    from collections import OrderedDict
+    grouped_students = OrderedDict()
+    for item in student_list:
+        e = item['enrollment']
+        grade = e.grade if e else None
+        division = e.division if e else None
+
+        if grade and division:
+            group_key = f"{grade.name} - {division.name}"
+        elif grade:
+            group_key = f"{grade.name}"
+        else:
+            group_key = "Unassigned Class"
+
+        if group_key not in grouped_students:
+            grouped_students[group_key] = {
+                'display_name': group_key,
+                'grade': grade,
+                'division': division,
+                'students': []
+            }
+        grouped_students[group_key]['students'].append(item)
+
+    # Export to Excel (.xlsx) - Columns: Sl No, Name, Total Working Days, Attended, Absent, Percentage
+    if request.GET.get('export') in ['xlsx', 'excel', 'csv']:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Shortage Students"
+        ws.views.sheetView[0].showGridLines = True
+
+        # Styles
+        font_title = Font(name="Calibri", size=13, bold=True, color="FFFFFF")
+        fill_title = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+
+        font_sub = Font(name="Calibri", size=9, italic=True, color="475569")
+        fill_sub = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+
+        font_group = Font(name="Calibri", size=11, bold=True, color="0F172A")
+        fill_group = PatternFill(start_color="E0E7FF", end_color="E0E7FF", fill_type="solid")
+
+        font_header = Font(name="Calibri", size=10, bold=True, color="FFFFFF")
+        fill_header = PatternFill(start_color="334155", end_color="334155", fill_type="solid")
+
+        font_data = Font(name="Calibri", size=10)
+        font_data_bold = Font(name="Calibri", size=10, bold=True)
+
+        thin_border = Border(
+            left=Side(style='thin', color='CBD5E1'),
+            right=Side(style='thin', color='CBD5E1'),
+            top=Side(style='thin', color='CBD5E1'),
+            bottom=Side(style='thin', color='CBD5E1')
+        )
+
+        # Row 1: Title Banner
+        ws.merge_cells('A1:F1')
+        ws['A1'] = "ATTENDANCE SHORTAGE & CONDONATION REPORT"
+        ws['A1'].font = font_title
+        ws['A1'].fill = fill_title
+        ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+        ws.row_dimensions[1].height = 28
+
+        # Row 2: Metadata
+        ws.merge_cells('A2:F2')
+        year_name = selected_year.name if selected_year else "Active Year"
+        ws['A2'] = f"Academic Year: {year_name}  |  Generated: {today.strftime('%d-%m-%Y')}  |  Standard Requirement: ≥85%  |  Medical Floor: 70%"
+        ws['A2'].font = font_sub
+        ws['A2'].fill = fill_sub
+        ws['A2'].alignment = Alignment(horizontal='center', vertical='center')
+        ws.row_dimensions[2].height = 20
+
+        current_row = 4
+        headers = ["Sl No", "Name", "Total Working Days", "Attended", "Absent", "Percentage"]
+
+        if not grouped_students:
+            ws.merge_cells(f'A{current_row}:F{current_row}')
+            ws[f'A{current_row}'] = "No shortage student records found for the selected filter."
+            ws[f'A{current_row}'].font = font_data
+            ws[f'A{current_row}'].alignment = Alignment(horizontal='center', vertical='center')
+        else:
+            for group_key, group in grouped_students.items():
+                # Grade + Division heading
+                ws.merge_cells(f'A{current_row}:F{current_row}')
+                heading_text = f"Class / Division: {group['display_name']}  ({len(group['students'])} Shortage Student{'s' if len(group['students']) != 1 else ''})"
+                ws[f'A{current_row}'] = heading_text
+                ws[f'A{current_row}'].font = font_group
+                ws[f'A{current_row}'].fill = fill_group
+                ws[f'A{current_row}'].alignment = Alignment(horizontal='left', vertical='center', indent=1)
+                ws.row_dimensions[current_row].height = 24
+                current_row += 1
+
+                # Column headers
+                ws.row_dimensions[current_row].height = 22
+                for col_idx, h in enumerate(headers, start=1):
+                    cell = ws.cell(row=current_row, column=col_idx, value=h)
+                    cell.font = font_header
+                    cell.fill = fill_header
+                    cell.alignment = Alignment(horizontal='left' if h == 'Name' else 'center', vertical='center')
+                    cell.border = thin_border
+                current_row += 1
+
+                # Student rows under this heading
+                for sl_no, row_data in enumerate(group['students'], start=1):
+                    s = row_data['student']
+                    pct_val = row_data['attendance_pct']
+
+                    row_values = [
+                        sl_no,
+                        f"{s.full_name} ({s.student_id})",
+                        row_data['total_working'],
+                        row_data['attended_count'],
+                        row_data['absent_count'],
+                        f"{pct_val}%"
+                    ]
+
+                    ws.row_dimensions[current_row].height = 20
+                    for col_idx, val in enumerate(row_values, start=1):
+                        cell = ws.cell(row=current_row, column=col_idx, value=val)
+                        cell.border = thin_border
+
+                        if col_idx == 1:
+                            cell.alignment = Alignment(horizontal='center', vertical='center')
+                            cell.font = font_data
+                        elif col_idx == 2:
+                            cell.alignment = Alignment(horizontal='left', vertical='center')
+                            cell.font = font_data_bold
+                        elif col_idx in [3, 4, 5]:
+                            cell.alignment = Alignment(horizontal='center', vertical='center')
+                            if col_idx == 4:
+                                cell.font = Font(name="Calibri", size=10, bold=True, color="15803D")
+                            elif col_idx == 5:
+                                cell.font = Font(name="Calibri", size=10, bold=True, color="B91C1C")
+                            else:
+                                cell.font = font_data
+                        elif col_idx == 6:
+                            cell.alignment = Alignment(horizontal='center', vertical='center')
+                            if pct_val < 70.0:
+                                cell.font = Font(name="Calibri", size=10, bold=True, color="DC2626")
+                            elif pct_val < 85.0:
+                                cell.font = Font(name="Calibri", size=10, bold=True, color="D97706")
+                            else:
+                                cell.font = Font(name="Calibri", size=10, bold=True, color="16A34A")
+
+                    current_row += 1
+
+                # Spacer row after each group
+                current_row += 1
+
+        # Column widths
+        col_widths = {
+            'A': 10,  # Sl No
+            'B': 34,  # Name
+            'C': 22,  # Total Working Days
+            'D': 14,  # Attended
+            'E': 14,  # Absent
+            'F': 16,  # Percentage
+        }
+        for col_letter, width in col_widths.items():
+            ws.column_dimensions[col_letter].width = width
+
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        clean_yr = (selected_year.name if selected_year else 'active').replace('/', '-').replace(' ', '_')
+        filename = f"attendance_shortage_{clean_yr}_{today.strftime('%Y%m%d')}.xlsx"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        writer = csv.writer(response)
-        writer.writerow(['STUDENT SHORTAGE / LOW ATTENDANCE REPORT'])
-        writer.writerow([f'Academic Year: {selected_year.name if selected_year else "N/A"}', f'Generated on: {today.strftime("%d-%m-%Y")}'])
-        writer.writerow(['Normal Mandatory Requirement: 85%', 'Medical Condonation Threshold: 70%'])
-        writer.writerow([])
-        writer.writerow([
-            'Student ID', 'Student Name', 'Class / Grade', 'Division', 'Type',
-            'Total Working Days', 'Attended Days', 'Absent Days', 'Medical / Excused Days',
-            'Attendance %', 'Status Category', 'Medical Condonation Status', 'Days Needed for 85%', 'Contact Phone'
-        ])
-        for row in student_list:
-            s = row['student']
-            e = row['enrollment']
-            writer.writerow([
-                s.student_id,
-                s.full_name,
-                e.grade.name if e.grade else '',
-                e.division.name if e.division else '',
-                s.get_student_type_display(),
-                row['total_working'],
-                row['attended_count'],
-                row['absent_count'],
-                row['medical_count'],
-                f"{row['attendance_pct']}%",
-                row['category_label'],
-                row['condonation_status'],
-                row['target_85_needed'],
-                s.phone or ''
-            ])
+        wb.save(response)
         return response
 
     sections = Section.objects.all().order_by('order', 'name')
@@ -4726,6 +4874,7 @@ def low_attendance_students(request):
 
     context = {
         'student_list': student_list,
+        'grouped_students': grouped_students,
         'total_analyzed': total_analyzed,
         'total_low_attendance': total_low_attendance,
         'total_critical': total_critical,
