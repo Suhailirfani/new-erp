@@ -18,9 +18,16 @@
             --dark-bg: #1a0202;
         }
 
-        * {
+        *, *::before, *::after {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
             box-sizing: border-box;
         }
 
@@ -28,50 +35,71 @@
             font-family: 'Inter', sans-serif;
             color: white;
             background: var(--dark-bg);
-            overflow-x: hidden;
             line-height: 1.6;
         }
 
         /* Hero section */
         .about-hero {
-            height: 60vh;
+            min-height: 50vh;
             background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), 
                         url('{% static "images/college_hero_niqab_full.png" %}') center/cover no-repeat;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding-top: 50px;
+            padding: 80px 1rem 40px;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .about-hero-content {
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            box-sizing: border-box;
+            z-index: 2;
         }
 
         .about-hero h1 {
             font-family: 'Cinzel', serif;
-            font-size: clamp(2.5rem, 8vw, 4.5rem);
+            font-size: clamp(1.6rem, 4.5vw, 3rem);
             color: var(--text-gold);
             text-transform: uppercase;
-            letter-spacing: 5px;
+            letter-spacing: clamp(1px, 0.25vw, 3px);
+            word-break: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.25;
+            max-width: 100%;
+            margin: 0 auto;
             animation: fadeInDown 1s ease-out;
         }
 
         @keyframes fadeInDown {
-            from { opacity: 0; transform: translateY(-30px); }
+            from { opacity: 0; transform: translateY(-20px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
         /* Content Sections */
         .container {
+            width: 100%;
             max-width: 1200px;
             margin: 0 auto;
-            padding: 80px 20px;
+            padding: clamp(40px, 6vw, 70px) clamp(1rem, 3vw, 2rem);
+            box-sizing: border-box;
+            overflow-x: hidden;
         }
 
         .section-title {
             font-family: 'Playfair Display', serif;
-            font-size: 2.8rem;
+            font-size: clamp(1.8rem, 4vw, 2.6rem);
             color: white;
-            margin-bottom: 40px;
+            margin-bottom: 35px;
             text-align: center;
             position: relative;
+            word-break: break-word;
         }
 
         .section-title::after {
@@ -80,71 +108,84 @@
             bottom: -10px;
             left: 50%;
             transform: translateX(-50%);
-            width: 80px;
+            width: 70px;
             height: 3px;
             background: var(--text-gold);
         }
 
         .grid-2 {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 50px;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+            gap: clamp(24px, 4vw, 45px);
             align-items: center;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         .glass-card {
             background: var(--glass);
             border: 1px solid var(--glass-border);
-            padding: 40px;
-            border-radius: 30px;
+            padding: clamp(20px, 3.5vw, 36px);
+            border-radius: 20px;
             backdrop-filter: blur(15px);
-            margin-bottom: 40px;
+            margin-bottom: 35px;
+            box-sizing: border-box;
+            max-width: 100%;
+            overflow: hidden;
+            word-break: break-word;
         }
 
         .vision-mission-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-top: 50px;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+            gap: clamp(20px, 3vw, 30px);
+            margin-top: 35px;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         .vm-card i {
-            font-size: 2.5rem;
+            font-size: 2.2rem;
             color: var(--text-gold);
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .vm-card h3 {
             font-family: 'Playfair Display', serif;
-            font-size: 1.8rem;
-            margin-bottom: 15px;
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+            word-break: break-word;
         }
 
         /* Leader Section */
         .leaders-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 30px;
-            margin-top: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 25px;
+            margin-top: 35px;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         .leader-card {
             text-align: center;
-            transition: transform 0.4s ease;
-        }
-
-        .leader-card:hover {
-            transform: translateY(-15px);
+            transition: transform 0.3s ease;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         .leader-img-wrap {
             position: relative;
-            width: 220px;
-            height: 220px;
-            margin: 0 auto 25px;
+            width: clamp(160px, 20vw, 200px);
+            height: clamp(160px, 20vw, 200px);
+            margin: 0 auto 20px;
             border-radius: 50%;
-            padding: 8px;
+            padding: 6px;
             border: 2px solid var(--text-gold);
+            box-sizing: border-box;
         }
 
         .leader-img {
@@ -156,9 +197,8 @@
             transition: all 0.3s ease;
         }
 
-        /* Specific alignment for leadership images */
-        .zoom-out { transform: scale(01); object-position: center top; }
-        .zoom-in { transform: scale(1.3); object-position: center 20%; }
+        .zoom-out { transform: scale(1); object-position: center top; }
+        .zoom-in { transform: scale(1.25); object-position: center 20%; }
 
         .leader-card:hover .leader-img {
             filter: grayscale(0%);
@@ -166,50 +206,44 @@
 
         .leader-card h3 {
             font-family: 'Playfair Display', serif;
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             color: var(--text-gold);
+            word-break: break-word;
         }
 
         .leader-card p {
-            font-size: 1rem;
-            opacity: 0.8;
-            margin-top: 5px;
+            font-size: 0.95rem;
+            opacity: 0.85;
+            margin-top: 4px;
         }
 
         /* Nav and Buttons */
         .back-btn {
             position: absolute;
-            top: 30px;
-            left: 30px;
+            top: 20px;
+            left: 20px;
             color: white;
             text-decoration: none;
             font-weight: 600;
+            font-size: 0.9rem;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             z-index: 10;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 6px 14px;
+            border-radius: 20px;
+            backdrop-filter: blur(5px);
         }
 
-        .btn-outline {
-            padding: 12px 30px;
-            border: 1px solid var(--text-gold);
-            color: var(--text-gold);
-            text-decoration: none;
-            border-radius: 50px;
-            transition: all 0.3s;
-            display: inline-block;
-            margin-top: 20px;
-        }
-
-        .btn-outline:hover {
-            background: var(--text-gold);
-            color: var(--primary);
+        .btn, button, a.btn {
+            transform: none !important;
         }
 
         /* Animation */
         .reveal {
             opacity: 0;
-            transform: translateY(30px);
+            transform: translateY(20px);
             transition: all 0.8s ease-out;
         }
 
@@ -219,11 +253,9 @@
         }
 
         @media (max-width: 768px) {
-            .grid-2, .vision-mission-grid {
-                grid-template-columns: 1fr;
-            }
-            .section-title { font-size: 2.2rem; }
-            .about-hero h1 { font-size: 2.8rem; }
+            .section-title { font-size: 1.8rem; }
+            .about-hero { min-height: 45vh; padding-top: 70px; }
+            .back-btn { top: 15px; left: 15px; font-size: 0.8rem; padding: 5px 12px; }
         }
     </style>
 </head>
@@ -231,7 +263,7 @@
     <a href="{% url 'students:landing' %}" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Home</a>
 
     <section class="about-hero">
-        <div style="z-index: 2;">
+        <div class="about-hero-content">
             <img src="{% static 'img/M_LOGO.png' %}" alt="Markaz Hadiya Logo" style="width: 120px; margin-bottom: 20px; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));">
             <h1>About MARKAZ HADIYA WOMEN'S COLLEGE</h1>
         </div>

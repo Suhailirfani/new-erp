@@ -155,17 +155,17 @@
         max-width: 100% !important;
         border-collapse: collapse;
         margin: 0;
-        font-size: 0.82rem;
+        font-size: 0.76rem !important;
         table-layout: fixed;
     }
 
     .table-custom th {
         background: #f8fafc;
-        padding: 0.65rem 0.5rem;
-        font-size: 0.7rem;
+        padding: 0.45rem 0.35rem !important;
+        font-size: 0.66rem !important;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 0.03em;
+        letter-spacing: 0.02em;
         color: #64748b;
         border-bottom: 1.5px solid #e2e8f0;
         white-space: nowrap;
@@ -173,11 +173,12 @@
     }
 
     .table-custom td {
-        padding: 0.6rem 0.5rem;
+        padding: 0.45rem 0.35rem !important;
         border-bottom: 1px solid #f1f5f9;
         vertical-align: middle;
         color: #1e293b;
         word-break: break-word;
+        font-size: 0.76rem !important;
     }
 
     .table-custom tr:last-child td {
@@ -473,12 +474,12 @@
         <div class="table-responsive" style="width: 100%; overflow-x: auto;">
             <table class="table-custom">
                 <colgroup>
-                    <col style="width: 45px;">
-                    <col style="width: 25%;">
-                    <col style="width: 18%;">
-                    <col style="width: 21%;">
-                    <col style="width: 22%;">
-                    <col style="width: 14%;">
+                    <col style="width: 32px;">
+                    <col style="width: 28%;">
+                    <col style="width: 16%;">
+                    <col style="width: 20%;">
+                    <col style="width: 24%;">
+                    <col style="width: 12%;">
                 </colgroup>
                 <thead>
                     <tr>
@@ -501,7 +502,7 @@
                         <!-- Student & Class -->
                         <td>
                             <div style="display: flex; align-items: center; gap: 0.6rem;">
-                                <div style="width: 34px; height: 34px; border-radius: 8px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; color: #64748b; font-weight: 700; flex-shrink: 0; overflow: hidden; border: 1.5px solid #e2e8f0;">
+                                <div style="width: 28px; height: 28px; border-radius: 6px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; color: #64748b; font-weight: 700; flex-shrink: 0; overflow: hidden; border: 1.5px solid #e2e8f0;">
                                     {% if item.student.face_profile %}
                                         <img src="{{ item.student.face_profile.photo }}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
                                     {% else %}
@@ -509,7 +510,7 @@
                                     {% endif %}
                                 </div>
                                 <div style="min-width: 0; flex: 1;">
-                                    <a href="{% url 'students:student_profile' item.student.id %}" style="font-weight: 800; color: #1e293b; text-decoration: none; font-size: 0.84rem; display: block; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ item.student.full_name }}">
+                                    <a href="{% url 'students:student_profile' item.student.id %}" style="font-weight: 800; color: #1e293b; text-decoration: none; font-size: 0.78rem; display: block; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ item.student.full_name }}">
                                         {{ item.student.full_name }}
                                     </a>
                                     <div style="font-size: 0.7rem; color: #64748b; font-weight: 600; margin-top: 1px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">

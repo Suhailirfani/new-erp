@@ -8290,11 +8290,19 @@ def holiday_list(request):
         return redirect('students:holiday_list')
         
     # GET request
+    from django.db.models import Count, Min, Max
     holidays = Holiday.objects.all().prefetch_related('grades').order_by('-date')
     grades = Grade.objects.all().order_by('order', 'name')
+    holiday_summary_by_title = Holiday.objects.values('title').annotate(
+        total_days=Count('id'),
+        min_date=Min('date'),
+        max_date=Max('date')
+    ).order_by('title')
+
     context = {
         'holidays': holidays,
         'grades': grades,
+        'holiday_summary_by_title': holiday_summary_by_title,
     }
     return render(request, 'students/holiday_list.html', context)
 
@@ -8313,6 +8321,89 @@ def holiday_delete(request, pk):
     except Exception as e:
         messages.error(request, f"Error deleting holiday: {str(e)}")
         
+    return redirect('students:holiday_list')
+
+
+@role_required(['admin'])
+@require_POST
+def holiday_bulk_delete(request):
+    """Bulk delete holidays selected by checkboxes"""
+    from .models import Holiday
+    selected_ids = request.POST.getlist('selected_holidays')
+    if not selected_ids:
+        messages.warning(request, "No holidays were selected for deletion.")
+        return redirect('students:holiday_list')
+
+    try:
+        qs = Holiday.objects.filter(id__in=selected_ids)
+        count = qs.count()
+        qs.delete()
+        messages.success(request, f"Successfully deleted {count} selected holiday{'s' if count != 1 else ''}.")
+    except Exception as e:
+        messages.error(request, f"Error deleting selected holidays: {str(e)}")
+
+    return redirect('students:holiday_list')
+
+
+@role_required(['admin'])
+@require_POST
+def holiday_delete_by_name(request):
+    """Delete all holidays matching a specific title / occasion name"""
+    from .models import Holiday
+    title = request.POST.get('title', '').strip()
+    if not title:
+        messages.warning(request, "Please specify or select a holiday title/name to delete.")
+        return redirect('students:holiday_list')
+
+    try:
+        matching = Holiday.objects.filter(title__iexact=title)
+        count = matching.count()
+        if count == 0:
+            messages.warning(request, f"No holidays found with title '{title}'.")
+        else:
+            matching.delete()
+            messages.success(request, f"Successfully deleted all {count} holiday{'s' if count != 1 else ''} titled '{title}'.")
+    except Exception as e:
+        messages.error(request, f"Error deleting holidays: {str(e)}")
+
+    return redirect('students:holiday_list')
+
+
+@role_required(['admin'])
+@require_POST
+def holiday_delete_by_range(request):
+    """Delete all holidays falling within a specific date range"""
+    from .models import Holiday
+    from datetime import date
+    start_str = request.POST.get('start_date', '').strip()
+    end_str = request.POST.get('end_date', '').strip()
+    title_filter = request.POST.get('title_filter', '').strip()
+
+    if not start_str or not end_str:
+        messages.warning(request, "Both start date and end date are required for range deletion.")
+        return redirect('students:holiday_list')
+
+    try:
+        start_d = date.fromisoformat(start_str)
+        end_d = date.fromisoformat(end_str)
+        if end_d < start_d:
+            messages.error(request, "End date cannot be earlier than start date.")
+            return redirect('students:holiday_list')
+
+        qs = Holiday.objects.filter(date__gte=start_d, date__lte=end_d)
+        if title_filter:
+            qs = qs.filter(title__icontains=title_filter)
+
+        count = qs.count()
+        if count == 0:
+            messages.warning(request, f"No holidays found between {start_d.strftime('%b %d, %Y')} and {end_d.strftime('%b %d, %Y')}.")
+        else:
+            qs.delete()
+            extra_txt = f" matching '{title_filter}'" if title_filter else ""
+            messages.success(request, f"Successfully deleted {count} holiday{'s' if count != 1 else ''}{extra_txt} between {start_d.strftime('%b %d, %Y')} and {end_d.strftime('%b %d, %Y')}.")
+    except Exception as e:
+        messages.error(request, f"Error deleting holiday range: {str(e)}")
+
     return redirect('students:holiday_list')
 
 
