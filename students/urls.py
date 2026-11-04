@@ -174,6 +174,7 @@ urlpatterns = [
     path('holidays/bulk-delete/', views.holiday_bulk_delete, name='holiday_bulk_delete'),
     path('holidays/delete-by-name/', views.holiday_delete_by_name, name='holiday_delete_by_name'),
     path('holidays/delete-by-range/', views.holiday_delete_by_range, name='holiday_delete_by_range'),
+    path('working-days-calendar/', views.working_days_calendar, name='working_days_calendar'),
 
     # Timetable Management System Routes
     path('timetable/dashboard/', views.timetable_dashboard, name='timetable_dashboard'),

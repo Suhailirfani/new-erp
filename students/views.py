@@ -8408,6 +8408,166 @@ def holiday_delete_by_range(request):
 
 
 # ==========================================
+
+
+@role_required(['admin', 'teacher'])
+def working_days_calendar(request):
+    """
+    Dedicated view to track and inspect working days and non-working days (holidays/Sundays)
+    across any selected month, academic year, and specific class/grade.
+    """
+    import calendar
+    from datetime import date, timedelta
+    from .models import Grade, AcademicYear, Holiday
+    from django.db.models import Q
+
+    today = date.today()
+    grades = Grade.objects.all().order_by('order', 'name')
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+
+    # Filters
+    selected_grade_id = request.GET.get('grade', '').strip()
+    selected_grade = Grade.objects.filter(id=selected_grade_id).first() if selected_grade_id else None
+
+    # Month and Year selection (defaults to current month and year)
+    try:
+        selected_month = int(request.GET.get('month', today.month))
+        selected_year = int(request.GET.get('year', today.year))
+    except (ValueError, TypeError):
+        selected_month = today.month
+        selected_year = today.year
+
+    if selected_month < 1 or selected_month > 12:
+        selected_month = today.month
+
+    # Number of days in the month
+    num_days = calendar.monthrange(selected_year, selected_month)[1]
+    month_start = date(selected_year, selected_month, 1)
+    month_end = date(selected_year, selected_month, num_days)
+
+    # Calculate holiday dates for this month and grade
+    holiday_dates = get_holiday_dates(month_start, month_end, grade=selected_grade)
+
+    # Also fetch holiday titles for labeling reasons
+    holidays_qs = Holiday.objects.filter(date__gte=month_start, date__lte=month_end)
+    if selected_grade:
+        holidays_qs = holidays_qs.filter(Q(grades__isnull=True) | Q(grades=selected_grade)).distinct()
+    holiday_title_map = {h.date: h for h in holidays_qs}
+
+    # Build day-by-day registry
+    days_data = []
+    total_working = 0
+    total_non_working = 0
+    total_sundays = 0
+    total_second_saturdays = 0
+    total_custom_holidays = 0
+
+    curr = month_start
+    while curr <= month_end:
+        is_holiday = curr in holiday_dates
+        weekday_num = curr.weekday()
+        weekday_name = curr.strftime('%A')
+        is_sunday = (weekday_num == 6)
+        
+        # Second saturday check
+        first_weekday = date(curr.year, curr.month, 1).weekday()
+        is_second_sat = (weekday_num == 5 and ((curr.day + first_weekday) // 7 + 1) == 2)
+
+        reason = ""
+        reason_type = ""
+
+        if curr in holiday_title_map:
+            h_obj = holiday_title_map[curr]
+            classes_str = h_obj.applicable_grades_display
+            reason = f"{h_obj.title} ({classes_str})"
+            reason_type = "Institutional Holiday"
+            total_custom_holidays += 1
+        elif is_sunday:
+            reason = "Sunday (Weekly Off)"
+            reason_type = "Sunday"
+            total_sundays += 1
+        elif is_second_sat:
+            reason = "Second Saturday (Official Non-Working)"
+            reason_type = "2nd Saturday"
+            total_second_saturdays += 1
+
+        if is_holiday:
+            total_non_working += 1
+            status = 'non_working'
+        else:
+            total_working += 1
+            status = 'working'
+
+        days_data.append({
+            'date': curr,
+            'day': curr.day,
+            'weekday': weekday_name,
+            'weekday_short': curr.strftime('%a'),
+            'status': status,
+            'reason': reason,
+            'reason_type': reason_type,
+            'is_today': (curr == today),
+            'is_past': (curr <= today),
+        })
+        curr += timedelta(days=1)
+
+    # Build calendar weeks grid (Sunday to Saturday)
+    # calendar.Calendar(firstweekday=6) starts on Sunday (6)
+    cal = calendar.Calendar(firstweekday=6)
+    month_calendar_matrix = []
+    days_dict = {d['day']: d for d in days_data}
+
+    for week in cal.monthdayscalendar(selected_year, selected_month):
+        week_days = []
+        for day_num in week:
+            if day_num == 0:
+                week_days.append(None)
+            else:
+                week_days.append(days_dict.get(day_num))
+        month_calendar_matrix.append(week_days)
+
+    # Class-wise comparison summary for this month
+    class_summaries = []
+    for g in grades:
+        g_holidays = get_holiday_dates(month_start, month_end, grade=g)
+        g_non_working = len([d for d in g_holidays if month_start <= d <= month_end])
+        g_working = num_days - g_non_working
+        class_summaries.append({
+            'grade': g,
+            'working_days': g_working,
+            'non_working_days': g_non_working,
+        })
+
+    # Available years dropdown (current year - 2 to + 2)
+    years_list = list(range(today.year - 2, today.year + 3))
+    months_list = [(i, calendar.month_name[i]) for i in range(1, 13)]
+
+    # Month name
+    month_name = calendar.month_name[selected_month]
+
+    context = {
+        'days_data': days_data,
+        'month_calendar_matrix': month_calendar_matrix,
+        'selected_month': selected_month,
+        'selected_year': selected_year,
+        'month_name': month_name,
+        'num_days': num_days,
+        'total_working': total_working,
+        'total_non_working': total_non_working,
+        'total_sundays': total_sundays,
+        'total_second_saturdays': total_second_saturdays,
+        'total_custom_holidays': total_custom_holidays,
+        'grades': grades,
+        'selected_grade': selected_grade,
+        'class_summaries': class_summaries,
+        'years_list': years_list,
+        'months_list': months_list,
+        'today': today,
+    }
+    return render(request, 'students/working_days_calendar.html', context)
+
+
+# ==========================================
 # STUDENT CREDENTIALS MANAGEMENT (ADMIN ONLY)
 # ==========================================
 
