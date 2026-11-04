@@ -232,8 +232,8 @@ from .models import Holiday
 
 @admin.register(Holiday)
 class HolidayAdmin(admin.ModelAdmin):
-    list_display = ('date', 'title', 'applicable_grades_display', 'is_optional')
-    list_filter = ('is_optional', 'grades')
+    list_display = ('date', 'title', 'applicable_grades_display', 'is_working_day', 'is_optional')
+    list_filter = ('is_working_day', 'is_optional', 'grades')
     filter_horizontal = ('grades',)
     ordering = ('-date',)
 

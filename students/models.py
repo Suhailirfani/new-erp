@@ -583,10 +583,12 @@ class Holiday(models.Model):
     date = models.DateField(unique=True)
     title = models.CharField(max_length=100)
     is_optional = models.BooleanField(default=False)
+    is_working_day = models.BooleanField(default=False, help_text="Set to True to make this date a working day (e.g. 2nd Saturday or Sunday class)")
     grades = models.ManyToManyField('Grade', blank=True, related_name='holidays', help_text="Specific classes/grades. Leave empty to apply to ALL classes.")
 
     def __str__(self):
-        return f"{self.date} - {self.title} ({self.applicable_grades_display})"
+        day_type = 'Working Day' if self.is_working_day else 'Holiday'
+        return f"{self.date} - {self.title} [{day_type}] ({self.applicable_grades_display})"
 
     @property
     def applicable_grades_display(self):

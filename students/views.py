@@ -30,6 +30,8 @@ def get_holiday_dates(start_date, end_date, grade=None):
     Returns a set of date objects that are holidays (Sundays, Second Saturdays,
     and manual holidays from the Holiday model) in the range [start_date, end_date].
     If grade is provided, only includes holidays that apply to that grade (or all grades).
+    Respects Holiday entries with is_working_day=True to turn normally non-working days
+    (like 2nd Saturdays or Sundays) into official working days.
     """
     from datetime import date, timedelta
     from students.models import Holiday
@@ -42,7 +44,11 @@ def get_holiday_dates(start_date, end_date, grade=None):
     if grade:
         holidays_qs = holidays_qs.filter(Q(grades__isnull=True) | Q(grades=grade)).distinct()
         
-    holiday_dates = set(holidays_qs.values_list('date', flat=True))
+    # Separate holidays into non-working holidays and working day overrides
+    non_working_dates = set(holidays_qs.filter(is_working_day=False).values_list('date', flat=True))
+    working_override_dates = set(holidays_qs.filter(is_working_day=True).values_list('date', flat=True))
+    
+    holiday_dates = set(non_working_dates)
     
     curr = start_date
     while curr <= end_date:
@@ -50,13 +56,13 @@ def get_holiday_dates(start_date, end_date, grade=None):
         if weekday == 6:  # Sunday
             holiday_dates.add(curr)
         elif weekday == 5:  # Saturday
-            # Second Saturday check
-            d = curr.day
-            first_weekday = date(curr.year, curr.month, 1).weekday()
-            if ((d + first_weekday) // 7 + 1) == 2:
+            # Second Saturday check (the second Saturday of any month always falls between the 8th and 14th)
+            if 8 <= curr.day <= 14:
                 holiday_dates.add(curr)
         curr += timedelta(days=1)
         
+    # Remove any dates explicitly marked as working days
+    holiday_dates = holiday_dates - working_override_dates
     return holiday_dates
 
 
@@ -5651,17 +5657,15 @@ def attendance_update_tracking(request):
                 Q(grades__isnull=True) | Q(grades=grade_val) | Q(grades__name=grade_val)
             ).first()
 
-            is_manual_holiday = manual_holiday is not None
+            is_manual_holiday = manual_holiday is not None and not manual_holiday.is_working_day
+            is_working_override = manual_holiday is not None and manual_holiday.is_working_day
             holiday_title = manual_holiday.title if manual_holiday else ''
 
             # Holiday logic
             is_sunday = weekday == 6
-            is_second_saturday = (
-                weekday == 5 and
-                ((d + date(year, month, 1).weekday()) // 7 + 1) == 2
-            )
+            is_second_saturday = (weekday == 5 and 8 <= d <= 14)
 
-            is_holiday = is_sunday or is_second_saturday or is_manual_holiday
+            is_holiday = (is_sunday or is_second_saturday or is_manual_holiday) and not is_working_override
 
             recorded = False
             if not is_holiday:
@@ -7870,7 +7874,8 @@ def monthly_attendance_grid(request, grade_id, division_id):
     holidays = Holiday.objects.filter(date__year=year, date__month=month)
     if grade_obj:
         holidays = holidays.filter(Q(grades__isnull=True) | Q(grades=grade_obj)).distinct()
-    holiday_map = {h.date: h.title for h in holidays}
+    holiday_map = {h.date: h.title for h in holidays.filter(is_working_day=False)}
+    working_override_map = {h.date: h.title for h in holidays.filter(is_working_day=True)}
     
     periods = Period.objects.all()
     activities = Activity.objects.filter(date__year=year, date__month=month)
@@ -7918,14 +7923,13 @@ def monthly_attendance_grid(request, grade_id, division_id):
         weekday = curr_date.weekday()
         
         is_sunday = weekday == 6
-        is_second_saturday = (
-            weekday == 5 and
-            ((d + date(year, month, 1).weekday()) // 7 + 1) == 2
-        )
+        is_second_saturday = (weekday == 5 and 8 <= d <= 14)
         is_manual_holiday = curr_date in holiday_map
-        is_holiday = is_sunday or is_second_saturday or is_manual_holiday
+        is_working_override = curr_date in working_override_map
+        is_holiday = (is_sunday or is_second_saturday or is_manual_holiday) and not is_working_override
         holiday_type = (
-            holiday_map[curr_date] if is_manual_holiday
+            '' if is_working_override
+            else holiday_map[curr_date] if is_manual_holiday
             else 'Sunday' if is_sunday
             else 'Second Saturday' if is_second_saturday
             else ''
@@ -8246,6 +8250,7 @@ def holiday_list(request):
         end_date_str = request.POST.get('end_date')
         title = request.POST.get('title', '').strip()
         is_optional = request.POST.get('is_optional') == 'on'
+        is_working_day = request.POST.get('is_working_day') == 'on'
         selected_grade_ids = request.POST.getlist('grades')
         
         if not date_str or not title:
@@ -8265,11 +8270,12 @@ def holiday_list(request):
             while curr <= end_d:
                 holiday_obj, created = Holiday.objects.get_or_create(
                     date=curr,
-                    defaults={'title': title, 'is_optional': is_optional}
+                    defaults={'title': title, 'is_optional': is_optional, 'is_working_day': is_working_day}
                 )
                 if not created:
                     holiday_obj.title = title
                     holiday_obj.is_optional = is_optional
+                    holiday_obj.is_working_day = is_working_day
                     holiday_obj.save()
 
                 if selected_grade_ids:
@@ -8413,13 +8419,13 @@ def holiday_delete_by_range(request):
 @role_required(['admin', 'teacher'])
 def working_days_calendar(request):
     """
-    Dedicated view to track and inspect working days and non-working days (holidays/Sundays)
-    across any selected month, academic year, and specific class/grade.
+    Dedicated view to track and inspect working days, non-working days (holidays/Sundays),
+    and attendance-marked vs NOT-marked working days across any selected month, year, and class.
     """
     import calendar
     from datetime import date, timedelta
-    from .models import Grade, AcademicYear, Holiday
-    from django.db.models import Q
+    from .models import Grade, AcademicYear, Holiday, Attendance, Enrollment, Division
+    from django.db.models import Q, Count
 
     today = date.today()
     grades = Grade.objects.all().order_by('order', 'name')
@@ -8454,6 +8460,19 @@ def working_days_calendar(request):
         holidays_qs = holidays_qs.filter(Q(grades__isnull=True) | Q(grades=selected_grade)).distinct()
     holiday_title_map = {h.date: h for h in holidays_qs}
 
+    # Query attendance records marked in this month
+    att_filter = Q(date__gte=month_start, date__lte=month_end)
+    if selected_grade:
+        att_filter &= Q(enrollment__grade=selected_grade)
+    
+    # Dates that have at least one attendance entry marked
+    marked_dates_counts = dict(
+        Attendance.objects.filter(att_filter)
+        .values('date')
+        .annotate(total=Count('id'))
+        .values_list('date', 'total')
+    )
+
     # Build day-by-day registry
     days_data = []
     total_working = 0
@@ -8461,6 +8480,10 @@ def working_days_calendar(request):
     total_sundays = 0
     total_second_saturdays = 0
     total_custom_holidays = 0
+    total_marked_working = 0
+    total_unmarked_working = 0
+
+    unmarked_working_days = []
 
     curr = month_start
     while curr <= month_end:
@@ -8469,9 +8492,8 @@ def working_days_calendar(request):
         weekday_name = curr.strftime('%A')
         is_sunday = (weekday_num == 6)
         
-        # Second saturday check
-        first_weekday = date(curr.year, curr.month, 1).weekday()
-        is_second_sat = (weekday_num == 5 and ((curr.day + first_weekday) // 7 + 1) == 2)
+        # Second saturday check (always falls on days 8 through 14)
+        is_second_sat = (weekday_num == 5 and 8 <= curr.day <= 14)
 
         reason = ""
         reason_type = ""
@@ -8479,9 +8501,13 @@ def working_days_calendar(request):
         if curr in holiday_title_map:
             h_obj = holiday_title_map[curr]
             classes_str = h_obj.applicable_grades_display
-            reason = f"{h_obj.title} ({classes_str})"
-            reason_type = "Institutional Holiday"
-            total_custom_holidays += 1
+            if h_obj.is_working_day:
+                reason = f"Special Working Day: {h_obj.title} ({classes_str})"
+                reason_type = "Working Day Override"
+            else:
+                reason = f"{h_obj.title} ({classes_str})"
+                reason_type = "Institutional Holiday"
+                total_custom_holidays += 1
         elif is_sunday:
             reason = "Sunday (Weekly Off)"
             reason_type = "Sunday"
@@ -8491,28 +8517,49 @@ def working_days_calendar(request):
             reason_type = "2nd Saturday"
             total_second_saturdays += 1
 
+        is_marked = curr in marked_dates_counts
+        marked_count = marked_dates_counts.get(curr, 0)
+        is_past_or_today = (curr <= today)
+
         if is_holiday:
             total_non_working += 1
             status = 'non_working'
+            att_status = 'holiday'
         else:
             total_working += 1
             status = 'working'
+            if is_marked:
+                att_status = 'marked'
+                total_marked_working += 1
+            else:
+                if is_past_or_today:
+                    att_status = 'unmarked'
+                    total_unmarked_working += 1
+                else:
+                    att_status = 'upcoming'
 
-        days_data.append({
+        day_dict = {
             'date': curr,
             'day': curr.day,
             'weekday': weekday_name,
             'weekday_short': curr.strftime('%a'),
             'status': status,
+            'att_status': att_status,
+            'is_marked': is_marked,
+            'marked_count': marked_count,
             'reason': reason,
             'reason_type': reason_type,
             'is_today': (curr == today),
             'is_past': (curr <= today),
-        })
+        }
+
+        if att_status == 'unmarked':
+            unmarked_working_days.append(day_dict)
+
+        days_data.append(day_dict)
         curr += timedelta(days=1)
 
     # Build calendar weeks grid (Sunday to Saturday)
-    # calendar.Calendar(firstweekday=6) starts on Sunday (6)
     cal = calendar.Calendar(firstweekday=6)
     month_calendar_matrix = []
     days_dict = {d['day']: d for d in days_data}
@@ -8532,10 +8579,29 @@ def working_days_calendar(request):
         g_holidays = get_holiday_dates(month_start, month_end, grade=g)
         g_non_working = len([d for d in g_holidays if month_start <= d <= month_end])
         g_working = num_days - g_non_working
+
+        # Count how many of these working days are marked for this grade
+        g_marked_dates = set(
+            Attendance.objects.filter(
+                date__gte=month_start, date__lte=month_end, enrollment__grade=g
+            ).values_list('date', flat=True).distinct()
+        )
+        
+        # Working days that are past or today
+        g_past_working = [
+            month_start + timedelta(days=i)
+            for i in range(num_days)
+            if (month_start + timedelta(days=i)) <= today and (month_start + timedelta(days=i)) not in g_holidays
+        ]
+        g_marked_count = len([d for d in g_past_working if d in g_marked_dates])
+        g_unmarked_count = len(g_past_working) - g_marked_count
+
         class_summaries.append({
             'grade': g,
             'working_days': g_working,
             'non_working_days': g_non_working,
+            'marked_count': g_marked_count,
+            'unmarked_count': g_unmarked_count,
         })
 
     # Available years dropdown (current year - 2 to + 2)
@@ -8547,6 +8613,7 @@ def working_days_calendar(request):
 
     context = {
         'days_data': days_data,
+        'unmarked_working_days': unmarked_working_days,
         'month_calendar_matrix': month_calendar_matrix,
         'selected_month': selected_month,
         'selected_year': selected_year,
@@ -8557,6 +8624,8 @@ def working_days_calendar(request):
         'total_sundays': total_sundays,
         'total_second_saturdays': total_second_saturdays,
         'total_custom_holidays': total_custom_holidays,
+        'total_marked_working': total_marked_working,
+        'total_unmarked_working': total_unmarked_working,
         'grades': grades,
         'selected_grade': selected_grade,
         'class_summaries': class_summaries,

@@ -104,6 +104,18 @@
         display: inline-block;
     }
 
+    .working-day-badge {
+        background: #dcfce7;
+        color: #15803d;
+        border: 1.5px solid #86efac;
+        padding: 0.15rem 0.45rem;
+        font-size: 0.68rem;
+        font-weight: 800;
+        border-radius: 5px;
+        white-space: nowrap;
+        display: inline-block;
+    }
+
     .bulk-action-bar {
         background: #fff1f2;
         border: 1.5px solid #fecdd3;
@@ -251,11 +263,25 @@
                         <input type="text" name="title" id="id_title" class="form-control-compact" placeholder="e.g. Summer Break" required>
                     </div>
 
-                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.6rem; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 0.85rem;">
-                        <input type="checkbox" name="is_optional" id="id_is_optional" style="width: auto; cursor: pointer;">
-                        <label for="id_is_optional" style="font-weight: 600; font-size: 0.78rem; cursor: pointer; color: var(--dark-secondary); margin: 0;">
-                            Optional Holiday
-                        </label>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.85rem;">
+                        <!-- Working Day Toggle -->
+                        <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.65rem; border-radius: 8px; background: #ecfdf5; border: 1.5px solid #a7f3d0;">
+                            <input type="checkbox" name="is_working_day" id="id_is_working_day" style="width: 16px; height: 16px; accent-color: #059669; cursor: pointer;">
+                            <div>
+                                <label for="id_is_working_day" style="font-weight: 800; font-size: 0.78rem; cursor: pointer; color: #065f46; margin: 0; display: block; line-height: 1.2;">
+                                    Is Working Day (Override Non-Working / 2nd Sat)
+                                </label>
+                                <span style="font-size: 0.68rem; color: #047857; font-weight: 600; display: block;">Turn 2nd Saturdays or holidays into active instructional days</span>
+                            </div>
+                        </div>
+
+                        <!-- Optional Holiday Toggle -->
+                        <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.6rem; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0;">
+                            <input type="checkbox" name="is_optional" id="id_is_optional" style="width: auto; cursor: pointer;">
+                            <label for="id_is_optional" style="font-weight: 600; font-size: 0.78rem; cursor: pointer; color: var(--dark-secondary); margin: 0;">
+                                Optional Holiday
+                            </label>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn btn-sm btn-primary" style="width: 100%; margin: 0; padding: 0.45rem; font-size: 0.82rem; font-weight: 700; border-radius: 8px;"><i class="fa-solid fa-check"></i> Save Holiday</button>
@@ -419,7 +445,7 @@
                     </thead>
                     <tbody>
                         {% for holiday in holidays %}
-                        <tr class="holiday-row" data-search="{{ holiday.title|lower }} {{ holiday.date|date:'d F Y'|lower }} {{ holiday.date|date:'Y-m-d' }} {{ holiday.date|date:'l'|lower }}">
+                        <tr class="holiday-row {% if holiday.is_working_day %}table-success-light{% endif %}" data-search="{{ holiday.title|lower }} {{ holiday.date|date:'d F Y'|lower }} {{ holiday.date|date:'Y-m-d' }} {{ holiday.date|date:'l'|lower }} {% if holiday.is_working_day %}working day{% else %}holiday{% endif %}">
                             {% if request.user.profile.role == 'admin' or request.user.is_superuser %}
                             <td style="text-align: center; vertical-align: middle;">
                                 <input type="checkbox" name="selected_holidays" value="{{ holiday.id }}" class="holiday-row-chk" style="cursor: pointer; width: 13px; height: 13px;" onchange="updateSelectedCount()">
@@ -444,7 +470,9 @@
                                 {% endif %}
                             </td>
                             <td style="text-align: center;">
-                                {% if holiday.is_optional %}
+                                {% if holiday.is_working_day %}
+                                    <span class="working-day-badge"><i class="fa-solid fa-briefcase"></i> Working Day</span>
+                                {% elif holiday.is_optional %}
                                     <span class="optional-badge">Optional</span>
                                 {% else %}
                                     <span class="mandatory-badge">Mandatory</span>

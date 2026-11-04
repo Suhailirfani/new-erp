@@ -5,8 +5,8 @@
 <style>
     .kpi-row {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 0.85rem;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 0.75rem;
         margin-bottom: 1.25rem;
     }
 
@@ -14,7 +14,7 @@
         background: white;
         border: 1px solid #e2e8f0;
         border-radius: 12px;
-        padding: 0.85rem 1rem;
+        padding: 0.75rem 0.9rem;
         display: flex;
         align-items: center;
         gap: 0.75rem;
@@ -22,13 +22,13 @@
     }
 
     .kpi-icon-wrap {
-        width: 38px;
-        height: 38px;
+        width: 36px;
+        height: 36px;
         border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.1rem;
+        font-size: 1.05rem;
         flex-shrink: 0;
     }
 
@@ -36,8 +36,8 @@
         background: white;
         border: 1px solid #e2e8f0;
         border-radius: 14px;
-        padding: 1rem 1.25rem;
-        margin-bottom: 1.25rem;
+        padding: 0.85rem 1.15rem;
+        margin-bottom: 1.15rem;
         box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
 
@@ -149,7 +149,7 @@
     }
 
     .cal-cell {
-        min-height: 95px;
+        min-height: 100px;
         border-right: 1px solid #f1f5f9;
         border-bottom: 1px solid #f1f5f9;
         padding: 0.45rem;
@@ -171,18 +171,30 @@
         cursor: default;
     }
 
-    .cal-cell.working-day {
+    /* Cell states */
+    .cal-cell.working-marked {
         background: #ffffff;
     }
-
-    .cal-cell.working-day:hover {
+    .cal-cell.working-marked:hover {
         background: #f0fdf4;
+    }
+
+    .cal-cell.working-unmarked {
+        background: #fffbeb;
+        border-left: 3px solid #f59e0b;
+    }
+    .cal-cell.working-unmarked:hover {
+        background: #fef3c7;
+    }
+
+    .cal-cell.working-upcoming {
+        background: #ffffff;
+        opacity: 0.85;
     }
 
     .cal-cell.non-working-day {
         background: #fff5f5;
     }
-
     .cal-cell.non-working-day:hover {
         background: #fee2e2;
     }
@@ -210,6 +222,9 @@
     .cal-cell.non-working-day .cal-date-number {
         color: #b91c1c;
     }
+    .cal-cell.working-unmarked .cal-date-number {
+        color: #b45309;
+    }
 
     .cal-pill-badge {
         font-size: 0.58rem;
@@ -221,16 +236,28 @@
         white-space: nowrap;
     }
 
-    .badge-work {
+    .badge-marked {
         background: #dcfce7;
         color: #15803d;
         border: 1px solid #86efac;
+    }
+
+    .badge-unmarked {
+        background: #fef3c7;
+        color: #b45309;
+        border: 1px solid #fde68a;
     }
 
     .badge-off {
         background: #fee2e2;
         color: #dc2626;
         border: 1px solid #fca5a5;
+    }
+
+    .badge-upcoming {
+        background: #f1f5f9;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
     }
 
     .cal-reason-text {
@@ -244,6 +271,22 @@
         padding: 2px 4px;
         border-radius: 4px;
         border-left: 2px solid #ef4444;
+    }
+
+    .cal-unmarked-alert {
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: #b45309;
+        line-height: 1.25;
+        margin-top: 0.25rem;
+        word-break: break-word;
+        background: rgba(254, 243, 199, 0.8);
+        padding: 2px 4px;
+        border-radius: 4px;
+        border-left: 2px solid #f59e0b;
+        display: flex;
+        align-items: center;
+        gap: 3px;
     }
 
     /* List Table Styles */
@@ -289,6 +332,20 @@
         white-space: nowrap;
     }
 
+    .status-badge-unmarked {
+        background: #fef3c7;
+        color: #b45309;
+        border: 1px solid #fde68a;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+    }
+
     .status-badge-nonworking {
         background: #fee2e2;
         color: #b91c1c;
@@ -309,7 +366,7 @@
 
     @media (max-width: 768px) {
         .cal-cell {
-            min-height: 75px;
+            min-height: 80px;
             padding: 0.3rem;
         }
         .cal-date-number {
@@ -318,8 +375,8 @@
         .cal-pill-badge {
             display: none;
         }
-        .cal-reason-text {
-            font-size: 0.6rem;
+        .cal-reason-text, .cal-unmarked-alert {
+            font-size: 0.58rem;
             padding: 1px 2px;
         }
     }
@@ -345,7 +402,7 @@
                 <i class="fa-solid fa-calendar-days" style="color: #4f46e5;"></i> Working &amp; Non-Working Days Calendar
             </h1>
             <p style="color: #64748b; font-size: 0.8rem; margin: 2px 0 0; font-weight: 600;">
-                Monthly institutional calendar view for instructional working days, Sundays, 2nd Saturdays &amp; Holidays
+                Comprehensive tracking of working days, holidays, and <strong>unmarked attendance days</strong>
             </p>
         </div>
         <div class="d-flex gap-2 no-print align-items-center">
@@ -360,7 +417,7 @@
             </div>
 
             <a href="{% url 'students:holiday_list' %}" class="btn btn-sm btn-outline-primary" style="font-size: 0.78rem; font-weight: 700; border-radius: 8px; padding: 0.4rem 0.8rem;">
-                <i class="fa-solid fa-calendar-plus"></i> Manage Holidays
+                <i class="fa-solid fa-calendar-plus"></i> Holidays
             </a>
             <button type="button" onclick="window.print()" class="btn btn-sm btn-outline-secondary" style="font-size: 0.78rem; font-weight: 700; border-radius: 8px; padding: 0.4rem 0.8rem; background: white;">
                 <i class="fa-solid fa-print"></i> Print
@@ -391,11 +448,11 @@
                 </div>
 
                 <div class="filter-item" style="flex: 1.5;">
-                    <label>Class / Grade (Specific Holidays)</label>
+                    <label>Class / Grade</label>
                     <select name="grade" class="filter-select" onchange="document.getElementById('calendarFilterForm').submit()">
-                        <option value="">All Classes (Universal Holidays)</option>
+                        <option value="">All Classes (Institute-Wide)</option>
                         {% for g in grades %}
-                        <option value="{{ g.id }}" {% if selected_grade and selected_grade.id == g.id %}selected{% endif %}>{{ g.name }} (Class-Specific)</option>
+                        <option value="{{ g.id }}" {% if selected_grade and selected_grade.id == g.id %}selected{% endif %}>{{ g.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -412,6 +469,34 @@
         </form>
     </div>
 
+    <!-- Unmarked Attendance Attention Banner (If any working days were missed) -->
+    {% if total_unmarked_working > 0 %}
+    <div class="card mb-3 no-print" style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1.5px solid #fde68a; border-radius: 12px; padding: 0.85rem 1.15rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <div style="width: 36px; height: 36px; border-radius: 9px; background: #f59e0b; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <h5 style="margin: 0; font-size: 0.92rem; font-weight: 800; color: #92400e;">
+                        {{ total_unmarked_working }} Working Day{{ total_unmarked_working|pluralize }} Missing Attendance!
+                    </h5>
+                    <p style="margin: 2px 0 0; font-size: 0.76rem; color: #b45309; font-weight: 600;">
+                        These working days have passed but no attendance records were marked for {% if selected_grade %}{{ selected_grade.name }}{% else %}the institution{% endif %}.
+                    </p>
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                {% for ud in unmarked_working_days|slice:":5" %}
+                <a href="{% url 'students:mark_attendance' %}?date={{ ud.date|date:'Y-m-d' }}" class="btn btn-xs btn-outline-warning" style="background: white; color: #b45309; border-color: #f59e0b; font-weight: 800; font-size: 0.72rem; padding: 2px 7px; border-radius: 6px;" title="Click to Mark Attendance for {{ ud.date|date:'d M' }}">
+                    Mark {{ ud.date|date:"d M" }} &rarr;
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Monthly Summary KPIs -->
     <div class="kpi-row">
         <!-- Total Working Days -->
@@ -420,8 +505,30 @@
                 <i class="fa-solid fa-briefcase"></i>
             </div>
             <div>
-                <div style="font-size: 1.3rem; font-weight: 800; color: #15803d; line-height: 1;">{{ total_working }}</div>
-                <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">Working Days</div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: #15803d; line-height: 1;">{{ total_working }}</div>
+                <div style="font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">Working Days</div>
+            </div>
+        </div>
+
+        <!-- Marked Working Days -->
+        <div class="kpi-pill" style="border-left: 4px solid #059669;">
+            <div class="kpi-icon-wrap" style="background: #ecfdf5; color: #047857;">
+                <i class="fa-solid fa-clipboard-check"></i>
+            </div>
+            <div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: #047857; line-height: 1;">{{ total_marked_working }}</div>
+                <div style="font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">Marked Days</div>
+            </div>
+        </div>
+
+        <!-- NOT Marked Working Days (Attention) -->
+        <div class="kpi-pill" style="border-left: 4px solid #f59e0b;">
+            <div class="kpi-icon-wrap" style="background: #fffbeb; color: #d97706;">
+                <i class="fa-solid fa-clipboard-question"></i>
+            </div>
+            <div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: #b45309; line-height: 1;">{{ total_unmarked_working }}</div>
+                <div style="font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">Not Marked Days</div>
             </div>
         </div>
 
@@ -431,19 +538,19 @@
                 <i class="fa-solid fa-calendar-xmark"></i>
             </div>
             <div>
-                <div style="font-size: 1.3rem; font-weight: 800; color: #b91c1c; line-height: 1;">{{ total_non_working }}</div>
-                <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">Non-Working Days</div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: #b91c1c; line-height: 1;">{{ total_non_working }}</div>
+                <div style="font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">Non-Working Days</div>
             </div>
         </div>
 
         <!-- Sundays -->
-        <div class="kpi-pill" style="border-left: 4px solid #f59e0b;">
-            <div class="kpi-icon-wrap" style="background: #fef3c7; color: #b45309;">
+        <div class="kpi-pill" style="border-left: 4px solid #f97316;">
+            <div class="kpi-icon-wrap" style="background: #fff7ed; color: #ea580c;">
                 <i class="fa-solid fa-sun"></i>
             </div>
             <div>
-                <div style="font-size: 1.3rem; font-weight: 800; color: #b45309; line-height: 1;">{{ total_sundays }}</div>
-                <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">Sundays</div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: #c2410c; line-height: 1;">{{ total_sundays }}</div>
+                <div style="font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">Sundays</div>
             </div>
         </div>
 
@@ -453,8 +560,8 @@
                 <i class="fa-solid fa-calendar-day"></i>
             </div>
             <div>
-                <div style="font-size: 1.3rem; font-weight: 800; color: #4338ca; line-height: 1;">{{ total_second_saturdays }}</div>
-                <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">2nd Saturdays</div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: #4338ca; line-height: 1;">{{ total_second_saturdays }}</div>
+                <div style="font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">2nd Saturdays</div>
             </div>
         </div>
 
@@ -464,8 +571,8 @@
                 <i class="fa-solid fa-umbrella-beach"></i>
             </div>
             <div>
-                <div style="font-size: 1.3rem; font-weight: 800; color: #be185d; line-height: 1;">{{ total_custom_holidays }}</div>
-                <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">Special Holidays</div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: #be185d; line-height: 1;">{{ total_custom_holidays }}</div>
+                <div style="font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">Special Holidays</div>
             </div>
         </div>
     </div>
@@ -475,7 +582,7 @@
     <div class="card mb-3 no-print" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 0.85rem 1.15rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 0.5rem;">
             <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #475569; display: flex; align-items: center; gap: 0.4rem;">
-                <i class="fa-solid fa-graduation-cap" style="color: #4f46e5; font-size: 0.9rem;"></i> Class-Wise Working Days for {{ month_name }} {{ selected_year }}
+                <i class="fa-solid fa-graduation-cap" style="color: #4f46e5; font-size: 0.9rem;"></i> Class-Wise Working &amp; Attendance Tracking for {{ month_name }} {{ selected_year }}
                 <span style="font-size: 0.68rem; font-weight: 600; color: #94a3b8; text-transform: none;">(Click any class card to open its dedicated calendar)</span>
             </div>
             {% if selected_grade %}
@@ -484,10 +591,10 @@
             </a>
             {% endif %}
         </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.65rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.65rem;">
             {% for cs in class_summaries %}
             <a href="?month={{ selected_month }}&year={{ selected_year }}&grade={{ cs.grade.id }}" 
-               class="class-summary-card {% if selected_grade and selected_grade.id == cs.grade.id %}active-class-card{% endif %}"
+               class="class-summary-card"
                style="text-decoration: none; color: inherit; display: block;">
                 <div style="background: {% if selected_grade and selected_grade.id == cs.grade.id %}#eef2ff{% else %}white{% endif %}; border: {% if selected_grade and selected_grade.id == cs.grade.id %}2px solid #6366f1{% else %}1px solid #cbd5e1{% endif %}; border-radius: 10px; padding: 0.55rem 0.85rem; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
@@ -500,14 +607,18 @@
                         <span style="font-size: 0.68rem; color: #64748b; font-weight: 700;">Open &rarr;</span>
                         {% endif %}
                     </div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem;">
-                        <span style="color: #15803d; font-weight: 800; background: #dcfce7; padding: 1px 6px; border-radius: 4px;">
-                            {{ cs.working_days }} Working
+                    <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; flex-wrap: wrap;">
+                        <span style="color: #15803d; font-weight: 800; background: #dcfce7; padding: 1px 5px; border-radius: 4px;">
+                            {{ cs.working_days }}d Work
                         </span>
-                        <span style="color: #cbd5e1;">•</span>
-                        <span style="color: #b91c1c; font-weight: 800; background: #fee2e2; padding: 1px 6px; border-radius: 4px;">
-                            {{ cs.non_working_days }} Off
+                        <span style="color: #047857; font-weight: 800; background: #ecfdf5; padding: 1px 5px; border-radius: 4px;">
+                            {{ cs.marked_count }}d Marked
                         </span>
+                        {% if cs.unmarked_count > 0 %}
+                        <span style="color: #b45309; font-weight: 800; background: #fef3c7; padding: 1px 5px; border-radius: 4px;" title="Missed / Not Marked">
+                            ⚠️ {{ cs.unmarked_count }}d Missed
+                        </span>
+                        {% endif %}
                     </div>
                 </div>
             </a>
@@ -529,11 +640,14 @@
                     </span>
                     {% endif %}
                 </h3>
-                <span style="font-size: 0.72rem; color: #64748b; font-weight: 600;">7-Day Week Calendar Grid (Sunday to Saturday)</span>
+                <span style="font-size: 0.72rem; color: #64748b; font-weight: 600;">Monthly Grid (Sunday to Saturday) &bull; Green: Marked &bull; Yellow: Not Marked &bull; Red: Off</span>
             </div>
             <div style="display: flex; gap: 0.4rem; align-items: center;">
-                <span class="status-badge-working"><i class="fa-solid fa-circle-check"></i> {{ total_working }} Working</span>
-                <span class="status-badge-nonworking"><i class="fa-solid fa-circle-xmark"></i> {{ total_non_working }} Non-Working</span>
+                <span class="status-badge-working"><i class="fa-solid fa-circle-check"></i> {{ total_marked_working }} Marked</span>
+                {% if total_unmarked_working > 0 %}
+                <span class="status-badge-unmarked"><i class="fa-solid fa-triangle-exclamation"></i> {{ total_unmarked_working }} Not Marked</span>
+                {% endif %}
+                <span class="status-badge-nonworking"><i class="fa-solid fa-circle-xmark"></i> {{ total_non_working }} Off</span>
             </div>
         </div>
 
@@ -553,13 +667,17 @@
             {% for week in month_calendar_matrix %}
                 {% for d in week %}
                     {% if d %}
-                        <div class="cal-cell {% if d.status == 'working' %}working-day{% else %}non-working-day{% endif %} {% if d.is_today %}is-today{% endif %}">
+                        <div class="cal-cell {% if d.att_status == 'marked' %}working-marked{% elif d.att_status == 'unmarked' %}working-unmarked{% elif d.att_status == 'upcoming' %}working-upcoming{% else %}non-working-day{% endif %} {% if d.is_today %}is-today{% endif %}">
                             <div class="cal-cell-top">
                                 <span class="cal-date-number">{{ d.day }}</span>
                                 {% if d.is_today %}
                                     <span class="cal-pill-badge" style="background: #4f46e5; color: white;">Today</span>
-                                {% elif d.status == 'working' %}
-                                    <span class="cal-pill-badge badge-work">Work</span>
+                                {% elif d.att_status == 'marked' %}
+                                    <span class="cal-pill-badge badge-marked" title="{{ d.marked_count }} attendance records marked">Marked ✅</span>
+                                {% elif d.att_status == 'unmarked' %}
+                                    <span class="cal-pill-badge badge-unmarked" title="Working day but attendance not marked!">Not Marked ⚠️</span>
+                                {% elif d.att_status == 'upcoming' %}
+                                    <span class="cal-pill-badge badge-upcoming">Work</span>
                                 {% else %}
                                     <span class="cal-pill-badge badge-off">Off</span>
                                 {% endif %}
@@ -569,9 +687,21 @@
                                 <div class="cal-reason-text" title="{{ d.reason }}">
                                     {{ d.reason }}
                                 </div>
+                            {% elif d.att_status == 'unmarked' %}
+                                <div class="cal-unmarked-alert">
+                                    <i class="fa-solid fa-circle-exclamation"></i>
+                                    <span>Not Marked!</span>
+                                </div>
+                                <a href="{% url 'students:mark_attendance' %}?date={{ d.date|date:'Y-m-d' }}" class="no-print" style="font-size: 0.62rem; font-weight: 800; color: #b45309; text-decoration: underline; margin-top: auto;">
+                                    Mark Now &rarr;
+                                </a>
                             {% else %}
                                 <div style="font-size: 0.62rem; color: #15803d; font-weight: 700; margin-top: auto;">
-                                    Working Day
+                                    {% if d.att_status == 'marked' %}
+                                        <i class="fa-solid fa-check"></i> {{ d.marked_count }} Marked
+                                    {% else %}
+                                        Working Day
+                                    {% endif %}
                                 </div>
                             {% endif %}
                         </div>
@@ -595,32 +725,39 @@
                 <span style="font-size: 0.72rem; color: #64748b; font-weight: 600;">Total Calendar Days: {{ num_days }}</span>
             </div>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
-                <span class="status-badge-working"><i class="fa-solid fa-circle-check"></i> {{ total_working }} Working</span>
-                <span class="status-badge-nonworking"><i class="fa-solid fa-circle-xmark"></i> {{ total_non_working }} Non-Working</span>
+                <span class="status-badge-working"><i class="fa-solid fa-circle-check"></i> {{ total_marked_working }} Marked</span>
+                {% if total_unmarked_working > 0 %}
+                <span class="status-badge-unmarked"><i class="fa-solid fa-triangle-exclamation"></i> {{ total_unmarked_working }} Not Marked</span>
+                {% endif %}
+                <span class="status-badge-nonworking"><i class="fa-solid fa-circle-xmark"></i> {{ total_non_working }} Off</span>
             </div>
         </div>
 
         <div class="table-responsive" style="width: 100%; overflow-x: auto;">
             <table class="table-custom">
                 <colgroup>
-                    <col style="width: 50px;">
-                    <col style="width: 110px;">
-                    <col style="width: 110px;">
+                    <col style="width: 45px;">
+                    <col style="width: 105px;">
+                    <col style="width: 100px;">
+                    <col style="width: 130px;">
                     <col style="width: 130px;">
                     <col style="width: auto;">
+                    <col style="width: 80px;" class="no-print">
                 </colgroup>
                 <thead>
                     <tr>
                         <th style="text-align: center;">Day</th>
                         <th>Date</th>
                         <th>Weekday</th>
-                        <th>Status</th>
-                        <th>Reason / Occasion</th>
+                        <th>Day Type</th>
+                        <th>Attendance Status</th>
+                        <th>Reason / Details</th>
+                        <th style="text-align: right;" class="no-print">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for d in days_data %}
-                    <tr style="{% if d.status == 'non_working' %}background: #fff8f8;{% endif %} {% if d.is_today %}background: #eff6ff !important; font-weight: bold;{% endif %}">
+                    <tr style="{% if d.att_status == 'unmarked' %}background: #fffbeb;{% elif d.status == 'non_working' %}background: #fff8f8;{% endif %} {% if d.is_today %}background: #eff6ff !important; font-weight: bold;{% endif %}">
                         <!-- Day Number -->
                         <td style="text-align: center; font-weight: 800; color: #64748b; font-size: 0.8rem;">
                             {{ d.day }}
@@ -637,23 +774,44 @@
                             {{ d.weekday }}
                         </td>
 
-                        <!-- Working / Non-Working Status -->
+                        <!-- Working / Non-Working -->
                         <td>
                             {% if d.status == 'working' %}
                                 <span class="status-badge-working">
-                                    <i class="fa-solid fa-circle-check"></i> Working Day
+                                    <i class="fa-solid fa-briefcase"></i> Working Day
                                 </span>
                             {% else %}
                                 <span class="status-badge-nonworking">
-                                    <i class="fa-solid fa-circle-xmark"></i> Non-Working
+                                    <i class="fa-solid fa-calendar-xmark"></i> Non-Working
                                 </span>
                             {% endif %}
                         </td>
 
-                        <!-- Reason -->
+                        <!-- Attendance Status -->
+                        <td>
+                            {% if d.status == 'non_working' %}
+                                <span style="color: #64748b; font-size: 0.72rem; font-weight: 600;">Off Day</span>
+                            {% elif d.att_status == 'marked' %}
+                                <span class="status-badge-working">
+                                    <i class="fa-solid fa-circle-check"></i> Marked ({{ d.marked_count }})
+                                </span>
+                            {% elif d.att_status == 'unmarked' %}
+                                <span class="status-badge-unmarked">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> Not Marked!
+                                </span>
+                            {% else %}
+                                <span style="color: #94a3b8; font-size: 0.72rem; font-weight: 600;">Upcoming</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Reason / Details -->
                         <td>
                             {% if d.status == 'working' %}
-                                <span style="color: #64748b; font-size: 0.74rem;">Regular Instructional Working Day</span>
+                                {% if d.att_status == 'unmarked' %}
+                                    <strong style="color: #b45309; font-size: 0.74rem;">⚠️ Working day passed without attendance being marked</strong>
+                                {% else %}
+                                    <span style="color: #64748b; font-size: 0.74rem;">Instructional working day</span>
+                                {% endif %}
                             {% else %}
                                 <strong style="color: #991b1b; font-size: 0.76rem;">{{ d.reason }}</strong>
                                 {% if d.reason_type %}
@@ -661,6 +819,15 @@
                                     {{ d.reason_type }}
                                 </span>
                                 {% endif %}
+                            {% endif %}
+                        </td>
+
+                        <!-- Action -->
+                        <td style="text-align: right;" class="no-print">
+                            {% if d.status == 'working' and d.is_past %}
+                                <a href="{% url 'students:mark_attendance' %}?date={{ d.date|date:'Y-m-d' }}" class="btn btn-xs {% if d.att_status == 'unmarked' %}btn-warning{% else %}btn-outline-secondary{% endif %}" style="font-size: 0.68rem; font-weight: 700; padding: 2px 7px; border-radius: 6px;">
+                                    {% if d.att_status == 'unmarked' %}Mark Now{% else %}Review{% endif %}
+                                </a>
                             {% endif %}
                         </td>
                     </tr>
