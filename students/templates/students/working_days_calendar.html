@@ -1,0 +1,696 @@
+{% extends 'students/base.html' %}
+{% block title %}Working &amp; Non-Working Days Calendar - HadiyAdmin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.85rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .kpi-pill {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    .kpi-icon-wrap {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+    .filter-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    .filter-flex {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-item {
+        flex: 1;
+        min-width: 140px;
+    }
+
+    .filter-item label {
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #64748b;
+        margin-bottom: 0.25rem;
+        letter-spacing: 0.02em;
+    }
+
+    .filter-select {
+        width: 100%;
+        padding: 0.45rem 0.65rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        border: 1.5px solid #cbd5e1;
+        border-radius: 8px;
+        background: #fff;
+        color: #1e293b;
+    }
+
+    /* View Switcher */
+    .view-toggle-wrap {
+        display: flex;
+        background: #f1f5f9;
+        padding: 3px;
+        border-radius: 9px;
+        border: 1px solid #e2e8f0;
+        gap: 2px;
+    }
+
+    .view-toggle-btn {
+        background: transparent;
+        border: none;
+        padding: 0.35rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #64748b;
+        border-radius: 7px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.2s;
+    }
+
+    .view-toggle-btn.active {
+        background: white;
+        color: #4338ca;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    /* Modern Calendar Month Grid */
+    .cal-grid-wrapper {
+        background: white;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .cal-header-row {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        background: #f8fafc;
+        border-bottom: 1.5px solid #e2e8f0;
+        text-align: center;
+    }
+
+    .cal-day-header {
+        padding: 0.6rem 0.25rem;
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #475569;
+    }
+
+    .cal-day-header.sun {
+        color: #dc2626;
+        background: #fef2f2;
+    }
+
+    .cal-day-header.sat {
+        color: #4f46e5;
+    }
+
+    .cal-body-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        border-collapse: collapse;
+    }
+
+    .cal-cell {
+        min-height: 95px;
+        border-right: 1px solid #f1f5f9;
+        border-bottom: 1px solid #f1f5f9;
+        padding: 0.45rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background: #fff;
+        transition: background 0.15s;
+        box-sizing: border-box;
+        position: relative;
+    }
+
+    .cal-cell:nth-child(7n) {
+        border-right: none;
+    }
+
+    .cal-cell.empty {
+        background: #fafafa;
+        cursor: default;
+    }
+
+    .cal-cell.working-day {
+        background: #ffffff;
+    }
+
+    .cal-cell.working-day:hover {
+        background: #f0fdf4;
+    }
+
+    .cal-cell.non-working-day {
+        background: #fff5f5;
+    }
+
+    .cal-cell.non-working-day:hover {
+        background: #fee2e2;
+    }
+
+    .cal-cell.is-today {
+        outline: 2.5px solid #4f46e5;
+        outline-offset: -2px;
+        z-index: 2;
+    }
+
+    .cal-cell-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.25rem;
+    }
+
+    .cal-date-number {
+        font-size: 0.95rem;
+        font-weight: 800;
+        line-height: 1;
+        color: #1e293b;
+    }
+
+    .cal-cell.non-working-day .cal-date-number {
+        color: #b91c1c;
+    }
+
+    .cal-pill-badge {
+        font-size: 0.58rem;
+        font-weight: 800;
+        padding: 1px 5px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+    }
+
+    .badge-work {
+        background: #dcfce7;
+        color: #15803d;
+        border: 1px solid #86efac;
+    }
+
+    .badge-off {
+        background: #fee2e2;
+        color: #dc2626;
+        border: 1px solid #fca5a5;
+    }
+
+    .cal-reason-text {
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: #991b1b;
+        line-height: 1.25;
+        margin-top: 0.25rem;
+        word-break: break-word;
+        background: rgba(254, 226, 226, 0.6);
+        padding: 2px 4px;
+        border-radius: 4px;
+        border-left: 2px solid #ef4444;
+    }
+
+    /* List Table Styles */
+    .table-custom {
+        width: 100% !important;
+        max-width: 100% !important;
+        table-layout: fixed;
+        border-collapse: collapse;
+        font-size: 0.76rem !important;
+        margin: 0;
+    }
+
+    .table-custom th {
+        background: #f8fafc;
+        padding: 0.5rem 0.45rem !important;
+        font-size: 0.68rem !important;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: #64748b;
+        border-bottom: 1.5px solid #e2e8f0;
+        white-space: nowrap;
+    }
+
+    .table-custom td {
+        padding: 0.5rem 0.45rem !important;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+        font-size: 0.76rem !important;
+    }
+
+    .status-badge-working {
+        background: #dcfce7;
+        color: #15803d;
+        border: 1px solid #86efac;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+    }
+
+    .status-badge-nonworking {
+        background: #fee2e2;
+        color: #b91c1c;
+        border: 1px solid #fca5a5;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+    }
+
+    .btn, button, a.btn {
+        transform: none !important;
+    }
+
+    @media (max-width: 768px) {
+        .cal-cell {
+            min-height: 75px;
+            padding: 0.3rem;
+        }
+        .cal-date-number {
+            font-size: 0.8rem;
+        }
+        .cal-pill-badge {
+            display: none;
+        }
+        .cal-reason-text {
+            font-size: 0.6rem;
+            padding: 1px 2px;
+        }
+    }
+
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        .main-workspace {
+            margin: 0 !important;
+            width: 100% !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 100%; padding: 0 0.75rem; box-sizing: border-box;">
+    <!-- Top Header & Navigation -->
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+            <h1 class="page-title" style="font-size: 1.4rem; font-weight: 800; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-calendar-days" style="color: #4f46e5;"></i> Working &amp; Non-Working Days Calendar
+            </h1>
+            <p style="color: #64748b; font-size: 0.8rem; margin: 2px 0 0; font-weight: 600;">
+                Monthly institutional calendar view for instructional working days, Sundays, 2nd Saturdays &amp; Holidays
+            </p>
+        </div>
+        <div class="d-flex gap-2 no-print align-items-center">
+            <!-- View Switcher Tabs -->
+            <div class="view-toggle-wrap">
+                <button type="button" class="view-toggle-btn active" id="btnViewCalendar" onclick="switchView('calendar')">
+                    <i class="fa-solid fa-calendar-days"></i> Calendar Grid
+                </button>
+                <button type="button" class="view-toggle-btn" id="btnViewList" onclick="switchView('list')">
+                    <i class="fa-solid fa-list-check"></i> Table List
+                </button>
+            </div>
+
+            <a href="{% url 'students:holiday_list' %}" class="btn btn-sm btn-outline-primary" style="font-size: 0.78rem; font-weight: 700; border-radius: 8px; padding: 0.4rem 0.8rem;">
+                <i class="fa-solid fa-calendar-plus"></i> Manage Holidays
+            </a>
+            <button type="button" onclick="window.print()" class="btn btn-sm btn-outline-secondary" style="font-size: 0.78rem; font-weight: 700; border-radius: 8px; padding: 0.4rem 0.8rem; background: white;">
+                <i class="fa-solid fa-print"></i> Print
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter Card -->
+    <div class="filter-card no-print">
+        <form method="GET" action="" id="calendarFilterForm">
+            <div class="filter-flex">
+                <div class="filter-item">
+                    <label>Select Month</label>
+                    <select name="month" class="filter-select" onchange="document.getElementById('calendarFilterForm').submit()">
+                        {% for m_num, m_txt in months_list %}
+                        <option value="{{ m_num }}" {% if selected_month == m_num %}selected{% endif %}>{{ m_txt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-item">
+                    <label>Select Year</label>
+                    <select name="year" class="filter-select" onchange="document.getElementById('calendarFilterForm').submit()">
+                        {% for y in years_list %}
+                        <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-item" style="flex: 1.5;">
+                    <label>Class / Grade (Specific Holidays)</label>
+                    <select name="grade" class="filter-select" onchange="document.getElementById('calendarFilterForm').submit()">
+                        <option value="">All Classes (Universal Holidays)</option>
+                        {% for g in grades %}
+                        <option value="{{ g.id }}" {% if selected_grade and selected_grade.id == g.id %}selected{% endif %}>{{ g.name }} (Class-Specific)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 0.4rem;">
+                    <button type="submit" class="btn btn-sm btn-primary" style="padding: 0.45rem 0.9rem; font-size: 0.8rem; font-weight: 700; border-radius: 8px;">
+                        <i class="fa-solid fa-filter"></i> View
+                    </button>
+                    <a href="{% url 'students:working_days_calendar' %}" class="btn btn-sm btn-outline-secondary" style="padding: 0.45rem 0.7rem; font-size: 0.8rem; font-weight: 700; border-radius: 8px; background: white;" title="Reset to Current Month">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Monthly Summary KPIs -->
+    <div class="kpi-row">
+        <!-- Total Working Days -->
+        <div class="kpi-pill" style="border-left: 4px solid #10b981;">
+            <div class="kpi-icon-wrap" style="background: #dcfce7; color: #15803d;">
+                <i class="fa-solid fa-briefcase"></i>
+            </div>
+            <div>
+                <div style="font-size: 1.3rem; font-weight: 800; color: #15803d; line-height: 1;">{{ total_working }}</div>
+                <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">Working Days</div>
+            </div>
+        </div>
+
+        <!-- Total Non-Working Days -->
+        <div class="kpi-pill" style="border-left: 4px solid #ef4444;">
+            <div class="kpi-icon-wrap" style="background: #fee2e2; color: #b91c1c;">
+                <i class="fa-solid fa-calendar-xmark"></i>
+            </div>
+            <div>
+                <div style="font-size: 1.3rem; font-weight: 800; color: #b91c1c; line-height: 1;">{{ total_non_working }}</div>
+                <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">Non-Working Days</div>
+            </div>
+        </div>
+
+        <!-- Sundays -->
+        <div class="kpi-pill" style="border-left: 4px solid #f59e0b;">
+            <div class="kpi-icon-wrap" style="background: #fef3c7; color: #b45309;">
+                <i class="fa-solid fa-sun"></i>
+            </div>
+            <div>
+                <div style="font-size: 1.3rem; font-weight: 800; color: #b45309; line-height: 1;">{{ total_sundays }}</div>
+                <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">Sundays</div>
+            </div>
+        </div>
+
+        <!-- 2nd Saturdays -->
+        <div class="kpi-pill" style="border-left: 4px solid #6366f1;">
+            <div class="kpi-icon-wrap" style="background: #e0e7ff; color: #4338ca;">
+                <i class="fa-solid fa-calendar-day"></i>
+            </div>
+            <div>
+                <div style="font-size: 1.3rem; font-weight: 800; color: #4338ca; line-height: 1;">{{ total_second_saturdays }}</div>
+                <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">2nd Saturdays</div>
+            </div>
+        </div>
+
+        <!-- Registered Holidays -->
+        <div class="kpi-pill" style="border-left: 4px solid #ec4899;">
+            <div class="kpi-icon-wrap" style="background: #fce7f3; color: #be185d;">
+                <i class="fa-solid fa-umbrella-beach"></i>
+            </div>
+            <div>
+                <div style="font-size: 1.3rem; font-weight: 800; color: #be185d; line-height: 1;">{{ total_custom_holidays }}</div>
+                <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">Special Holidays</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Class-Wise Working Days Cards (Click to open that class's calendar) -->
+    {% if class_summaries %}
+    <div class="card mb-3 no-print" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 0.85rem 1.15rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #475569; display: flex; align-items: center; gap: 0.4rem;">
+                <i class="fa-solid fa-graduation-cap" style="color: #4f46e5; font-size: 0.9rem;"></i> Class-Wise Working Days for {{ month_name }} {{ selected_year }}
+                <span style="font-size: 0.68rem; font-weight: 600; color: #94a3b8; text-transform: none;">(Click any class card to open its dedicated calendar)</span>
+            </div>
+            {% if selected_grade %}
+            <a href="?month={{ selected_month }}&year={{ selected_year }}" class="btn btn-xs btn-outline-secondary" style="font-size: 0.72rem; font-weight: 700; border-radius: 6px; padding: 2px 8px; background: white;">
+                <i class="fa-solid fa-layer-group"></i> View All Classes
+            </a>
+            {% endif %}
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.65rem;">
+            {% for cs in class_summaries %}
+            <a href="?month={{ selected_month }}&year={{ selected_year }}&grade={{ cs.grade.id }}" 
+               class="class-summary-card {% if selected_grade and selected_grade.id == cs.grade.id %}active-class-card{% endif %}"
+               style="text-decoration: none; color: inherit; display: block;">
+                <div style="background: {% if selected_grade and selected_grade.id == cs.grade.id %}#eef2ff{% else %}white{% endif %}; border: {% if selected_grade and selected_grade.id == cs.grade.id %}2px solid #6366f1{% else %}1px solid #cbd5e1{% endif %}; border-radius: 10px; padding: 0.55rem 0.85rem; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 0.85rem; color: {% if selected_grade and selected_grade.id == cs.grade.id %}#4338ca{% else %}#1e293b{% endif %};">
+                            {{ cs.grade.name }}
+                        </span>
+                        {% if selected_grade and selected_grade.id == cs.grade.id %}
+                        <span class="badge" style="background: #4f46e5; color: white; font-size: 0.58rem; padding: 1px 5px; border-radius: 4px;">Viewing</span>
+                        {% else %}
+                        <span style="font-size: 0.68rem; color: #64748b; font-weight: 700;">Open &rarr;</span>
+                        {% endif %}
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem;">
+                        <span style="color: #15803d; font-weight: 800; background: #dcfce7; padding: 1px 6px; border-radius: 4px;">
+                            {{ cs.working_days }} Working
+                        </span>
+                        <span style="color: #cbd5e1;">•</span>
+                        <span style="color: #b91c1c; font-weight: 800; background: #fee2e2; padding: 1px 6px; border-radius: 4px;">
+                            {{ cs.non_working_days }} Off
+                        </span>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 1. CALENDAR VIEW (DEFAULT) -->
+    <div id="calendarViewContainer" class="cal-grid-wrapper mb-4">
+        <!-- Calendar Card Header -->
+        <div style="padding: 0.85rem 1.15rem; background: #fff; border-bottom: 1.5px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+                <h3 style="font-weight: 800; font-size: 1rem; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 0.4rem;">
+                    <span>{{ month_name }} {{ selected_year }}</span>
+                    {% if selected_grade %}
+                    <span style="background: #e0e7ff; color: #4338ca; font-size: 0.8rem; font-weight: 800; padding: 2px 8px; border-radius: 6px;">
+                        <i class="fa-solid fa-graduation-cap"></i> {{ selected_grade.name }} Calendar
+                    </span>
+                    {% endif %}
+                </h3>
+                <span style="font-size: 0.72rem; color: #64748b; font-weight: 600;">7-Day Week Calendar Grid (Sunday to Saturday)</span>
+            </div>
+            <div style="display: flex; gap: 0.4rem; align-items: center;">
+                <span class="status-badge-working"><i class="fa-solid fa-circle-check"></i> {{ total_working }} Working</span>
+                <span class="status-badge-nonworking"><i class="fa-solid fa-circle-xmark"></i> {{ total_non_working }} Non-Working</span>
+            </div>
+        </div>
+
+        <!-- 7 Days Weekday Header Row -->
+        <div class="cal-header-row">
+            <div class="cal-day-header sun">Sun</div>
+            <div class="cal-day-header">Mon</div>
+            <div class="cal-day-header">Tue</div>
+            <div class="cal-day-header">Wed</div>
+            <div class="cal-day-header">Thu</div>
+            <div class="cal-day-header">Fri</div>
+            <div class="cal-day-header sat">Sat</div>
+        </div>
+
+        <!-- Calendar Month Cells Grid -->
+        <div class="cal-body-grid">
+            {% for week in month_calendar_matrix %}
+                {% for d in week %}
+                    {% if d %}
+                        <div class="cal-cell {% if d.status == 'working' %}working-day{% else %}non-working-day{% endif %} {% if d.is_today %}is-today{% endif %}">
+                            <div class="cal-cell-top">
+                                <span class="cal-date-number">{{ d.day }}</span>
+                                {% if d.is_today %}
+                                    <span class="cal-pill-badge" style="background: #4f46e5; color: white;">Today</span>
+                                {% elif d.status == 'working' %}
+                                    <span class="cal-pill-badge badge-work">Work</span>
+                                {% else %}
+                                    <span class="cal-pill-badge badge-off">Off</span>
+                                {% endif %}
+                            </div>
+
+                            {% if d.status == 'non_working' %}
+                                <div class="cal-reason-text" title="{{ d.reason }}">
+                                    {{ d.reason }}
+                                </div>
+                            {% else %}
+                                <div style="font-size: 0.62rem; color: #15803d; font-weight: 700; margin-top: auto;">
+                                    Working Day
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <!-- Empty pad cell for days outside this month -->
+                        <div class="cal-cell empty"></div>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 2. TABLE LIST VIEW (ALTERNATIVE TAB) -->
+    <div id="listViewContainer" class="card" style="width: 100%; border-radius: 14px; overflow: hidden; padding: 0 !important; display: none;">
+        <div style="padding: 0.85rem 1.15rem; background: #fff; border-bottom: 1.5px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+                <h3 style="font-weight: 800; font-size: 0.95rem; color: #1e293b; margin: 0;">
+                    Daily Registry List for {{ month_name }} {{ selected_year }}
+                    {% if selected_grade %}<span style="color: #4338ca;">({{ selected_grade.name }})</span>{% endif %}
+                </h3>
+                <span style="font-size: 0.72rem; color: #64748b; font-weight: 600;">Total Calendar Days: {{ num_days }}</span>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <span class="status-badge-working"><i class="fa-solid fa-circle-check"></i> {{ total_working }} Working</span>
+                <span class="status-badge-nonworking"><i class="fa-solid fa-circle-xmark"></i> {{ total_non_working }} Non-Working</span>
+            </div>
+        </div>
+
+        <div class="table-responsive" style="width: 100%; overflow-x: auto;">
+            <table class="table-custom">
+                <colgroup>
+                    <col style="width: 50px;">
+                    <col style="width: 110px;">
+                    <col style="width: 110px;">
+                    <col style="width: 130px;">
+                    <col style="width: auto;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th style="text-align: center;">Day</th>
+                        <th>Date</th>
+                        <th>Weekday</th>
+                        <th>Status</th>
+                        <th>Reason / Occasion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in days_data %}
+                    <tr style="{% if d.status == 'non_working' %}background: #fff8f8;{% endif %} {% if d.is_today %}background: #eff6ff !important; font-weight: bold;{% endif %}">
+                        <!-- Day Number -->
+                        <td style="text-align: center; font-weight: 800; color: #64748b; font-size: 0.8rem;">
+                            {{ d.day }}
+                            {% if d.is_today %}<span class="badge bg-primary" style="font-size: 0.55rem; padding: 1px 3px; border-radius: 3px; display: block;">Today</span>{% endif %}
+                        </td>
+
+                        <!-- Date -->
+                        <td style="white-space: nowrap; font-weight: 700; color: #1e293b;">
+                            {{ d.date|date:"d M Y" }}
+                        </td>
+
+                        <!-- Weekday -->
+                        <td style="color: {% if d.weekday == 'Sunday' %}#b45309{% elif d.weekday == 'Saturday' %}#4338ca{% else %}#475569{% endif %}; font-weight: 700;">
+                            {{ d.weekday }}
+                        </td>
+
+                        <!-- Working / Non-Working Status -->
+                        <td>
+                            {% if d.status == 'working' %}
+                                <span class="status-badge-working">
+                                    <i class="fa-solid fa-circle-check"></i> Working Day
+                                </span>
+                            {% else %}
+                                <span class="status-badge-nonworking">
+                                    <i class="fa-solid fa-circle-xmark"></i> Non-Working
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Reason -->
+                        <td>
+                            {% if d.status == 'working' %}
+                                <span style="color: #64748b; font-size: 0.74rem;">Regular Instructional Working Day</span>
+                            {% else %}
+                                <strong style="color: #991b1b; font-size: 0.76rem;">{{ d.reason }}</strong>
+                                {% if d.reason_type %}
+                                <span class="badge" style="font-size: 0.62rem; padding: 1px 4px; border-radius: 4px; margin-left: 4px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;">
+                                    {{ d.reason_type }}
+                                </span>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchView(mode) {
+        const calView = document.getElementById('calendarViewContainer');
+        const listView = document.getElementById('listViewContainer');
+        const btnCal = document.getElementById('btnViewCalendar');
+        const btnList = document.getElementById('btnViewList');
+
+        if (mode === 'calendar') {
+            calView.style.display = 'block';
+            listView.style.display = 'none';
+            btnCal.classList.add('active');
+            btnList.classList.remove('active');
+        } else {
+            calView.style.display = 'none';
+            listView.style.display = 'block';
+            btnList.classList.add('active');
+            btnCal.classList.remove('active');
+        }
+    }
+</script>
+{% endblock %}
