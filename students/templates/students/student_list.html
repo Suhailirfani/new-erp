@@ -47,6 +47,70 @@
         display: none !important;
     }
 
+    /* Button group simplified styling */
+    .student-actions-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        margin-bottom: 1rem;
+        align-items: center;
+    }
+    .student-actions-bar .btn {
+        margin: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        font-weight: 700;
+        font-size: 0.85rem;
+        border-radius: 10px;
+        padding: 0.6rem 1rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+    .student-actions-bar .btn-outline-custom {
+        background: #ffffff;
+        color: #334155;
+        border: 1.5px solid #cbd5e1;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+    .student-actions-bar .btn-outline-custom:hover {
+        background: #f8fafc;
+        border-color: #64748b;
+        color: #0f172a;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+    }
+    .student-actions-bar .btn-outline-custom i {
+        opacity: 0.85;
+    }
+    .student-actions-bar .btn-outline-custom:hover i {
+        opacity: 1;
+    }
+
+    @media (max-width: 768px) {
+        .student-actions-bar {
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 0.4rem !important;
+            flex-direction: row !important;
+        }
+        .student-actions-bar .btn {
+            width: 100% !important;
+            padding: 0.55rem 0.25rem !important;
+            font-size: 0.72rem !important;
+            line-height: 1.15 !important;
+            text-align: center !important;
+            flex-direction: column !important;
+            gap: 0.25rem !important;
+            white-space: normal !important;
+            min-height: 52px !important;
+        }
+        .student-actions-bar .btn i {
+            font-size: 0.95rem !important;
+        }
+    }
+
     /* Print styles: ONLY print table view */
     @media print {
         @page {
@@ -278,11 +342,19 @@
     </div>
 </div>
 
-<div class="button-group no-print" style="margin-bottom: 1rem;">
-    <a href="{% url 'students:student_create' %}" class="btn btn-success">Add Single Student</a>
-    <a href="{% url 'students:student_bulk_import' %}" class="btn" style="background-color: #27ae60;">Bulk Import from Excel</a>
-    <a href="{% url 'students:student_upgrade' %}" class="btn" style="background-color: #9b59b6;">Upgrade Students</a>
-    <button type="submit" form="filterForm" name="export" value="excel" class="btn" style="background-color: #2980b9; color: white;"><i class="fas fa-file-excel"></i> Export to Excel</button>
+<div class="student-actions-bar button-group no-print">
+    <a href="{% url 'students:student_create' %}" class="btn btn-success">
+        <i class="fa-solid fa-user-plus"></i> <span>Add Single Student</span>
+    </a>
+    <a href="{% url 'students:student_bulk_import' %}" class="btn btn-outline-custom">
+        <i class="fa-solid fa-file-import"></i> <span>Bulk Import</span>
+    </a>
+    <a href="{% url 'students:student_upgrade' %}" class="btn btn-outline-custom">
+        <i class="fa-solid fa-graduation-cap"></i> <span>Upgrade</span>
+    </a>
+    <button type="submit" form="filterForm" name="export" value="excel" class="btn btn-outline-custom">
+        <i class="fa-solid fa-file-excel"></i> <span>Export Excel</span>
+    </button>
 </div>
 
 <div class="filter-form no-print">
