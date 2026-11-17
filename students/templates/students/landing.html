@@ -85,19 +85,38 @@
             opacity: 0.9;
         }
 
-        /* News Ticker */
+        /* News Ticker - Placed outside and directly below the Hero Section */
         .ticker-wrap {
-            position: absolute;
-            bottom: 0;
+            position: relative;
             width: 100%;
             overflow: hidden;
-            height: 50px;
-            background: rgba(0, 0, 0, 0.8);
+            height: 52px;
+            background: rgba(15, 3, 3, 0.95);
             backdrop-filter: blur(10px);
-            border-top: 1px solid var(--glass-border);
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             align-items: center;
-            z-index: 3;
+            z-index: 10;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .ticker-badge {
+            background: linear-gradient(135deg, #a00000 0%, #6a0606 100%);
+            color: #ffffff;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 0 16px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            z-index: 12;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.4);
+            border-right: 1px solid rgba(255,255,255,0.15);
         }
 
         .ticker {
@@ -341,20 +360,25 @@
             </div>
         </div>
 
-        <div class="ticker-wrap">
-            <div class="ticker">
-                {% for item in active_tickers %}
-                    <span>{{ item.icon }} {% if item.link %}<a href="{{ item.link }}" style="color: {{ item.text_color|default:'#25D366' }}; text-decoration: underline;">{{ item.content }}</a>{% else %}<span style="color: {{ item.text_color|default:'#ffffff' }};">{{ item.content }}</span>{% endif %}</span>
-                {% empty %}
-                    <span>📱 <a href="{% url 'students:brochure_malayalam' %}" style="color: #25D366; text-decoration: underline;">App Features Brochure (മലയാളം) - വിവരങ്ങൾ ഇവിടെ ലഭ്യമാണ്!</a></span>
-                    <span>🚀 Admissions Open for 2026-27 Academic Year!</span>
-                    <span>🏆 Award Ceremony Registration is Live for Distinction Holders.</span>
-                    <span>✨ Join AWAZE G-CAMP - Register Now to Secure Your Spot!</span>
-                    <span>📅 Last Date for Excellence Award Registration: March 20, 2026.</span>
-                {% endfor %}
-            </div>
-        </div>
     </section>
+
+    <!-- News Ticker placed outside and below Hero Content -->
+    <div class="ticker-wrap">
+        <div class="ticker-badge">
+            <i class="fas fa-bullhorn"></i> Updates
+        </div>
+        <div class="ticker">
+            {% for item in active_tickers %}
+                <span>{{ item.icon }} {% if item.link %}<a href="{{ item.link }}" style="color: {{ item.text_color|default:'#25D366' }}; text-decoration: underline;">{{ item.content }}</a>{% else %}<span style="color: {{ item.text_color|default:'#ffffff' }};">{{ item.content }}</span>{% endif %}</span>
+            {% empty %}
+                <span>📱 <a href="{% url 'students:brochure_malayalam' %}" style="color: #25D366; text-decoration: underline;">App Features Brochure (മലയാളം) - വിവരങ്ങൾ ഇവിടെ ലഭ്യമാണ്!</a></span>
+                <span>🚀 Admissions Open for 2026-27 Academic Year!</span>
+                <span>🏆 Award Ceremony Registration is Live for Distinction Holders.</span>
+                <span>✨ Join AWAZE G-CAMP - Register Now to Secure Your Spot!</span>
+                <span>📅 Last Date for Excellence Award Registration: March 20, 2026.</span>
+            {% endfor %}
+        </div>
+    </div>
 
     <section class="section reveal">
         <h2>Our Core Values</h2>

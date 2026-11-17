@@ -2675,12 +2675,11 @@ def mark_entry_step2(request, exam_type_id):
     active_year = AcademicYear.objects.filter(is_active=True).first()
     enrollments_query = Enrollment.objects.filter(academic_year=active_year, student__is_active=True).select_related('division', 'grade')
     if exam_type.section:
-        enrollments_query = enrollments_query.filter(section=exam_type.section)
-    enrollments = enrollments_query
+        enrollments_query = enrollments_query.filter(Q(section=exam_type.section) | Q(grade__section=exam_type.section))
     
-    # Extract unique classes
+    # Extract unique classes from active year
     classes_dict = {}
-    for enrollment in enrollments:
+    for enrollment in enrollments_query:
         grade_obj = enrollment.grade
         div_id = enrollment.division_id
         div_name = enrollment.division.name if enrollment.division else None
@@ -2688,9 +2687,7 @@ def mark_entry_step2(request, exam_type_id):
         if not grade_obj:
             continue
         
-        # Create a unique key for the combination
         key = f"{grade_obj.id}_{div_id or 'none'}"
-        
         if key not in classes_dict:
             classes_dict[key] = {
                 'grade_id': grade_obj.id,
@@ -2699,8 +2696,32 @@ def mark_entry_step2(request, exam_type_id):
                 'division_name': div_name,
                 'student_count': 0
             }
-        
         classes_dict[key]['student_count'] += 1
+
+    # Also include grades that belong to the exam section or have active students enrolled in recent academic session
+    all_grades = Grade.objects.all()
+    if exam_type.section:
+        all_grades = all_grades.filter(section=exam_type.section)
+
+    for g in all_grades:
+        if any(k.startswith(f"{g.id}_") for k in classes_dict.keys()):
+            continue
+        fallback_eq = Enrollment.objects.filter(grade=g, student__is_active=True).select_related('division', 'academic_year')
+        if fallback_eq.exists():
+            latest_ay = fallback_eq.order_by('-academic_year__start_date').first().academic_year
+            for enrollment in fallback_eq.filter(academic_year=latest_ay):
+                div_id = enrollment.division_id
+                div_name = enrollment.division.name if enrollment.division else None
+                key = f"{g.id}_{div_id or 'none'}"
+                if key not in classes_dict:
+                    classes_dict[key] = {
+                        'grade_id': g.id,
+                        'grade_name': g.name,
+                        'division_id': div_id,
+                        'division_name': div_name,
+                        'student_count': 0
+                    }
+                classes_dict[key]['student_count'] += 1
         
     # Sort classes logically (numeric grades first, then by division)
     def class_sort_key(c):
@@ -2733,18 +2754,45 @@ def mark_entry_step3(request, exam_type_id):
     active_year = AcademicYear.objects.filter(is_active=True).first()
     if not active_year:
         active_year = AcademicYear.objects.order_by('-start_date').first()
+    
     enrollments_query = Enrollment.objects.filter(academic_year=active_year, student__is_active=True, grade=grade_obj).select_related('student')
     if exam_type.section:
-        enrollments_query = enrollments_query.filter(section=exam_type.section)
+        enrollments_query = enrollments_query.filter(Q(section=exam_type.section) | Q(grade__section=exam_type.section))
         
     if division_id and division_id != 'None':
-        enrollments_query = enrollments_query.filter(division_id=division_id)
-        division_name = Division.objects.get(id=division_id).name
+        division_obj = Division.objects.filter(id=division_id).first()
+        division_name = division_obj.name if division_obj else None
+        # Match by division_id, or if multiple divisions share identical name (e.g. across sections)
+        if division_obj:
+            same_name_div_ids = list(Division.objects.filter(name__iexact=division_obj.name).values_list('id', flat=True))
+            enrollments_query = enrollments_query.filter(division_id__in=same_name_div_ids)
+        else:
+            enrollments_query = enrollments_query.filter(division_id=division_id)
     else:
         enrollments_query = enrollments_query.filter(division__isnull=True)
         division_id = None
         division_name = None
         
+    # If no enrollments exist in active academic year for this grade, fallback to the latest academic year with students
+    if not enrollments_query.exists():
+        fallback_eq = Enrollment.objects.filter(grade=grade_obj, student__is_active=True).select_related('student', 'academic_year')
+        if exam_type.section:
+            fallback_eq = fallback_eq.filter(Q(section=exam_type.section) | Q(grade__section=exam_type.section))
+        if division_id and division_id != 'None':
+            division_obj = Division.objects.filter(id=division_id).first()
+            if division_obj:
+                same_name_div_ids = list(Division.objects.filter(name__iexact=division_obj.name).values_list('id', flat=True))
+                fallback_eq = fallback_eq.filter(division_id__in=same_name_div_ids)
+            else:
+                fallback_eq = fallback_eq.filter(division_id=division_id)
+        else:
+            fallback_eq = fallback_eq.filter(division__isnull=True)
+            
+        if fallback_eq.exists():
+            latest_ay = fallback_eq.order_by('-academic_year__start_date').first().academic_year
+            enrollments_query = fallback_eq.filter(academic_year=latest_ay)
+            active_year = latest_ay
+
     enrollments = list(enrollments_query.order_by('student__last_name', 'student__first_name'))
     students = [e.student for e in enrollments]
     
@@ -2753,7 +2801,7 @@ def mark_entry_step3(request, exam_type_id):
         return redirect('students:mark_entry_step2', exam_type_id=exam_type.id)
         
     # Get subjects for this class
-    subjects_query = Subject.objects.filter(is_active=True, grade=grade_obj) # Filter by Grade object
+    subjects_query = Subject.objects.filter(is_active=True, grade=grade_obj)
     if exam_type.subjects.exists():
         subjects_query = subjects_query.filter(id__in=exam_type.subjects.all())
     
@@ -2761,22 +2809,25 @@ def mark_entry_step3(request, exam_type_id):
     if exam_type.subject_type != 'all':
         subjects_query = subjects_query.filter(subject_type=exam_type.subject_type)
         
-    # Then filter by division
-    if division_id:
+    # Then filter by division, allowing subjects marked as common (or division=None) across all divisions
+    if division_id and division_id != 'None':
+        division_obj = Division.objects.filter(id=division_id).first()
+        same_name_div_ids = [int(division_id)]
+        if division_obj:
+            same_name_div_ids = list(Division.objects.filter(name__iexact=division_obj.name).values_list('id', flat=True))
+
+        common_filter = Q(division__isnull=True) | Q(is_common_subject=True)
         if exam_type.subject_type == 'hadiya':
-            # If specifically asking for hadiya, just ensure no division constraint blocks it
-            subjects_query = subjects_query.filter(division__isnull=True)
+            subjects_query = subjects_query.filter(common_filter | Q(division_id__in=same_name_div_ids))
         elif exam_type.subject_type == 'division':
-            # If specifically asking for division subjects, must match the division
-            subjects_query = subjects_query.filter(division_id=division_id)
+            subjects_query = subjects_query.filter(Q(division_id__in=same_name_div_ids) | common_filter)
         else:
-            # 'all' - Show both division subjects and common (hadiya) subjects
             subjects_query = subjects_query.filter(
-                Q(division_id=division_id) | Q(subject_type='hadiya', division__isnull=True)
+                Q(division_id__in=same_name_div_ids) | common_filter | Q(subject_type='hadiya', division__isnull=True)
             )
     else:
-        # If no division, only show common/Hadiya subjects or subjects with no division
-        subjects_query = subjects_query.filter(division__isnull=True)
+        # If no division selected, show common subjects, hadiya subjects, or subjects with no division
+        subjects_query = subjects_query.filter(Q(division__isnull=True) | Q(is_common_subject=True))
         
     all_class_subjects = list(subjects_query.order_by('subject_type', 'name'))
     subjects = all_class_subjects
@@ -3081,16 +3132,18 @@ def mark_bulk_import_template(request, exam_type_id):
         subjects_query = subjects_query.filter(subject_type=exam_type.subject_type)
         
     if division_obj:
+        same_name_div_ids = list(Division.objects.filter(name__iexact=division_obj.name).values_list('id', flat=True))
+        common_filter = Q(division__isnull=True) | Q(is_common_subject=True)
         if exam_type.subject_type == 'hadiya':
-            subjects_query = subjects_query.filter(division__isnull=True)
+            subjects_query = subjects_query.filter(common_filter | Q(division_id__in=same_name_div_ids))
         elif exam_type.subject_type == 'division':
-            subjects_query = subjects_query.filter(division=division_obj)
+            subjects_query = subjects_query.filter(Q(division_id__in=same_name_div_ids) | common_filter)
         else:
             subjects_query = subjects_query.filter(
-                Q(division=division_obj) | Q(subject_type='hadiya', division__isnull=True)
+                Q(division_id__in=same_name_div_ids) | common_filter | Q(subject_type='hadiya', division__isnull=True)
             )
     else:
-        subjects_query = subjects_query.filter(division__isnull=True)
+        subjects_query = subjects_query.filter(Q(division__isnull=True) | Q(is_common_subject=True))
         
     subjects = list(subjects_query.order_by('subject_type', 'name'))
     
@@ -5633,28 +5686,29 @@ def attendance_update_tracking(request):
         Enrollment.objects
         .filter(academic_year=active_year)
         .exclude(grade__isnull=True)
-        .select_related('division', 'section')
-        .values('section__id', 'section__name', 'grade', 'division__id', 'division__name')
+        .values('grade_id', 'grade__name', 'grade__order', 'grade__section__name', 'division_id', 'division__name')
         .distinct()
-        .order_by('section__name', 'grade', 'division__name')
+        .order_by('grade__order', 'grade__name', 'division__name')
     )
 
     attendance_matrix = []
 
     for cd in class_divisions:
         row = {
-            'section': cd['section__name'],
-            'grade': cd['grade'],
-            'division': cd['division__name'],
+            'section': cd['grade__section__name'] or 'General',
+            'grade': cd['grade__name'],
+            'grade_id': cd['grade_id'],
+            'division': cd['division__name'] or 'All',
+            'division_id': cd['division_id'],
             'days': []
         }
 
         for d in month_days:
             current_date = date(year, month, d)
             weekday = current_date.weekday()
-            grade_val = cd['grade']
+            grade_id = cd['grade_id']
             manual_holiday = Holiday.objects.filter(date=current_date).filter(
-                Q(grades__isnull=True) | Q(grades=grade_val) | Q(grades__name=grade_val)
+                Q(grades__isnull=True) | Q(grades__id=grade_id)
             ).first()
 
             is_manual_holiday = manual_holiday is not None and not manual_holiday.is_working_day
@@ -5669,13 +5723,14 @@ def attendance_update_tracking(request):
 
             recorded = False
             if not is_holiday:
-                recorded = Attendance.objects.filter(
-                    enrollment__section_id=cd['section__id'],
-                    enrollment__grade=cd['grade'],
-                    enrollment__division_id=cd['division__id'],
-                    enrollment__academic_year=active_year,
-                    date=current_date
-                ).exists()
+                att_filter = {
+                    'enrollment__grade_id': cd['grade_id'],
+                    'enrollment__academic_year': active_year,
+                    'date': current_date
+                }
+                if cd['division_id']:
+                    att_filter['enrollment__division_id'] = cd['division_id']
+                recorded = Attendance.objects.filter(**att_filter).exists()
 
             row['days'].append({
                 'day': d,
