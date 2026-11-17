@@ -144,23 +144,13 @@ urlpatterns = [
     path('settings/toggle-fee-maintenance/', views.toggle_fee_maintenance, name='toggle_fee_maintenance'),
     path('my-profile/edit/', views.student_self_profile_update, name='student_self_profile_update'),
 
-    # Alumni Management (System Transferred)
+    # Alumni Management
     path('alumni/', views.alumni_list, name='alumni_list'),
     path('alumni/bulk-transfer/', views.alumni_bulk_transfer, name='alumni_bulk_transfer'),
     path('alumni/bulk-restore/', views.alumni_bulk_restore, name='alumni_bulk_restore'),
     path('student/<int:student_id>/transfer-alumni/', views.transfer_to_alumni, name='transfer_to_alumni'),
     path('alumni/<int:pk>/edit/', views.alumni_update, name='alumni_update'),
     path('alumni/<int:pk>/delete/', views.alumni_delete, name='alumni_delete'),
-
-    # Collected Alumni Registry (Excel bulk upload & directory)
-    path('alumni/registry/', views.alumni_registry_list, name='alumni_registry_list'),
-    path('alumni/registry/upload/', views.alumni_registry_upload, name='alumni_registry_upload'),
-    path('alumni/registry/template/', views.alumni_registry_template, name='alumni_registry_template'),
-    path('alumni/registry/export/', views.alumni_registry_export, name='alumni_registry_export'),
-    path('alumni/registry/create/', views.alumni_registry_create, name='alumni_registry_create'),
-    path('alumni/registry/<int:pk>/edit/', views.alumni_registry_update, name='alumni_registry_update'),
-    path('alumni/registry/<int:pk>/delete/', views.alumni_registry_delete, name='alumni_registry_delete'),
-    path('alumni/registry/bulk-delete/', views.alumni_registry_bulk_delete, name='alumni_registry_bulk_delete'),
 
     # Job Vacancy Management
     path('careers/', views.career_page, name='career'),

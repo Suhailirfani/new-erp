@@ -270,12 +270,3 @@ class StudentFaceAdmin(admin.ModelAdmin):
         return "No Photo"
     face_thumbnail.short_description = 'Face Thumbnail'
 
-
-from .models import AlumniRegistry
-
-@admin.register(AlumniRegistry)
-class AlumniRegistryAdmin(admin.ModelAdmin):
-    list_display = ['alumni_id', 'sl_no', 'name', 'phone_number', 'course', 'admission_year', 'created_at']
-    search_fields = ['alumni_id', 'name', 'phone_number', 'course', 'admission_year']
-    list_filter = ['course', 'admission_year']
-
