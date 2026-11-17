@@ -831,7 +831,7 @@ def payment_settings_update(request):
     """Updates institution bank account details, UPI VPA, and uploads payment QR code image."""
     settings_obj = InstitutionPaymentSetting.get_settings()
     
-    settings_obj.institution_name = request.POST.get('institution_name', '').strip() or "Markaz Hadiya Women's College"
+    settings_obj.institution_name = request.POST.get('institution_name', '').strip() or "Hamda International Campus"
     settings_obj.account_holder_name = request.POST.get('account_holder_name', '').strip()
     settings_obj.bank_name = request.POST.get('bank_name', '').strip()
     settings_obj.account_number = request.POST.get('account_number', '').strip()

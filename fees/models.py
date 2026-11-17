@@ -358,7 +358,7 @@ class CautionDepositRefund(models.Model):
 
 class InstitutionPaymentSetting(models.Model):
     """Institution bank details & QR code for student fee payment"""
-    institution_name = models.CharField(max_length=150, default="Markaz Hadiya Women's College")
+    institution_name = models.CharField(max_length=150, default="Hamda International Campus")
     account_holder_name = models.CharField(max_length=150, blank=True, help_text="Beneficiary Name")
     bank_name = models.CharField(max_length=100, blank=True, help_text="e.g. State Bank of India, Federal Bank")
     account_number = models.CharField(max_length=50, blank=True, help_text="Bank Account Number")

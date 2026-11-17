@@ -39,6 +39,12 @@ db.sqlite3-journal
 *.swo
 *~
 
+# Media & Videos (>50MB)
+*.mp4
+*.mov
+*.avi
+*.mkv
+
 # OS
 .DS_Store
 Thumbs.db
