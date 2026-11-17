@@ -457,7 +457,7 @@
             </select>
         </div>
         <div class="compact-filter-group">
-            <select name="division" class="compact-select-sm">
+            <select name="division" id="divisionSelect" class="compact-select-sm" {% if not current_filters.grade %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
                 <option value="">Div</option>
                 {% for div in divisions %}
                 <option value="{{ div.id }}" {% if current_filters.division == div.id|stringformat:"s" %}selected{% endif %}>{{ div.name }}</option>
@@ -568,7 +568,43 @@
             searchTimer = setTimeout(performSearch, 300);
         });
 
-        $('select[name="grade"], select[name="division"], select[name="section"], select[name="student_type"], select[name="room"]').on('change', function() {
+        // Dynamic Grade -> Divisions loading & filter triggering
+        $('#gradeSelect').on('change', function() {
+            var selectedGradeId = $(this).val();
+            var $divisionSelect = $('#divisionSelect');
+
+            if (!selectedGradeId) {
+                // If no grade is selected, clear and disable division
+                $divisionSelect.html('<option value="">Div</option>').val('');
+                $divisionSelect.prop('disabled', true).css({'opacity': '0.6', 'cursor': 'not-allowed'});
+                performSearch();
+            } else {
+                // Fetch only divisions belonging to this grade
+                $.ajax({
+                    url: "{% url 'students:api_divisions_by_grade' %}",
+                    type: 'GET',
+                    data: { 'grade_id': selectedGradeId },
+                    success: function(data) {
+                        var options = '<option value="">Div</option>';
+                        if (data && data.divisions && data.divisions.length > 0) {
+                            $.each(data.divisions, function(i, d) {
+                                options += '<option value="' + d.id + '">' + d.name + '</option>';
+                            });
+                        }
+                        $divisionSelect.html(options).val('');
+                        $divisionSelect.prop('disabled', false).css({'opacity': '1', 'cursor': 'default'});
+                        performSearch();
+                    },
+                    error: function() {
+                        $divisionSelect.html('<option value="">Div</option>').val('');
+                        $divisionSelect.prop('disabled', false).css({'opacity': '1', 'cursor': 'default'});
+                        performSearch();
+                    }
+                });
+            }
+        });
+
+        $('select[name="division"], select[name="section"], select[name="student_type"], select[name="room"]').on('change', function() {
             performSearch();
         });
     });

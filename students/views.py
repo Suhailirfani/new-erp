@@ -1036,7 +1036,10 @@ def student_list(request):
         wb.save(response)
         return response
 
-    divisions = Division.objects.all()
+    if grade_id:
+        divisions = Division.objects.filter(grade_id=grade_id).order_by('name')
+    else:
+        divisions = Division.objects.none()
     rooms = Room.objects.all()
     sections = Section.objects.all().order_by('order', 'name')
     grades = Grade.objects.all().order_by('order', 'name') # Fetch Grade objects
