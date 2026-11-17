@@ -7,7 +7,7 @@
     <title>HAMDA INTERNATIONAL CAMPUS | Welcome</title>
     <link rel="icon" type="image/png" href="{% static 'img/M_LOGO.png' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&family=Cinzel:wght@400;700&family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #6a0606; /* Slightly Lighter Maroon */
@@ -63,18 +63,69 @@
             100% { opacity: 1; transform: scale(1); }
         }
 
-        .college-name {
-            font-family: 'Cinzel', serif;
-            font-weight: 700;
-            font-size: clamp(2.5rem, 8vw, 5.5rem);
-            margin-bottom: 20px;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 30px rgba(0,0,0,0.7);
-            line-height: 1.1;
+        .brand-hero-wrap {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
         }
 
-        .college-name span {
+        .hero-brand-logo {
+            width: clamp(75px, 12vw, 115px);
+            height: auto;
+            margin-bottom: 12px;
+            filter: drop-shadow(0 6px 20px rgba(0,0,0,0.6));
+            animation: floatLogo 4s ease-in-out infinite;
+        }
+
+        @keyframes floatLogo {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .brand-name-box {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+
+        /* Distinctive Comfortaa font matching the official Hamda logo */
+        .brand-hamda-title {
+            font-family: 'Comfortaa', cursive, sans-serif;
+            font-weight: 700;
+            font-size: clamp(3.2rem, 10vw, 7.5rem);
+            line-height: 1.0;
+            text-transform: lowercase;
+            letter-spacing: 1px;
+            color: #ffffff;
+            text-shadow: 0 4px 35px rgba(0, 0, 0, 0.8), 0 0 50px rgba(164, 5, 89, 0.45);
+            margin: 0;
+            padding: 0;
+            display: block;
+        }
+
+        /* Subtitle exactly aligned beneath hamda with proportional wide tracking */
+        .brand-campus-sub {
+            font-family: 'Inter', sans-serif;
+            font-weight: 800;
+            font-size: clamp(0.75rem, 2.2vw, 1.45rem);
+            letter-spacing: clamp(0.35rem, 1.1vw, 0.85rem);
+            text-indent: clamp(0.35rem, 1.1vw, 0.85rem); /* offsets letter-spacing for true center */
+            text-transform: uppercase;
+            color: #f1f5f9;
+            opacity: 0.95;
+            margin-top: 6px;
+            line-height: 1.2;
+            text-shadow: 0 2px 15px rgba(0,0,0,0.85);
+            white-space: nowrap;
+            width: 100%;
+            text-align: center;
+        }
+
+        .brand-campus-sub span {
             color: var(--text-gold);
         }
 
@@ -259,9 +310,13 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            .college-name { 
-                font-size: clamp(2rem, 10vw, 3rem); 
-                letter-spacing: 2px;
+            .brand-hamda-title {
+                font-size: clamp(2.8rem, 13vw, 4.5rem);
+            }
+            .brand-campus-sub {
+                letter-spacing: 0.35rem;
+                text-indent: 0.35rem;
+                font-size: 0.85rem;
             }
             .tagline { font-size: 1.1rem; margin-bottom: 30px; }
             .btn { width: 100%; padding: 12px 25px; font-size: 1rem; }
@@ -274,7 +329,8 @@
 
         @media (max-width: 480px) {
             .hero { padding: 0 15px; }
-            .college-name { font-size: 2rem; }
+            .brand-hamda-title { font-size: 2.6rem; }
+            .brand-campus-sub { letter-spacing: 0.25rem; text-indent: 0.25rem; font-size: 0.72rem; }
             .ticker { font-size: 0.9rem; }
         }
         /* Floating Social Icons */
@@ -343,7 +399,13 @@
 
     <section class="hero">
         <div class="hero-content">
-            <h1 class="college-name">HAMDA INTERNATIONAL CAMPUS <span>WOMEN'S COLLEGE</span></h1>
+            <div class="brand-hero-wrap">
+                <img src="{% static 'images/hamda_logo.png' %}" alt="Hamda Logo" class="hero-brand-logo">
+                <div class="brand-name-box">
+                    <h1 class="brand-hamda-title">hamda</h1>
+                    <div class="brand-campus-sub">INTERNATIONAL <span>CAMPUS</span></div>
+                </div>
+            </div>
             <p class="tagline">Empowering Minds, Preserving Values, Shaping Futures.</p>
             <div class="cta-group">
                 {% if user.is_authenticated %}
