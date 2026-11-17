@@ -241,6 +241,74 @@
     .status-late { background: #fff3cd; color: #856404; }
     .status-excused { background: #d1ecf1; color: #0c5460; }
 
+    /* Compact 50% scale class cards */
+    .class-select-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .class-select-card {
+        background: var(--light, #f8fafc);
+        border: 1px solid var(--border, #e2e8f0);
+        border-radius: 10px;
+        padding: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        height: 100%;
+        box-sizing: border-box;
+    }
+
+    .class-select-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        border-color: #3b82f6;
+    }
+
+    .class-card-section {
+        color: #64748b;
+        font-size: 0.68rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        line-height: 1;
+        margin-bottom: 2px;
+    }
+
+    .class-card-title {
+        margin: 0;
+        color: var(--primary-dark, #1e293b);
+        font-size: 0.95rem;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .class-stats-pills {
+        display: flex;
+        gap: 0.25rem;
+        flex-wrap: wrap;
+        margin: 0.5rem 0;
+    }
+
+    .class-stats-pills .status-badge {
+        padding: 0.15rem 0.45rem;
+        font-size: 0.68rem;
+        border-radius: 6px;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .class-card-footer {
+        margin-top: auto;
+        padding-top: 0.4rem;
+        border-top: 1px solid rgba(0,0,0,0.06);
+        color: var(--gray, #94a3b8);
+        font-size: 0.68rem;
+        line-height: 1.2;
+    }
+
     @media (max-width: 768px) {
         .form-row {
             grid-template-columns: 1fr;
@@ -318,46 +386,41 @@
     </div>
 </div>
 
-<div class="card">
-    <h2>🏫 Select Class to View Records</h2>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+<div class="card" style="padding: 1rem 1.25rem;">
+    <h2 style="font-size: 1.15rem; margin-bottom: 0.85rem; padding-bottom: 0.4rem;">🏫 Select Class to View Records</h2>
+    <div class="class-select-grid">
         {% for div_name, data in division_summary.items %}
         <a href="{% url 'students:attendance_class_detail' data.grade_id data.division_id %}?section={{ data.section_id|default:'' }}&date_from={{ current_filters.date_from|default_if_none:'' }}&date_to={{ current_filters.date_to|default_if_none:'' }}" style="text-decoration: none; color: inherit;">
-            <div style="background: var(--light); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 10px 15px -3px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-                    <div>
-                        <span style="color: #7f8c8d; font-size: 0.9rem; font-weight: bold; text-transform: uppercase;">{{ data.section }}</span>
-                        <h3 style="margin: 0; color: var(--primary-dark); font-size: 1.5rem;">{{ div_name }}</h3>
-                    </div>
+            <div class="class-select-card">
+                <div>
+                    <span class="class-card-section">{{ data.section }}</span>
+                    <h3 class="class-card-title">{{ div_name }}</h3>
                 </div>
                 
                 {% if data.today_stats %}
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                <div class="class-stats-pills">
                     <span class="status-badge" style="background: #e2e8f0; color: #475569;">Total: {{ data.today_stats.total }}</span>
-                    <span class="status-badge status-present">Present: {{ data.today_stats.present }}</span>
-                    <span class="status-badge status-absent">Absent: {{ data.today_stats.absent }}</span>
-                    <span class="status-badge status-late">Late: {{ data.today_stats.late }}</span>
-                    <span class="status-badge status-excused">Excused: {{ data.today_stats.excused }}</span>
+                    <span class="status-badge status-present">Pres: {{ data.today_stats.present }}</span>
+                    <span class="status-badge status-absent">Abs: {{ data.today_stats.absent }}</span>
                 </div>
                 {% else %}
-                <div style="margin-bottom: 1rem; padding: 0.8rem; background: #fff3cd; border-radius: 8px; color: #856404; font-size: 0.9rem; border: 1px solid #ffeeba;">
-                    <span style="margin-right: 0.5rem;">⚠️</span> Not updated today
+                <div style="margin: 0.35rem 0; padding: 0.3rem 0.5rem; background: #fff3cd; border-radius: 6px; color: #856404; font-size: 0.7rem; border: 1px solid #ffeeba; display: flex; align-items: center; gap: 0.25rem;">
+                    <span>⚠️</span> Not updated today
                 </div>
                 {% endif %}
                 
-                <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--gray); font-size: 0.85rem;">
+                <div class="class-card-footer">
                     {% if data.last_updated %}
-                        Last recorded: {{ data.last_updated|date:"M d, Y H:i" }}
+                        {{ data.last_updated|date:"M d, H:i" }}
                     {% else %}
-                        Not recorded yet
+                        Not recorded
                     {% endif %}
                 </div>
             </div>
         </a>
         {% empty %}
-        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; background: var(--light); border-radius: 12px; border: 1px dashed var(--border);">
-            <p style="color: var(--gray); margin-bottom: 1rem; font-size: 1.1rem;">No class attendance data found.</p>
+        <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; background: var(--light); border-radius: 10px; border: 1px dashed var(--border);">
+            <p style="color: var(--gray); margin: 0; font-size: 0.95rem;">No class attendance data found.</p>
         </div>
         {% endfor %}
     </div>
