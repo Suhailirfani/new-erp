@@ -4,6 +4,35 @@
 
 {% block extra_css %}
 <style>
+    .alumni-nav-tabs {
+        display: flex;
+        gap: 0.5rem;
+        border-bottom: 2px solid var(--border);
+        margin-bottom: 1.5rem;
+    }
+
+    .alumni-nav-tab {
+        padding: 0.75rem 1.25rem;
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--gray);
+        text-decoration: none;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .alumni-nav-tab.active {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+    }
+
+    .alumni-nav-tab:hover {
+        color: var(--dark);
+    }
+
     .alumni-card {
         background: var(--glass-bg);
         backdrop-filter: var(--glass-blur);
@@ -85,6 +114,16 @@
 
 {% block content %}
 <div class="container-fluid py-4">
+    <!-- Top Navigation Tabs -->
+    <div class="alumni-nav-tabs">
+        <a href="{% url 'students:alumni_registry_list' %}" class="alumni-nav-tab">
+            <i class="fa-solid fa-address-book"></i> Alumni Registry (Collected Database)
+        </a>
+        <a href="{% url 'students:alumni_list' %}" class="alumni-nav-tab active">
+            <i class="fa-solid fa-graduation-cap"></i> Graduated Students (ERP Transfer)
+        </a>
+    </div>
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 fw-bold text-dark mb-1">Alumni Registry</h1>
