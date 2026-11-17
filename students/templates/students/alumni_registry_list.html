@@ -1,0 +1,1113 @@
+{% extends 'students/base.html' %}
+{% load static %}
+
+{% block title %}Alumni Registry - HAMDA INTERNATIONAL CAMPUS{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ============================================================
+       TOP HERO & STATS
+       ============================================================ */
+    .registry-hero {
+        background: linear-gradient(135deg, rgba(30, 58, 138, 0.07) 0%, rgba(99, 102, 241, 0.07) 100%);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1.25rem;
+        position: relative;
+    }
+
+    .stat-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: white;
+        border: 1px solid #e2e8f0;
+        padding: 0.35rem 0.75rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: #1e293b;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    .stat-badge i {
+        color: #4f46e5;
+    }
+
+    .alumni-nav-tabs {
+        display: flex;
+        gap: 0.5rem;
+        border-bottom: 2px solid var(--border);
+        margin-bottom: 1.25rem;
+    }
+
+    .alumni-nav-tab {
+        padding: 0.6rem 1.1rem;
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: var(--gray);
+        text-decoration: none;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+    }
+
+    .alumni-nav-tab.active {
+        color: #1e3a8a;
+        border-bottom-color: #1e3a8a;
+    }
+
+    .alumni-nav-tab:hover {
+        color: var(--dark);
+    }
+
+    /* ============================================================
+       EXCEL SPREADSHEET CARD & TABLE
+       ============================================================ */
+    .excel-sheet-card {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+
+    .excel-toolbar {
+        padding: 0.75rem 1.25rem;
+        background: #f8fafc;
+        border-bottom: 1px solid #cbd5e1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .search-input-wrap {
+        position: relative;
+        flex: 1;
+        min-width: 220px;
+        max-width: 360px;
+    }
+
+    .search-input-wrap input {
+        width: 100%;
+        padding: 0.45rem 0.85rem 0.45rem 2.25rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 0.84rem;
+        outline: none;
+        background: white;
+        transition: all 0.2s;
+    }
+
+    .search-input-wrap input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .search-input-wrap i {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: 0.8rem;
+    }
+
+    /* True Excel Grid Table */
+    .excel-table-container {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .excel-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        font-size: 0.81rem;
+        background: #ffffff;
+    }
+
+    /* Column Widths */
+    .col-check   { width: 38px; text-align: center; }
+    .col-sl      { width: 55px; text-align: center; }
+    .col-id      { width: 110px; }
+    .col-name    { width: 260px; }
+    .col-phone   { width: 160px; }
+    .col-course  { width: 220px; }
+    .col-year    { width: 105px; text-align: center; }
+    .col-actions { width: 90px; text-align: center; }
+
+    /* Header Row (Excel Style) */
+    .excel-table thead th {
+        background: #f1f5f9;
+        color: #1e293b;
+        font-weight: 700;
+        font-size: 0.73rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 6px 10px;
+        border-right: 1px solid #cbd5e1;
+        border-bottom: 2px solid #94a3b8;
+        white-space: nowrap;
+        user-select: none;
+        vertical-align: middle;
+        height: 32px;
+    }
+
+    .excel-table thead th:last-child {
+        border-right: none;
+    }
+
+    .excel-table thead th a {
+        color: #1e293b;
+        text-decoration: none;
+    }
+
+    .excel-table thead th a:hover {
+        color: #2563eb;
+    }
+
+    /* Data Rows (Compact Height) */
+    .excel-table tbody td {
+        padding: 4px 10px;
+        border-right: 1px solid #e2e8f0;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 0.81rem;
+        color: #1e293b;
+        vertical-align: middle;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        height: 33px; /* Reduced compact Excel row height */
+    }
+
+    .excel-table tbody td:last-child {
+        border-right: none;
+    }
+
+    .excel-table tbody tr:nth-child(even) td {
+        background-color: #f8fafc;
+    }
+
+    .excel-table tbody tr:hover td {
+        background-color: #e0e7ff !important; /* Gentle spreadsheet row highlight */
+    }
+
+    /* Spreadsheet cell styling */
+    .cell-id-val {
+        font-family: 'Consolas', 'Menlo', monospace;
+        font-weight: 700;
+        color: #1e3a8a;
+        background: #eff6ff;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 0.76rem;
+        border: 1px solid #bfdbfe;
+        display: inline-block;
+        line-height: 1.4;
+    }
+
+    .cell-course-val {
+        color: #0369a1;
+        background: #f0f9ff;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 0.76rem;
+        border: 1px solid #bae6fd;
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.4;
+    }
+
+    .cell-year-val {
+        font-family: 'Consolas', 'Menlo', monospace;
+        font-weight: 700;
+        color: #92400e;
+        background: #fef3c7;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 0.76rem;
+        border: 1px solid #fde68a;
+        display: inline-block;
+        line-height: 1.4;
+    }
+
+    .cell-phone-link {
+        font-family: 'Consolas', 'Menlo', monospace;
+        color: #1e293b;
+        text-decoration: none;
+        font-size: 0.8rem;
+    }
+
+    .cell-phone-link:hover {
+        color: #2563eb;
+        text-decoration: underline;
+    }
+
+    .mini-whatsapp-btn {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        background: #22c55e;
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        font-size: 0.7rem;
+        transition: transform 0.15s, background-color 0.15s;
+        margin-left: 4px;
+        vertical-align: middle;
+    }
+
+    .mini-whatsapp-btn:hover {
+        background: #16a34a;
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .table-action-btn {
+        width: 25px;
+        height: 25px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        line-height: 1;
+    }
+
+    /* ============================================================
+       VISUALLY APPEALING PAGINATION
+       ============================================================ */
+    .excel-pagination-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.65rem 1.25rem;
+        background: #f8fafc;
+        border-top: 1px solid #cbd5e1;
+        gap: 0.75rem;
+    }
+
+    .pagination-counter {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .pagination-counter strong {
+        color: #1e293b;
+    }
+
+    .pagination-counter .badge-count {
+        background: #e2e8f0;
+        color: #334155;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .pagination-pill-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: #ffffff;
+        padding: 3px 5px;
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    .page-pill {
+        min-width: 28px;
+        height: 28px;
+        padding: 0 7px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #475569;
+        text-decoration: none;
+        transition: all 0.15s ease;
+        border: 1px solid transparent;
+    }
+
+    .page-pill:hover {
+        background: #f1f5f9;
+        color: #1e293b;
+        border-color: #cbd5e1;
+    }
+
+    .page-pill.active {
+        background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+        color: #ffffff;
+        box-shadow: 0 2px 6px rgba(30, 58, 138, 0.3);
+        border-color: transparent;
+    }
+
+    .page-pill.nav-btn {
+        color: #1e3a8a;
+        background: #f8fafc;
+        border-color: #e2e8f0;
+    }
+
+    .page-pill.nav-btn:hover {
+        background: #e0e7ff;
+        border-color: #bfdbfe;
+    }
+
+    /* ============================================================
+       ADD ALUMNI MODAL & FORM DESIGN
+       ============================================================ */
+    .form-section-header {
+        font-size: 0.74rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #64748b;
+        margin-top: 0.5rem;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-section-header::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #e2e8f0;
+    }
+
+    .form-field-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.65rem 0.85rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-field-card:focus-within {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+        background: #ffffff;
+    }
+
+    .form-field-card label {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #475569;
+        margin-bottom: 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .form-field-card input, .form-field-card textarea, .form-field-card select {
+        width: 100%;
+        border: none;
+        outline: none;
+        background: transparent;
+        font-size: 0.88rem;
+        color: #0f172a;
+        font-weight: 500;
+        padding: 0;
+    }
+
+    .form-field-card input::placeholder, .form-field-card textarea::placeholder {
+        color: #94a3b8;
+        font-size: 0.82rem;
+    }
+
+    .dropzone-box {
+        background: #F4F8FD;
+        border: 1.5px dashed #94A3B8;
+        border-radius: 12px;
+        padding: 2.25rem 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .dropzone-box:hover, .dropzone-box.dragover {
+        border-color: #3B82F6 !important;
+        background: #EDF5FF !important;
+    }
+
+    .upload-cloud-icon {
+        font-size: 48px;
+        background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: inline-block;
+        line-height: 1;
+    }
+
+    .pill-column-badge {
+        display: inline-block;
+        background-color: #E0E7FF;
+        color: #0F172A;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        border-radius: 9999px;
+        padding: 5px 12px;
+        white-space: nowrap;
+    }
+
+    .sample-cell-value {
+        font-size: 14px;
+        color: #334155;
+        font-weight: 500;
+        padding-top: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+    <!-- Top Navigation Tabs -->
+    <div class="alumni-nav-tabs">
+        <a href="{% url 'students:alumni_registry_list' %}" class="alumni-nav-tab active">
+            <i class="fa-solid fa-table"></i> Alumni Registry (Excel Database)
+        </a>
+        <a href="{% url 'students:alumni_list' %}" class="alumni-nav-tab">
+            <i class="fa-solid fa-graduation-cap"></i> Graduated Students (ERP Transfer)
+        </a>
+    </div>
+
+    <!-- Hero / Header Area -->
+    <div class="registry-hero">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-2 mb-lg-0">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, #1e3a8a, #3b82f6); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; box-shadow: 0 4px 10px rgba(30, 58, 138, 0.2);">
+                        <i class="fa-solid fa-file-excel"></i>
+                    </div>
+                    <div>
+                        <h1 class="h4 fw-bold text-dark mb-0">Alumni Registry</h1>
+                        <p class="text-muted mb-0 small">Bulk upload & excel-style management of collected alumni</p>
+                    </div>
+                </div>
+                <!-- Stat badges -->
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    <span class="stat-badge">
+                        <i class="fa-solid fa-users"></i>
+                        <span><strong>{{ total_count }}</strong> Total Records</span>
+                    </span>
+                    <span class="stat-badge">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                        <span><strong>{{ unique_courses|length }}</strong> Courses</span>
+                    </span>
+                    <span class="stat-badge">
+                        <i class="fa-solid fa-calendar"></i>
+                        <span><strong>{{ unique_years|length }}</strong> Batches</span>
+                    </span>
+                    <span class="stat-badge">
+                        <i class="fa-solid fa-phone"></i>
+                        <span><strong>{{ with_phone_count }}</strong> Contacts</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="d-flex flex-wrap justify-content-lg-end gap-2">
+                    <button type="button" class="btn btn-sm text-white fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#bulkUploadModal" style="background: linear-gradient(135deg, #059669, #10b981); border-radius: 8px; padding: 0.5rem 1rem;">
+                        <i class="fa-solid fa-file-excel me-1"></i> Bulk Upload Excel
+                    </button>
+                    <a href="{% url 'students:alumni_registry_template' %}" class="btn btn-sm btn-outline-primary fw-bold bg-white" style="border-radius: 8px; padding: 0.5rem 0.9rem;" title="Download sample Excel template">
+                        <i class="fa-solid fa-download me-1"></i> Template
+                    </a>
+                    <a href="{% url 'students:alumni_registry_export' %}?search={{ search_query }}&course={{ selected_course }}&admission_year={{ selected_year }}&sort={{ current_sort }}" class="btn btn-sm btn-outline-secondary fw-bold bg-white" style="border-radius: 8px; padding: 0.5rem 0.9rem;" title="Export current list to Excel">
+                        <i class="fa-solid fa-file-export me-1"></i> Export
+                    </a>
+                    <button type="button" class="btn btn-sm text-white fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addAlumniModal" style="border-radius: 8px; padding: 0.5rem 1rem; background: linear-gradient(135deg, #1e3a8a, #3b82f6); border: none;">
+                        <i class="fa-solid fa-user-plus me-1"></i> Add Alumni
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Excel Spreadsheet Card -->
+    <div class="excel-sheet-card">
+        <!-- Toolbar & Filter Bar -->
+        <form method="get" class="excel-toolbar">
+            <div class="search-input-wrap">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" name="search" value="{{ search_query }}" placeholder="Filter by Name, ID, Phone, Course...">
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <!-- Sort Options (Numeric Alumni ID default) -->
+                <div class="d-flex align-items-center gap-1">
+                    <i class="fa-solid fa-arrow-down-1-9 text-primary small"></i>
+                    <select name="sort" class="form-select form-select-sm fw-bold" style="width: auto; min-width: 195px; border-radius: 8px; border-color: #cbd5e1; font-size: 0.8rem; height: 32px;" onchange="this.form.submit()">
+                        <option value="alumni_id" {% if current_sort == 'alumni_id' or current_sort == 'alumni_id_asc' %}selected{% endif %}>Sort: Alumni ID (Ascending)</option>
+                        <option value="alumni_id_desc" {% if current_sort == 'alumni_id_desc' %}selected{% endif %}>Sort: Alumni ID (Descending)</option>
+                        <option value="course" {% if current_sort == 'course' %}selected{% endif %}>Sort: By Course (A-Z)</option>
+                        <option value="course_desc" {% if current_sort == 'course_desc' %}selected{% endif %}>Sort: By Course (Z-A)</option>
+                        <option value="year_desc" {% if current_sort == 'year_desc' or current_sort == 'admission_year' or current_sort == 'year' %}selected{% endif %}>Sort: By Year (Newest)</option>
+                        <option value="year_asc" {% if current_sort == 'year_asc' %}selected{% endif %}>Sort: By Year (Oldest)</option>
+                        <option value="name" {% if current_sort == 'name' %}selected{% endif %}>Sort: Student Name (A-Z)</option>
+                    </select>
+                </div>
+
+                <!-- Course Filter -->
+                <select name="course" class="form-select form-select-sm" style="width: auto; min-width: 150px; border-radius: 8px; font-size: 0.8rem; height: 32px;" onchange="this.form.submit()">
+                    <option value="">All Courses</option>
+                    {% for c in unique_courses %}
+                    <option value="{{ c }}" {% if selected_course == c %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+
+                <!-- Year Filter -->
+                <select name="admission_year" class="form-select form-select-sm" style="width: auto; min-width: 130px; border-radius: 8px; font-size: 0.8rem; height: 32px;" onchange="this.form.submit()">
+                    <option value="">All Batches</option>
+                    {% for y in unique_years %}
+                    <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit" class="btn btn-sm btn-dark" style="border-radius: 8px; padding: 0.35rem 0.75rem; font-size: 0.8rem; height: 32px;">
+                    Filter
+                </button>
+
+                {% if search_query or selected_course or selected_year or current_sort != 'alumni_id' %}
+                <a href="{% url 'students:alumni_registry_list' %}" class="btn btn-sm btn-outline-danger" style="border-radius: 8px; padding: 0.35rem 0.65rem; font-size: 0.8rem; height: 32px;" title="Reset filters & sorting">
+                    <i class="fa-solid fa-xmark me-1"></i> Reset
+                </a>
+                {% endif %}
+            </div>
+        </form>
+
+        <!-- Bulk Action Form & Data Table -->
+        <form method="post" action="{% url 'students:alumni_registry_bulk_delete' %}" id="bulkDeleteForm" onsubmit="return confirmBulkDelete()">
+            {% csrf_token %}
+            
+            <div class="d-flex justify-content-between align-items-center px-3 py-1 bg-light border-bottom" id="bulkActionToolbar" style="display: none !important;">
+                <span class="small fw-bold text-dark"><span id="selectedCount">0</span> alumni selected</span>
+                <button type="submit" class="btn btn-sm btn-danger fw-bold py-1 px-3" style="border-radius: 6px; font-size: 0.78rem;">
+                    <i class="fa-solid fa-trash me-1"></i> Delete Selected
+                </button>
+            </div>
+
+            <div class="excel-table-container">
+                <table class="excel-table">
+                    <thead>
+                        <tr>
+                            <th class="col-check">
+                                <input type="checkbox" id="selectAllCheckbox" class="form-check-input mt-0" style="cursor: pointer;">
+                            </th>
+                            <th class="col-sl">Sl No</th>
+                            <th class="col-id">
+                                <a href="?sort={% if current_sort == 'alumni_id' or current_sort == 'alumni_id_asc' %}alumni_id_desc{% else %}alumni_id{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&admission_year={{ selected_year }}{% endif %}" class="d-inline-flex align-items-center gap-1" title="Sort numerically: Ascending / Descending">
+                                    <span>ALUMNI ID</span>
+                                    {% if current_sort == 'alumni_id' or current_sort == 'alumni_id_asc' %}
+                                        <i class="fa-solid fa-arrow-down-1-9 text-primary"></i>
+                                    {% elif current_sort == 'alumni_id_desc' %}
+                                        <i class="fa-solid fa-arrow-up-9-1 text-primary"></i>
+                                    {% else %}
+                                        <i class="fa-solid fa-sort text-muted" style="opacity: 0.35;"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th class="col-name">
+                                <a href="?sort={% if current_sort == 'name' %}name_desc{% else %}name{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&admission_year={{ selected_year }}{% endif %}" class="d-inline-flex align-items-center gap-1" title="Sort by Name">
+                                    <span>Name of Student</span>
+                                    {% if current_sort == 'name' %}
+                                        <i class="fa-solid fa-arrow-down-a-z text-primary"></i>
+                                    {% elif current_sort == 'name_desc' %}
+                                        <i class="fa-solid fa-arrow-up-z-a text-primary"></i>
+                                    {% else %}
+                                        <i class="fa-solid fa-sort text-muted" style="opacity: 0.35;"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th class="col-phone">Phone Number</th>
+                            <th class="col-course">
+                                <a href="?sort={% if current_sort == 'course' %}course_desc{% else %}course{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&admission_year={{ selected_year }}{% endif %}" class="d-inline-flex align-items-center gap-1" title="Sort by Course">
+                                    <span>Course</span>
+                                    {% if current_sort == 'course' %}
+                                        <i class="fa-solid fa-arrow-down-a-z text-primary"></i>
+                                    {% elif current_sort == 'course_desc' %}
+                                        <i class="fa-solid fa-arrow-up-z-a text-primary"></i>
+                                    {% else %}
+                                        <i class="fa-solid fa-sort text-muted" style="opacity: 0.35;"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th class="col-year">
+                                <a href="?sort={% if current_sort == 'year_desc' or current_sort == 'admission_year' or current_sort == 'year' %}year_asc{% else %}year_desc{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&admission_year={{ selected_year }}{% endif %}" class="d-inline-flex align-items-center gap-1" title="Sort by Admission Year">
+                                    <span>Admission Year</span>
+                                    {% if current_sort == 'year_desc' or current_sort == 'admission_year' or current_sort == 'year' %}
+                                        <i class="fa-solid fa-arrow-down-9-1 text-primary"></i>
+                                    {% elif current_sort == 'year_asc' %}
+                                        <i class="fa-solid fa-arrow-up-1-9 text-primary"></i>
+                                    {% else %}
+                                        <i class="fa-solid fa-sort text-muted" style="opacity: 0.35;"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th class="col-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in records %}
+                        <tr>
+                            <td class="col-check">
+                                <input type="checkbox" name="selected_ids" value="{{ r.id }}" class="form-check-input mt-0 record-checkbox" style="cursor: pointer;">
+                            </td>
+                            <td class="col-sl text-muted font-monospace">{{ r.sl_no|default:forloop.counter }}</td>
+                            <td class="col-id">
+                                <span class="cell-id-val">{{ r.alumni_id|default:"-" }}</span>
+                            </td>
+                            <td class="col-name" title="{{ r.name }}">
+                                <span class="fw-bold text-dark">{{ r.name }}</span>
+                                {% if r.remarks %}
+                                <span class="text-muted ms-1 small" style="font-size: 0.74rem;">({{ r.remarks }})</span>
+                                {% endif %}
+                            </td>
+                            <td class="col-phone">
+                                {% if r.phone_number %}
+                                <a href="tel:{{ r.phone_number }}" class="cell-phone-link">
+                                    {{ r.phone_number }}
+                                </a>
+                                <a href="https://wa.me/{{ r.phone_number|cut:' '|cut:'+'|cut:'-' }}?text=Assalamu%20Alaikum%20{{ r.name|urlencode }},%20Greetings%20from%20Hamda%20International%20Campus!" target="_blank" class="mini-whatsapp-btn" title="Message on WhatsApp">
+                                    <i class="fa-brands fa-whatsapp"></i>
+                                </a>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="col-course" title="{{ r.course|default:'' }}">
+                                {% if r.course %}
+                                <span class="cell-course-val">{{ r.course }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="col-year">
+                                {% if r.admission_year %}
+                                <span class="cell-year-val">{{ r.admission_year }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="col-actions">
+                                <div class="d-inline-flex gap-1 justify-content-center">
+                                    <a href="{% url 'students:alumni_registry_update' r.id %}" class="btn btn-outline-primary table-action-btn" title="Edit record">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger table-action-btn" onclick="confirmDelete('{{ r.id }}', '{{ r.name|escapejs }}')" title="Delete record">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5" style="background: white !important;">
+                                <div style="color: var(--gray);">
+                                    <i class="fa-solid fa-file-excel fa-3x mb-3 text-muted" style="opacity: 0.3;"></i>
+                                    <h6 class="fw-bold text-dark">No Alumni Records in Spreadsheet</h6>
+                                    <p class="text-muted small mb-3">Upload your collected Excel sheet or add entries manually to populate the grid.</p>
+                                    <button type="button" class="btn btn-sm text-white fw-bold" data-bs-toggle="modal" data-bs-target="#bulkUploadModal" style="background: linear-gradient(135deg, #059669, #10b981); border-radius: 8px; padding: 0.45rem 1rem;">
+                                        <i class="fa-solid fa-file-excel me-1"></i> Bulk Upload Excel
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
+
+        <!-- Visually Appealing Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="excel-pagination-bar">
+            <div class="pagination-counter">
+                <span>Showing <strong>{{ page_obj.start_index }}</strong> to <strong>{{ page_obj.end_index }}</strong> of <strong>{{ paginator.count }}</strong> alumni</span>
+                <span class="badge-count">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+            </div>
+            
+            <div class="pagination-pill-group">
+                {% if page_obj.has_previous %}
+                <a class="page-pill nav-btn" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&admission_year={{ selected_year }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" title="First Page">
+                    <i class="fa-solid fa-angles-left"></i>
+                </a>
+                <a class="page-pill nav-btn" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&admission_year={{ selected_year }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" title="Previous Page">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </a>
+                {% endif %}
+
+                {% for num in paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <span class="page-pill active">{{ num }}</span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a class="page-pill" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&admission_year={{ selected_year }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <a class="page-pill nav-btn" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&admission_year={{ selected_year }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" title="Next Page">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
+                <a class="page-pill nav-btn" href="?page={{ paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_year %}&admission_year={{ selected_year }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" title="Last Page">
+                    <i class="fa-solid fa-angles-right"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- BULK UPLOAD MODAL -->
+<div class="modal fade" id="bulkUploadModal" tabindex="-1" aria-labelledby="bulkUploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="background: #FFFFFF; border-radius: 16px; border: 1px solid #E2E8F0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04); overflow: hidden;">
+            <!-- Header -->
+            <div class="modal-header border-0 pb-0" style="background: #FFFFFF; padding: 24px 28px 0 28px;">
+                <div class="d-flex align-items-start justify-content-between w-100">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <i class="fa-solid fa-file-excel text-success" style="font-size: 22px;"></i>
+                            <h4 class="modal-title fw-bold mb-0" id="bulkUploadModalLabel" style="color: #0F172A; font-size: 1.25rem;">Bulk Upload Alumni</h4>
+                        </div>
+                        <p class="mb-0" style="font-size: 13.5px; color: #475569;">
+                            Download and populate the template below, then upload the file to import your alumni data in bulk.
+                        </p>
+                    </div>
+                    <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close" style="transform: none !important;"></button>
+                </div>
+            </div>
+
+            <form method="post" action="{% url 'students:alumni_registry_upload' %}" enctype="multipart/form-data" id="uploadForm">
+                {% csrf_token %}
+                <div class="modal-body" style="padding: 20px 28px 24px 28px;">
+                    <!-- Required Excel Column Headings Preview -->
+                    <div class="mb-4">
+                        <div class="fw-bold mb-2" style="font-size: 14px; color: #0F172A;">Required Excel Column Headings:</div>
+                        <div class="table-responsive border-0">
+                            <div class="d-flex gap-2 pb-1" style="min-width: 600px;">
+                                <div class="flex-fill text-center" style="min-width: 90px;">
+                                    <span class="pill-column-badge w-100">ALUMNI ID</span>
+                                    <div class="sample-cell-value">101</div>
+                                </div>
+                                <div class="flex-fill text-center" style="min-width: 70px;">
+                                    <span class="pill-column-badge w-100">SL NO</span>
+                                    <div class="sample-cell-value">1</div>
+                                </div>
+                                <div class="flex-fill text-center" style="min-width: 140px;">
+                                    <span class="pill-column-badge w-100">NAME OF STUDENT</span>
+                                    <div class="sample-cell-value">Fathima Thasni</div>
+                                </div>
+                                <div class="flex-fill text-center" style="min-width: 120px;">
+                                    <span class="pill-column-badge w-100">PHONE NUMBER</span>
+                                    <div class="sample-cell-value">9876543210</div>
+                                </div>
+                                <div class="flex-fill text-center" style="min-width: 90px;">
+                                    <span class="pill-column-badge w-100">COURSE</span>
+                                    <div class="sample-cell-value">B.Com</div>
+                                </div>
+                                <div class="flex-fill text-center" style="min-width: 120px;">
+                                    <span class="pill-column-badge w-100">ADMISSION YEAR</span>
+                                    <div class="sample-cell-value">2022</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Drag-and-Drop Upload Zone -->
+                    <div class="dropzone-box" id="dropzoneBox" onclick="triggerFilePicker(event)">
+                        <div class="upload-cloud-icon mb-2">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <div class="fw-bold mb-1" style="font-size: 16px; color: #0F172A;">Drag & drop your Excel file here</div>
+                        <div class="mb-2" style="font-size: 14px; color: #475569;">
+                            or <span class="browse-link text-decoration-underline fw-semibold" style="color: #3B82F6; cursor: pointer;">browse to select a file</span>
+                        </div>
+                        <div style="font-size: 12px; color: #64748B;">Supports .xlsx, .xls, and .csv files up to 10MB</div>
+
+                        <div id="fileSelectedDisplay" class="mt-3 d-none align-items-center justify-content-center gap-2">
+                            <span class="badge d-inline-flex align-items-center gap-2 px-3 py-2 text-dark border" style="background-color: #E2E8F0; font-size: 13px; font-weight: 500; border-radius: 8px;">
+                                <i class="fa-solid fa-file-excel text-success"></i>
+                                <span id="selectedFileNameText"></span>
+                                <button type="button" class="btn-close ms-1" style="font-size: 10px; transform: none !important;" onclick="clearSelectedFile(event)" aria-label="Remove file"></button>
+                            </span>
+                        </div>
+
+                        <input type="file" name="excel_file" id="excelFileInput" accept=".xlsx, .xls, .csv" required style="display: none;" onchange="handleFileSelect(this)">
+                    </div>
+                </div>
+
+                <!-- Footer & Action Buttons -->
+                <div class="modal-footer d-flex flex-wrap justify-content-between align-items-center border-top border-light-subtle px-4 py-3" style="background: #FFFFFF;">
+                    <!-- Left Side -->
+                    <div class="d-flex align-items-center flex-wrap gap-2 py-1">
+                        <a href="{% url 'students:alumni_registry_template' %}" class="fw-semibold text-decoration-underline d-inline-flex align-items-center gap-1" style="color: #2563EB; font-size: 13.5px;">
+                            <i class="fa-solid fa-download"></i> Download Pre-formatted Template (.xlsx)
+                        </a>
+                        <span class="d-none d-sm-inline" style="color: #94A3B8;">•</span>
+                        <span style="font-size: 13px; color: #64748B;">Existing records updated automatically</span>
+                    </div>
+
+                    <!-- Right Side (Buttons) -->
+                    <div class="d-flex align-items-center gap-2 py-1">
+                        <button type="button" class="btn fw-medium px-3 py-2" data-bs-dismiss="modal" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #334155; border-radius: 8px; font-size: 13.5px; transform: none !important;">Cancel</button>
+                        <button type="submit" class="btn text-white fw-bold px-4 py-2 d-inline-flex align-items-center gap-2" id="uploadSubmitBtn" style="background: #10B981; border: none; border-radius: 8px; font-size: 13.5px; transform: none !important;">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Upload & Import
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- VISUALLY APPEALING ADD ALUMNI MODAL -->
+<div class="modal fade" id="addAlumniModal" tabindex="-1" aria-labelledby="addAlumniModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden; box-shadow: 0 20px 45px rgba(0,0,0,0.2);">
+            <!-- Modal Header -->
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #1e3a8a, #3b82f6); padding: 1.25rem 1.75rem;">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                        <i class="fa-solid fa-user-graduate"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="addAlumniModalLabel">Add Alumni Record</h5>
+                        <p class="text-white-50 mb-0 small" style="font-size: 0.78rem;">Register a student into the permanent institutional alumni archive</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form method="post" action="{% url 'students:alumni_registry_create' %}">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <!-- Section 1: Identification -->
+                    <div class="form-section-header">
+                        <i class="fa-solid fa-id-card text-primary"></i> Identification Details
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <div class="form-field-card">
+                                <label><i class="fa-solid fa-hashtag text-muted"></i> ALUMNI ID</label>
+                                {{ form.alumni_id }}
+                                <div class="text-muted" style="font-size: 0.72rem; margin-top: 2px;">Leave blank to auto-generate</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-field-card">
+                                <label><i class="fa-solid fa-list-ol text-muted"></i> Sl No</label>
+                                {{ form.sl_no }}
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="form-field-card">
+                                <label><i class="fa-solid fa-user text-primary"></i> Student Name <span class="text-danger">*</span></label>
+                                {{ form.name }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Academic & Contact Info -->
+                    <div class="form-section-header">
+                        <i class="fa-solid fa-graduation-cap text-primary"></i> Academic & Contact Info
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="form-field-card">
+                                <label><i class="fa-solid fa-book-open text-muted"></i> Course</label>
+                                {{ form.course }}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-field-card">
+                                <label><i class="fa-solid fa-calendar-check text-muted"></i> Admission Year</label>
+                                {{ form.admission_year }}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-field-card">
+                                <label><i class="fa-solid fa-phone text-muted"></i> Phone Number</label>
+                                {{ form.phone_number }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Notes & Current Status -->
+                    <div class="form-section-header">
+                        <i class="fa-solid fa-comment-dots text-primary"></i> Remarks & Notes
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="form-field-card">
+                                <label><i class="fa-solid fa-pen text-muted"></i> Remarks / Current Status</label>
+                                {{ form.remarks }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light px-4 py-3 d-flex justify-content-between">
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                    <button type="submit" class="btn btn-sm text-white fw-bold px-4" style="border-radius: 8px; background: linear-gradient(135deg, #1e3a8a, #3b82f6); border: none;">
+                        <i class="fa-solid fa-check me-1"></i> Save Alumni Record
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- HIDDEN SINGLE DELETE FORM -->
+<form method="post" id="singleDeleteForm" style="display: none;">
+    {% csrf_token %}
+</form>
+
+<script>
+    function triggerFilePicker(e) {
+        // Prevent click when user clicks directly on close button of selected file
+        if (e.target.closest('.btn-close')) {
+            return;
+        }
+        document.getElementById('excelFileInput').click();
+    }
+
+    function handleFileSelect(input) {
+        const display = document.getElementById('fileSelectedDisplay');
+        const fileNameSpan = document.getElementById('selectedFileNameText');
+        if (input.files && input.files[0]) {
+            const fileName = input.files[0].name;
+            if (fileNameSpan) fileNameSpan.textContent = fileName;
+            if (display) {
+                display.classList.remove('d-none');
+                display.classList.add('d-flex');
+            }
+        }
+    }
+
+    function clearSelectedFile(e) {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        const input = document.getElementById('excelFileInput');
+        if (input) input.value = '';
+        const display = document.getElementById('fileSelectedDisplay');
+        const fileNameSpan = document.getElementById('selectedFileNameText');
+        if (fileNameSpan) fileNameSpan.textContent = '';
+        if (display) {
+            display.classList.remove('d-flex');
+            display.classList.add('d-none');
+        }
+    }
+
+    // Drag and drop support
+    const dropzone = document.getElementById('dropzoneBox');
+    if (dropzone) {
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.remove('dragover');
+            }, false);
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                const input = document.getElementById('excelFileInput');
+                input.files = files;
+                handleFileSelect(input);
+            }
+        });
+    }
+
+    // Select all checkboxes
+    const selectAll = document.getElementById('selectAllCheckbox');
+    const recordCheckboxes = document.querySelectorAll('.record-checkbox');
+    const bulkToolbar = document.getElementById('bulkActionToolbar');
+    const selectedCountSpan = document.getElementById('selectedCount');
+
+    function updateToolbar() {
+        const checked = document.querySelectorAll('.record-checkbox:checked');
+        if (checked.length > 0) {
+            bulkToolbar.style.removeProperty('display');
+            bulkToolbar.style.display = 'flex';
+            selectedCountSpan.textContent = checked.length;
+        } else {
+            bulkToolbar.style.display = 'none';
+        }
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            recordCheckboxes.forEach(cb => {
+                cb.checked = selectAll.checked;
+            });
+            updateToolbar();
+        });
+    }
+
+    recordCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            if (!this.checked && selectAll) {
+                selectAll.checked = false;
+            }
+            updateToolbar();
+        });
+    });
+
+    function confirmBulkDelete() {
+        const count = document.querySelectorAll('.record-checkbox:checked').length;
+        return confirm(`Are you sure you want to delete the ${count} selected alumni records? This cannot be undone.`);
+    }
+
+    function confirmDelete(id, name) {
+        if (confirm(`Are you sure you want to delete alumni record for "${name}"?`)) {
+            const form = document.getElementById('singleDeleteForm');
+            form.action = `/alumni/registry/${id}/delete/`;
+            form.submit();
+        }
+    }
+</script>
+{% endblock %}

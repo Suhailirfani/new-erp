@@ -7391,8 +7391,8 @@ def user_delete(request, pk):
         return redirect('students:user_list')
     return render(request, 'students/user_confirm_delete.html', {'user_obj': user_obj})
 
-from .models import Alumni
-from .forms import AlumniTransferForm, AlumniForm
+from .models import Alumni, AlumniRegistry
+from .forms import AlumniTransferForm, AlumniForm, AlumniRegistryForm
 
 @login_required
 @role_required(['admin', 'teacher'])
@@ -7600,6 +7600,505 @@ def alumni_bulk_restore(request):
         'active_year': active_year
     }
     return render(request, 'students/alumni_bulk_restore.html', context)
+
+
+# ==========================================================
+# COLLECTED ALUMNI REGISTRY (EXCEL BULK UPLOAD & DIRECTORY)
+# ==========================================================
+
+@login_required
+@role_required(['admin', 'teacher', 'accountant'])
+def alumni_registry_list(request):
+    """
+    Display the list of collected alumni saved in Excel with search, filters,
+    pagination, and quick upload modal.
+    """
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+    query = request.GET.get('search', '').strip()
+    course_filter = request.GET.get('course', '').strip()
+    year_filter = request.GET.get('admission_year', '').strip()
+
+    records = AlumniRegistry.objects.all()
+
+    if query:
+        records = records.filter(
+            Q(name__icontains=query) |
+            Q(alumni_id__icontains=query) |
+            Q(phone_number__icontains=query) |
+            Q(course__icontains=query) |
+            Q(admission_year__icontains=query) |
+            Q(sl_no__icontains=query)
+        )
+
+    if course_filter:
+        records = records.filter(course=course_filter)
+
+    if year_filter:
+        records = records.filter(admission_year=year_filter)
+
+    from django.db.models.functions import Cast
+    from django.db.models import IntegerField, Case, When, Value
+
+    # Annotate numeric value for alumni_id
+    records = records.annotate(
+        has_no_id=Case(
+            When(alumni_id__isnull=True, then=Value(1)),
+            When(alumni_id='', then=Value(1)),
+            default=Value(0),
+            output_field=IntegerField()
+        ),
+        alumni_id_num=Cast('alumni_id', output_field=IntegerField())
+    )
+
+    # Sorting options (default: by numeric alumni id ascending)
+    sort_by = request.GET.get('sort', 'alumni_id').strip()
+    sort_mapping = {
+        'alumni_id': ['has_no_id', 'alumni_id_num', 'alumni_id', 'name'],
+        'alumni_id_asc': ['has_no_id', 'alumni_id_num', 'alumni_id', 'name'],
+        'alumni_id_desc': ['has_no_id', '-alumni_id_num', '-alumni_id', 'name'],
+        'course': ['course', 'has_no_id', 'alumni_id_num', 'name'],
+        'course_desc': ['-course', 'has_no_id', 'alumni_id_num', 'name'],
+        'admission_year': ['-admission_year', 'has_no_id', 'alumni_id_num', 'name'],
+        'year': ['-admission_year', 'has_no_id', 'alumni_id_num', 'name'],
+        'year_desc': ['-admission_year', 'has_no_id', 'alumni_id_num', 'name'],
+        'year_asc': ['admission_year', 'has_no_id', 'alumni_id_num', 'name'],
+        'name': ['name', 'has_no_id', 'alumni_id_num'],
+        'name_desc': ['-name', 'has_no_id', 'alumni_id_num'],
+    }
+    order_fields = sort_mapping.get(sort_by, ['has_no_id', 'alumni_id_num', 'alumni_id', 'name'])
+    records = records.order_by(*order_fields)
+
+    # Summary statistics
+    total_count = AlumniRegistry.objects.count()
+    filtered_count = records.count()
+    unique_courses = AlumniRegistry.objects.exclude(course__isnull=True).exclude(course='').values_list('course', flat=True).distinct().order_by('course')
+    unique_years = AlumniRegistry.objects.exclude(admission_year__isnull=True).exclude(admission_year='').values_list('admission_year', flat=True).distinct().order_by('-admission_year')
+    with_phone_count = AlumniRegistry.objects.exclude(phone_number__isnull=True).exclude(phone_number='').count()
+
+    # Pagination
+    page = request.GET.get('page', 1)
+    paginator = Paginator(records, 50)
+    try:
+        page_obj = paginator.page(page)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
+    form = AlumniRegistryForm()
+
+    context = {
+        'page_title': 'Alumni Registry',
+        'records': page_obj,
+        'page_obj': page_obj,
+        'paginator': paginator,
+        'total_count': total_count,
+        'filtered_count': filtered_count,
+        'unique_courses': unique_courses,
+        'unique_years': unique_years,
+        'with_phone_count': with_phone_count,
+        'search_query': query,
+        'selected_course': course_filter,
+        'selected_year': year_filter,
+        'current_sort': sort_by,
+        'form': form,
+    }
+    return render(request, 'students/alumni_registry_list.html', context)
+
+
+@login_required
+@role_required(['admin', 'teacher', 'accountant'])
+def alumni_registry_upload(request):
+    """
+    Bulk upload collected alumni from Excel / CSV file matching headers:
+    ALUMNI ID, Sl No, Name of Student, Phone Number, Course, Admission Year
+    """
+    if request.method != 'POST':
+        return redirect('students:alumni_registry_list')
+
+    if 'excel_file' not in request.FILES:
+        messages.error(request, 'Please select an Excel or CSV file to upload.')
+        return redirect('students:alumni_registry_list')
+
+    excel_file = request.FILES['excel_file']
+    filename = excel_file.name.lower()
+
+    if not (filename.endswith('.xlsx') or filename.endswith('.xls') or filename.endswith('.csv')):
+        messages.error(request, 'Invalid file format. Please upload an Excel (.xlsx, .xls) or CSV file.')
+        return redirect('students:alumni_registry_list')
+
+    if not PANDAS_AVAILABLE:
+        messages.error(request, 'pandas library is required for bulk import. Please install it: pip install pandas openpyxl')
+        return redirect('students:alumni_registry_list')
+
+    try:
+        if filename.endswith('.csv'):
+            df = pd.read_csv(excel_file)
+        else:
+            df = pd.read_excel(excel_file)
+
+        if df.empty:
+            messages.warning(request, 'The uploaded spreadsheet contains no data.')
+            return redirect('students:alumni_registry_list')
+
+        # Detect columns with flexible, case-insensitive matching
+        col_map = {}
+        for col in df.columns:
+            clean_col = str(col).lower().strip().replace('_', ' ').replace('.', '')
+            # Match Alumni ID
+            if any(k in clean_col for k in ['alumni id', 'alumni no', 'alumniid']) or clean_col == 'id':
+                col_map['alumni_id'] = col
+            # Match Sl No
+            elif any(k in clean_col for k in ['sl no', 'slno', 's no', 'sno', 'serial no', 'serial']):
+                col_map['sl_no'] = col
+            # Match Name of Student
+            elif any(k in clean_col for k in ['name of student', 'student name', 'candidate name']) or clean_col in ['name', 'student']:
+                col_map['name'] = col
+            # Match Phone Number
+            elif any(k in clean_col for k in ['phone number', 'phone', 'mobile number', 'mobile no', 'mobile', 'contact', 'whatsapp']):
+                col_map['phone_number'] = col
+            # Match Course
+            elif any(k in clean_col for k in ['course', 'department', 'stream', 'programme', 'program', 'branch', 'class']):
+                col_map['course'] = col
+            # Match Admission Year
+            elif any(k in clean_col for k in ['admission year', 'admission', 'joining year', 'academic year']) or clean_col in ['year', 'batch']:
+                col_map['admission_year'] = col
+
+        if 'name' not in col_map:
+            messages.error(
+                request,
+                "Could not find the 'Name of Student' column in the uploaded file. Expected headers: ALUMNI ID, Sl No, Name of Student, Phone Number, Course, Admission Year."
+            )
+            return redirect('students:alumni_registry_list')
+
+        created_count = 0
+        updated_count = 0
+        skipped_count = 0
+
+        for index, row in df.iterrows():
+            def get_val(key):
+                if key not in col_map:
+                    return ""
+                val = row.get(col_map[key])
+                if pd.isna(val) or val is None:
+                    return ""
+                if isinstance(val, float) and val.is_integer():
+                    return str(int(val)).strip()
+                val_str = str(val).strip()
+                if val_str.endswith('.0') and val_str[:-2].isdigit():
+                    val_str = val_str[:-2]
+                return val_str
+
+            student_name = get_val('name')
+            if not student_name:
+                skipped_count += 1
+                continue
+
+            alumni_id = get_val('alumni_id')
+            sl_no = get_val('sl_no')
+            phone_number = get_val('phone_number')
+            course = get_val('course')
+            admission_year = get_val('admission_year')
+
+            # Search by alumni_id if provided
+            record = None
+            if alumni_id:
+                record = AlumniRegistry.objects.filter(alumni_id=alumni_id).first()
+
+            # Fallback search by exact name and admission year
+            if not record and student_name:
+                cand = AlumniRegistry.objects.filter(name__iexact=student_name)
+                if admission_year:
+                    cand = cand.filter(admission_year=admission_year)
+                if course:
+                    cand = cand.filter(course__iexact=course)
+                record = cand.first()
+
+            if record:
+                if alumni_id:
+                    record.alumni_id = alumni_id
+                if sl_no:
+                    record.sl_no = sl_no
+                record.name = student_name
+                if phone_number:
+                    record.phone_number = phone_number
+                if course:
+                    record.course = course
+                if admission_year:
+                    record.admission_year = admission_year
+                record.save()
+                updated_count += 1
+            else:
+                if not alumni_id:
+                    year_prefix = admission_year if (admission_year and len(admission_year) == 4 and admission_year.isdigit()) else "REG"
+                    count = AlumniRegistry.objects.count() + 1
+                    alumni_id = f"ALM-{year_prefix}-{count:04d}"
+
+                AlumniRegistry.objects.create(
+                    alumni_id=alumni_id,
+                    sl_no=sl_no,
+                    name=student_name,
+                    phone_number=phone_number,
+                    course=course,
+                    admission_year=admission_year,
+                )
+                created_count += 1
+
+        msg = f"Bulk upload completed: {created_count} alumni created, {updated_count} records updated."
+        if skipped_count > 0:
+            msg += f" ({skipped_count} empty rows skipped)"
+        messages.success(request, msg)
+
+    except Exception as e:
+        messages.error(request, f"Error processing file: {str(e)}")
+
+    return redirect('students:alumni_registry_list')
+
+
+@login_required
+@role_required(['admin', 'teacher', 'accountant'])
+def alumni_registry_template(request):
+    """Download standard Excel template with exact headers"""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Alumni Registry"
+
+    headers = [
+        ("ALUMNI ID", 18),
+        ("Sl No", 10),
+        ("Name of Student", 28),
+        ("Phone Number", 18),
+        ("Course", 26),
+        ("Admission Year", 16),
+    ]
+
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
+    align_center = Alignment(horizontal="center", vertical="center")
+    align_left = Alignment(horizontal="left", vertical="center")
+
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    for col_idx, (col_name, col_width) in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=col_idx, value=col_name)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = align_center if col_idx in [1, 2, 4, 6] else align_left
+        cell.border = thin_border
+        ws.column_dimensions[get_column_letter(col_idx)].width = col_width
+
+    samples = [
+        ("ALM-2022-001", "1", "Fathima Thasni N R", "9876543210", "B.Com Computer Application", "2022"),
+        ("ALM-2022-002", "2", "Aysha Nihala K", "9876543211", "B.A. English", "2022"),
+        ("ALM-2021-001", "3", "Hiba Maryam", "9876543212", "B.Sc Psychology", "2021"),
+        ("ALM-2020-001", "4", "Sumayya Thasni", "9876543213", "B.Com Finance", "2020"),
+    ]
+
+    for row_idx, row_data in enumerate(samples, start=2):
+        for col_idx, val in enumerate(row_data, start=1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.alignment = align_center if col_idx in [1, 2, 4, 6] else align_left
+            cell.border = thin_border
+
+    ws.row_dimensions[1].height = 26
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="Alumni_Registry_Template.xlsx"'
+    wb.save(response)
+    return response
+
+
+@login_required
+@role_required(['admin', 'teacher', 'accountant'])
+def alumni_registry_export(request):
+    """Export alumni registry records to Excel"""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Alumni Registry"
+
+    records = AlumniRegistry.objects.all()
+
+    search_query = request.GET.get('search', '').strip()
+    course_filter = request.GET.get('course', '').strip()
+    year_filter = request.GET.get('admission_year', '').strip()
+
+    if search_query:
+        records = records.filter(
+            Q(name__icontains=search_query) |
+            Q(alumni_id__icontains=search_query) |
+            Q(phone_number__icontains=search_query) |
+            Q(course__icontains=search_query) |
+            Q(admission_year__icontains=search_query)
+        )
+    if course_filter:
+        records = records.filter(course=course_filter)
+    if year_filter:
+        records = records.filter(admission_year=year_filter)
+
+    from django.db.models.functions import Cast
+    from django.db.models import IntegerField, Case, When, Value
+
+    records = records.annotate(
+        has_no_id=Case(
+            When(alumni_id__isnull=True, then=Value(1)),
+            When(alumni_id='', then=Value(1)),
+            default=Value(0),
+            output_field=IntegerField()
+        ),
+        alumni_id_num=Cast('alumni_id', output_field=IntegerField())
+    )
+
+    sort_by = request.GET.get('sort', 'alumni_id').strip()
+    sort_mapping = {
+        'alumni_id': ['has_no_id', 'alumni_id_num', 'alumni_id', 'name'],
+        'alumni_id_asc': ['has_no_id', 'alumni_id_num', 'alumni_id', 'name'],
+        'alumni_id_desc': ['has_no_id', '-alumni_id_num', '-alumni_id', 'name'],
+        'course': ['course', 'has_no_id', 'alumni_id_num', 'name'],
+        'course_desc': ['-course', 'has_no_id', 'alumni_id_num', 'name'],
+        'admission_year': ['-admission_year', 'has_no_id', 'alumni_id_num', 'name'],
+        'year': ['-admission_year', 'has_no_id', 'alumni_id_num', 'name'],
+        'year_desc': ['-admission_year', 'has_no_id', 'alumni_id_num', 'name'],
+        'year_asc': ['admission_year', 'has_no_id', 'alumni_id_num', 'name'],
+        'name': ['name', 'has_no_id', 'alumni_id_num'],
+        'name_desc': ['-name', 'has_no_id', 'alumni_id_num'],
+    }
+    order_fields = sort_mapping.get(sort_by, ['has_no_id', 'alumni_id_num', 'alumni_id', 'name'])
+    records = records.order_by(*order_fields)
+
+    headers = [
+        ("ALUMNI ID", 18),
+        ("Sl No", 10),
+        ("Name of Student", 28),
+        ("Phone Number", 18),
+        ("Course", 26),
+        ("Admission Year", 16),
+        ("Remarks", 25)
+    ]
+
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
+    align_center = Alignment(horizontal="center", vertical="center")
+    align_left = Alignment(horizontal="left", vertical="center")
+
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    for col_idx, (col_name, col_width) in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=col_idx, value=col_name)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = align_center if col_idx in [1, 2, 4, 6] else align_left
+        cell.border = thin_border
+        ws.column_dimensions[get_column_letter(col_idx)].width = col_width
+
+    for row_idx, r in enumerate(records, start=2):
+        row_values = [
+            r.alumni_id or "",
+            r.sl_no or "",
+            r.name or "",
+            r.phone_number or "",
+            r.course or "",
+            r.admission_year or "",
+            r.remarks or ""
+        ]
+        for col_idx, val in enumerate(row_values, start=1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.alignment = align_center if col_idx in [1, 2, 4, 6] else align_left
+            cell.border = thin_border
+
+    ws.row_dimensions[1].height = 26
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="Alumni_Registry_Export.xlsx"'
+    wb.save(response)
+    return response
+
+
+@login_required
+@role_required(['admin', 'teacher', 'accountant'])
+def alumni_registry_create(request):
+    """Manually add an alumni registry record"""
+    if request.method == 'POST':
+        form = AlumniRegistryForm(request.POST)
+        if form.is_valid():
+            alumni = form.save(commit=False)
+            if not alumni.alumni_id:
+                year_prefix = alumni.admission_year if (alumni.admission_year and len(alumni.admission_year) == 4 and alumni.admission_year.isdigit()) else "REG"
+                count = AlumniRegistry.objects.count() + 1
+                alumni.alumni_id = f"ALM-{year_prefix}-{count:04d}"
+            alumni.save()
+            messages.success(request, f"Alumni record for {alumni.name} added successfully.")
+            return redirect('students:alumni_registry_list')
+        else:
+            messages.error(request, "Please correct the errors in the form.")
+    return redirect('students:alumni_registry_list')
+
+
+@login_required
+@role_required(['admin', 'teacher', 'accountant'])
+def alumni_registry_update(request, pk):
+    """Edit an alumni registry record"""
+    alumni = get_object_or_404(AlumniRegistry, pk=pk)
+    if request.method == 'POST':
+        form = AlumniRegistryForm(request.POST, instance=alumni)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Alumni record for {alumni.name} updated successfully.")
+            return redirect('students:alumni_registry_list')
+    else:
+        form = AlumniRegistryForm(instance=alumni)
+
+    context = {
+        'form': form,
+        'alumni': alumni,
+        'page_title': f"Edit Alumni: {alumni.name}",
+    }
+    return render(request, 'students/alumni_registry_form.html', context)
+
+
+@login_required
+@role_required(['admin'])
+def alumni_registry_delete(request, pk):
+    """Delete an alumni registry record"""
+    alumni = get_object_or_404(AlumniRegistry, pk=pk)
+    if request.method == 'POST':
+        name = alumni.name
+        alumni.delete()
+        messages.success(request, f"Alumni record for {name} deleted successfully.")
+    return redirect('students:alumni_registry_list')
+
+
+@login_required
+@role_required(['admin'])
+def alumni_registry_bulk_delete(request):
+    """Bulk delete selected alumni registry records"""
+    if request.method == 'POST':
+        selected_ids = request.POST.getlist('selected_ids')
+        if selected_ids:
+            deleted_count, _ = AlumniRegistry.objects.filter(id__in=selected_ids).delete()
+            messages.success(request, f"Successfully deleted {deleted_count} alumni records.")
+        else:
+            messages.warning(request, "No alumni records selected for deletion.")
+    return redirect('students:alumni_registry_list')
+
 
 
 # --- Job Vacancy Views ---

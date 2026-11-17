@@ -159,6 +159,27 @@ class Alumni(models.Model):
         return f"{self.student.full_name} (Batch {self.graduation_year})"
 
 
+class AlumniRegistry(models.Model):
+    """Collected Alumni records saved in excel and uploaded in bulk"""
+    alumni_id = models.CharField(max_length=60, blank=True, null=True, db_index=True, verbose_name="Alumni ID")
+    sl_no = models.CharField(max_length=60, blank=True, null=True, verbose_name="Sl No")
+    name = models.CharField(max_length=200, db_index=True, verbose_name="Name of Student")
+    phone_number = models.CharField(max_length=50, blank=True, null=True, verbose_name="Phone Number")
+    course = models.CharField(max_length=150, blank=True, null=True, db_index=True, verbose_name="Course")
+    admission_year = models.CharField(max_length=50, blank=True, null=True, db_index=True, verbose_name="Admission Year")
+    remarks = models.TextField(blank=True, null=True, verbose_name="Remarks")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['alumni_id', 'sl_no', 'name']
+        verbose_name = 'Alumni Registry Record'
+        verbose_name_plural = 'Alumni Registry Records'
+
+    def __str__(self):
+        return f"{self.alumni_id or 'ALM'} - {self.name} ({self.course or 'General'})"
+
+
 
 class Enrollment(models.Model):
     """Enrollment mapping a student to an AcademicYear, grade, division, and room"""

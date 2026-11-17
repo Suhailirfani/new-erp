@@ -138,7 +138,7 @@ class UserManageForm(forms.ModelForm):
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
         }
 
-from .models import Alumni
+from .models import Alumni, AlumniRegistry
 
 class AlumniTransferForm(forms.ModelForm):
     class Meta:
@@ -158,6 +158,20 @@ class AlumniForm(forms.ModelForm):
             'current_status': forms.TextInput(attrs={'class': 'form-control'}),
             'company_or_institution': forms.TextInput(attrs={'class': 'form-control'}),
             'remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+        }
+
+class AlumniRegistryForm(forms.ModelForm):
+    class Meta:
+        model = AlumniRegistry
+        fields = ['alumni_id', 'sl_no', 'name', 'phone_number', 'course', 'admission_year', 'remarks']
+        widgets = {
+            'alumni_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. ALUM-001'}),
+            'sl_no': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 1'}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Full name of student', 'required': 'required'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. +91 9876543210'}),
+            'course': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. B.Com Computer Application'}),
+            'admission_year': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 2022'}),
+            'remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Optional remarks or current status'}),
         }
 
 # --- Job Vacancy Forms ---
