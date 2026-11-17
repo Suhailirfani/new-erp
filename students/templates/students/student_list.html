@@ -410,10 +410,18 @@
             </div>
         </div>
         <div class="filter-actions" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;">
-            <button type="submit" class="btn" style="flex: 1; margin: 0; min-width: 100px;">Filter</button>
-            <button type="submit" name="export" value="excel" class="btn" style="background-color: #2980b9; color: white; flex: 1; margin: 0; min-width: 120px;">Export to Excel</button>
-            <button type="button" class="btn" style="background-color: #34495e; color: white; flex: 1; margin: 0; min-width: 80px;" onclick="window.print()"><i class="fas fa-print"></i> Print Table</button>
-            <a href="{% url 'students:student_list' %}" class="btn btn-danger" style="flex: 1; margin: 0; min-width: 80px; text-align: center; text-decoration: none;">Clear</a>
+            <button type="submit" class="btn btn-outline-custom" style="flex: 1; margin: 0; min-width: 100px;">
+                <i class="fa-solid fa-filter"></i> Filter
+            </button>
+            <button type="submit" name="export" value="excel" class="btn btn-outline-custom" style="flex: 1; margin: 0; min-width: 120px;">
+                <i class="fa-solid fa-file-excel"></i> Export to Excel
+            </button>
+            <button type="button" class="btn btn-outline-custom" style="flex: 1; margin: 0; min-width: 80px;" onclick="window.print()">
+                <i class="fa-solid fa-print"></i> Print Table
+            </button>
+            <a href="{% url 'students:student_list' %}" class="btn btn-danger" style="flex: 1; margin: 0; min-width: 80px; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;">
+                <i class="fa-solid fa-rotate-left"></i> Clear
+            </a>
         </div>
     </form>
 </div>
