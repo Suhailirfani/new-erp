@@ -361,6 +361,33 @@
         .profile-btn-action i {
             font-size: 0.78rem !important;
         }
+
+        /* Stylized Striped Data Table in Mobile */
+        .profile-data-table-wrap {
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow-x: hidden !important;
+        }
+
+        .profile-summary-table {
+            width: 100% !important;
+            table-layout: fixed !important;
+        }
+
+        .profile-summary-table td.prop-label {
+            width: 38% !important;
+            padding: 5px 4px !important;
+            font-size: 0.78rem !important;
+            white-space: nowrap !important;
+        }
+
+        .profile-summary-table td.prop-val {
+            width: 62% !important;
+            padding: 5px 4px !important;
+            font-size: 0.8rem !important;
+            word-break: break-word !important;
+            overflow-wrap: anywhere !important;
+        }
     }
 </style>
 
@@ -424,20 +451,20 @@
                 </div>
 
                 <!-- Stylized Striped Data Table -->
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover table-sm text-start m-0" style="font-size: 0.85rem; line-height: 1.5;">
+                <div class="table-responsive profile-data-table-wrap">
+                    <table class="table table-striped table-hover table-sm text-start m-0 profile-summary-table" style="font-size: 0.85rem; line-height: 1.5; width: 100%; table-layout: fixed;">
                         <tbody>
                             <tr>
-                                <td style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none;">Email</td>
-                                <td style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right;">{{ student.email|default:"-" }}</td>
+                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 42%;">Email</td>
+                                <td class="prop-val" style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right; word-break: break-all;">{{ student.email|default:"-" }}</td>
                             </tr>
                             <tr>
-                                <td style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none;">Admission Date</td>
-                                <td style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right;">{{ student.created_at|date:"M d, Y" }}</td>
+                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 42%;">Admission Date</td>
+                                <td class="prop-val" style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right; word-break: break-word;">{{ student.created_at|date:"M d, Y" }}</td>
                             </tr>
                             <tr>
-                                <td style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none;">Class/Section</td>
-                                <td style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right;">
+                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 42%;">Class/Section</td>
+                                <td class="prop-val" style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right; word-break: break-word;">
                                     {% if enrollment %}
                                         {{ enrollment.grade.name|default:"-" }} / {{ enrollment.section.name|default:"-" }}
                                     {% else %}
@@ -446,8 +473,8 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none;">Division/Room</td>
-                                <td style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right;">
+                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 42%;">Division/Room</td>
+                                <td class="prop-val" style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right; word-break: break-word;">
                                     {% if enrollment %}
                                         {{ enrollment.division.name|default:"-" }} / {{ enrollment.room.room_number|default:"-" }}
                                     {% else %}
@@ -456,30 +483,30 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none;">Type</td>
-                                <td style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right;">{{ student.get_student_type_display }}</td>
+                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 42%;">Type</td>
+                                <td class="prop-val" style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right; word-break: break-word;">{{ student.get_student_type_display }}</td>
                             </tr>
                             <tr>
-                                <td style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none;">Phone</td>
-                                <td style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right;">{{ student.phone|default:"-" }}</td>
+                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 42%;">Phone</td>
+                                <td class="prop-val" style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right; word-break: break-word;">{{ student.phone|default:"-" }}</td>
                             </tr>
                             <tr>
-                                <td style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none;">Address</td>
-                                <td style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right;">{{ student.address|default:"-" }}</td>
+                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 42%;">Address</td>
+                                <td class="prop-val" style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right; word-break: break-word;">{{ student.address|default:"-" }}</td>
                             </tr>
                             <tr>
-                                <td style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none;">Transport</td>
-                                <td style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right;">
+                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 42%;">Transport</td>
+                                <td class="prop-val" style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right; word-break: break-word;">
                                     {% if student.uses_bus %}Bus ({{ student.bus_stop.name }}){% else %}Private{% endif %}
                                 </td>
                             </tr>
                             <tr>
-                                <td style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none;">Balance</td>
-                                <td style="font-weight: 700; color: #15803d; padding: 6px 8px; border: none; text-align: right;">₹{{ student.advance_balance }}</td>
+                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 42%;">Balance</td>
+                                <td class="prop-val" style="font-weight: 700; color: #15803d; padding: 6px 8px; border: none; text-align: right; word-break: break-word;">₹{{ student.advance_balance }}</td>
                             </tr>
                             <tr>
-                                <td style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none;">Active Status</td>
-                                <td style="font-weight: 700; padding: 6px 8px; border: none; text-align: right;">
+                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 42%;">Active Status</td>
+                                <td class="prop-val" style="font-weight: 700; padding: 6px 8px; border: none; text-align: right; word-break: break-word;">
                                     {% if student.is_active %}
                                         <span style="color: #16a34a; font-weight: 700;">Active</span>
                                     {% else %}
