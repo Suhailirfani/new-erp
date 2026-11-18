@@ -2,14 +2,49 @@
 
 {% block title %}Exam Types - Student Attendance System{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Dark Navy Border on White Background Buttons */
+    .btn-exam-navy {
+        background-color: #ffffff !important;
+        border: 1.5px solid #1e3a8a !important;
+        color: #1e3a8a !important;
+        font-weight: 700 !important;
+        border-radius: 8px !important;
+        transition: all 0.15s ease !important;
+        text-decoration: none !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.35rem !important;
+        transform: none !important;
+    }
+
+    .btn-exam-navy:hover, .btn-exam-navy:active {
+        background-color: #1e3a8a !important;
+        color: #ffffff !important;
+        border-color: #1e3a8a !important;
+        transform: none !important;
+    }
+
+    .btn-exam-navy-sm {
+        padding: 0.4rem 0.65rem !important;
+        font-size: 0.78rem !important;
+        line-height: 1.2 !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
     <h1>Exam Types</h1>
-    <div style="display: flex; gap: 0.5rem;">
-        <a href="{% url 'students:examination_dashboard' %}" class="btn btn-secondary">
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'students:examination_dashboard' %}" class="btn btn-exam-navy">
             <i class="fa-solid fa-arrow-left"></i> Dashboard
         </a>
-        <a href="{% url 'students:exam_type_create' %}" class="btn btn-success">Add New Exam Type</a>
+        <a href="{% url 'students:exam_type_create' %}" class="btn btn-exam-navy">
+            <i class="fa-solid fa-plus"></i> Add New Exam Type
+        </a>
     </div>
 </div>
 
@@ -35,22 +70,34 @@
             </p>
             
             <div style="display: flex; gap: 0.5rem; margin-top: auto; flex-wrap: wrap;">
-                <a href="{% url 'students:exam_subject_maxmarks' exam_type.pk %}" class="btn"
-                   style="padding: 0.5rem 0.75rem; font-size: 0.85rem; flex: 1.5; text-align: center; margin: 0; min-width: 90px; background-color: #16a085; color: white;"
-                   title="Set per-exam maximum marks for each subject">📊 Max Marks</a>
-                <a href="{% url 'students:exam_type_update' exam_type.pk %}" class="btn" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; flex: 1; text-align: center; margin: 0; min-width: 60px;">Edit</a>
+                <a href="{% url 'students:exam_subject_maxmarks' exam_type.pk %}" class="btn btn-exam-navy btn-exam-navy-sm"
+                   style="flex: 1.5; text-align: center; margin: 0; min-width: 95px;"
+                   title="Set per-exam maximum marks for each subject">
+                   <i class="fa-solid fa-chart-simple"></i> Max Marks
+                </a>
+                <a href="{% url 'students:exam_type_update' exam_type.pk %}" class="btn btn-exam-navy btn-exam-navy-sm" style="flex: 1; text-align: center; margin: 0; min-width: 55px;">
+                   <i class="fa-solid fa-pen-to-square"></i> Edit
+                </a>
                 {% if exam_type.is_published %}
-                    <a href="{% url 'students:exam_type_toggle_publish' exam_type.pk %}" class="btn btn-warning" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; flex: 1.5; text-align: center; margin: 0; min-width: 90px; background-color: #f39c12; color: white;">Unpublish</a>
+                    <a href="{% url 'students:exam_type_toggle_publish' exam_type.pk %}" class="btn btn-exam-navy btn-exam-navy-sm" style="flex: 1.5; text-align: center; margin: 0; min-width: 90px;">
+                        <i class="fa-solid fa-eye-slash"></i> Unpublish
+                    </a>
                 {% else %}
-                    <a href="{% url 'students:exam_type_toggle_publish' exam_type.pk %}" class="btn btn-success" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; flex: 1.5; text-align: center; margin: 0; min-width: 90px; background-color: #2ecc71; color: white;">Publish</a>
+                    <a href="{% url 'students:exam_type_toggle_publish' exam_type.pk %}" class="btn btn-exam-navy btn-exam-navy-sm" style="flex: 1.5; text-align: center; margin: 0; min-width: 90px;">
+                        <i class="fa-solid fa-globe"></i> Publish
+                    </a>
                 {% endif %}
-                <a href="{% url 'students:exam_type_delete' exam_type.pk %}" class="btn btn-danger" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; flex: 1; text-align: center; margin: 0; min-width: 60px;">Delete</a>
+                <a href="{% url 'students:exam_type_delete' exam_type.pk %}" class="btn btn-exam-navy btn-exam-navy-sm" style="flex: 1; text-align: center; margin: 0; min-width: 65px;">
+                   <i class="fa-solid fa-trash"></i> Delete
+                </a>
             </div>
         </div>
         {% empty %}
         <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; background: var(--light); border-radius: 12px; border: 1px dashed var(--border);">
             <p style="color: var(--gray); margin-bottom: 1rem; font-size: 1.1rem;">No exam types found.</p>
-            <a href="{% url 'students:exam_type_create' %}" class="btn btn-success">Create one</a>
+            <a href="{% url 'students:exam_type_create' %}" class="btn btn-exam-navy">
+                <i class="fa-solid fa-plus"></i> Create one
+            </a>
         </div>
         {% endfor %}
     </div>
