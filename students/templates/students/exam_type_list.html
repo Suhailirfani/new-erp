@@ -2,11 +2,15 @@
 
 {% block title %}Exam Types - Student Attendance System{% endblock %}
 
-{% block extra_css %}
+{% block content %}
 <style>
-    /* Dark Navy Border on White Background Buttons (White color on normal & hover) */
-    .btn-exam-navy {
+    /* Force White BG and Dark Blue Border on all buttons in this page */
+    .btn-exam-navy,
+    a.btn-exam-navy,
+    button.btn-exam-navy {
+        background: #ffffff !important;
         background-color: #ffffff !important;
+        background-image: none !important;
         border: 1.5px solid #1e3a8a !important;
         color: #1e3a8a !important;
         font-weight: 700 !important;
@@ -18,13 +22,26 @@
         justify-content: center !important;
         gap: 0.35rem !important;
         transform: none !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
     }
 
-    .btn-exam-navy:hover, .btn-exam-navy:active {
+    .btn-exam-navy::before,
+    a.btn-exam-navy::before,
+    button.btn-exam-navy::before {
+        display: none !important;
+        content: none !important;
+    }
+
+    .btn-exam-navy:hover,
+    .btn-exam-navy:active,
+    a.btn-exam-navy:hover,
+    a.btn-exam-navy:active {
+        background: #f8fafc !important;
         background-color: #f8fafc !important;
+        background-image: none !important;
         color: #1e3a8a !important;
         border-color: #1e3a8a !important;
-        box-shadow: 0 2px 5px rgba(30, 58, 138, 0.15) !important;
+        box-shadow: 0 2px 6px rgba(30, 58, 138, 0.15) !important;
         transform: none !important;
     }
 
@@ -34,9 +51,7 @@
         line-height: 1.2 !important;
     }
 </style>
-{% endblock %}
 
-{% block content %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
     <h1>Exam Types</h1>
     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
