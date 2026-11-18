@@ -309,6 +309,42 @@
     .analytics-btn-action i {
         font-size: 0.78rem !important;
     }
+
+    /* Stats Grid in Mobile: 3 in a row */
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 0.45rem !important;
+        margin-bottom: 1.25rem !important;
+    }
+
+    .stat-card {
+        padding: 0.65rem 0.35rem !important;
+        border-radius: 8px !important;
+        min-width: 0 !important;
+    }
+
+    .stat-card .stat-label {
+        font-size: 0.65rem !important;
+        line-height: 1.15 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
+    .stat-card .stat-value {
+        font-size: 1.15rem !important;
+        margin: 0.25rem 0 !important;
+        line-height: 1.1 !important;
+    }
+
+    .stat-card small {
+        font-size: 0.62rem !important;
+        line-height: 1 !important;
+    }
+
+    .stat-card div[style*="margin-top"] {
+        margin-top: 0.2rem !important;
+    }
 }
 </style>
 {% endblock %}
