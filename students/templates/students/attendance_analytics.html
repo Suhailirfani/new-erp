@@ -162,6 +162,154 @@
     color: #666;
     margin-top: 0.5rem;
 }
+
+/* Analytics Filter Layout & Buttons */
+.analytics-filter-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    margin-bottom: 2rem;
+}
+
+.analytics-form-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.85rem;
+    width: 100%;
+}
+
+.analytics-form-row .form-group {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+.analytics-form-row .form-group label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+    margin-bottom: 0.35rem;
+    white-space: nowrap;
+}
+
+.analytics-form-row .form-group select,
+.analytics-form-row .form-group input {
+    width: 100%;
+    height: 38px;
+    padding: 0.45rem 0.65rem;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: #1e293b;
+    background: #ffffff;
+    outline: none;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+
+.analytics-form-row .form-group select:focus,
+.analytics-form-row .form-group input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.analytics-custom-range-wrap {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.85rem;
+    flex: 2 1 0;
+    min-width: 0;
+}
+
+.analytics-button-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid #f1f5f9;
+}
+
+.analytics-btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    background: #ffffff !important;
+    border: 1.5px solid #000000 !important;
+    color: #000000 !important;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    transform: none !important;
+}
+
+.analytics-btn-action:hover, .analytics-btn-action:active {
+    background: #000000 !important;
+    color: #ffffff !important;
+    border-color: #000000 !important;
+    transform: none !important;
+}
+
+/* Mobile: 2 fields per row, and 3 action buttons in a row */
+@media (max-width: 768px) {
+    .analytics-filter-card {
+        padding: 1rem;
+    }
+
+    .analytics-form-row {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.65rem !important;
+        width: 100% !important;
+    }
+
+    .analytics-form-row .form-group {
+        width: 100% !important;
+    }
+
+    .analytics-custom-range-wrap {
+        display: contents !important; /* lets Date From & Date To behave as individual grid items */
+    }
+
+    .analytics-button-group {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 0.4rem !important;
+        width: 100% !important;
+        margin-top: 0.75rem !important;
+        padding-top: 0.75rem !important;
+    }
+
+    .analytics-btn-action {
+        width: 100% !important;
+        padding: 0.45rem 0.2rem !important;
+        font-size: 0.72rem !important;
+        line-height: 1.1 !important;
+        text-align: center !important;
+        justify-content: center !important;
+        gap: 0.25rem !important;
+        white-space: nowrap !important;
+        height: 34px !important;
+        min-height: 34px !important;
+        border-radius: 7px !important;
+    }
+
+    .analytics-btn-action i {
+        font-size: 0.78rem !important;
+    }
+}
 </style>
 {% endblock %}
 
@@ -210,11 +358,11 @@
 </div>
 
 <!-- Filters -->
-<div class="card" style="margin-bottom: 2rem;">
+<div class="analytics-filter-card">
     <form method="get" id="filterForm">
         <input type="hidden" name="report_type" id="reportTypeInput" value="{{ report_type }}">
         
-        <div class="form-row">
+        <div class="analytics-form-row">
             {% if report_type == 'daily' %}
             <div class="form-group">
                 <label>Date</label>
@@ -222,7 +370,7 @@
             </div>
             {% endif %}
             
-            <div id="customRangeFields" style="display: {% if report_type == 'custom' %}flex{% else %}none{% endif %}; gap: 1rem;">
+            <div id="customRangeFields" class="analytics-custom-range-wrap" style="display: {% if report_type == 'custom' %}flex{% else %}none{% endif %};">
                 <div class="form-group">
                     <label>Date From</label>
                     <input type="date" name="date_from" value="{{ date_from }}">
@@ -244,7 +392,7 @@
             </div>
             
             <div class="form-group">
-                <label>Grade/Year</label>
+                <label>Grade / Class</label>
                 <select name="grade">
                     <option value="">All Grades</option>
                     {% for g in grades %}
@@ -264,9 +412,18 @@
             </div>
         </div>
         
-        <button type="submit" class="btn">Generate Report</button>
-        <a href="{% url 'students:attendance_analytics' %}" class="btn btn-danger">Clear Filters</a>
-        <button type="button" onclick="exportReport()" class="btn" style="background: #27ae60;">Export CSV</button>
+        <!-- Buttons Below: White BG, Black Border, 3 in a Row in Mobile -->
+        <div class="analytics-button-group">
+            <button type="submit" class="analytics-btn-action">
+                <i class="fa-solid fa-chart-line"></i> Generate
+            </button>
+            <a href="{% url 'students:attendance_analytics' %}" class="analytics-btn-action">
+                <i class="fa-solid fa-rotate-left"></i> Clear
+            </a>
+            <button type="button" onclick="exportReport()" class="analytics-btn-action">
+                <i class="fa-solid fa-file-csv"></i> Export CSV
+            </button>
+        </div>
     </form>
 </div>
 
