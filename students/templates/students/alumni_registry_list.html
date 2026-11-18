@@ -9,26 +9,151 @@
        TOP HERO & STATS
        ============================================================ */
     .registry-hero {
-        background: linear-gradient(135deg, rgba(30, 58, 138, 0.07) 0%, rgba(99, 102, 241, 0.07) 100%);
+        background: #ffffff;
         border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 1.25rem 1.5rem;
-        margin-bottom: 1.25rem;
+        border-radius: 12px;
+        padding: 0.85rem 1.25rem;
+        margin-bottom: 0.85rem;
         position: relative;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .registry-hero-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.85rem;
+        flex-wrap: wrap;
+    }
+
+    .registry-hero-title-area {
+        flex: 1 1 auto;
+    }
+
+    .stat-badges-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 0.35rem;
+    }
+
+    .registry-header-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.45rem;
+        flex-wrap: nowrap;
+        margin-top: 0;
+    }
+
+    .btn-header-action {
+        border-radius: 8px;
+        padding: 0.45rem 0.85rem;
+        font-size: 0.83rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        white-space: nowrap;
+        text-decoration: none;
+        transition: all 0.15s ease-in-out;
+    }
+
+    .btn-header-action .btn-text-mobile {
+        display: none;
+    }
+
+    .btn-header-action .btn-text-full {
+        display: inline;
+    }
+
+    /* Mobile: Compact layout, minimal gap, buttons 4 in a row */
+    @media (max-width: 768px) {
+        .registry-hero {
+            padding: 0.65rem 0.75rem !important;
+            margin-bottom: 0.65rem !important;
+        }
+
+        .registry-hero-content {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.45rem !important; /* Solves large gap between hero area and buttons */
+        }
+
+        .registry-hero-title-area {
+            margin-bottom: 0 !important;
+        }
+
+        .stat-badges-row {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 4px !important;
+            margin-top: 0.25rem !important;
+        }
+
+        .stat-badge {
+            padding: 0.2rem 0.45rem !important;
+            font-size: 0.72rem !important;
+            border-radius: 6px !important;
+        }
+
+        .registry-header-actions {
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 5px !important;
+            width: 100% !important;
+            margin-top: 0 !important; /* No gap above buttons */
+        }
+
+        .btn-header-action {
+            width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            padding: 0.4rem 0.15rem !important;
+            font-size: 0.72rem !important;
+            font-weight: 700 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-align: center !important;
+            gap: 2px !important;
+            min-height: 44px !important;
+            border-radius: 8px !important;
+            line-height: 1.15 !important;
+        }
+
+        .btn-header-action i {
+            font-size: 0.9rem !important;
+            margin: 0 !important;
+        }
+
+        .btn-header-action .btn-text-full {
+            display: none !important;
+        }
+
+        .btn-header-action .btn-text-mobile {
+            display: block !important;
+            font-size: 0.68rem !important;
+            letter-spacing: -0.01em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
     }
 
     .stat-badge {
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
-        background: white;
+        gap: 0.35rem;
+        background: #f8fafc;
         border: 1px solid #e2e8f0;
-        padding: 0.35rem 0.75rem;
-        border-radius: 10px;
+        padding: 0.25rem 0.6rem;
+        border-radius: 8px;
         font-weight: 600;
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         color: #1e293b;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.03);
     }
 
     .stat-badge i {
@@ -39,7 +164,7 @@
         display: flex;
         gap: 0.5rem;
         border-bottom: 2px solid var(--border);
-        margin-bottom: 1.25rem;
+        margin-bottom: 0.75rem;
     }
 
     .alumni-nav-tab {
@@ -684,11 +809,11 @@
 
     <!-- Hero / Header Area -->
     <div class="registry-hero">
-        <div class="row align-items-center">
-            <div class="col-lg-6 mb-2 mb-lg-0">
+        <div class="registry-hero-content">
+            <div class="registry-hero-title-area">
                 <div class="d-flex align-items-center gap-3">
-                    <div style="width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, #1e3a8a, #3b82f6); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; box-shadow: 0 4px 10px rgba(30, 58, 138, 0.2);">
-                        <i class="fa-solid fa-file-excel"></i>
+                    <div style="width: 44px; height: 44px; border-radius: 10px; background: #0f172a; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem;">
+                        <i class="fa-solid fa-file-excel" style="color: #34d399;"></i>
                     </div>
                     <div>
                         <h1 class="h4 fw-bold text-dark mb-0">Alumni Registry</h1>
@@ -696,7 +821,7 @@
                     </div>
                 </div>
                 <!-- Stat badges -->
-                <div class="d-flex flex-wrap gap-2 mt-2">
+                <div class="stat-badges-row">
                     <span class="stat-badge">
                         <i class="fa-solid fa-users"></i>
                         <span><strong>{{ total_count }}</strong> Total Records</span>
@@ -716,21 +841,28 @@
                 </div>
             </div>
 
-            <div class="col-lg-6">
-                <div class="d-flex flex-wrap justify-content-lg-end gap-2">
-                    <button type="button" class="btn btn-sm text-white fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#bulkUploadModal" style="background: linear-gradient(135deg, #059669, #10b981); border-radius: 8px; padding: 0.5rem 1rem;">
-                        <i class="fa-solid fa-file-excel me-1"></i> Bulk Upload Excel
-                    </button>
-                    <a href="{% url 'students:alumni_registry_template' %}" class="btn btn-sm btn-outline-primary fw-bold bg-white" style="border-radius: 8px; padding: 0.5rem 0.9rem;" title="Download sample Excel template">
-                        <i class="fa-solid fa-download me-1"></i> Template
-                    </a>
-                    <a href="{% url 'students:alumni_registry_export' %}?search={{ search_query }}&course={{ selected_course }}&admission_year={{ selected_year }}&sort={{ current_sort }}" class="btn btn-sm btn-outline-secondary fw-bold bg-white" style="border-radius: 8px; padding: 0.5rem 0.9rem;" title="Export current list to Excel">
-                        <i class="fa-solid fa-file-export me-1"></i> Export
-                    </a>
-                    <button type="button" class="btn btn-sm text-white fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addAlumniModal" style="border-radius: 8px; padding: 0.5rem 1rem; background: #0f172a; border: 1px solid #0f172a;">
-                        <i class="fa-solid fa-user-plus me-1"></i> Add Alumni
-                    </button>
-                </div>
+            <!-- Header Action Buttons (Aligned 4 in a row in mobile) -->
+            <div class="registry-header-actions">
+                <button type="button" class="btn btn-sm btn-header-action text-white fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#bulkUploadModal" style="background: #059669; border: 1px solid #059669;" title="Bulk Upload Excel">
+                    <i class="fa-solid fa-file-excel"></i>
+                    <span class="btn-text-full">Bulk Upload Excel</span>
+                    <span class="btn-text-mobile">Upload</span>
+                </button>
+                <a href="{% url 'students:alumni_registry_template' %}" class="btn btn-sm btn-header-action btn-outline-primary fw-bold bg-white" title="Download sample Excel template">
+                    <i class="fa-solid fa-download"></i>
+                    <span class="btn-text-full">Template</span>
+                    <span class="btn-text-mobile">Template</span>
+                </a>
+                <a href="{% url 'students:alumni_registry_export' %}?search={{ search_query }}&course={{ selected_course }}&admission_year={{ selected_year }}&sort={{ current_sort }}" class="btn btn-sm btn-header-action btn-outline-secondary fw-bold bg-white" title="Export current list to Excel">
+                    <i class="fa-solid fa-file-export"></i>
+                    <span class="btn-text-full">Export</span>
+                    <span class="btn-text-mobile">Export</span>
+                </a>
+                <button type="button" class="btn btn-sm btn-header-action text-white fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addAlumniModal" style="background: #0f172a; border: 1px solid #0f172a;" title="Add Alumni Record">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span class="btn-text-full">Add Alumni</span>
+                    <span class="btn-text-mobile">Add</span>
+                </button>
             </div>
         </div>
     </div>

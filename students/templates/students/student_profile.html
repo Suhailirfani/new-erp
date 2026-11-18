@@ -252,29 +252,139 @@
         outline: none;
         cursor: pointer;
     }
+
+    /* Top Bar Action Header Buttons */
+    .profile-top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding-bottom: 0.75rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .profile-action-btn-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .profile-btn-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 0.45rem 0.85rem;
+        border-radius: 8px;
+        background: #ffffff !important;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+        transform: none !important;
+    }
+
+    .profile-btn-action:hover, .profile-btn-action:active {
+        transform: none !important;
+    }
+
+    /* White with colored borders in all devices */
+    .profile-btn-face {
+        color: #d97706 !important;
+        border: 1.5px solid #f59e0b !important;
+    }
+    .profile-btn-face:hover {
+        background: #fffbeb !important;
+        color: #b45309 !important;
+        border-color: #d97706 !important;
+    }
+
+    .profile-btn-edit {
+        color: var(--primary) !important;
+        border: 1.5px solid var(--primary) !important;
+    }
+    .profile-btn-edit:hover {
+        background: #eef2ff !important;
+        color: #3730a3 !important;
+        border-color: #4338ca !important;
+    }
+
+    .profile-btn-fee {
+        color: #10b981 !important;
+        border: 1.5px solid #10b981 !important;
+    }
+    .profile-btn-fee:hover {
+        background: #ecfdf5 !important;
+        color: #047857 !important;
+        border-color: #059669 !important;
+    }
+
+    /* Mobile: 3 buttons in a single row */
+    @media (max-width: 768px) {
+        .profile-top-bar {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .profile-top-bar .btn-go-back {
+            align-self: flex-start;
+        }
+
+        .profile-action-btn-group {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 0.4rem !important;
+            width: 100% !important;
+        }
+
+        .profile-btn-action {
+            width: 100% !important;
+            padding: 0.4rem 0.2rem !important;
+            font-size: 0.72rem !important;
+            line-height: 1.1 !important;
+            text-align: center !important;
+            justify-content: center !important;
+            gap: 0.3rem !important;
+            white-space: nowrap !important;
+            height: 34px !important;
+            min-height: 34px !important;
+            border-radius: 7px !important;
+        }
+
+        .profile-btn-action i {
+            font-size: 0.78rem !important;
+        }
+    }
 </style>
 
 <!-- Top Bar Action Header -->
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3 pb-2 border-bottom">
+<div class="profile-top-bar">
     {% if request.user.profile.role == 'student' %}
-    <a href="{% url 'students:home' %}" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px; font-weight: 600; background: white; border-color: #cbd5e1; color: #475569;">
+    <a href="{% url 'students:home' %}" class="btn btn-sm btn-outline-secondary btn-go-back" style="border-radius: 8px; font-weight: 600; background: white; border-color: #cbd5e1; color: #475569; transform: none !important;">
         <i class="fa-solid fa-arrow-left"></i> Go Back
     </a>
     {% else %}
-    <a href="{% url 'students:student_list' %}" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px; font-weight: 600; background: white; border-color: #cbd5e1; color: #475569;">
+    <a href="{% url 'students:student_list' %}" class="btn btn-sm btn-outline-secondary btn-go-back" style="border-radius: 8px; font-weight: 600; background: white; border-color: #cbd5e1; color: #475569; transform: none !important;">
         <i class="fa-solid fa-arrow-left"></i> Go Back
     </a>
     {% endif %}
     
-    <div class="d-flex gap-2 flex-wrap">
+    <div class="profile-action-btn-group">
         {% if request.user.profile.role != 'student' %}
-        <a href="{% url 'students:register_face' student.id %}" class="btn btn-xs btn-warning" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border: none; color: white !important; font-size: 0.75rem; padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 600;">
+        <a href="{% url 'students:register_face' student.id %}" class="profile-btn-action profile-btn-face">
             <i class="fas fa-camera"></i> Register Face
         </a>
-        <a href="{% url 'students:student_edit' student.id %}" class="btn btn-xs btn-primary" style="background: var(--primary); border: none; font-size: 0.75rem; padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 600;">
+        <a href="{% url 'students:student_edit' student.id %}" class="profile-btn-action profile-btn-edit">
             <i class="fas fa-edit"></i> Edit Student
         </a>
-        <a href="{% url 'fees:student_fee_detail' student.id %}" class="btn btn-xs btn-success" style="background: #10b981; border: none; font-size: 0.75rem; padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 600;">
+        <a href="{% url 'fees:student_fee_detail' student.id %}" class="profile-btn-action profile-btn-fee">
             <i class="fas fa-wallet"></i> Fee Ledger
         </a>
         {% endif %}
