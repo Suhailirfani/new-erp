@@ -323,7 +323,55 @@
         border-color: #059669 !important;
     }
 
-    /* Mobile: 3 buttons in a single row */
+    /* Modern Student Details Card List (All Devices) */
+    .profile-info-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        width: 100%;
+        text-align: left;
+    }
+
+    .profile-info-row-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.65rem 0.85rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        transition: all 0.15s ease;
+    }
+
+    .profile-info-row-card:hover {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+
+    .profile-info-row-card .info-lbl {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+    }
+
+    .profile-info-row-card .info-val {
+        font-size: 0.86rem;
+        font-weight: 700;
+        color: #1e293b;
+        text-align: right;
+        word-break: break-word;
+        max-width: 62%;
+    }
+
+    /* Mobile: 3 buttons in a single row & tight card padding */
     @media (max-width: 768px) {
         .profile-top-bar {
             flex-direction: column;
@@ -362,54 +410,18 @@
             font-size: 0.78rem !important;
         }
 
-        /* Stylized Striped Data Table in Mobile */
-        .profile-data-table-wrap {
-            display: none !important;
-        }
-
-        .profile-mobile-info-list {
-            display: flex !important;
-            flex-direction: column;
-            gap: 0.5rem;
-            width: 100%;
-            text-align: left;
-        }
-
         .profile-info-row-card {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
             padding: 0.55rem 0.75rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 0.75rem;
+            border-radius: 9px;
         }
 
         .profile-info-row-card .info-lbl {
-            font-size: 0.72rem;
-            font-weight: 700;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-            white-space: nowrap;
-            display: flex;
-            align-items: center;
-            gap: 0.35rem;
+            font-size: 0.71rem;
         }
 
         .profile-info-row-card .info-val {
-            font-size: 0.84rem;
-            font-weight: 700;
-            color: #1e293b;
-            text-align: right;
-            word-break: break-word;
-        }
-    }
-
-    @media (min-width: 769px) {
-        .profile-mobile-info-list {
-            display: none !important;
+            font-size: 0.82rem;
+            max-width: 60%;
         }
     }
 </style>
@@ -473,76 +485,8 @@
                     </a>
                 </div>
 
-                <!-- Desktop Stylized Striped Data Table -->
-                <div class="table-responsive profile-data-table-wrap">
-                    <table class="table table-striped table-hover table-sm text-start m-0 profile-summary-table" style="font-size: 0.85rem; line-height: 1.5; width: 100%;">
-                        <tbody>
-                            <tr>
-                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 40%;">Email</td>
-                                <td class="prop-val" style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right; word-break: break-all;">{{ student.email|default:"-" }}</td>
-                            </tr>
-                            <tr>
-                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 40%;">Admission Date</td>
-                                <td class="prop-val" style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right;">{{ student.created_at|date:"M d, Y" }}</td>
-                            </tr>
-                            <tr>
-                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 40%;">Class/Section</td>
-                                <td class="prop-val" style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right;">
-                                    {% if enrollment %}
-                                        {{ enrollment.grade.name|default:"-" }} / {{ enrollment.section.name|default:"-" }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 40%;">Division/Room</td>
-                                <td class="prop-val" style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right;">
-                                    {% if enrollment %}
-                                        {{ enrollment.division.name|default:"-" }} / {{ enrollment.room.room_number|default:"-" }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 40%;">Type</td>
-                                <td class="prop-val" style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right;">{{ student.get_student_type_display }}</td>
-                            </tr>
-                            <tr>
-                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 40%;">Phone</td>
-                                <td class="prop-val" style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right;">{{ student.phone|default:"-" }}</td>
-                            </tr>
-                            <tr>
-                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 40%;">Address</td>
-                                <td class="prop-val" style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right; word-break: break-word;">{{ student.address|default:"-" }}</td>
-                            </tr>
-                            <tr>
-                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 40%;">Transport</td>
-                                <td class="prop-val" style="font-weight: 700; color: #1e293b; padding: 6px 8px; border: none; text-align: right;">
-                                    {% if student.uses_bus %}Bus ({{ student.bus_stop.name }}){% else %}Private{% endif %}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 40%;">Balance</td>
-                                <td class="prop-val" style="font-weight: 700; color: #15803d; padding: 6px 8px; border: none; text-align: right;">₹{{ student.advance_balance }}</td>
-                            </tr>
-                            <tr>
-                                <td class="prop-label" style="font-weight: 600; color: #64748b; padding: 6px 8px; border: none; width: 40%;">Active Status</td>
-                                <td class="prop-val" style="font-weight: 700; padding: 6px 8px; border: none; text-align: right;">
-                                    {% if student.is_active %}
-                                        <span style="color: #16a34a; font-weight: 700;">Active</span>
-                                    {% else %}
-                                        <span style="color: #dc2626; font-weight: 700;">Inactive</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Mobile Card Stack (No Horizontal Scroll Needed) -->
-                <div class="profile-mobile-info-list">
+                <!-- Modern Student Info Cards (All Devices) -->
+                <div class="profile-info-list">
                     <div class="profile-info-row-card">
                         <span class="info-lbl"><i class="fa-solid fa-envelope text-muted"></i> Email</span>
                         <span class="info-val">{{ student.email|default:"-" }}</span>
@@ -603,9 +547,9 @@
                         <span class="info-lbl"><i class="fa-solid fa-circle-check text-muted"></i> Status</span>
                         <span class="info-val">
                             {% if student.is_active %}
-                                <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 0.72rem; padding: 2px 7px;">Active</span>
+                                <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 0.75rem; padding: 3px 8px; border-radius: 6px;">Active</span>
                             {% else %}
-                                <span class="badge" style="background: #fee2e2; color: #b91c1c; font-size: 0.72rem; padding: 2px 7px;">Inactive</span>
+                                <span class="badge" style="background: #fee2e2; color: #b91c1c; font-size: 0.75rem; padding: 3px 8px; border-radius: 6px;">Inactive</span>
                             {% endif %}
                         </span>
                     </div>
