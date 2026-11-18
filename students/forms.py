@@ -165,13 +165,13 @@ class AlumniRegistryForm(forms.ModelForm):
         model = AlumniRegistry
         fields = ['alumni_id', 'sl_no', 'name', 'phone_number', 'course', 'admission_year', 'remarks']
         widgets = {
-            'alumni_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. ALUM-001'}),
+            'alumni_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 101'}),
             'sl_no': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 1'}),
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Full name of student', 'required': 'required'}),
-            'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. +91 9876543210'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 9876543210'}),
             'course': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. B.Com Computer Application'}),
             'admission_year': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 2022'}),
-            'remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Optional remarks or current status'}),
+            'remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Optional remarks or current status'}),
         }
 
 # --- Job Vacancy Forms ---

@@ -374,68 +374,195 @@
     }
 
     /* ============================================================
-       ADD ALUMNI MODAL & FORM DESIGN
+       SIMPLE ADD ALUMNI MODAL & FORM DESIGN
        ============================================================ */
-    .form-section-header {
-        font-size: 0.74rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: #64748b;
-        margin-top: 0.5rem;
-        margin-bottom: 0.75rem;
+    /* Universal Modal Popup System */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        z-index: 99999;
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding: 1.5rem 1rem;
+        box-sizing: border-box;
+    }
+
+    .modal.show, .modal.active {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-dialog {
+        position: relative;
+        width: 100%;
+        max-width: 680px;
+        margin: auto;
+        pointer-events: auto;
+    }
+
+    .modal-dialog.modal-lg {
+        max-width: 760px;
+    }
+
+    .modal-content {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        background-color: #ffffff;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        outline: 0;
+        overflow: hidden;
+        animation: modalFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalFadeIn {
+        from { opacity: 0; transform: translateY(-16px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .alumni-modal-header {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        justify-content: space-between;
+        background-color: #f1f5f9; /* normal light ash colour */
+        border-bottom: 1px solid #e2e8f0;
+        padding: 1.15rem 1.5rem;
     }
 
-    .form-section-header::after {
-        content: '';
-        flex: 1;
-        height: 1px;
-        background: #e2e8f0;
-    }
-
-    .form-field-card {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 0.65rem 0.85rem;
-        transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .form-field-card:focus-within {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    .modal-body {
+        position: relative;
+        flex: 1 1 auto;
+        padding: 1.5rem;
         background: #ffffff;
     }
 
-    .form-field-card label {
+    .modal-footer {
         display: flex;
         align-items: center;
-        gap: 0.35rem;
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: #475569;
-        margin-bottom: 0.25rem;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
+        justify-content: space-between;
+        padding: 1rem 1.5rem;
+        background-color: #f8fafc;
+        border-top: 1px solid #e2e8f0;
     }
 
-    .form-field-card input, .form-field-card textarea, .form-field-card select {
-        width: 100%;
-        border: none;
-        outline: none;
-        background: transparent;
-        font-size: 0.88rem;
+    .btn-close {
+        box-sizing: content-box;
+        width: 1.25rem;
+        height: 1.25rem;
+        padding: 0.25rem;
         color: #0f172a;
-        font-weight: 500;
-        padding: 0;
+        background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%230f172a'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3e%3c/svg%3e") center/1em auto no-repeat;
+        border: 0;
+        border-radius: 0.375rem;
+        opacity: 0.55;
+        cursor: pointer;
+        transition: opacity 0.15s ease;
     }
 
-    .form-field-card input::placeholder, .form-field-card textarea::placeholder {
-        color: #94a3b8;
-        font-size: 0.82rem;
+    .btn-close:hover {
+        opacity: 1;
+    }
+
+    /* 2 Fields Per Row Grid */
+    .form-grid-2 {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        column-gap: 1.5rem !important;
+        row-gap: 1.15rem !important;
+        width: 100% !important;
+    }
+
+    @media (max-width: 640px) {
+        .form-grid-2 {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+        }
+    }
+
+    .form-grid-full {
+        grid-column: 1 / -1 !important;
+        width: 100% !important;
+    }
+
+    /* Fallback Flex Grid */
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        margin-right: -0.75rem;
+        margin-left: -0.75rem;
+    }
+
+    .col-md-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+        padding-right: 0.75rem;
+        padding-left: 0.75rem;
+        box-sizing: border-box;
+    }
+
+    .col-12 {
+        flex: 0 0 100%;
+        max-width: 100%;
+        padding-right: 0.75rem;
+        padding-left: 0.75rem;
+        box-sizing: border-box;
+    }
+
+    @media (max-width: 640px) {
+        .col-md-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+    }
+
+    .simple-form-field {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 0;
+    }
+
+    .simple-form-field label {
+        display: block;
+        font-size: 0.83rem;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 0.45rem;
+    }
+
+    .simple-form-field .form-control {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 0.65rem 0.95rem !important; /* proper comfortable padding for fields */
+        font-size: 0.9rem !important;
+        line-height: 1.5 !important;
+        color: #0f172a !important;
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 8px !important;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+    .simple-form-field .form-control:focus {
+        border-color: #475569 !important;
+        box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.15) !important;
+        outline: none !important;
+        background-color: #ffffff !important;
+    }
+
+    .simple-form-field .form-control::placeholder {
+        color: #94a3b8 !important;
+        font-size: 0.86rem !important;
     }
 
     .dropzone-box {
@@ -600,7 +727,7 @@
                     <a href="{% url 'students:alumni_registry_export' %}?search={{ search_query }}&course={{ selected_course }}&admission_year={{ selected_year }}&sort={{ current_sort }}" class="btn btn-sm btn-outline-secondary fw-bold bg-white" style="border-radius: 8px; padding: 0.5rem 0.9rem;" title="Export current list to Excel">
                         <i class="fa-solid fa-file-export me-1"></i> Export
                     </a>
-                    <button type="button" class="btn btn-sm text-white fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addAlumniModal" style="border-radius: 8px; padding: 0.5rem 1rem; background: linear-gradient(135deg, #1e3a8a, #3b82f6); border: none;">
+                    <button type="button" class="btn btn-sm text-white fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addAlumniModal" style="border-radius: 8px; padding: 0.5rem 1rem; background: #0f172a; border: 1px solid #0f172a;">
                         <i class="fa-solid fa-user-plus me-1"></i> Add Alumni
                     </button>
                 </div>
@@ -975,95 +1102,71 @@
     </div>
 </div>
 
-<!-- VISUALLY APPEALING ADD ALUMNI MODAL -->
+<!-- SIMPLE ADD ALUMNI MODAL (2 FIELDS PER ROW) -->
 <div class="modal fade" id="addAlumniModal" tabindex="-1" aria-labelledby="addAlumniModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden; box-shadow: 0 20px 45px rgba(0,0,0,0.2);">
-            <!-- Modal Header -->
-            <div class="modal-header text-white" style="background: linear-gradient(135deg, #1e3a8a, #3b82f6); padding: 1.25rem 1.75rem;">
-                <div class="d-flex align-items-center gap-3">
-                    <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-                        <i class="fa-solid fa-user-graduate"></i>
-                    </div>
-                    <div>
-                        <h5 class="modal-title fw-bold mb-0" id="addAlumniModalLabel">Add Alumni Record</h5>
-                        <p class="text-white-50 mb-0 small" style="font-size: 0.78rem;">Register a student into the permanent institutional alumni archive</p>
-                    </div>
+        <div class="modal-content" style="border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08);">
+            
+            <!-- Modal Header (Normal light ash colour bg) -->
+            <div class="modal-header alumni-modal-header d-flex align-items-center justify-content-between">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0 text-dark" id="addAlumniModalLabel" style="font-size: 1.05rem; color: #0f172a;">
+                        <i class="fa-solid fa-user-plus text-secondary me-2"></i>Add Alumni Record
+                    </h5>
+                    <p class="text-muted mb-0 small" style="font-size: 0.8rem; margin-top: 2px;">Enter student details to add a record to the alumni registry</p>
                 </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <form method="post" action="{% url 'students:alumni_registry_create' %}">
                 {% csrf_token %}
-                <div class="modal-body p-4">
-                    <!-- Section 1: Identification -->
-                    <div class="form-section-header">
-                        <i class="fa-solid fa-id-card text-primary"></i> Identification Details
-                    </div>
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-4">
-                            <div class="form-field-card">
-                                <label><i class="fa-solid fa-hashtag text-muted"></i> ALUMNI ID</label>
-                                {{ form.alumni_id }}
-                                <div class="text-muted" style="font-size: 0.72rem; margin-top: 2px;">Leave blank to auto-generate</div>
-                            </div>
+                <div class="modal-body p-4" style="background: #ffffff;">
+                    <!-- 2 Fields Per Row Grid -->
+                    <div class="form-grid-2">
+                        <!-- Row 1: Field 1 & 2 -->
+                        <div class="simple-form-field">
+                            <label for="id_alumni_id">ALUMNI ID</label>
+                            {{ form.alumni_id }}
+                            <div class="text-muted" style="font-size: 0.73rem; margin-top: 4px;">Leave blank to auto-generate next number</div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="form-field-card">
-                                <label><i class="fa-solid fa-list-ol text-muted"></i> Sl No</label>
-                                {{ form.sl_no }}
-                            </div>
+                        <div class="simple-form-field">
+                            <label for="id_sl_no">Sl No</label>
+                            {{ form.sl_no }}
+                            <div class="text-muted" style="font-size: 0.73rem; margin-top: 4px;">Serial number in list (optional)</div>
                         </div>
-                        <div class="col-md-5">
-                            <div class="form-field-card">
-                                <label><i class="fa-solid fa-user text-primary"></i> Student Name <span class="text-danger">*</span></label>
-                                {{ form.name }}
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Section 2: Academic & Contact Info -->
-                    <div class="form-section-header">
-                        <i class="fa-solid fa-graduation-cap text-primary"></i> Academic & Contact Info
-                    </div>
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <div class="form-field-card">
-                                <label><i class="fa-solid fa-book-open text-muted"></i> Course</label>
-                                {{ form.course }}
-                            </div>
+                        <!-- Row 2: Field 3 & 4 -->
+                        <div class="simple-form-field">
+                            <label for="id_name">Name of Student <span class="text-danger">*</span></label>
+                            {{ form.name }}
                         </div>
-                        <div class="col-md-3">
-                            <div class="form-field-card">
-                                <label><i class="fa-solid fa-calendar-check text-muted"></i> Admission Year</label>
-                                {{ form.admission_year }}
-                            </div>
+                        <div class="simple-form-field">
+                            <label for="id_phone_number">Phone Number</label>
+                            {{ form.phone_number }}
                         </div>
-                        <div class="col-md-3">
-                            <div class="form-field-card">
-                                <label><i class="fa-solid fa-phone text-muted"></i> Phone Number</label>
-                                {{ form.phone_number }}
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Section 3: Notes & Current Status -->
-                    <div class="form-section-header">
-                        <i class="fa-solid fa-comment-dots text-primary"></i> Remarks & Notes
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <div class="form-field-card">
-                                <label><i class="fa-solid fa-pen text-muted"></i> Remarks / Current Status</label>
-                                {{ form.remarks }}
-                            </div>
+                        <!-- Row 3: Field 5 & 6 -->
+                        <div class="simple-form-field">
+                            <label for="id_course">Course</label>
+                            {{ form.course }}
+                        </div>
+                        <div class="simple-form-field">
+                            <label for="id_admission_year">Admission Year</label>
+                            {{ form.admission_year }}
+                        </div>
+
+                        <!-- Row 4: Remarks / Status (Spans 2 columns) -->
+                        <div class="simple-form-field form-grid-full mb-0">
+                            <label for="id_remarks">Remarks / Status</label>
+                            {{ form.remarks }}
                         </div>
                     </div>
                 </div>
 
-                <div class="modal-footer bg-light px-4 py-3 d-flex justify-content-between">
-                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
-                    <button type="submit" class="btn btn-sm text-white fw-bold px-4" style="border-radius: 8px; background: linear-gradient(135deg, #1e3a8a, #3b82f6); border: none;">
+                <!-- Modal Footer -->
+                <div class="modal-footer px-4 py-3 d-flex justify-content-between" style="background: #f8fafc; border-top: 1px solid #e2e8f0;">
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-2 fw-medium" data-bs-dismiss="modal" style="border-radius: 8px; font-size: 0.85rem;">Cancel</button>
+                    <button type="submit" class="btn btn-sm text-white fw-bold px-4 py-2" style="border-radius: 8px; background: #0f172a; border: none; font-size: 0.85rem;">
                         <i class="fa-solid fa-check me-1"></i> Save Alumni Record
                     </button>
                 </div>
@@ -1192,5 +1295,60 @@
             form.submit();
         }
     }
+
+    // Modal Trigger and Dismiss Handlers
+    document.addEventListener('DOMContentLoaded', function() {
+        // Open modal
+        document.querySelectorAll('[data-bs-toggle="modal"]').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetSelector = this.getAttribute('data-bs-target') || this.getAttribute('href');
+                if (targetSelector) {
+                    const targetModal = document.querySelector(targetSelector);
+                    if (targetModal) {
+                        targetModal.classList.add('show', 'active');
+                        targetModal.style.display = 'flex';
+                        document.body.classList.add('modal-open');
+                    }
+                }
+            });
+        });
+
+        // Close modal helper
+        function closeModal(modal) {
+            modal.classList.remove('show', 'active');
+            modal.style.display = 'none';
+            if (!document.querySelector('.modal.show, .modal.active')) {
+                document.body.classList.remove('modal-open');
+            }
+        }
+
+        // Close buttons
+        document.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const modal = this.closest('.modal');
+                if (modal) {
+                    closeModal(modal);
+                }
+            });
+        });
+
+        // Backdrop click to close
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeModal(this);
+                }
+            });
+        });
+
+        // Escape key to close
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal.show, .modal.active').forEach(m => closeModal(m));
+            }
+        });
+    });
 </script>
 {% endblock %}

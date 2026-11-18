@@ -6,73 +6,76 @@
 <style>
     .edit-card {
         background: #ffffff;
-        border: 1px solid #cbd5e1;
-        border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.05);
         overflow: hidden;
     }
 
-    .form-section-header {
-        font-size: 0.76rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: #64748b;
-        margin-top: 0.75rem;
-        margin-bottom: 0.85rem;
+    .edit-card-header {
+        background-color: #f1f5f9; /* normal light ash colour */
+        border-bottom: 1px solid #e2e8f0;
+        padding: 1.15rem 1.5rem;
+    }
+
+    /* 2 Fields Per Row Grid */
+    .form-grid-2 {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        column-gap: 1.5rem !important;
+        row-gap: 1.15rem !important;
+        width: 100% !important;
+    }
+
+    @media (max-width: 640px) {
+        .form-grid-2 {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+        }
+    }
+
+    .form-grid-full {
+        grid-column: 1 / -1 !important;
+        width: 100% !important;
+    }
+
+    .simple-form-field {
         display: flex;
-        align-items: center;
-        gap: 0.5rem;
+        flex-direction: column;
+        margin-bottom: 0;
     }
 
-    .form-section-header::after {
-        content: '';
-        flex: 1;
-        height: 1px;
-        background: #e2e8f0;
-    }
-
-    .form-field-card {
-        background: #f8fafc;
-        border: 1px solid #cbd5e1;
-        border-radius: 10px;
-        padding: 0.75rem 0.95rem;
-        transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
-    }
-
-    .form-field-card:focus-within {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-        background: #ffffff;
-    }
-
-    .form-field-card label {
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: #475569;
-        margin-bottom: 0.35rem;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-    }
-
-    .form-field-card input, .form-field-card textarea {
-        width: 100%;
-        border: none;
-        outline: none;
-        background: transparent;
-        font-size: 0.92rem;
-        color: #0f172a;
+    .simple-form-field label {
+        display: block;
+        font-size: 0.83rem;
         font-weight: 600;
-        padding: 0;
+        color: #334155;
+        margin-bottom: 0.45rem;
     }
 
-    .form-field-card input::placeholder, .form-field-card textarea::placeholder {
-        color: #94a3b8;
-        font-size: 0.85rem;
-        font-weight: 400;
+    .simple-form-field .form-control {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 0.65rem 0.95rem !important; /* proper padding for fields */
+        font-size: 0.9rem !important;
+        line-height: 1.5 !important;
+        color: #0f172a !important;
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 8px !important;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+    .simple-form-field .form-control:focus {
+        border-color: #475569 !important;
+        box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.15) !important;
+        outline: none !important;
+        background-color: #ffffff !important;
+    }
+
+    .simple-form-field .form-control::placeholder {
+        color: #94a3b8 !important;
+        font-size: 0.86rem !important;
     }
 </style>
 {% endblock %}
@@ -85,99 +88,80 @@
                 <i class="fa-solid fa-arrow-left me-1"></i> Back to Alumni Registry
             </a>
             <h2 class="h4 fw-bold text-dark mb-0">Edit Alumni Record</h2>
-            <p class="text-muted small mb-0">Update information for institutional record ID: <strong class="text-primary font-monospace">{{ alumni.alumni_id|default:alumni.id }}</strong></p>
+            <p class="text-muted small mb-0">Update information for institutional record ID: <strong class="text-dark font-monospace">{{ alumni.alumni_id|default:alumni.id }}</strong></p>
         </div>
-        <span class="badge bg-primary px-3 py-2" style="font-size: 0.85rem; border-radius: 8px;">
-            <i class="fa-solid fa-user-graduate me-1"></i> Record #{{ alumni.sl_no|default:alumni.id }}
+        <span class="badge bg-light text-dark border px-3 py-2" style="font-size: 0.85rem; border-radius: 8px;">
+            <i class="fa-solid fa-user-graduate me-1 text-secondary"></i> Record #{{ alumni.sl_no|default:alumni.id }}
         </span>
     </div>
 
     <div class="edit-card">
-        <div class="p-3 text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #1e3a8a, #3b82f6);">
+        <!-- Normal light hash colour header -->
+        <div class="edit-card-header d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-3">
-                <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                <div style="width: 40px; height: 40px; border-radius: 8px; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #334155;">
                     <i class="fa-solid fa-user-pen"></i>
                 </div>
                 <div>
-                    <h5 class="fw-bold mb-0">{{ alumni.name }}</h5>
-                    <span class="text-white-50 small">{{ alumni.course|default:"Course Unassigned" }} &bull; Batch {{ alumni.admission_year|default:"N/A" }}</span>
+                    <h5 class="fw-bold mb-0 text-dark" style="font-size: 1.05rem;">{{ alumni.name }}</h5>
+                    <span class="text-muted small">{{ alumni.course|default:"Course Unassigned" }} &bull; Batch {{ alumni.admission_year|default:"N/A" }}</span>
                 </div>
             </div>
-            <a href="tel:{{ alumni.phone_number }}" class="btn btn-sm btn-light fw-bold" style="border-radius: 8px;">
-                <i class="fa-solid fa-phone me-1 text-primary"></i> {{ alumni.phone_number|default:"No Phone" }}
+            {% if alumni.phone_number %}
+            <a href="tel:{{ alumni.phone_number }}" class="btn btn-sm btn-outline-secondary fw-semibold bg-white" style="border-radius: 8px;">
+                <i class="fa-solid fa-phone me-1"></i> {{ alumni.phone_number }}
             </a>
+            {% endif %}
         </div>
 
         <form method="post">
             {% csrf_token %}
-            <div class="card-body p-4">
-                <!-- Section 1: Identification -->
-                <div class="form-section-header">
-                    <i class="fa-solid fa-id-card text-primary"></i> Identification Details
-                </div>
-                <div class="row g-3 mb-3">
-                    <div class="col-md-4">
-                        <div class="form-field-card">
-                            <label><i class="fa-solid fa-hashtag text-muted"></i> ALUMNI ID</label>
-                            {{ form.alumni_id }}
-                        </div>
+            <div class="card-body p-4" style="background: #ffffff;">
+                <!-- 2 Fields Per Row Grid -->
+                <div class="form-grid-2">
+                    <!-- Row 1: Field 1 & 2 -->
+                    <div class="simple-form-field">
+                        <label for="id_alumni_id">ALUMNI ID</label>
+                        {{ form.alumni_id }}
+                        <div class="text-muted" style="font-size: 0.73rem; margin-top: 4px;">Institutional Alumni identifier</div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="form-field-card">
-                            <label><i class="fa-solid fa-list-ol text-muted"></i> Sl No</label>
-                            {{ form.sl_no }}
-                        </div>
+                    <div class="simple-form-field">
+                        <label for="id_sl_no">Sl No</label>
+                        {{ form.sl_no }}
+                        <div class="text-muted" style="font-size: 0.73rem; margin-top: 4px;">Serial number in list (optional)</div>
                     </div>
-                    <div class="col-md-5">
-                        <div class="form-field-card">
-                            <label><i class="fa-solid fa-user text-primary"></i> Student Name <span class="text-danger">*</span></label>
-                            {{ form.name }}
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Section 2: Academic & Contact Info -->
-                <div class="form-section-header">
-                    <i class="fa-solid fa-graduation-cap text-primary"></i> Academic & Contact Info
-                </div>
-                <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <div class="form-field-card">
-                            <label><i class="fa-solid fa-book-open text-muted"></i> Course</label>
-                            {{ form.course }}
-                        </div>
+                    <!-- Row 2: Field 3 & 4 -->
+                    <div class="simple-form-field">
+                        <label for="id_name">Name of Student <span class="text-danger">*</span></label>
+                        {{ form.name }}
                     </div>
-                    <div class="col-md-3">
-                        <div class="form-field-card">
-                            <label><i class="fa-solid fa-calendar-check text-muted"></i> Admission Year</label>
-                            {{ form.admission_year }}
-                        </div>
+                    <div class="simple-form-field">
+                        <label for="id_phone_number">Phone Number</label>
+                        {{ form.phone_number }}
                     </div>
-                    <div class="col-md-3">
-                        <div class="form-field-card">
-                            <label><i class="fa-solid fa-phone text-muted"></i> Phone Number</label>
-                            {{ form.phone_number }}
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Section 3: Notes & Current Status -->
-                <div class="form-section-header">
-                    <i class="fa-solid fa-comment-dots text-primary"></i> Remarks & Status
-                </div>
-                <div class="row g-3">
-                    <div class="col-12">
-                        <div class="form-field-card">
-                            <label><i class="fa-solid fa-pen text-muted"></i> Remarks / Status</label>
-                            {{ form.remarks }}
-                        </div>
+                    <!-- Row 3: Field 5 & 6 -->
+                    <div class="simple-form-field">
+                        <label for="id_course">Course</label>
+                        {{ form.course }}
+                    </div>
+                    <div class="simple-form-field">
+                        <label for="id_admission_year">Admission Year</label>
+                        {{ form.admission_year }}
+                    </div>
+
+                    <!-- Row 4: Remarks / Current Status (Spans 2 columns) -->
+                    <div class="simple-form-field form-grid-full mb-0">
+                        <label for="id_remarks">Remarks / Status</label>
+                        {{ form.remarks }}
                     </div>
                 </div>
             </div>
 
-            <div class="card-footer bg-light px-4 py-3 d-flex justify-content-between align-items-center">
-                <a href="{% url 'students:alumni_registry_list' %}" class="btn btn-sm btn-outline-secondary px-3" style="border-radius: 8px;">Cancel</a>
-                <button type="submit" class="btn btn-sm text-white fw-bold px-4 shadow-sm" style="background: linear-gradient(135deg, #1e3a8a, #3b82f6); border-radius: 8px; border: none;">
+            <div class="card-footer px-4 py-3 d-flex justify-content-between align-items-center" style="background: #f8fafc; border-top: 1px solid #e2e8f0;">
+                <a href="{% url 'students:alumni_registry_list' %}" class="btn btn-sm btn-outline-secondary px-3 py-2 fw-medium" style="border-radius: 8px; font-size: 0.85rem;">Cancel</a>
+                <button type="submit" class="btn btn-sm text-white fw-bold px-4 py-2" style="background: #0f172a; border-radius: 8px; border: none; font-size: 0.85rem;">
                     <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes
                 </button>
             </div>
