@@ -9698,7 +9698,7 @@ def pwa_manifest(request):
 def pwa_serviceworker(request):
     """Serve PWA service worker sw.js with root scope for Chrome PWA installation"""
     sw_code = """
-const CACHE_NAME = 'hamda-campus-pwa-v5';
+const CACHE_NAME = 'hamda-campus-pwa-v6';
 const urlsToCache = [
   '/static/images/app_icon.png',
   '/static/img/app_icon.png',
