@@ -3923,16 +3923,20 @@ def student_profile(request, pk):
 
     # Monthly attendance
     import calendar
+    latest_att = Attendance.objects.filter(student=student).order_by('-date').first()
+    default_month = latest_att.date.month if latest_att else today.month
+    default_year = latest_att.date.year if latest_att else today.year
+
     try:
-        current_month = int(request.GET.get('month', today.month))
-        curr_year = int(request.GET.get('year', today.year))
+        current_month = int(request.GET.get('month', default_month))
+        curr_year = int(request.GET.get('year', default_year))
         if not (1 <= current_month <= 12):
-            current_month = today.month
+            current_month = default_month
         if not (1900 <= curr_year <= 2100):
-            curr_year = today.year
+            curr_year = default_year
     except (ValueError, TypeError):
-        current_month = today.month
-        curr_year = today.year
+        current_month = default_month
+        curr_year = default_year
 
     monthly_att = Attendance.objects.filter(
         student=student, 
@@ -3952,32 +3956,93 @@ def student_profile(request, pk):
 
     # Dropdown choices
     months_choices = [(i, calendar.month_name[i]) for i in range(1, 13)]
-    years_choices = list(range(today.year - 2, today.year + 2))
+    # Populate years based on student's actual attendance records or recent years
+    existing_att_years = set(Attendance.objects.filter(student=student).values_list('date__year', flat=True))
+    existing_att_years.update([today.year - 1, today.year, today.year + 1, curr_year])
+    years_choices = sorted(list(existing_att_years))
+
+    # Build calendar weeks matrix for the selected month
+    cal_obj = calendar.Calendar(firstweekday=6)  # Sunday first
+    cal_days_matrix = cal_obj.monthdays2calendar(curr_year, current_month)
+    att_by_date = {att.date: att.status for att in monthly_att}
+    holidays_in_month = set(Holiday.objects.filter(
+        date__gte=m_start, date__lte=m_end
+    ).filter(
+        Q(grades__isnull=True) | (Q(grades=st_grade) if st_grade else Q())
+    ).values_list('date', flat=True))
+
+    calendar_weeks = []
+    for week in cal_days_matrix:
+        week_days = []
+        for day_num, weekday in week:
+            if day_num == 0:
+                week_days.append({
+                    'day': None,
+                    'weekday': weekday,
+                    'in_month': False,
+                    'is_today': False,
+                    'status': None,
+                })
+            else:
+                day_date = date(curr_year, current_month, day_num)
+                is_today = (day_date == today)
+                if day_date in holidays_in_month:
+                    day_status = 'holiday'
+                elif day_date in att_by_date:
+                    day_status = att_by_date[day_date]
+                else:
+                    day_status = None
+
+                week_days.append({
+                    'day': day_num,
+                    'date': day_date,
+                    'weekday': weekday,
+                    'in_month': True,
+                    'is_today': is_today,
+                    'status': day_status,
+                })
+        calendar_weeks.append(week_days)
+
+    # Attendance logs (recent records for this student)
+    recent_attendances = Attendance.objects.filter(student=student).order_by('-date')[:15]
     
-    # Yearly attendance (Total attendance status of this academic year)
+    # Yearly attendance (Total attendance status of this academic year or full recorded year)
+    yearly_att = Attendance.objects.filter(student=student)
     if session_start:
-        yearly_att = Attendance.objects.filter(
-            student=student,
-            date__gte=session_start,
-            date__lte=active_year.end_date if active_year and active_year.end_date else today
-        )
-        y_end = active_year.end_date if active_year and active_year.end_date else today
-        y_holidays = get_holiday_dates(session_start, y_end, grade=grade_obj)
+        yearly_att = yearly_att.filter(date__gte=session_start)
+    if active_year and active_year.end_date:
+        yearly_att = yearly_att.filter(date__lte=active_year.end_date)
+    
+    # If student has no attendance within active_year session start, fallback to student's all-time attendance
+    if session_start and yearly_att.count() == 0 and Attendance.objects.filter(student=student).exists():
+        yearly_att = Attendance.objects.filter(student=student)
         
-        yearly_att_stats = yearly_att.exclude(date__in=y_holidays, status='absent')
-        yearly_total = yearly_att_stats.count()
-        yearly_present = yearly_att_stats.filter(status='present').count()
-        yearly_attended = yearly_att_stats.filter(status__in=['present', 'late', 'excused']).count()
-        attendance_yearly_percentage = round((yearly_attended / yearly_total * 100), 2) if yearly_total > 0 else 0
-    else:
-        yearly_total = 0
-        yearly_present = 0
-        yearly_attended = 0
-        attendance_yearly_percentage = 0
+    y_dates = list(yearly_att.values_list('date', flat=True))
+    y_holidays = get_holiday_dates(min(y_dates), max(y_dates), grade=grade_obj) if y_dates else set()
+    
+    yearly_att_stats = yearly_att.exclude(date__in=y_holidays, status='absent')
+    yearly_total = yearly_att_stats.count()
+    yearly_present = yearly_att_stats.filter(status='present').count()
+    yearly_attended = yearly_att_stats.filter(status__in=['present', 'late', 'excused']).count()
+    attendance_yearly_percentage = round((yearly_attended / yearly_total * 100), 2) if yearly_total > 0 else 0
         
-    # Get progress reports
+    # Get exam progress reports & real exam marks
+    is_student_user = hasattr(request.user, 'profile') and request.user.profile.role == 'student'
+    
+    # Dynamic progress reports from MarkEntry records
+    student_exam_types = ExamType.objects.filter(markentry__student=student).distinct().order_by('order', 'name')
+    if is_student_user:
+        student_exam_types = student_exam_types.filter(is_published=True)
+        
+    dynamic_exam_reports = []
+    for et in student_exam_types:
+        report_data = get_dynamic_student_progress(student, et)
+        if report_data and report_data.get('has_marks'):
+            dynamic_exam_reports.append(report_data)
+
+    # Saved ProgressReport model objects (as fallback or addition)
     progress_reports = ProgressReport.objects.filter(student=student).select_related('exam_type').order_by('-generated_at')
-    if hasattr(request.user, 'profile') and request.user.profile.role == 'student':
+    if is_student_user:
         progress_reports = progress_reports.filter(exam_type__is_published=True)
         
     context = {
@@ -3996,10 +4061,13 @@ def student_profile(request, pk):
         'selected_year': curr_year,
         'months_choices': months_choices,
         'years_choices': years_choices,
+        'calendar_weeks': calendar_weeks,
+        'recent_attendances': recent_attendances,
         'yearly_total': yearly_total,
         'yearly_present': yearly_present,
         'attendance_yearly_percentage': attendance_yearly_percentage,
         'progress_reports': progress_reports,
+        'dynamic_exam_reports': dynamic_exam_reports,
     }
     return render(request, 'students/student_profile.html', context)
 

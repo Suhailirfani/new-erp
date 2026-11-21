@@ -761,49 +761,49 @@
                         <div class="attendance-dual-grid">
                             <!-- Overall Annual Card -->
                             <div class="att-mini-card" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid rgba(22, 163, 74, 0.25);">
-                                <h5 style="color: #15803d;">Overall Annual</h5>
-                                <div class="att-mini-ring">
-                                    <svg viewBox="0 0 80 80">
-                                        <circle cx="40" cy="40" r="33" stroke="#bbf7d0"></circle>
-                                        <circle cx="40" cy="40" r="33" stroke="#16a34a"
-                                                stroke-dasharray="207.34"
-                                                stroke-dashoffset="{{ attendance_stats.overall_dashoffset|default:'0' }}"></circle>
-                                    </svg>
-                                    <span class="progress-value" style="color: #15803d;">{{ attendance_stats.percentage }}%</span>
+                                <h5 style="color: #15803d;">Academic Year Attendance</h5>
+                                <div style="background: #fff; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; color: #15803d; margin-bottom: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    {% if active_year %}{{ active_year.name }}{% else %}Active Year{% endif %}
                                 </div>
-                                <div class="att-mini-footer" style="color: #166534;">
-                                    {{ attendance_stats.present_days }} / {{ attendance_stats.total_working_days }} Days
+                                <div class="att-mini-ring" style="--percent: {{ attendance_yearly_percentage|default:0 }}">
+                                    <svg viewBox="0 0 72 72">
+                                        <circle cx="36" cy="36" r="30" style="stroke: rgba(22, 163, 74, 0.15);"></circle>
+                                        <circle cx="36" cy="36" r="30" style="stroke-dasharray: 188.5; stroke-dashoffset: calc(188.5 - (188.5 * var(--percent)) / 100); stroke: #16a34a;"></circle>
+                                    </svg>
+                                    <div class="progress-value" style="color: #15803d;">{{ attendance_yearly_percentage|floatformat:0 }}%</div>
+                                </div>
+                                <div class="att-mini-footer" style="color: #166534;" title="Attended {{ yearly_present }} of {{ yearly_total }} days">
+                                    {{ yearly_present }} / {{ yearly_total }} Days Present
                                 </div>
                             </div>
 
                             <!-- Selected Month Card with Inline Selector -->
-                            <div class="att-mini-card" style="background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); border: 1.5px solid rgba(79, 70, 229, 0.25);">
+                            <div class="att-mini-card" style="background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 1.5px solid rgba(99, 102, 241, 0.25);">
+                                <h5 style="color: #4338ca;">Monthly Attendance</h5>
                                 <form method="get" id="monthSelectForm" style="margin: 0; width: 100%;">
                                     <input type="hidden" name="tab" value="attendance">
                                     <div style="display: flex; align-items: center; justify-content: center; gap: 0.35rem; margin-bottom: 0.25rem;">
                                         <select name="month" class="att-select-compact" onchange="document.getElementById('monthSelectForm').submit();">
-                                            {% for m_num, m_name in month_choices %}
-                                                <option value="{{ m_num }}" {% if selected_month == m_num %}selected{% endif %}>{{ m_name }}</option>
+                                            {% for m_num, m_name in months_choices %}
+                                                <option value="{{ m_num }}" {% if selected_month == m_num %}selected{% endif %}>{{ m_name|slice:":3" }}</option>
                                             {% endfor %}
                                         </select>
                                         <select name="year" class="att-select-compact" onchange="document.getElementById('monthSelectForm').submit();">
-                                            {% for y_opt in year_choices %}
+                                            {% for y_opt in years_choices %}
                                                 <option value="{{ y_opt }}" {% if selected_year == y_opt %}selected{% endif %}>{{ y_opt }}</option>
                                             {% endfor %}
                                         </select>
                                     </div>
                                 </form>
-                                <div class="att-mini-ring">
-                                    <svg viewBox="0 0 80 80">
-                                        <circle cx="40" cy="40" r="33" stroke="#c7d2fe"></circle>
-                                        <circle cx="40" cy="40" r="33" stroke="#4f46e5"
-                                                stroke-dasharray="207.34"
-                                                stroke-dashoffset="{{ monthly_stats.dashoffset|default:'0' }}"></circle>
+                                <div class="att-mini-ring" style="--percent: {{ attendance_monthly_percentage|default:0 }}">
+                                    <svg viewBox="0 0 72 72">
+                                        <circle cx="36" cy="36" r="30" style="stroke: rgba(67, 56, 202, 0.12);"></circle>
+                                        <circle cx="36" cy="36" r="30" style="stroke-dasharray: 188.5; stroke-dashoffset: calc(188.5 - (188.5 * var(--percent)) / 100); stroke: #6366f1;"></circle>
                                     </svg>
-                                    <span class="progress-value" style="color: #4338ca;">{{ monthly_stats.percentage }}%</span>
+                                    <div class="progress-value" style="color: #4338ca;">{{ attendance_monthly_percentage|floatformat:0 }}%</div>
                                 </div>
-                                <div class="att-mini-footer" style="color: #3730a3;">
-                                    {{ monthly_stats.present_days }} / {{ monthly_stats.working_days }} Days
+                                <div class="att-mini-footer" style="color: #4338ca;" title="Attended {{ monthly_present }} of {{ monthly_total }} days in {{ current_month_name }}">
+                                    {{ monthly_present }} / {{ monthly_total }} Days Present
                                 </div>
                             </div>
                         </div>
@@ -811,7 +811,7 @@
                         <!-- Monthly Calendar View -->
                         <div>
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 style="font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: #64748b; margin: 0;">Monthly Attendance Calendar</h6>
+                                <h6 style="font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: #64748b; margin: 0;">{{ current_month_name }} Attendance Calendar</h6>
                                 <div style="display: flex; gap: 0.5rem; font-size: 0.72rem; font-weight: 700;">
                                     <span style="color: #16a34a;"><i class="fa-solid fa-circle" style="font-size: 0.55rem;"></i> P (Present)</span>
                                     <span style="color: #dc2626;"><i class="fa-solid fa-circle" style="font-size: 0.55rem;"></i> A (Absent)</span>
@@ -863,6 +863,48 @@
                                 </table>
                             </div>
                         </div>
+
+                        <!-- Recent Attendance Logs Table -->
+                        {% if recent_attendances %}
+                        <div class="mt-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 style="font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: #64748b; margin: 0;">Recent Attendance Logs</h6>
+                                <a href="{% url 'students:attendance_student_detail' student.id %}" style="font-size: 0.72rem; font-weight: 700; color: #4f46e5; text-decoration: none;">View All &rarr;</a>
+                            </div>
+                            <div class="table-responsive rounded border" style="background: white;">
+                                <table class="table table-sm table-hover align-middle m-0" style="font-size: 0.78rem;">
+                                    <thead class="bg-light">
+                                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                                            <th style="padding: 6px 10px; font-weight: 700; color: #64748b;">Date</th>
+                                            <th style="padding: 6px 10px; font-weight: 700; color: #64748b; text-align: center;">Status</th>
+                                            <th style="padding: 6px 10px; font-weight: 700; color: #64748b;">Marked By</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for rec in recent_attendances %}
+                                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                                            <td style="padding: 6px 10px; font-weight: 600; color: #1e293b;">{{ rec.date|date:"d M Y (D)" }}</td>
+                                            <td style="padding: 6px 10px; text-align: center;">
+                                                {% if rec.status == 'present' %}
+                                                    <span class="badge" style="background-color: #dcfce7; color: #15803d; font-weight: 700; font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 4px;">Present</span>
+                                                {% elif rec.status == 'absent' %}
+                                                    <span class="badge" style="background-color: #fee2e2; color: #b91c1c; font-weight: 700; font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 4px;">Absent</span>
+                                                {% elif rec.status == 'late' %}
+                                                    <span class="badge" style="background-color: #fef3c7; color: #b45309; font-weight: 700; font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 4px;">Late</span>
+                                                {% elif rec.status == 'excused' %}
+                                                    <span class="badge" style="background-color: #e0f2fe; color: #0369a1; font-weight: 700; font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 4px;">Excused</span>
+                                                {% else %}
+                                                    <span class="badge bg-light text-dark">{{ rec.status|title }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td style="padding: 6px 10px; color: #64748b;">{{ rec.marked_by|default:"-" }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -871,10 +913,96 @@
             <div class="profile-tab-pane" id="pane-exams" style="display: none;">
                 <div class="card shadow-sm border-0" style="border-radius: 16px; background: white;">
                     <div class="card-body p-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-                            <h6 style="font-weight: 800; text-transform: uppercase; font-size: 0.85rem; color: #475569; margin: 0;">Examination Progress Reports</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom flex-wrap gap-2">
+                            <div>
+                                <h6 style="font-weight: 800; text-transform: uppercase; font-size: 0.85rem; color: #475569; margin: 0;">Examination Reports & Marks</h6>
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Real-time marks and progress summary</span>
+                            </div>
+                            <a href="{% url 'students:progress_report_detail' student.id %}" class="btn btn-xs btn-outline-primary" style="font-size: 0.72rem; font-weight: 700; padding: 0.3rem 0.65rem; border-radius: 8px;">
+                                <i class="fa-solid fa-file-invoice"></i> Consolidated Report
+                            </a>
                         </div>
-                        {% if progress_reports %}
+
+                        {% if dynamic_exam_reports %}
+                        <!-- List of dynamic exam reports calculated directly from entered marks -->
+                        <div class="d-flex flex-column gap-3 mb-3">
+                            {% for exam_data in dynamic_exam_reports %}
+                            <div class="border rounded-3 p-3" style="background: #f8fafc; border-color: #e2e8f0 !important;">
+                                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                                    <div>
+                                        <h6 style="font-weight: 800; font-size: 0.9rem; color: #1e293b; margin: 0;">
+                                            <i class="fa-solid fa-file-signature" style="color: #4f46e5; margin-right: 4px;"></i>
+                                            {{ exam_data.exam_type.name }}
+                                        </h6>
+                                        <span style="font-size: 0.72rem; color: #64748b; font-weight: 600;">{{ exam_data.academic_year.name|default:active_year.name }}</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        {% if exam_data.overall_result == 'PASSED' %}
+                                            <span class="badge" style="background-color: #dcfce7; color: #15803d; font-weight: 800; font-size: 0.75rem; padding: 0.3rem 0.6rem; border-radius: 6px;">PASSED</span>
+                                        {% elif exam_data.overall_result == 'FAILED' %}
+                                            <span class="badge" style="background-color: #fee2e2; color: #b91c1c; font-weight: 800; font-size: 0.75rem; padding: 0.3rem 0.6rem; border-radius: 6px;">FAILED</span>
+                                        {% endif %}
+                                        <span class="badge" style="background: #4f46e5; color: white; font-weight: 800; font-size: 0.75rem; padding: 0.3rem 0.6rem; border-radius: 6px;">Grade: {{ exam_data.overall_grade }}</span>
+                                        <a href="{% url 'students:progress_report_detail' student.id %}?exam_type={{ exam_data.exam_type.id }}" class="btn btn-xs btn-primary" style="background: #4f46e5; border-color: #4f46e5; font-size: 0.72rem; font-weight: 700; padding: 0.25rem 0.55rem; border-radius: 6px;">
+                                            <i class="fa-solid fa-eye"></i> View Report
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <!-- Summary stats strip -->
+                                <div class="d-flex gap-3 mb-2 py-2 px-3 rounded" style="background: white; border: 1px solid #edf2f7; font-size: 0.75rem; font-weight: 700;">
+                                    <div style="color: #475569;">Total Marks: <span style="color: #0f172a;">{{ exam_data.total_marks_obtained|floatformat:0 }} / {{ exam_data.total_max_marks|floatformat:0 }}</span></div>
+                                    <div style="color: #475569;">Percentage: <span style="color: #4f46e5;">{{ exam_data.overall_percentage|floatformat:1 }}%</span></div>
+                                    <div style="color: #475569;">Subjects Passed: <span style="color: #16a34a;">{{ exam_data.passed_count }}</span> / {{ exam_data.mark_entries|length }}</div>
+                                </div>
+
+                                <!-- Mini Subject Marks Table -->
+                                <div class="table-responsive rounded border" style="background: white;">
+                                    <table class="table table-sm table-hover align-middle m-0" style="font-size: 0.75rem;">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th style="padding: 4px 8px; font-weight: 700; color: #64748b;">Subject</th>
+                                                <th style="padding: 4px 8px; font-weight: 700; color: #64748b; text-align: center;">Marks Obtained</th>
+                                                <th style="padding: 4px 8px; font-weight: 700; color: #64748b; text-align: center;">Max Marks</th>
+                                                <th style="padding: 4px 8px; font-weight: 700; color: #64748b; text-align: center;">Pass Marks</th>
+                                                <th style="padding: 4px 8px; font-weight: 700; color: #64748b; text-align: center;">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for entry in exam_data.mark_entries %}
+                                            <tr>
+                                                <td style="padding: 4px 8px; font-weight: 700; color: #1e293b;">
+                                                    {{ entry.subject.name }}
+                                                    {% if entry.subject.subject_type == 'hadiya' %}
+                                                        <span class="badge" style="background: #fdf2f8; color: #db2777; font-size: 0.62rem; padding: 1px 4px;">Hadiya</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td style="padding: 4px 8px; text-align: center; font-weight: 700; color: {% if entry.is_passed %}#15803d{% else %}#b91c1c{% endif %};">
+                                                    {% if entry.is_absent %}
+                                                        <span class="text-danger fw-bold">Absent</span>
+                                                    {% else %}
+                                                        {{ entry.marks_obtained|floatformat:0 }}
+                                                    {% endif %}
+                                                </td>
+                                                <td style="padding: 4px 8px; text-align: center; color: #64748b;">{{ entry.max_marks|floatformat:0 }}</td>
+                                                <td style="padding: 4px 8px; text-align: center; color: #64748b;">{{ entry.pass_marks|floatformat:0|default:"-" }}</td>
+                                                <td style="padding: 4px 8px; text-align: center;">
+                                                    {% if entry.is_passed %}
+                                                        <span class="badge bg-success" style="font-size: 0.65rem; padding: 2px 6px;">Pass</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger" style="font-size: 0.65rem; padding: 2px 6px;">Fail</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        {% elif progress_reports %}
                         <div class="table-responsive">
                             <table class="table table-hover table-sm align-middle m-0" style="font-size: 0.85rem;">
                                 <thead>
@@ -908,7 +1036,7 @@
                         {% else %}
                         <div class="text-center py-5 text-muted" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 0.75rem;">
                             <i class="fa-solid fa-file-invoice"></i>
-                            <p class="m-0" style="font-size: 0.85rem; font-weight: 600; color: #94a3b8; margin-top: 0.5rem;">No progress reports found for this student.</p>
+                            <p class="m-0" style="font-size: 0.85rem; font-weight: 600; color: #94a3b8; margin-top: 0.5rem;">No exam marks or progress reports recorded for this student.</p>
                         </div>
                         {% endif %}
                     </div>
